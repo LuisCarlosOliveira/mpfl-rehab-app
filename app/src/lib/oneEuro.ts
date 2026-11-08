@@ -1,0 +1,49 @@
+// One Euro filter. Casiez, Roussel and Vogel, CHI 2012, DOI 10.1145/2207676.2208639.
+// A low-pass filter whose cutoff rises with the speed of the signal.
+
+export interface OneEuroOptions {
+  minCutoff: number; // Hz. Lower removes more jitter.
+  beta: number; // Higher reduces lag in fast moves.
+  dCutoff?: number; // Hz. Cutoff for the speed estimate.
+}
+
+const alpha = (cutoff: number, dt: number) => {
+  const tau = 1 / (2 * Math.PI * cutoff);
+  return 1 / (1 + tau / dt);
+};
+
+export class OneEuroFilter {
+  private xPrev: number | null = null;
+  private dxPrev = 0;
+  private tPrev = 0;
+  private readonly dCutoff: number;
+
+  constructor(private readonly opts: OneEuroOptions) {
+    this.dCutoff = opts.dCutoff ?? 1;
+  }
+
+  /** `t` is the time of the sample in milliseconds. */
+  filter(x: number, t: number): number {
+    if (this.xPrev === null) {
+      this.xPrev = x;
+      this.tPrev = t;
+      return x;
+    }
+    const dt = Math.max((t - this.tPrev) / 1000, 1e-6);
+    const dx = (x - this.xPrev) / dt;
+    const aD = alpha(this.dCutoff, dt);
+    const dxHat = aD * dx + (1 - aD) * this.dxPrev;
+    const cutoff = this.opts.minCutoff + this.opts.beta * Math.abs(dxHat);
+    const a = alpha(cutoff, dt);
+    const xHat = a * x + (1 - a) * this.xPrev;
+    this.xPrev = xHat;
+    this.dxPrev = dxHat;
+    this.tPrev = t;
+    return xHat;
+  }
+
+  reset(): void {
+    this.xPrev = null;
+    this.dxPrev = 0;
+  }
+}
