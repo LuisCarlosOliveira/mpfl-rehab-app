@@ -412,9 +412,10 @@ Clinical limits are in `research/clinical.md` and `docs/clinical-limits.md`. Thi
 - The exported file is unsigned and holds health data. The data controller for the file exchange is an open question for the expert. A DPIA and a consent flow are needed before the future stage.
 - A clinician authoring form does not exist. Protocol files are edited by hand until FR21.
 - Institution protocols (Dartmouth, Lahey, Mayo, UVA, Bankston) are UNVERIFIED. The example protocol does not use them.
-- Open decision: does "above the limit your care team set" break the guardrail ban on pass and fail? The Opus report says no, if in-range reps show nothing. The plan follows this and the user must confirm.
+- Decided by the user, 2026-11-08: "above the limit your care team set" does not break the ban on pass and fail. In-range reps show nothing. The plan follows the Opus report.
 - Open decisions for the clinician: which limits apply to each exercise. Also whether the app stops the set at "close to your limit" or only warns. Also whether the values hold for adolescents. Most MPFL data come from adolescents. All pose data come from healthy adults.
-- Open decision: is a front-view set part of the first release? The reports advise the next release. A stick-figure replay from stored landmarks stores no image, but it is health data in the export.
+- Open decision: is a front-view set part of the first release? The user did not accept the advice to wait. The user asked to investigate a second camera, a phone, that gives a front view at the same time. A stick-figure replay from stored landmarks stores no image, but it is health data in the export.
 - A study with patients needs ethics approval before any frontal-plane value reaches a patient.
 - The real error of the `lite` model on a home webcam in live video is unknown. No study measures it. Every margin depends on T13.
 - About 20 citations in `research/form.md` were not confirmed by the second agent. Two sources cannot be opened: the JMIR preprint 102399 and the JOSPT 2018 FPPA review. They are UNVERIFIED.
+- Model weights license: the card says Apache-2.0. It also says the model is for entertainment and not for life-critical decisions. This does not block the build. It must be decided, with a legal review, before any release to a patient.
