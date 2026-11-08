@@ -20,11 +20,15 @@ Rule: do not copy a fact from these files into another file. Link to the file an
 | `../docs/model.md` | Pose model source, hashes, license text | Model card quotes need a human check |
 | `../.claude/skills/mpfl-clinical-guardrails/SKILL.md` | Wording and behavior rules for screens, camera and data | Scanned, 0 findings |
 
+## Evidence legend
+
+- Access: V (full text opened), V-abstract (abstract or record only), V-second-hand (read in another review), UNVERIFIED (not opened).
+- Population: MPFLR, MPFLR-COMBINED (with another procedure), BORROWED (another condition or healthy people), OPINION.
+- Design and level of evidence: as the source states them. GRADE certainty only for a pooled claim.
+- Some older files write V for V (full text). Read them that way.
+
 ## How an agent uses it
 
-1. Read this index. Then read the sections that your task needs.
-2. Cite the section next to each clinical value, flow step or screen text. Example: "clinical.md section 2, phase 1".
-3. If no section supports the item, mark it PROPOSAL (a design suggestion) or UNVERIFIED. Never present it as evidence.
-4. If your work finds a new fact, add it to the matching file and keep the mark VERIFIED or UNVERIFIED. Do not make a second copy.
-5. Follow the guardrail skill for every word that a patient reads.
-6. The specialist is the skill `mpfl-rehab-knowledge` and the read-only agent of the same name. The agent type loads in a new session. Until then, a general agent gets a brief that names this index and the agent file.
+1. Follow the skill `mpfl-rehab-knowledge` (`.claude/skills/mpfl-rehab-knowledge/SKILL.md`). It holds the method: query, citation, refusal and update rules.
+2. Follow the guardrail skill for every word that a patient reads.
+3. The read-only agent `mpfl-rehab-knowledge` applies both. The agent type loads in a new session. Until then, a general agent gets a brief that names this index and the agent file.

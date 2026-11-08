@@ -5,7 +5,7 @@ description: Safety and wording rules for the MPFL rehabilitation app. Use whene
 
 # MPFL app guardrails
 
-The app counts reps and estimates knee angle from a 2D webcam. The error is about 9 degrees or more. A surgeon sets the protocol. The app never decides treatment. These rules keep that true. The evidence is in `research/clinical.md` and the plan is `MPFL_APP_PLAN.md`.
+The app counts reps and estimates knee angle from a 2D webcam. The error estimate is in `research/form-opus.md` section 3. A surgeon sets the protocol. The app never decides treatment. These rules keep that true. The evidence is in `research/clinical.md` and the plan is `MPFL_APP_PLAN.md`.
 
 ## Before you write
 Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical value, flow step or screen text, or mark it PROPOSAL or UNVERIFIED. Cover the user flow in each design: inputs, measuring, position guidance, camera setup. Keep it KISS and DRY.
@@ -15,19 +15,19 @@ Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical
 - Never write "clinically validated", "clinically proven" or "medically accurate".
 - Never show a goal, pass, fail or milestone, in words or in colour. A user reads "goal reached" as permission to progress.
 - Never judge form. No validated threshold exists after MPFL surgery. A cue states what was measured against a limit that the care team set, for example "depth below your target".
-- Do not use these words in screen text: correct, incorrect, good, bad, perfect, wrong, mistake, safe, dangerous, risk of injury, score, grade, pass, fail. Do not use a green or red verdict colour.
+- Do not use these words in screen text: correct, incorrect, good, bad, perfect, wrong, mistake. Also banned: safe, dangerous, risk of injury, score, grade, pass, fail, goal, milestone. Do not use a green or red verdict colour.
 - An in-range rep shows no message. "Within range" reads as a pass.
-- Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin is 9 degrees, a start value that is UNVERIFIED for the `lite` model. The safety side warns early. The counting side gives the benefit of the doubt.
+- Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin and its status are stated there. The safety side warns early and takes the safe side inside the margin. The counting side gives the benefit of the doubt.
 - Never call a webcam comparison "LSI". LSI needs strength tests. Write "movement symmetry".
-- Show every surgeon decision as "ask your surgeon" when the protocol does not set it. Set no default. The 14 decisions are in `research/clinical.md` section 9.
-- Mark red-flag text "general guidance, not verified for MPFL surgery".
+- Show every surgeon decision as "ask your surgeon" when the protocol does not set it. Set no default. The surgeon decisions are in `research/clinical.md` section 9.
+- Mark red-flag text with the note that `src/lib/redflags.ts` holds (`GENERAL_GUIDANCE_NOTE`).
 - Example data carries the banner "EXAMPLE, NOT APPROVED". Without `PATIENT_USE_APPROVED`, every screen reads "Prototype. Not for patient use."
 
 ## Behavior
 - The app never changes the active phase. Only the protocol field `activePhase` sets it.
 - Red flags come from `src/lib/redflags.ts` in two groups: care team and emergency services. Any "yes" blocks the session.
-- Safety floor with no protocol threshold: pain 7 or more, or swelling "more than before", shows "pause and contact your care team". This is an app rule and not a clinical default.
-- A rep above `maxFlexion` shows an alert and does not count. The cue is "stop at your limit, do not push".
+- The safety floor of FR12 in `MPFL_APP_PLAN.md` applies when the protocol sets no pain threshold. It shows "pause and contact your care team". It is an app rule and not a clinical default. The pain value is stated in FR12 only.
+- A rep at or above `maxFlexion` shows an alert and does not count. The cue is "stop at your limit, do not push". The cue "close to your limit, stop" starts earlier (FR8).
 - A session always has a visible Stop button and a "knee gave way or hurts" button.
 
 ## Camera and data
@@ -38,4 +38,4 @@ Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical
 - Exports carry `angleMethod`, `schemaVersion` and a random pseudonymous id. They carry no name or free text. Quote CSV cells that start with `=`, `+`, `-`, `@`, tab or carriage return.
 
 ## Check
-Run `bash app/scripts/claims-check.sh app/src` after each change. It fails on banned phrases and banned APIs. A line that must keep a banned string, for example in a test about this rule, ends with the marker `claims-check:allow`.
+Run `bash app/scripts/claims-check.sh app/src` from the repo root after each change. It fails on banned phrases, banned APIs, a verdict word in patient text, and a path that does not exist. A line that must keep a banned string, for example in a test about this rule, ends with the marker `claims-check:allow`.

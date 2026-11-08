@@ -41,7 +41,7 @@ function removeListeners() {
   window.removeEventListener('pagehide', stopCamera);
 }
 
-/** Stop every track and remove the exit listeners. Safe to call at any time. */
+/** Stop every track and remove the exit listeners. It is fine to call at any time. */
 export function stopCamera(): void {
   removeListeners();
   const stream = active;
