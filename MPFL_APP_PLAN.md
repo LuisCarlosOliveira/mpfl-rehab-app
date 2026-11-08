@@ -261,7 +261,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Steps: test first. Sessions table with the fields in section 3. Export JSON and CSV (FR14). Import with the strict schema and `schemaVersion`. Erase (FR16). `persist()` call and last-export date (FR17).
 - Tests: JSON round trip. Unknown version rejected. Duplicate import is rejected with a clear message (no merge in the MVP). CSV quoting, commas and formula cells. Erase clears all four stores. Pseudonymous id has no personal data.
 - Acceptance: all pass.
-- Result: pending.
+- Result: DONE 2026-11-08. `tests/storage.test.ts`, 26 tests, written first (red: module missing). Suite is 90 tests, all pass. `typecheck` and `lint` exit 0. Mutation checks: without the CSV formula guard, 6 tests fail. Without the duplicate check, 1 test fails. Code restored and byte-identical. Code is in `src/lib/storage/` (`db.ts`, `export.ts`, `meta.ts`). The tests also cover: round trip of 3 sessions, unknown version, corrupt file, unknown key, `__proto__`, oversize file, no database write by `parseExport`, export with fixed fields only, `persist()` asked once, the 7-day reminder with a fixed clock, and erase of IndexedDB, localStorage, Cache storage and service workers. Limits: the erase test uses mocks for Cache storage and service workers. A real browser check is part of T12. The 5 MB cap checks string length and not bytes. For text with many multi-byte characters the real size is larger. This is a known gap and it is low risk, because the schema also limits every field.
 
 ### T7. Test clip and landmark fixtures
 - Agent: main session. Skills: none. Tech: ffmpeg, Node. Depends on: T0.
