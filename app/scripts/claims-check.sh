@@ -16,7 +16,7 @@ for p in "${paths[@]}"; do
 done
 
 phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|(correct|incorrect|good|bad|perfect) form|\bLSI\b'
-apis='MediaRecorder|toBlob|toDataURL|ImageCapture|dangerouslySetInnerHTML|\beval\('
+apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|getImageData|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\('
 
 hits=0
 for pattern in "$phrases" "$apis"; do
@@ -30,14 +30,12 @@ done
 # Patient text: the word ban applies to the files that hold text a patient reads:
 # any file under a ui folder, cues.ts, redflags.ts and camera.ts.
 words='correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone'
-text_files=$(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) \( -path '*/ui/*' -o -name 'cues.ts' -o -name 'redflags.ts' -o -name 'camera.ts' \) 2>/dev/null)
-if [ -n "$text_files" ]; then
-  # shellcheck disable=SC2086
-  found=$(grep -niwE -e "$words" -e 'risk of injury' $text_files 2>/dev/null | grep -v 'claims-check:allow' || true)
-  if [ -n "$found" ]; then
-    echo "$found"
-    hits=1
-  fi
+# The file list is read with NUL separators, so a path with a space stays one word.
+found=$(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) \( -path '*/ui/*' -o -name 'cues.ts' -o -name 'redflags.ts' -o -name 'camera.ts' \) -print0 2>/dev/null \
+  | xargs -0 -r grep -HniwE -e "$words" -e 'risk of injury' 2>/dev/null | grep -v 'claims-check:allow' || true)
+if [ -n "$found" ]; then
+  echo "$found"
+  hits=1
 fi
 
 if [ "$hits" -ne 0 ]; then

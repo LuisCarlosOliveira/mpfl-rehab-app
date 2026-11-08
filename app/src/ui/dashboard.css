@@ -1,0 +1,131 @@
+/* Styles for the progress charts, the data screen and the care team view.
+   Only the custom properties of styles.css. One neutral ink colour for every mark.
+   No colour carries a meaning. Nothing moves. */
+
+.dash-chart {
+  margin: 1.5rem 0;
+}
+.dash-chart h2 {
+  margin-bottom: 0.25rem;
+}
+.dash-chart-box {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+/* The chart has a fixed size and scales down with its box. The numbers are in the table. */
+.dash-chart-box .recharts-wrapper {
+  max-width: 100%;
+  height: auto !important;
+}
+.dash-chart-box svg {
+  display: block;
+  width: 100% !important; /* Recharts sets 100% height in a style value. Auto height keeps the shape of the viewBox. */
+  height: auto !important;
+}
+.dash-chart-box .recharts-text,
+.dash-chart-box .recharts-label {
+  fill: var(--ink);
+  font-size: 18px;
+}
+.dash-chart-box .recharts-cartesian-axis-line,
+.dash-chart-box .recharts-cartesian-axis-tick-line {
+  stroke: var(--ink);
+}
+.dash-chart-box .recharts-cartesian-grid line {
+  stroke: var(--line);
+  stroke-dasharray: 2 4;
+}
+.dash-chart-box .recharts-line-curve {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.dash-chart-box .recharts-dot {
+  fill: var(--ink);
+  stroke: var(--ink);
+}
+.dash-chart-box .recharts-bar-rectangle path {
+  fill: var(--ink);
+}
+
+/* Tables: numbers right-aligned, the table scrolls inside its own box on a narrow screen. */
+.table-scroll {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.data-table caption {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 700;
+}
+.data-table th,
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.data-table th[scope='col'] {
+  color: var(--muted);
+  font-weight: 700;
+}
+.data-table .num-cell {
+  text-align: right;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.data-table th.num-cell {
+  font-family: var(--font-text);
+}
+
+.dash-note {
+  margin: 0.5rem 0;
+  color: var(--muted);
+}
+
+/* Data screen */
+.status-line {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-weight: 700;
+}
+.btn-danger {
+  border-width: 3px; /* a thick border marks the one action that erases. It is not a colour. */
+}
+
+/* Erase confirmation: a native dialog */
+.erase-dialog {
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 1rem 1.25rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+}
+.erase-dialog::backdrop {
+  background: var(--ink);
+  opacity: 0.6;
+}
+.erase-dialog h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 30rem) {
+  .dash-chart-box {
+    padding: 0.25rem;
+  }
+}

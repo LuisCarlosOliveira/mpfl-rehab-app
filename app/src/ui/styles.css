@@ -1,0 +1,502 @@
+/* Operator-UI rules (ISA-101 style) and the guardrails of the project.
+   Mixed-case text. Square corners (2 px). 1 to 2 px borders. No gradient. No shadow. Nothing moves.
+   No green or red verdict colour. Attention is a thick border plus text, never a colour alone.
+   A monospace font with tabular figures is used for numbers only (.num). */
+
+:root {
+  --bg: #e8e8e5; /* unsaturated light grey */
+  --surface: #f6f6f4;
+  --ink: #1c1e21; /* 13:1 on the background */
+  --muted: #464a50; /* 6.4:1 on the background */
+  --line: #50555c;
+  --focus: #17407a;
+  --disabled-bg: #d6d6d2;
+  --disabled-ink: #55595f; /* 4.6:1 on the disabled background */
+  --radius: 2px;
+  --font-text: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.app {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin: 1rem 0;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+}
+
+h1:focus {
+  outline: none; /* the heading takes focus on a screen change. It is not a control. */
+}
+
+p {
+  margin: 0.5rem 0;
+  max-width: 62ch;
+}
+
+.detail {
+  color: var(--muted);
+}
+
+/* Numbers only */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: 1.25rem;
+}
+
+/* Banners: fixed text on every screen */
+.banners {
+  margin-bottom: 0.5rem;
+}
+.banner {
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-weight: 700;
+}
+.banner::before {
+  content: '\25C6\00a0'; /* diamond: a shape next to the text */
+}
+
+/* Attention: thick border, bold title, a shape. Not a verdict colour. */
+.attention {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--ink);
+  border-left-width: 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.attention-title {
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-top: 0;
+}
+.attention-title::before {
+  content: '\25B2\00a0'; /* triangle */
+}
+
+.block {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.plain-list {
+  padding-left: 1.25rem;
+}
+.plain-list li {
+  margin: 0.5rem 0;
+}
+
+/* Facts: label and value pairs */
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: 0.5rem 1rem;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+}
+.fact-row {
+  display: contents;
+}
+
+/* Buttons: at least 48 px high and wide */
+.btn {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0.5rem 1.25rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--surface);
+}
+.btn:disabled {
+  background: var(--disabled-bg);
+  color: var(--disabled-ink);
+  border-color: var(--disabled-ink);
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+/* Visible focus on every control */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Forms */
+.field {
+  margin: 1rem 0;
+}
+.field label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+input[type='file'] {
+  font: inherit;
+  min-height: 48px;
+  max-width: 100%;
+}
+input[type='file']::file-selector-button {
+  min-height: 48px;
+  margin-right: 1rem;
+  padding: 0 1rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.choices {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.choices legend {
+  padding: 0 0.5rem;
+  font-weight: 700;
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 48px;
+  padding: 0.25rem 0;
+}
+.choice input,
+.scale-item input {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: none;
+  accent-color: var(--ink);
+}
+.scale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.scale-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+/* Exercise list on Home */
+.exercise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.exercise {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--line);
+}
+.exercise:first-child {
+  border-top: 0;
+}
+.exercise-name {
+  font-weight: 700;
+  margin: 0;
+}
+.exercise .detail {
+  margin: 0;
+}
+
+/* Camera preview. It is not mirrored. */
+.preview {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  margin: 1rem 0;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+}
+.preview[hidden] {
+  display: none;
+}
+.preview-small {
+  max-width: 16rem;
+}
+.instruction {
+  min-height: 1.5em;
+  font-weight: 700;
+}
+
+/* Session: readable from 2 metres. The bar keeps both buttons on screen. */
+.session {
+  padding-bottom: 9rem;
+}
+.readout {
+  margin: 1rem 0;
+}
+.readout-line {
+  margin: 0;
+  max-width: none;
+}
+.readout-number {
+  font-size: 5.5rem; /* 88 px. PROPOSAL from research/ux-flow.md section 8.2: about 72 px or more */
+  line-height: 1.1;
+  font-weight: 700;
+}
+.cue-area {
+  min-height: 5rem;
+}
+.cue {
+  min-height: 2rem;
+  margin: 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.cue-alert:not(:empty) {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--ink);
+  border-left-width: 10px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cue-alert:not(:empty)::before {
+  content: '\25B2\00a0';
+}
+
+.session-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border-top: 2px solid var(--ink);
+}
+.session-bar .btn {
+  min-height: 5rem;
+  font-size: 1.5rem;
+}
+.btn-stop {
+  background: var(--ink);
+  color: var(--surface);
+}
+.btn-stop::before {
+  content: '\25A0\00a0'; /* square: a shape next to the text */
+}
+.btn-gave-way {
+  font-size: 1.125rem;
+}
+.session-bar .btn-gave-way {
+  font-size: 1.125rem;
+}
+
+/* Position guide (FR28). Drawing from code. The near leg is thick, the far leg is thin and dashed. No colour carries meaning. */
+.guide-figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+.fig {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.fig-floor {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.fig-support {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.fig-body,
+.fig-near,
+.fig-far {
+  stroke: var(--ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fig-body {
+  stroke-width: 2;
+}
+.fig-near {
+  stroke-width: 3.5;
+}
+.fig-far {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+.fig-head,
+.fig-joint {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.fig-arc {
+  fill: none;
+  stroke: var(--focus);
+  stroke-width: 1.5;
+}
+.fig-camera rect,
+.fig-camera path {
+  fill: var(--ink);
+}
+.fig-label {
+  fill: var(--ink);
+  font-family: var(--font-text);
+  font-size: 5px;
+  font-weight: 700;
+}
+
+/* Setup live check (FR27) */
+.instruction-large {
+  max-width: none;
+  margin: 1rem 0 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.countdown {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.rule-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.rule {
+  padding: 0.25rem 0;
+}
+.rule::before {
+  display: inline-block;
+  width: 1.5rem;
+  font-weight: 700;
+}
+.rule-seen::before {
+  content: '\2713'; /* tick: a shape next to the word */
+}
+.rule-missing::before {
+  content: '\2717'; /* cross */
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+a {
+  color: var(--focus);
+}
+
+@media (max-width: 30rem) {
+  .facts {
+    grid-template-columns: 1fr;
+    gap: 0.125rem;
+  }
+  .facts dd {
+    margin-bottom: 0.5rem;
+  }
+  .readout-number {
+    font-size: 4.5rem;
+  }
+  .guide-figures {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

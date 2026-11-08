@@ -2,12 +2,17 @@
 # Fail if a model or WASM file differs from public/models/SHA256SUMS.
 # Also fail on: a symlink, a file that SHA256SUMS does not list, and a listed name that is not a file here.
 # With the default folder, every line of SHA256SUMS must also appear in ../docs/model.md.
+# With another folder (for example dist/models after the build), its SHA256SUMS must also equal public/models/SHA256SUMS.
 # Usage: model-hash-check.sh [folder]   (default: public/models)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 dir="${1:-public/models}"
 fail() { echo "model-hash-check: FAIL, $1"; exit 1; }
 [ -f "$dir/SHA256SUMS" ] || fail "$dir/SHA256SUMS is missing"
+
+if [ "$#" -gt 0 ]; then
+  cmp -s "$dir/SHA256SUMS" public/models/SHA256SUMS || fail "$dir/SHA256SUMS differs from public/models/SHA256SUMS"
+fi
 
 [ -z "$(find "$dir" -type l)" ] || fail "a symlink is in $dir"
 

@@ -1,5 +1,6 @@
 // Small local values: pseudonymous id, last export date, "persistent storage asked" flag.
 // All of them live in localStorage, so eraseAll() clears them.
+// localStorage can throw (private mode or blocked storage). No function here throws to the caller.
 
 import { z } from 'zod';
 
@@ -11,22 +12,52 @@ const PRIVACY_KEY = 'mpfl.privacySeen';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = 7;
 
+function read(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** False when the value was not stored. The caller works without it. */
+function write(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// crypto.randomUUID exists only in a secure context. getRandomValues works on any origin.
+function newId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6]! & 0x0f) | 0x40;
+  b[8] = (b[8]! & 0x3f) | 0x80;
+  const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+// Kept for this page load only when storage is blocked, so the id stays the same.
+let memoryId: string | null = null;
+
 /** A random id. It is not linked to a person. A new one is made after erase. */
 export function getPseudonymId(): string {
-  let id = localStorage.getItem(PSEUDO_KEY);
-  if (!id || !z.uuid().safeParse(id).success) {
-    id = crypto.randomUUID();
-    localStorage.setItem(PSEUDO_KEY, id);
-  }
+  const stored = read(PSEUDO_KEY);
+  if (stored && z.uuid().safeParse(stored).success) return stored;
+  const id = memoryId ?? newId();
+  memoryId = write(PSEUDO_KEY, id) ? null : id;
   return id;
 }
 
 export function getLastExport(): string | null {
-  return localStorage.getItem(EXPORT_KEY);
+  return read(EXPORT_KEY);
 }
 
 export function markExported(when: Date): void {
-  localStorage.setItem(EXPORT_KEY, when.toISOString());
+  write(EXPORT_KEY, when.toISOString());
 }
 
 /** True when there are sessions and the last export is missing or 7 days old or more. */
@@ -40,8 +71,8 @@ export function exportReminderDue(lastExportIso: string | null, now: Date, hasSe
 
 /** Ask the browser to keep the data. Safari can delete site data after about 7 days. Asked once. */
 export async function requestPersistOnce(): Promise<void> {
-  if (localStorage.getItem(PERSIST_KEY)) return;
-  localStorage.setItem(PERSIST_KEY, '1');
+  if (read(PERSIST_KEY)) return;
+  write(PERSIST_KEY, '1');
   try {
     await navigator.storage?.persist?.();
   } catch {
@@ -51,9 +82,9 @@ export async function requestPersistOnce(): Promise<void> {
 
 /** The privacy notice shows on the first launch. This flag records that the patient saw it. */
 export function hasSeenPrivacyNotice(): boolean {
-  return localStorage.getItem(PRIVACY_KEY) === '1';
+  return read(PRIVACY_KEY) === '1';
 }
 
 export function markPrivacyNoticeSeen(): void {
-  localStorage.setItem(PRIVACY_KEY, '1');
+  write(PRIVACY_KEY, '1');
 }

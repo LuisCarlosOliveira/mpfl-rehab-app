@@ -15,6 +15,8 @@ Rule: do not copy a fact from these files into another file. Link to the file an
 | `dual-camera.md` | Phone as second camera: value, options, sync, first step (Sonnet report) | Several items UNVERIFIED, see its last section |
 | `dual-camera-opus.md` | Same question (Opus report, with a second opinion) | 18 citations of the Sonnet report not opened, OpenCap Q&A PDF unreadable |
 | `webrtc-pairing.md` | Review of the WebRTC video the user shared, three pairing options for the second device, test environment facts of this PC | Video read by transcript only. Repo code not read |
+| `ui-decisions.md` | UI build decision: plain React, no component library. shadcn spike numbers, designeer ideas, Zod and CSP finding | Measured in a scratch copy. Radix variant only |
+| `qr-pairing.md` | QR libraries, offer and answer size, security rules for pairing option A | Real-phone scan and `.local` names UNVERIFIED |
 | `ux-flow.md` | User flow, inputs, camera setup check, position guide, screens, 12 decisions | UX evidence is thin, no MPFL patient study |
 | `progression.md` | Plan adjustment from session data: evidence, regulation, 5 tiers, data shape, clinician summary | Several sources abstract only |
 | `clinical-update.md` | New clinical evidence, 13 protocols, consensus search, existing skills, critique of our skills, top 10 gaps | Delphi full text and UVA protocol not opened |

@@ -63,3 +63,9 @@ describe('package.json', () => {
     expect(pkg.scripts.precheck).toContain('scripts/plan-skills-check.sh');
   });
 });
+
+describe('index.html', () => {
+  it('sends no referrer (S-11)', () => {
+    expect(readFileSync('index.html', 'utf8')).toContain('<meta name="referrer" content="no-referrer" />');
+  });
+});

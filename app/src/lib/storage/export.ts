@@ -15,8 +15,8 @@ export const exportSchema = z.strictObject({
   angleMethod: z.literal(ANGLE_METHOD),
   pseudonymId: z.uuid(),
   protocolId: protocolIdSchema.nullable(),
-  exportedAt: z.iso.datetime(),
-  sessions: z.array(sessionSchema).max(20000),
+  exportedAt: z.iso.datetime().max(40),
+  sessions: z.array(sessionSchema).max(5000),
 });
 
 export type ExportFile = z.infer<typeof exportSchema>;

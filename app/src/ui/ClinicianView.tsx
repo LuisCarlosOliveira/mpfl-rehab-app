@@ -1,0 +1,289 @@
+// Care team view (FR15, FR22a). The care team opens an exported session file and, if wanted, a protocol file.
+// The files stay in memory. This component has no database prop and writes to no store.
+// Text from a file shows as plain text. There is no link and no HTML from file data (NFR10).
+// Every fixed text of the review summary comes from src/lib/reviewSummary.ts. The screen adds no total,
+// rating, no percentage and no colour (research/progression.md section 5.2).
+import { useMemo, useState, type ReactNode } from 'react';
+import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
+import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
+import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
+import { DashboardCharts, TableScroll } from './Dashboard';
+import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
+import './dashboard.css';
+
+const NOT_APPLICABLE = 'Not applicable';
+const NO_VALUE = 'No value';
+
+const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
+
+/** The text of a file, or the reason that it was not read. The size check runs before the read. */
+async function readText(file: File, maxBytes: number): Promise<{ ok: true; text: string } | { ok: false; message: string }> {
+  if (file.size > maxBytes) return { ok: false, message: 'The file is larger than 5 MB.' };
+  try {
+    return { ok: true, text: await file.text() };
+  } catch {
+    return { ok: false, message: 'The app cannot read this file. Try again.' };
+  }
+}
+
+const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
+
+function Table({ label, head, children }: { label: string; head: ReactNode[]; children: ReactNode }) {
+  return (
+    <TableScroll label={label}>
+      <table className="data-table" aria-label={label}>
+        <thead>
+          <tr>
+            {head.map((h, i) => (
+              <th key={i} scope="col">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </TableScroll>
+  );
+}
+
+function CriterionRow({ row }: { row: ReviewRow }) {
+  return (
+    <tr>
+      <td>{row.criterion}</td>
+      <td>{row.limitText ?? NOT_APPLICABLE}</td>
+      <td>{row.evidenceLabel}</td>
+      <td>{row.measuredText}</td>
+      <td>
+        {row.marginText ?? NOT_APPLICABLE}
+        {row.marginSource && ` (${row.marginSource})`}
+      </td>
+      <td>{row.state ?? NOT_APPLICABLE}</td>
+      <td>{row.dataText}</td>
+    </tr>
+  );
+}
+
+interface Props {
+  onBack: () => void;
+  mode: Mode;
+  /** The clock. Tests replace it. */
+  now?: () => Date;
+}
+
+export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
+  const [file, setFile] = useState<ExportFile | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [protocol, setProtocol] = useState<Protocol | null>(null);
+  const [protocolError, setProtocolError] = useState<string | null>(null);
+  const [phaseId, setPhaseId] = useState<number | null>(null);
+
+  // The file has no row ids. They exist in memory only, for the summary module.
+  const sessions = useMemo<SessionRecord[]>(() => (file ? file.sessions.map((s, i) => ({ ...s, id: i + 1 })) : []), [file]);
+
+  const summary = useMemo(
+    () =>
+      file && protocol && phaseId !== null
+        ? buildReviewSummary({ protocol, phaseId, sessions, lastExportAt: null, now: now(), pseudonymId: file.pseudonymId })
+        : null,
+    [file, protocol, phaseId, sessions, now],
+  );
+
+  async function onSessionFile(input: HTMLInputElement) {
+    const picked = input.files?.[0];
+    input.value = ''; // the same file can be picked again
+    if (!picked) return;
+    setFile(null); // an old file never stays under a new error
+    const read = await readText(picked, MAX_IMPORT_BYTES);
+    if (!read.ok) return setFileError(read.message);
+    const parsed = parseExport(read.text);
+    if (parsed.ok) {
+      setFileError(null);
+      setFile(parsed.file);
+    } else {
+      setFileError(parsed.error.message);
+    }
+  }
+
+  async function onProtocolFile(input: HTMLInputElement) {
+    const picked = input.files?.[0];
+    input.value = '';
+    if (!picked) return;
+    setProtocol(null);
+    const read = await readText(picked, MAX_FILE_BYTES);
+    if (!read.ok) return setProtocolError(read.message);
+    const result = loadProtocol(read.text, mode);
+    if (result.ok) {
+      setProtocolError(null);
+      setProtocol(result.protocol);
+      setPhaseId(result.protocol.activePhase);
+    } else {
+      setProtocolError(result.error.message);
+    }
+  }
+
+  return (
+    <section aria-labelledby="clinician-title">
+      <h1 id="clinician-title" tabIndex={-1}>
+        Care team view
+      </h1>
+      <div className="actions">
+        <button type="button" className="btn" onClick={onBack}>
+          Back
+        </button>
+      </div>
+
+      <div className="field">
+        <label htmlFor="clinician-session-file">Session file (.json)</label>
+        <input id="clinician-session-file" type="file" accept=".json,application/json" onChange={(e) => void onSessionFile(e.target)} />
+      </div>
+      {fileError && (
+        <div className="attention" role="alert">
+          <p className="attention-title">Session file not opened</p>
+          <p>{fileError}</p>
+        </div>
+      )}
+
+      {file && (
+        <>
+          <p className="banner" role="note">
+            {BANNER}
+          </p>
+          <p className="dash-note">This file stays in memory. The app does not store it. It is gone when you close or reload this page.</p>
+
+          <div className="field">
+            <label htmlFor="clinician-protocol-file">Protocol file (.json), for the review summary</label>
+            <input id="clinician-protocol-file" type="file" accept=".json,application/json" onChange={(e) => void onProtocolFile(e.target)} />
+          </div>
+          {protocolError && (
+            <div className="attention" role="alert">
+              <p className="attention-title">Protocol file not opened</p>
+              <p>{protocolError}</p>
+            </div>
+          )}
+
+          {protocol && summary ? (
+            <ReviewSummaryBlock protocol={protocol} phaseId={summary.header.phase.id} onPhase={setPhaseId} summary={summary} />
+          ) : (
+            <p>Pick a protocol file to see the review summary.</p>
+          )}
+
+          <h2>Session list</h2>
+          <p className="dash-note">Angles are estimates: {ANGLE_LABEL}.</p>
+          <Table
+            label="Session list"
+            head={['Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling']}
+          >
+            {sessions.map((s) => (
+              <tr key={s.id}>
+                <td>{s.date.slice(0, 16).replace('T', ' ')}</td>
+                <td>{EXERCISE_NAMES[s.exercise]}</td>
+                <td className="num-cell">{s.phase}</td>
+                <td>{s.protocolId}</td>
+                <td className="num-cell">{orNone(s.reps)}</td>
+                <td className="num-cell">{orNone(s.holdSeconds)}</td>
+                <td className="num-cell">{orNone(s.peakFlexion)}</td>
+                <td className="num-cell">{orNone(s.topFlexion)}</td>
+                <td className="num-cell">{s.pain}</td>
+                <td>{SWELLING_TEXT[s.swelling]}</td>
+              </tr>
+            ))}
+          </Table>
+
+          <DashboardCharts sessions={sessions} />
+        </>
+      )}
+    </section>
+  );
+}
+
+function ReviewSummaryBlock({
+  protocol,
+  phaseId,
+  onPhase,
+  summary,
+}: {
+  protocol: Protocol;
+  phaseId: number;
+  onPhase: (id: number) => void;
+  summary: ReviewSummary;
+}) {
+  const { header, events, rows, clinicianChecks, painSwellingTable } = summary;
+  return (
+    <>
+      <h2>Review summary</h2>
+      <div className="field">
+        <label htmlFor="clinician-phase">Phase to review</label>
+        <select id="clinician-phase" value={phaseId} onChange={(e) => onPhase(Number(e.target.value))}>
+          {protocol.phases.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.id}: {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <section className="block" role="region" aria-label="Summary header">
+        <dl className="facts">
+          {(
+            [
+              ['Pseudonymous id', header.pseudonymId ?? 'Not set'],
+              ['Protocol id', header.protocolId],
+              ['Phase', `${header.phase.id}: ${header.phase.name}`],
+              ['Review date', header.reviewDate ?? 'Not set'],
+              ['Last session', header.lastSessionDate ?? 'No sessions'],
+              ['Sessions in this file', String(header.sessionsSinceExport)],
+            ] as const
+          ).map(([label, value]) => (
+            <div className="fact-row" key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <h3>Events in this file</h3>
+      <Table label="Events in this file" head={['Event', 'Count']}>
+        {(Object.keys(EVENT_LABEL) as (keyof typeof EVENT_LABEL)[]).map((key) => (
+          <tr key={key}>
+            <td>{EVENT_LABEL[key]}</td>
+            <td className="num-cell">{events[key]}</td>
+          </tr>
+        ))}
+      </Table>
+
+      <h3>Review criteria</h3>
+      {rows.length === 0 ? (
+        <p>This phase has no review criteria.</p>
+      ) : (
+        <Table label="Review criteria" head={['Criterion', 'Limit', 'Evidence', 'Measured', 'Margin', 'State', 'Data']}>
+          {rows.map((row, i) => (
+            <CriterionRow key={i} row={row} />
+          ))}
+        </Table>
+      )}
+
+      <h3>Checks for the visit</h3>
+      <ul className="plain-list" aria-label="Checks for the visit">
+        {clinicianChecks.map((c) => (
+          <li key={c.key}>
+            {c.text} <span className="detail">{c.evidenceLabel}</span>
+          </li>
+        ))}
+      </ul>
+
+      <h3>Pain and swelling by session</h3>
+      <Table label="Pain and swelling by session" head={['Date and time (UTC)', 'Exercise', 'Pain (0 to 10)', 'Swelling']}>
+        {painSwellingTable.map((r) => (
+          <tr key={r.sessionId}>
+            <td>{r.date.slice(0, 16).replace('T', ' ')}</td>
+            <td>{r.exercise}</td>
+            <td className="num-cell">{r.painText}</td>
+            <td>{SWELLING_TEXT[r.swelling]}</td>
+          </tr>
+        ))}
+      </Table>
+    </>
+  );
+}

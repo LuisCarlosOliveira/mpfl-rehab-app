@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Tests for the check scripts. They prove that each script fails when it must fail.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -157,5 +157,61 @@ describe('plan-skills-check.sh', () => {
 
   it('passes on the real plan', () => {
     expect(run(skills, realPlan).status).toBe(0);
+  });
+});
+
+describe('claims-check.sh: more banned APIs and quoting (S-06)', () => {
+  it.each([
+    'createImageBitmap',
+    'OffscreenCanvas',
+    'getImageData',
+    'navigator.share',
+    'sendBeacon',
+    'WebSocket',
+  ])('fails on the banned API %s', (api) => {
+    put('lib/api.ts', `const x = ${api};`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('skips a banned API on a line with the allow marker', () => {
+    put('lib/api.ts', 'const x = new WebSocket(u); // claims-check:allow');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('does not ban RTCPeerConnection, which the pairing task needs', () => {
+    put('lib/pair.ts', 'const pc = new RTCPeerConnection();');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('checks a patient text file in a folder whose name has a space', () => {
+    put('my folder/ui/a.tsx', 'const t = "Good job";');
+    expect(run(claims, join(dir, 'my folder')).status).toBe(1);
+  });
+});
+
+describe('model-hash-check.sh: built output (S-05)', () => {
+  const hash = resolve(here, '../scripts/model-hash-check.sh');
+  const models = resolve(here, '../public/models');
+  const runHash = (folder: string) => spawnSync('bash', [hash, folder], { encoding: 'utf8' });
+
+  it('passes on a build copy that equals the source', () => {
+    const copy = join(dir, 'dist-models');
+    cpSync(models, copy, { recursive: true });
+    expect(runHash(copy).status).toBe(0);
+  });
+
+  it('fails when a build copy and its own SHA256SUMS were changed together', () => {
+    const copy = join(dir, 'dist-models');
+    cpSync(models, copy, { recursive: true });
+    const task = join(copy, 'pose_landmarker_lite.task');
+    appendFileSync(task, 'x');
+    const digest = spawnSync('sha256sum', [task], { encoding: 'utf8' }).stdout.split(' ')[0];
+    const sums = join(copy, 'SHA256SUMS');
+    const text = spawnSync('cat', [sums], { encoding: 'utf8' }).stdout.split('\n');
+    text[0] = `${digest}  pose_landmarker_lite.task`;
+    writeFileSync(sums, text.join('\n'));
+    const r = runHash(copy);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toMatch(/differs from public\/models\/SHA256SUMS/);
   });
 });

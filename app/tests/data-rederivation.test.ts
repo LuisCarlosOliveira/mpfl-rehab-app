@@ -139,14 +139,15 @@ describe('size cap counts bytes, not characters (FR1)', () => {
   });
 });
 
-describe('an export of 20000 sessions (checked numbers)', () => {
+describe('an export at the session limit (checked numbers)', () => {
   const one = {
     ...session(),
     schemaVersion: 1,
   };
   const many = (count: number) => Array.from({ length: count }, () => one);
 
-  it('is larger than the import cap, so the import names the problem', () => {
+  it('a file over the byte cap is named too-large before the count is read', () => {
+    // 20000 sessions are far over the limit of 5000 and also over the byte cap.
     const raw = JSON.stringify(exportFile(many(20000)), null, 2);
     expect(raw.length).toBeGreaterThan(MAX_IMPORT_BYTES);
     expect(parseExport(raw)).toMatchObject({ ok: false, error: { code: 'too-large' } });
@@ -161,7 +162,7 @@ describe('an export of 20000 sessions (checked numbers)', () => {
 
   it('a count over the schema limit is rejected even in a small file', () => {
     const tiny = { date: one.date };
-    const r = parseExport(JSON.stringify(exportFile(Array.from({ length: 20001 }, () => tiny))));
+    const r = parseExport(JSON.stringify(exportFile(Array.from({ length: 5001 }, () => tiny))));
     expect(r.ok).toBe(false);
   });
 });

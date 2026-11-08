@@ -203,7 +203,7 @@ describe('export reminder (FR17)', () => {
 });
 
 describe('erase (FR16)', () => {
-  it('clears IndexedDB, localStorage, Cache storage and service workers', async () => {
+  it('clears IndexedDB, the mpfl. keys of localStorage, Cache storage and service workers', async () => {
     const db = freshDb();
     await saveSession(db, session());
     localStorage.setItem('other', 'x');
@@ -223,7 +223,8 @@ describe('erase (FR16)', () => {
     await eraseAll(db);
 
     expect(await db.sessions.count()).toBe(0);
-    expect(localStorage.length).toBe(0);
+    expect(localStorage.getItem('mpfl.pseudoId')).toBeNull();
+    expect(localStorage.getItem('other')).toBe('x'); // a key of another app stays (S-09)
     expect(deleted).toEqual(['c1', 'c2']);
     expect(unregistered).toEqual(['sw']);
   });

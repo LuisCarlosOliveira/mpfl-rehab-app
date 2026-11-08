@@ -7,7 +7,7 @@ import { requestPersistOnce } from './meta';
 const counter = z.number().int().min(0).max(100000);
 
 export const sessionSchema = z.strictObject({
-  date: z.iso.datetime(),
+  date: z.iso.datetime().max(40),
   exercise: z.enum(EXERCISE_KINDS),
   side: z.enum(['left', 'right']),
   reps: z.number().int().min(0).max(1000).nullable(),
@@ -74,11 +74,12 @@ export async function clearProtocol(db: MpflDb): Promise<void> {
   await db.protocol.clear();
 }
 
-/** Erase everything this app keeps: IndexedDB, localStorage, Cache storage and service workers. */
+/** Erase everything this app keeps: IndexedDB, the mpfl. keys of localStorage, Cache storage and service workers. */
 export async function eraseAll(db: MpflDb): Promise<void> {
   await db.delete();
   await db.open();
-  localStorage.clear();
+  // Other apps can share this origin, so only the keys of this app go.
+  for (const key of Object.keys(localStorage)) if (key.startsWith('mpfl.')) localStorage.removeItem(key);
   if (typeof caches !== 'undefined') {
     for (const key of await caches.keys()) await caches.delete(key);
   }
