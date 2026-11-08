@@ -2,7 +2,7 @@
 
 This file is the single source of truth. Research inputs are in `research/clinical.md`, `research/apps.md` and `research/tech.md`. Each fact there is marked VERIFIED or UNVERIFIED. This plan keeps those marks.
 
-Status: revision 3. T0 to T6, T8 and T9 are done. T7 is blocked. Date: 2026-11-08.
+Status: revision 4. T0 to T6, T8 and T9 are done. T7 is blocked. Date: 2026-11-08.
 
 ## 0. Progress checklist
 
@@ -12,6 +12,7 @@ Status: revision 3. T0 to T6, T8 and T9 are done. T7 is blocked. Date: 2026-11-0
 - [x] Task plan (section 6)
 - [x] Independent plan review, 3 reviewers, 36 findings (section 9)
 - [x] Form and GitHub investigations (3 reports) folded into the plan (revision 3, section 9)
+- [x] Second camera, UX flow, progression and clinical update reports folded into the plan (revision 4, section 9)
 - [ ] Implementation (tasks T0 to T15, section 6)
 - [ ] Final independent audit (section 10)
 
@@ -27,6 +28,9 @@ Status: revision 3. T0 to T6, T8 and T9 are done. T7 is blocked. Date: 2026-11-0
 - Section 9 of `research/clinical.md` lists 14 decisions that belong to the surgeon. The app shows them as "ask your surgeon" and sets no default.
 - Form monitoring (`research/form.md` and `research/form-opus.md`): two independent reports agree on the core. No validated threshold exists for valgus, trunk lean, pelvic drop or landing after MPFL reconstruction. No study links a movement pattern to recurrence. A clinician can still set a limit for one patient, and the app can report a measured value against it.
 - The patellofemoral pain guideline (Willy 2019, Grade B) advises against visual biofeedback on knee alignment. So the app gives no live alignment cue. Frontal-plane data is future work and is for the clinician only.
+- Clinical update (`research/clinical-update.md`, an Opus report with 13 protocol documents read): the old line "no MPFLR VTE study found" is wrong. A registry of 617 isolated MPFLR patients reports 30-day DVT 0.3 percent, pulmonary embolism 0.3 percent and infection 1.3 percent. Its follow-up is short. Pooled patellar fracture is 1.17 percent. Patella alta and trochlear dysplasia raise the redislocation risk.
+- No AOSSM, ISAKOS, JOSPT or APTA guideline for rehab after MPFLR exists. A 2023 Delphi of 60 surgeons found no agreement on bracing or weight-bearing. MPFL-RSI is not validated. The only randomized trial of faster rehab has 50 patients and included a bone procedure. Red-flag and pain limits rest on expert agreement only.
+- Progression (`research/progression.md`): no study compares criteria-based with time-based progression after MPFLR. The evidence does not support an app that changes the plan. It supports criteria that a clinician sets and a summary that the clinician reads.
 - The 2D side-view knee error is about 9 degrees (Okuno 2026, heavy model, still photos). No study measured the `lite` model in live video. T13 must measure it.
 
 ### 1.2 Existing apps and reuse (research/apps.md)
@@ -81,7 +85,7 @@ Limits of this design: the file is unsigned and the patient can edit it. The fil
 
 The app supports monitoring of exercise and symptoms under a protocol that a clinician sets. It counts reps, estimates knee angle, logs pain and swelling, and shows the trend. It gives no diagnosis. It gives no advice to change phase or load.
 
-This is monitoring of an injury. Under EU MDR this is a medical purpose, so the app is probably medical device software (`research/tech.md` section 6.1, a reading and not a ruling). The class is not settled. The plan does not call the result "lower risk". An expert must read MDCG 2019-11 rev.1 and Annex VIII Rule 11 and set the class. The FDA general-wellness path likely does not fit (UNVERIFIED). Form feedback cannot lower the class. MDCG 2019-11 rev.1 says Rule 11 applies to most software with a medical purpose (a reading from the research, not legal advice). A claim about correct form needs clinical evidence that does not exist for MPFL surgery. So the app reports measured values against limits that a clinician sets, and it never judges form.
+This is monitoring of an injury. Under EU MDR this is a medical purpose, so the app is probably medical device software (`research/tech.md` section 6.1, a reading and not a ruling). The class is not settled. The plan does not call the result "lower risk". An expert must read MDCG 2019-11 rev.1 and Annex VIII Rule 11 and set the class. The FDA general-wellness path likely does not fit (UNVERIFIED). Form feedback cannot lower the class. MDCG 2019-11 rev.1 says Rule 11 applies to most software with a medical purpose (a reading from the research, not legal advice). A claim about correct form needs clinical evidence that does not exist for MPFL surgery. So the app reports measured values against limits that a clinician sets, and it never judges form. It also never recommends a phase change. The clinician view can show measured values against criteria that the clinician wrote (FR22a). MDCG 2019-11 rev.1 gives a lower class when a specialist decides than when software adapts therapy by itself (the example is class III). An expert must confirm the class of FR22a before release.
 
 Control: a build flag `PATIENT_USE_APPROVED`. Without the flag, every screen shows "Prototype. Not for patient use." Nobody can set the flag as part of this work. It needs the expert result and clinician review.
 
@@ -100,7 +104,7 @@ Priority: M = MVP, M2 = built right after the single-camera flow works, F = futu
 | ID | P | Requirement | Acceptance criterion |
 |---|---|---|---|
 | FR1 | M | Load a protocol file. Reject an invalid file with a named error. Import limits: size cap 5 MB before parse, strict schema, maximum length on every string and array, unknown keys rejected. | Valid file loads. Tests: 5 invalid fixtures, oversized file, unknown key, string `<img onerror>`, key `__proto__`. Each is rejected or shown as plain text. |
-| FR2 | M | The protocol holds `schemaVersion`, `side` (left or right), phases, exercises, target ROM, optional `maxFlexion` for each exercise, optional `minRepSeconds`, optional `maxTopFlexion` for the straight leg raise (not smaller than the margin), sets, reps, optional pain pause threshold, surgeon fields, `authoredBy` and `approvedOn`. A missing surgeon field shows "ask your surgeon". No default value appears. | Protocol with no brace field shows the text. Type test: surgeon fields have no default. |
+| FR2 | M | The protocol holds `schemaVersion`, `side` (left or right), phases, exercises, target ROM, optional `maxFlexion` for each exercise, optional `minRepSeconds`, optional `maxTopFlexion` for the straight leg raise (not smaller than the margin), sets, reps, optional pain pause threshold, optional `reviewCriteria` and `reviewDate` for each phase, `surgeon.concurrentProcedures`, surgeon fields, `authoredBy` and `approvedOn`. A missing surgeon field shows "ask your surgeon". No default value appears. | Protocol with no brace field shows the text. Type test: surgeon fields have no default. |
 | FR3 | M | One example protocol is built from the evidence. Each value has a `source` (S-number or PROPOSAL). It loads only in demo mode. A fixed banner reads "EXAMPLE, NOT APPROVED". | Banner appears on every route and on the error state. Patient mode refuses the example. |
 | FR4 | M | The active phase comes only from the protocol field `activePhase`. The store is read-only and has no setter. | Type test: no setter. Grep check with this exact pattern in precheck: no `setActivePhase` and no write to `activePhase` outside `src/lib/protocol/`. |
 | FR5 | M | Before each session, show the red-flag check from a fixed list (data file `src/lib/redflags.ts`). The list has two groups: "call your care team" and "call emergency services". The text says "general guidance, not verified for MPFL surgery". Any "yes" blocks the session and shows the message of its group. A direct route to the session screen redirects to the check. | Test for each item and each group. Playwright test opens the session route directly and lands on the check. |
@@ -118,12 +122,16 @@ Priority: M = MVP, M2 = built right after the single-camera flow works, F = futu
 | FR17 | M | Home shows the date of the last export and a reminder after 7 days. The app calls `navigator.storage.persist()` at the first save. | Test with a mocked clock and a mocked storage API. |
 | FR18 | M | A short privacy notice screen. It says: no video leaves the device, a shared device means shared data, the export holds health data. | Screen exists and is linked from Home. |
 | FR23 | M | Movement cues in neutral wording, from a fixed list in `src/lib/cues.ts`: below the target, close to the limit, above the limit, rep faster than the minimum rep time, leg not visible, estimated angle at the top. Each cue says what was measured. An in-range rep shows nothing, because "within range" reads as a pass. No right or wrong, no good or bad, no score, no pass or fail, and no green or red verdict colour. | One test for each cue. The banned-word check on `src/ui` and `src/lib/cues.ts` finds none of the words in the guardrail skill. A test finds no green or red verdict style in the UI. |
+| FR26 | M | The protocol is kept in the browser database, so the patient loads it once. Erase (FR16) clears it. | Test: reload the app and the protocol is still there. After erase it is gone. |
+| FR27 | M | Camera setup check before each session, with live rules on the pose result: pose found, hip, knee and ankle visible, whole leg in the frame, size, side-on, still. Each failed rule shows one plain instruction as text and speech. All rules pass starts a 5-second timer. Rules and wording are in `research/ux-flow.md` section 5. | The rules are a pure function with one test for each rule. A screen-reader live region carries the same text. |
+| FR28 | M | Position guide for each exercise before the camera step: a simple drawing made from code (no photo, no video of a person) plus text steps. Content in `research/ux-flow.md` section 6. | Each of the 4 exercises has a guide with start position, which leg faces the camera, range in words and speed. A test finds no verdict word. |
 | FR19 | F | Left and right comparison from two recordings. Label it "movement symmetry", never "LSI". | Not built. |
 | FR20 | F | Frontal-plane valgus, trunk lean, hip drop and any "correct form" label. No validated threshold exists (`research/clinical.md` section 4). | Not built. |
 | FR21 | F | Clinician protocol authoring form, accounts, shared data, live dashboard, encrypted export. | Not built. |
 | FR24 | M2 | Front view, from the second device or from a turn-to-camera set: knee moving inward as a change from the start of the rep. Recorded for the clinician, with a stick-figure replay from stored landmarks (no image). No live cue. Needs an own accuracy test and a clinician limit. | Unit test of the per-rep change value. The replay shows no image. The clinician view shows the value with its margin. |
 | FR25 | M2 | Optional second view from an Android phone on the same network. The phone runs the pose model and sends only landmark numbers over a WebRTC data channel, with no third-party server (empty `iceServers`). Pairing by QR codes. If pairing fails, the app continues with one camera. Side-view criteria C1 to C6 keep using the side view. | A two-tab test pairs and streams landmarks. A network test shows no third-party host and no video. Pairing failure falls back to one camera. A real-phone test records the frame rate of each view (target 15 or more) and the result. |
-| FR22 | F | Progression suggestions. Needs clinical validation and regulatory review. | Not built. |
+| FR22a | M2 | Clinician review summary in the clinician view (FR15). The protocol holds optional criteria that the clinician wrote (`research/progression.md` section 5). The summary shows measured values against them with the margin. Three states only: above the limit by more than the margin, below it by more than the margin, or cannot tell. No "met", no total, no colour verdict. Criteria never reach the patient screens. The app never changes the phase (FR4). | A fixture checks the three states at limit minus margin, at the limit and at limit plus margin. The text list has none of the banned words. Fewer than 3 sessions shows "Not enough data". |
+| FR22b | F | The app proposes a plan change that the clinician approves. Gates in `research/progression.md` section 4.3. Automatic adjustment is never built. | Not built. |
 
 ### 2.2 Non-functional
 
@@ -168,7 +176,7 @@ exported JSON -> Zod schema -> memory only -> same dashboard (clinician view)
 | `scripts/` | `claims-check.sh`, `deps-check.sh`, `allowed-deps.txt`, hash check |
 | `tests/` | Vitest and Playwright tests, fixtures |
 
-Session record fields: date, exercise, side, reps, peak flexion, hold seconds and `topFlexion` (the estimated angle at the top). Also margin degrees, margin source, pain, swelling, protocol id, phase and `schemaVersion`.
+Session record fields: date, exercise, side, reps, peak flexion, hold seconds and `topFlexion` (the estimated angle at the top). Also margin degrees, margin source, view, fixed event counters (red-flag blocks, gave way presses, near-limit, over-limit, too-fast), pain, swelling, protocol id, phase and `schemaVersion`. The schema version stays 1 until the first release, because no stored data exists yet.
 
 Reuse: MediaPipe, Dexie, Recharts, Zod. Own code: angle, filter, counters. These are small. A package adds risk and gives no gain.
 
@@ -239,7 +247,7 @@ User decision, 2026-11-08. These rules hold for each agent and each brief.
 | Accuracy | Bland-Altman script | only if reference data exists |
 | Clinical validation | Not possible here | See section 11 |
 
-Test first: all logic code (T2 to T6, T9 and the rule parts of T10). UI layout is not test-first because the layout is judged by eye and by axe. Vitest runs with `--maxWorkers=2` and Playwright with `--workers=1`. The repo has no pipeline, so these run locally, one suite at a time.
+The setup rules and the review summary are pure functions with their own tests. Test first: all logic code (T2 to T6, T9 and the rule parts of T10). UI layout is not test-first because the layout is judged by eye and by axe. Vitest runs with `--maxWorkers=2` and Playwright with `--workers=1`. The repo has no pipeline, so these run locally, one suite at a time.
 
 ## 6. Tasks (in order)
 
@@ -265,6 +273,13 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Tests: skillspector scan. Style check. A behavior test with three trap questions. One is a surgeon decision (flexion limit in weeks 0 to 6). One is a value with no validated source (a bad valgus angle). One is a permission question (running in week 10). A pass means no invented number, "ask your surgeon" where it applies, borrowed values labeled, and citations that exist.
 - Acceptance: scan has no high finding. The behavior test passes and the main session checks each cited section against the files.
 - Result: DONE with an open item, 2026-11-08. Scan (static only): risk score 14, LOW, 2 MEDIUM findings. Both judged false positives. "Session Persistence" matched the description words "add new evidence", which means editing a file. "Skill Enumeration" matched one path pointer to the guardrail skill, which keeps wording rules in one place. Registry search: the nearest skills are `musculoskeletal-care` (2 installs), `rehab-therapy` (1), `sports-medicine-protocol` (1) and `literature-lookup` (9). All are under the 100-install caution line and none has MPFL content. None was adopted. Behavior test (a general agent acting as the agent definition): all three traps passed. The citations were checked against `clinical.md`, `form.md`, `form-opus.md` and `dual-camera.md`, and all exist. Open item: the agent type is not loaded in this session. It must load in a new session, and this is not yet shown.
+
+### T1c. Improve both project skills with skill-creator
+- Agent: main session. Skills: `skill-creator:skill-creator` (the user ordered it for every skill). Tech: SKILL.md, evals. Tools: `mcp__skillspector__scan_skill`. Depends on: T1, T1b. Source: `research/clinical-update.md` section 5 (15 proposed edits).
+- Steps: for each skill, snapshot it. Run the test prompts in `evals/evals.json` with the skill and without it. Grade each assertion. Apply the edits of the critique that pass the KISS and DRY test (the skill holds no facts). Run the iteration again. Run the description check. Scan with skillspector. Deviation from the skill-creator method: one agent runs all prompts of one skill and one condition, to keep the agent count low.
+- Tests: assertion pass rate with the skill is higher than without it. No assertion that always passes in both runs stays unnoticed.
+- Acceptance: pass rate with the skill is at least 90 percent on both skills. The scan has no high finding. The changes and the numbers are recorded here.
+- Result: pending.
 
 ### T2. Angle function and visibility gate
 - Agent: main session. Skills: `context7-mcp` (landmark IDs). Tech: TypeScript, Vitest. Depends on: T0.
@@ -301,6 +316,20 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Acceptance: all pass.
 - Result: DONE 2026-11-08. `tests/storage.test.ts`, 26 tests, written first (red: module missing). Suite is 90 tests, all pass. `typecheck` and `lint` exit 0. Mutation checks: without the CSV formula guard, 6 tests fail. Without the duplicate check, 1 test fails. Code restored and byte-identical. Code is in `src/lib/storage/` (`db.ts`, `export.ts`, `meta.ts`). The tests also cover these cases. Round trip of 3 sessions. Unknown version, corrupt file, unknown key, `__proto__` and oversize file. No database write by `parseExport`. Export with fixed fields only. `persist()` asked once. The 7-day reminder with a fixed clock. Erase of IndexedDB, localStorage, Cache storage and service workers. Limits: the erase test uses mocks for Cache storage and service workers. A real browser check is part of T12. The 5 MB cap checks string length and not bytes. For text with many multi-byte characters the real size is larger. This is a known gap and it is low risk, because the schema also limits every field.
 
+### T5b. Protocol schema follow-up
+- Agent: main session. Skills: `mpfl-clinical-guardrails`, `mpfl-rehab-knowledge`. Tech: Zod, Vitest. Depends on: T5. Source: `research/progression.md` section 5.1 and `research/ux-flow.md` section 11.
+- Steps: test first. Add optional `reviewCriteria` (numeric, swelling and clinician-check rows, at most 12, fixed key lists, no free text) and optional `reviewDate` for each phase. Add `surgeon.concurrentProcedures`. Add `minRepSeconds` and `maxTopFlexion` (not smaller than the margin) to the exercise. No default for any value. No generic rule engine.
+- Tests: a missing field shows "ask your surgeon" or "ask your care team". An unknown key, a wrong type, more than 12 rows and a free-text key are rejected. The example protocol still loads.
+- Acceptance: all earlier protocol tests pass and the new tests pass. FR2 holds.
+- Result: pending.
+
+### T6b. Storage follow-up
+- Agent: main session. Skills: none. Tech: Dexie, Zod, Vitest. Depends on: T6, T5b. Source: `research/ux-flow.md` section 11 (decisions 1 and 3).
+- Steps: test first. Add a protocol table so the patient loads the protocol once (FR26). Erase clears it. Add to the session record: `topFlexion` (renamed from `extensionLag`), `marginDeg`, `marginSource`, `view` and the fixed counters of section 3. Update the export schema, the CSV columns and all tests. Keep `schemaVersion` 1.
+- Tests: the protocol survives a reload and is gone after erase. A round trip keeps the new fields. The CSV has the new columns. An unknown field is rejected.
+- Acceptance: all earlier storage tests pass and the new tests pass.
+- Result: pending.
+
 ### T7. Test clip and landmark fixtures
 - Agent: main session. Skills: none. Tech: ffmpeg, Node. Depends on: T0.
 - Steps: find a side-view exercise video with a permissive license (the license is recorded). If none exists, ask the user for a short consented clip, or record the gap as a blocker. Convert the clip with `ffmpeg` to the format that the Chromium fake video flag needs. Later, T8 runs the landmarker on it and stores the landmark JSON as a replay fixture. A stick-figure video is not used, because it gives no reliable landmarks.
@@ -323,8 +352,8 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Result: DONE with a limit, 2026-11-08. `src/lib/exercises.ts` and `tests/exercises.test.ts` (20 tests, helper `tests/helpers/leg.ts`). Written first. The suite has 111 tests and all pass. `typecheck` and `lint` exit 0. The four exercises are defined. A missing target or hold time gives `ask-your-surgeon` and no default. Replay tests run synthetic landmarks through the whole chain: visibility, angle, filter and counter. Ten heel slides with landmark noise count 10. An over-limit peak counts 0 and gives an alert. The mini squat ceiling works. A lost leg pauses and keeps the count. The hold resets on a bend. The straight leg raise reports the worst lag. Mutation checks: no settle time (1 test fails), no minimum target (1 test fails), ceiling dropped (4 tests fail). Code restored and identical. Design fix found while writing the replay test: the straight leg raise lag is read only after 500 ms of raise. The filter starts at 0. Without the wait, every lift reports a lag of about 0. Change to T4: the hold counter has a `direction` (at least or at most), so the extension hold works. Limit: the replay uses synthetic landmarks. It does not test the pose model on real video. This is the T7 blocker.
 
 ### T9b. Margin rule and movement cues
-- Agent: main session. Skills: `mpfl-clinical-guardrails`. Tech: TypeScript, Zod, Vitest. Depends on: T4, T5, T6, T9.
-- Steps: test first. Add `src/lib/margin.ts` with `MARGIN_DEG = 9` and its source text ("start value, UNVERIFIED for lite, Okuno 2026"). Make the rep counter margin-aware (FR8). Count from target minus margin. Warn from limit minus margin with the event `near-limit`. Refuse the count above limit plus margin. Add the rep duration and the event `too-fast` when a counted rep is shorter than `minRepSeconds` (PROPOSAL start value 2 s). Add `minRepSeconds` and `maxTopFlexion` to the protocol schema. Zod rejects a `maxTopFlexion` smaller than the margin and the error text names the margin. Rename `extensionLag` to `topFlexion` in the pipeline, the session schema, the export schema and the tests. Add `marginDeg` and `marginSource` to the session record and the export. Write `src/lib/cues.ts`: a fixed list from key to text, no free text, and no cue for an in-range rep. A failed visibility gate gives "cannot tell" and never an in-range result.
+- Agent: main session. Skills: `mpfl-clinical-guardrails`. Tech: TypeScript, Zod, Vitest. Depends on: T4, T5, T5b, T6, T6b, T9.
+- Steps: test first. Add `src/lib/margin.ts` with `MARGIN_DEG = 9` and its source text ("start value, UNVERIFIED for lite, Okuno 2026"). Make the rep counter margin-aware (FR8). Count from target minus margin. Warn from limit minus margin with the event `near-limit`. Refuse the count above limit plus margin. Add the rep duration and the event `too-fast` when a counted rep is shorter than `minRepSeconds` (PROPOSAL start value 2 s). Add `minRepSeconds` and `maxTopFlexion` to the protocol schema. Zod rejects a `maxTopFlexion` smaller than the margin and the error text names the margin. The pipeline reports `topFlexion`. The storage changes are in T6b. Write `src/lib/cues.ts`: a fixed list from key to text, no free text, and no cue for an in-range rep. A failed visibility gate gives "cannot tell" and never an in-range result.
 - Decision recorded: the plan does not add a generic `criteria` array that the Opus report proposes. C1 to C5 already map to existing protocol fields. A second structure copies them (DRY and YAGNI). Revisit if a clinician needs more criteria.
 - Tests: boundaries at limit minus margin, at the limit and at limit plus margin, for the ceiling and for the target. The example target 45, ceiling 50 and margin 9 warns from 41 and counts from 36. A noise test with an error equal to the margin. A fast rep gives `too-fast` and a slow rep gives none. The Zod rejection. Every cue text passes `claims-check.sh`. A test lists every cue text and finds none of the banned words.
 - Acceptance: FR8 and FR23 pass. A mutation check (remove the margin from the ceiling test) fails at least one test.
@@ -338,10 +367,17 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Result: pending.
 
 ### T10. Session screens
-- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T8, T9, T9b, T9c.
-- Steps: build five screens. Home shows the active phase, approval fields, last export, banners and build flag text. RedFlag. Session shows video, live angle, rep count, cues, live region, and the Stop and "knee gave way" buttons. Summary asks pain and swelling, saves, and applies the safety floor. Privacy. Test first for the rule parts: red-flag block, safety floor, buttons. Show a cue only from `src/lib/cues.ts`. An in-range rep shows no message. Use no green or red verdict colour. The setup flow has one optional step "Add a second device" that is hidden until T12b. The Session screen accepts one or two sources.
+- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T6b, T8, T9, T9b, T9c.
+- Steps: build the core screens of `research/ux-flow.md` section 6. The setup check and the position guide are in T10b. Five core screens follow. Home shows the active phase, approval fields, last export, banners and build flag text. RedFlag. Session shows video, live angle, rep count, cues, live region, and the Stop and "knee gave way" buttons. Summary asks pain and swelling, saves, and applies the safety floor. Privacy. Test first for the rule parts: red-flag block, safety floor, buttons. Show a cue only from `src/lib/cues.ts`. An in-range rep shows no message. Use no green or red verdict colour. The setup flow has one optional step "Add a second device" that is hidden until T12b. The Session screen accepts one or two sources.
 - Tests: Testing Library for FR5, FR10 (audio mock), FR11, FR12. `claims-check.sh` passes. Every route shows the label "estimated angle, not a medical measurement" where an angle appears.
 - Acceptance: FR3, FR5, FR10, FR11, FR12, FR17 and FR18 pass their tests.
+- Result: pending.
+
+### T10b. Camera setup check and position guide
+- Agent: main session (rules, tests), Frontend Developer (screens). Skills: `mpfl-clinical-guardrails`, `mpfl-rehab-knowledge`, `frontend-design:frontend-design`, `web-design-guidelines`. Tech: TypeScript, React, SVG. Depends on: T9c, T10. Source: `research/ux-flow.md` sections 5 to 7.
+- Steps: test first. Write the setup rules as a pure function from landmarks to one instruction or "ready" (FR27). Every number except the 2.0 to 2.5 m distance is a PROPOSAL and is named in one config object. Draw the stick figure of each exercise from code, with start and end key frames, a camera icon, labels and the protocol limit (FR28). Add the optional "Add a second device" step as a hidden slot. Show the same text in a live region.
+- Tests: one test for each of the 8 rules, with synthetic landmarks. A test finds no verdict word in the guide text. A drawing test checks that each exercise has its labels. A Playwright test shows the instruction text with the fake camera.
+- Acceptance: FR27 and FR28 pass. The number values are marked for T13 to tune.
 - Result: pending.
 
 ### T11. Dashboards and data screen
@@ -349,6 +385,13 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Steps: one Dashboard component with a data source prop. Patient mode reads Dexie. Clinician mode reads a parsed file in memory. Data screen: export with warning, import check, erase with confirmation. No goal or milestone wording or colour.
 - Tests: chart and table show equal numbers. Clinician fixture values. IndexedDB unchanged after clinician load. Erase flow.
 - Acceptance: FR13 to FR16 pass.
+- Result: pending.
+
+### T11b. Clinician review summary
+- Agent: Frontend Developer. Skills: `mpfl-clinical-guardrails`, `mpfl-rehab-knowledge`, `frontend-design:frontend-design`, `web-design-guidelines`. Tech: React, TypeScript. Depends on: T5b, T11. Source: `research/progression.md` section 5.2.
+- Steps: test first. Build the summary on the clinician view of T11 (memory only). It has a header and the events since the last export. Each criterion has one row. The row shows the limit, the evidence label and the margin. It also shows the median of the last N sessions with at least 5 counted reps, one of three states, and n of N sessions. Then it shows the fixed list of checks for the visit and the pain and swelling table. No total, no score, no colour verdict.
+- Tests: fixtures at limit minus margin, at the limit and at limit plus margin. Fewer than N sessions gives "Not enough data". A hidden leg gives "Cannot tell". The text list passes the banned-word check. IndexedDB stays unchanged.
+- Acceptance: FR22a passes. The regulatory expert confirms the class of this summary before release (section 11).
 - Result: pending.
 
 ### T12. End-to-end tests
@@ -433,6 +476,8 @@ Rejected:
 
 Revision 3 (after the form and GitHub investigations, 2026-11-08). A Sonnet and an Opus agent investigated form monitoring in two independent reports. They agree that no validated form threshold exists after MPFL surgery. They also agree on a design with limits that the clinician sets, an error margin and no app verdict. Changes in the plan: FR8 and FR9 changed, FR23 was rewritten, FR24 was added, T9b was rewritten and the banned-word list grew. The reports disagree on one point. The Sonnet report shows "within the range your care team set" for an in-range rep. The Opus report shows nothing. The plan follows the Opus report, because the message reads as a pass. This is an open decision for the user (section 11). The Opus report also corrected the Sonnet report on three points. They are the test-retest value of the Asaeda 2024 change measure, the MediaPipe model name in Kim 2026, and the counting rule near the margin.
 
+Revision 4 (after the second camera, UX flow, progression and clinical update reports, 2026-11-08). The two second-camera reports (Sonnet and Opus) agree on the facts. The user decided to schedule the second view anyway (FR25). The UX report added the setup check, the position guide and the update loop (FR26 to FR28). The progression report supports a clinician summary and not automatic adjustment (FR22a, FR22b). The Opus clinical update corrected the VTE line and read 13 protocols. The skill critique proposes 15 edits (T1c). The user ordered that every skill change uses skill-creator.
+
 ## 10. Final audit
 
 An independent agent maps each requirement to a passing test. An Opus agent gives one final verdict after that (`OPUS-REASON: final-verdict`). The report lives in `docs/final-audit.md`.
@@ -462,3 +507,6 @@ Clinical limits are in `research/clinical.md` and `docs/clinical-limits.md`. Thi
 - Needed from the user before T12b: is a hosted HTTPS address for the phone page acceptable, because a phone cannot use `localhost`? Can the allowed-dependency list grow by one QR library? What privacy wording is used for two devices? The reports advise against third-party webcam apps.
 - Needed from the user for the real-phone test: the Android model and version, and the Chrome versions on the phone and the computer. Also a USB data cable and a phone stand. Also the router model and whether client isolation or a guest network is on. Also consent to record a short test set.
 - Unproven risks of the second device: router client isolation and local address hiding in Chrome (UNVERIFIED). Also a phone that sleeps or heats up. Also WebRTC traffic that the CSP and the current network test do not cover.
+- UX decisions that need the clinician or the user (`research/ux-flow.md` section 11). The red-flag format: tick list or yes and no. What "more than before" means for swelling. Whether the text "your care team will review" is used, which needs a clinic that reviews each file. Preview or stick figure during the run. English only until a clinician reviews each string. The plan follows the recommendation of the report for the rest.
+- The regulatory expert must confirm that FR22a does not raise the class above what the app already has. If the expert says it does, the app ships the same data table without the criteria rows and adds FR22a later.
+- The remaining patient-risk gaps are listed in `research/clinical-update.md` section 6. Every surgeon decision in `research/clinical.md` section 9 is still needed.

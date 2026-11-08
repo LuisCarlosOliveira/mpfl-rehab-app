@@ -13,8 +13,10 @@ Rule: do not copy a fact from these files into another file. Link to the file an
 | `apps.md` | Commercial and open-source rehab apps, licenses, reuse verdicts | Commercial facts are claims |
 | `github-features.md` | Reference repos for each feature, license flags, gaps that no repo covers | License read from the API field only |
 | `dual-camera.md` | Phone as second camera: value, options, sync, first step (Sonnet report) | Several items UNVERIFIED, see its last section |
-| `dual-camera-opus.md` | Same question (Opus report, with a second opinion) | Pending |
-| `ux-flow.md` | User flow, inputs, camera setup guidance, position guidance | Pending |
+| `dual-camera-opus.md` | Same question (Opus report, with a second opinion) | 18 citations of the Sonnet report not opened, OpenCap Q&A PDF unreadable |
+| `ux-flow.md` | User flow, inputs, camera setup check, position guide, screens, 12 decisions | UX evidence is thin, no MPFL patient study |
+| `progression.md` | Plan adjustment from session data: evidence, regulation, 5 tiers, data shape, clinician summary | Several sources abstract only |
+| `clinical-update.md` | New clinical evidence, 13 protocols, consensus search, existing skills, critique of our skills, top 10 gaps | Delphi full text and UVA protocol not opened |
 | `../docs/model.md` | Pose model source, hashes, license text | Model card quotes need a human check |
 | `../.claude/skills/mpfl-clinical-guardrails/SKILL.md` | Wording and behavior rules for screens, camera and data | Scanned, 0 findings |
 

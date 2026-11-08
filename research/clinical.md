@@ -2,6 +2,8 @@
 
 Date: 2026-11-08. Scope: adult and adolescent isolated MPFL reconstruction (MPFLR).
 
+Update 2026-11-08: `clinical-update.md` adds new evidence, 13 protocol documents and corrections to this file. Read both. Where they differ, the update wins and names its sources.
+
 This file is research input for a webcam exercise tracker. It is not medical advice. It does not give treatment as fact. A surgeon protocol always overrides this file.
 
 ## How to read this file
@@ -194,7 +196,7 @@ Most items here come from general clinical practice and not from a source opened
 ### Not verified (general practice, no source opened)
 
 - Redislocation signs: a new "giving way" feeling, a visible patella shift, a sudden pop, sudden swelling, an inability to bear weight. UNVERIFIED.
-- Deep vein thrombosis (DVT): calf pain, calf swelling, warmth, redness. UNVERIFIED for MPFLR. No MPFLR VTE study was found.
+- Deep vein thrombosis (DVT): calf pain, calf swelling, warmth, redness. UNVERIFIED for MPFLR signs. Corrected in `clinical-update.md`: one registry (617 isolated MPFLR patients) reports 30-day DVT 0.3 percent. Follow-up is short.
 - Pulmonary embolism: sudden shortness of breath, chest pain. UNVERIFIED.
 - Infection: fever, spreading redness, wound drainage, increasing wound pain. UNVERIFIED.
 - Effusion: large or increasing swelling after exercise. UNVERIFIED. No numeric threshold found.
@@ -231,7 +233,7 @@ Open clinical questions:
 - Do concurrent procedures (TTO, trochleoplasty) change the loading limits? S10 and S2 say yes. No dose data was found.
 - Does graft type or fixation change the protocol? S22 compares two grafts in 35 patients and recommends personalised protocols. Evidence is low.
 - Do webcam angle measures agree with goniometer values? UNVERIFIED. No validation source was opened.
-- DVT risk and prophylaxis after MPFLR are not covered by any source opened here.
+- DVT risk is covered by one registry (see `clinical-update.md`). Prophylaxis after MPFLR is still not covered. The Cochrane data on knee arthroscopy are borrowed.
 
 ## 9. What the app must leave to the surgeon
 
@@ -257,4 +259,4 @@ The app must show these items as "ask your surgeon". It must not set a default.
 - Full texts of S2 to S24 were not read. Only abstracts and records were used.
 - The PubMed website blocked automated fetch. Europe PMC records replaced it.
 - Institution protocol PDFs did not parse (no PDF tool was available).
-- No source was found for DVT, infection or effusion thresholds, hip and ankle target angles, webcam validity, or BFR after MPFLR.
+- No source was found for effusion thresholds, hip and ankle target angles, or BFR after MPFLR. DVT and infection rates now have one source (`clinical-update.md`). Webcam validity is in `form-opus.md`.
