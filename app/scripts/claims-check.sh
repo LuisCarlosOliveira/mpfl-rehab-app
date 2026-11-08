@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 paths=("$@")
 [ ${#paths[@]} -eq 0 ] && paths=(src)
 
-phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|\bLSI\b'
+phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|(correct|incorrect|good|bad|perfect) form|\bLSI\b'
 apis='MediaRecorder|toBlob|toDataURL|ImageCapture|dangerouslySetInnerHTML|\beval\('
 
 hits=0

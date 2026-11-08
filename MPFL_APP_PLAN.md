@@ -104,8 +104,9 @@ Priority: M = MVP, F = future. Each requirement has an acceptance criterion (AC)
 | FR16 | M | Erase all local data with one action and a confirmation. It clears IndexedDB, localStorage, Cache storage and service workers. | After erase, all four are empty. |
 | FR17 | M | Home shows the date of the last export and a reminder after 7 days. The app calls `navigator.storage.persist()` at the first save. | Test with a mocked clock and a mocked storage API. |
 | FR18 | M | A short privacy notice screen. It says: no video leaves the device, a shared device means shared data, the export holds health data. | Screen exists and is linked from Home. |
+| FR23 | M | Movement cues in neutral wording. Cues: depth below the target, above the ceiling, rep faster than the minimum rep time, leg not visible. Each cue says what was measured. No right or wrong, no good or bad form, no score, no pass or fail. The minimum rep time is a PROPOSAL start value and the protocol can set it. | One test for each cue. Banned-phrase check finds none of the words correct form, incorrect form, good form, bad form or perfect form. |
 | FR19 | F | Left and right comparison from two recordings. Label it "movement symmetry", never "LSI". | Not built. |
-| FR20 | F | Frontal-plane valgus cue. Needs a validated threshold. | Not built. |
+| FR20 | F | Frontal-plane valgus, trunk lean, hip drop and any "correct form" label. No validated threshold exists (`research/clinical.md` section 4). | Not built. |
 | FR21 | F | Clinician protocol authoring form, accounts, shared data, live dashboard, encrypted export. | Not built. |
 | FR22 | F | Progression suggestions. Needs clinical validation and regulatory review. | Not built. |
 
@@ -284,8 +285,15 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Acceptance: each of the four exercises has a passing counter test. The replay test counts the known number of reps within a tolerance of 1.
 - Result: DONE with a limit, 2026-11-08. `src/lib/exercises.ts` and `tests/exercises.test.ts` (20 tests, helper `tests/helpers/leg.ts`). Written first. The suite has 111 tests and all pass. `typecheck` and `lint` exit 0. The four exercises are defined. A missing target or hold time gives `ask-your-surgeon` and no default. Replay tests run synthetic landmarks through the whole chain: visibility, angle, filter and counter. Ten heel slides with landmark noise count 10. An over-limit peak counts 0 and gives an alert. The mini squat ceiling works. A lost leg pauses and keeps the count. The hold resets on a bend. The straight leg raise reports the worst lag. Mutation checks: no settle time (1 test fails), no minimum target (1 test fails), ceiling dropped (4 tests fail). Code restored and identical. Design fix found while writing the replay test: the straight leg raise lag is read only after 500 ms of raise. The filter starts at 0. Without the wait, every lift reports a lag of about 0. Change to T4: the hold counter has a `direction` (at least or at most), so the extension hold works. Limit: the replay uses synthetic landmarks. It does not test the pose model on real video. This is the T7 blocker.
 
+### T9b. Movement cues
+- Agent: main session. Skills: `mpfl-clinical-guardrails`. Tech: TypeScript, Vitest. Depends on: T4, T9.
+- Steps: test first. Add the rep duration to the rep counter output. Add the event `too-fast` when a counted rep is shorter than the minimum rep time (PROPOSAL start value 2000 ms, optional protocol field `minRepSeconds`). Map each event to a neutral cue text in `src/lib/cues.ts`: `shallow`, `over-limit`, `too-fast`, `paused`. Cue text states the measurement and gives no verdict.
+- Tests: a fast rep gives `too-fast`. A slow rep gives none. Each cue text passes `claims-check.sh`. A test lists every cue text and finds no verdict word.
+- Acceptance: FR23 passes. A mutation check (remove the duration test) fails at least one test.
+- Result: pending.
+
 ### T10. Session screens
-- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T8, T9.
+- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T8, T9, T9b.
 - Steps: build five screens. Home shows the active phase, approval fields, last export, banners and build flag text. RedFlag. Session shows video, live angle, rep count, cues, live region, and the Stop and "knee gave way" buttons. Summary asks pain and swelling, saves, and applies the safety floor. Privacy. Test first for the rule parts: red-flag block, safety floor, buttons.
 - Tests: Testing Library for FR5, FR10 (audio mock), FR11, FR12. `claims-check.sh` passes. Every route shows the label "estimated angle, not a medical measurement" where an angle appears.
 - Acceptance: FR3, FR5, FR10, FR11, FR12, FR17 and FR18 pass their tests.

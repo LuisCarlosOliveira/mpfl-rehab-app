@@ -11,6 +11,7 @@ The app counts reps and estimates knee angle from a 2D webcam. The error is abou
 - Next to every angle, write: "estimated angle, not a medical measurement".
 - Never write "clinically validated", "clinically proven" or "medically accurate".
 - Never show a goal, pass, fail or milestone, in words or in colour. A user reads "goal reached" as permission to progress.
+- Never judge form. Do not write "correct form", "incorrect form", "good form", "bad form" or "perfect form". No validated threshold exists. A cue states what was measured, for example "depth below your target".
 - Never call a webcam comparison "LSI". LSI needs strength tests. Write "movement symmetry".
 - Show every surgeon decision as "ask your surgeon" when the protocol does not set it. Set no default. The 14 decisions are in `research/clinical.md` section 9.
 - Mark red-flag text "general guidance, not verified for MPFL surgery".
