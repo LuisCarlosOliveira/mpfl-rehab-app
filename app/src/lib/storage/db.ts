@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { z } from 'zod';
 import { EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
 import { loadProtocol, type LoadResult, type Mode } from '../protocol';
+import { inputsSchema } from '../protocolGen/inputs';
 import { requestPersistOnce } from './meta';
 
 const counter = z.number().int().min(0).max(100000);
@@ -66,15 +67,29 @@ export interface StoredProtocol {
   savedAt: string;
 }
 
+// The answers of the person for the plan generator, I1 to I9. They stay on the device. The red flags, the pain and the
+// swelling are answers of one moment, so the app never stores them. The clearance answer is asked again at each update.
+export const storedInputsSchema = inputsSchema.omit({ phaseClearance: true, redFlags: true, pain: true, swelling: true });
+export type StoredInputs = z.infer<typeof storedInputsSchema>;
+
+export interface StoredInputsRow {
+  key: 'current';
+  inputs: StoredInputs;
+  savedAt: string;
+}
+
 export type MpflDb = Dexie & {
   sessions: EntityTable<SessionRecord, 'id'>;
   protocol: EntityTable<StoredProtocol, 'key'>;
+  generatorInputs: EntityTable<StoredInputsRow, 'key'>;
 };
 
 export function createDb(name = 'mpfl-rehab'): MpflDb {
   const db = new Dexie(name) as MpflDb;
   db.version(1).stores({ sessions: '++id, date, exercise' });
   db.version(2).stores({ sessions: '++id, date, exercise', protocol: 'key' });
+  // Version 3 adds the answers for the plan generator. No index and no change to the other tables.
+  db.version(3).stores({ sessions: '++id, date, exercise', protocol: 'key', generatorInputs: 'key' });
   return db;
 }
 
@@ -100,6 +115,20 @@ export async function saveProtocol(db: MpflDb, raw: string, mode: Mode): Promise
 export async function loadStoredProtocol(db: MpflDb, mode: Mode): Promise<LoadResult | null> {
   const stored = await db.protocol.get('current');
   return stored ? loadProtocol(stored.raw, mode) : null;
+}
+
+/** Keep the answers I1 to I9 of the plan that the person confirmed. Only the fixed fields are kept. */
+export async function saveGeneratorInputs(db: MpflDb, inputs: StoredInputs): Promise<void> {
+  const keys = Object.keys(storedInputsSchema.shape) as Array<keyof StoredInputs>;
+  const clean = storedInputsSchema.parse(Object.fromEntries(keys.map((k) => [k, inputs[k]])));
+  await db.generatorInputs.put({ key: 'current', inputs: clean, savedAt: new Date().toISOString() });
+}
+
+/** The stored answers, checked again. null when none are stored or when the row does not pass the schema. */
+export async function loadGeneratorInputs(db: MpflDb): Promise<StoredInputs | null> {
+  const row = await db.generatorInputs.get('current');
+  const parsed = storedInputsSchema.safeParse(row?.inputs);
+  return parsed.success ? parsed.data : null;
 }
 
 export async function clearProtocol(db: MpflDb): Promise<void> {

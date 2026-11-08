@@ -12,6 +12,11 @@ export const SCREEN_IDS = [
   'data',
   'clinician',
   'companion', // the phone as the second camera. It has no protocol and no exercise.
+  'onboarding', // the questions of "Create my plan", one for each screen, then a summary
+  'plan', // the plan that the app made, with "Why this plan". Nothing is saved yet.
+  'referral', // the refusal: no plan, contact your care team
+  'confirm', // the one step that saves a plan that the app made: Confirm or Keep my plan
+  'update', // "Update my plan": the app checks the plan again and proposes. The person confirms or keeps.
 ] as const;
 
 export type ScreenId = (typeof SCREEN_IDS)[number];

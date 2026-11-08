@@ -7,6 +7,10 @@ const POINTS: { icon: IconName; text: string }[] = [
   { icon: 'video-off', text: 'No video leaves your device. The app does not record video and does not send video.' },
   { icon: 'users', text: 'A shared device means shared data. Anyone who uses this browser can see your sessions.' },
   { icon: 'file-text', text: 'The export file holds health data. Send it only to your care team.' },
+  {
+    icon: 'calendar-check',
+    text: 'If you ask the app to make a plan, it keeps the date of your surgery and your answers on this device. They are in the export file. Erase removes them.',
+  },
 ];
 
 export function Privacy({ onDone }: { onDone: () => void }) {

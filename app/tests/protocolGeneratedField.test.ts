@@ -11,12 +11,19 @@ const base = {
   phases: [{ id: 1, name: 'Protection', exercises: [{ kind: 'straight-leg-raise', source: 'S1' }] }],
   surgeon: {},
 };
-const generated = { on: '2026-11-08', rules: '2026-11-08' };
+const generated = { on: '2026-11-08', rules: ['W1', 'PH1', 'SLR', 'DOSE', 'RANGE_SURGEON'] };
 const text = (o: unknown) => JSON.stringify(o);
 
 describe('the optional generated field', () => {
-  it('accepts a generated mark with a date and a rules version', () => {
+  it('accepts a generated mark with a date and a list of rule ids', () => {
     expect(protocolSchema.safeParse({ ...base, generated }).success).toBe(true);
+  });
+
+  it('accepts an empty list and a list of 40 ids, and keeps the list as it is', () => {
+    expect(protocolSchema.safeParse({ ...base, generated: { on: '2026-11-08', rules: [] } }).success).toBe(true);
+    const forty = Array.from({ length: 40 }, (_, i) => `R${i}`);
+    const r = protocolSchema.safeParse({ ...base, generated: { on: '2026-11-08', rules: forty } });
+    expect(r.success && r.data.generated?.rules).toEqual(forty);
   });
 
   it('keeps every file without the field valid, with no default', () => {
@@ -29,9 +36,16 @@ describe('the optional generated field', () => {
   it.each([
     ['an unknown key', { ...generated, by: 'x' }],
     ['a date that is not a date', { ...generated, on: 'yesterday' }],
-    ['a rules text over 20 characters', { ...generated, rules: 'x'.repeat(21) }],
-    ['a rules value that is not text', { ...generated, rules: 3 }],
-    ['no date', { rules: 'v1' }],
+    ['the old audit date as text', { ...generated, rules: '2026-11-08' }],
+    ['a rules value that is not a list', { ...generated, rules: 3 }],
+    ['more than 40 ids', { ...generated, rules: Array.from({ length: 41 }, (_, i) => `R${i}`) }],
+    ['an id that is free text', { ...generated, rules: ['Ask your surgeon'] }],
+    ['an id with a space', { ...generated, rules: ['W 1'] }],
+    ['an id with a lower case letter', { ...generated, rules: ['w1'] }],
+    ['an id over 24 characters', { ...generated, rules: ['A'.repeat(25)] }],
+    ['an empty id', { ...generated, rules: [''] }],
+    ['an id that is a number', { ...generated, rules: [1] }],
+    ['no date', { rules: ['W1'] }],
     ['no rules', { on: '2026-11-08' }],
   ])('rejects %s', (_name, value) => {
     expect(protocolSchema.safeParse({ ...base, generated: value }).success).toBe(false);
@@ -51,9 +65,18 @@ describe('the loader and the store keep the generated field', () => {
     expect(r.ok && r.protocol.approvedOn).toBe('2026-11-09');
   });
 
-  it('refuses a generated plan without an approval in patient mode', () => {
+  it('refuses a generated plan without an approval in patient mode, with its own named rule', () => {
     const r = loadProtocol(text({ ...base, generated }), 'patient');
-    expect(r).toMatchObject({ ok: false, error: { code: 'not-approved' } });
+    expect(r).toMatchObject({ ok: false, error: { code: 'generated-not-approved' } });
+  });
+
+  it('refuses a generated plan with an empty approval date in patient mode, with the same rule', () => {
+    const r = loadProtocol(text({ ...base, generated, approvedOn: undefined }), 'patient');
+    expect(r).toMatchObject({ ok: false, error: { code: 'generated-not-approved' } });
+  });
+
+  it('still names a plain unapproved file in patient mode as not approved', () => {
+    expect(loadProtocol(text(base), 'patient')).toMatchObject({ ok: false, error: { code: 'not-approved' } });
   });
 
   it('loads a generated plan without an approval in demo mode and keeps the mark', () => {

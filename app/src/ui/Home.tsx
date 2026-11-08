@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
+import { localIsoDate, reviewDue } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
@@ -34,7 +35,7 @@ const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
 };
 
 /** What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon. */
-function prescription(e: Exercise): { text: string; icon: IconName }[] {
+export function prescription(e: Exercise): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
   if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
@@ -60,9 +61,13 @@ interface Props {
   onOpenData?: () => void;
   /** T12b: opens the phone screen. It shows only when the handler is given. */
   onOpenCompanion?: () => void;
+  /** Opens "Update my plan". It shows only for a plan that the app made, and only when the handler is given. */
+  onUpdatePlan?: () => void;
 }
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion }: Props) {
+export const REVIEW_TITLE = 'Review your plan with your care team';
+
+export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -85,6 +90,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
   }
   const reminder = exportReminderDue(lastExport, now(), hasSessions);
 
+  // B3: on the review date of the active phase and after it, a neutral card. The app decides nothing. The person or the care team does.
+  const reviewDate = phase?.reviewDate;
+  const review = reviewDue(reviewDate, localIsoDate(now()));
+  const madeByApp = protocol.generated !== undefined;
+
   const exercises = phase?.exercises ?? [];
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
 
@@ -104,6 +114,35 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               <button type="button" className="btn" onClick={dismiss}>
                 Dismiss
               </button>
+            </div>
+          </Notice>
+        </div>
+      )}
+
+      {review && (
+        <div className="contact-card">
+          <Notice icon="calendar-check" title={REVIEW_TITLE}>
+            <p>
+              The review date in your plan is <span className="num">{reviewDate}</span>.
+            </p>
+            <p className="detail">
+              {madeByApp
+                ? 'The app can check your plan again from today\'s date. You confirm the change or keep your plan.'
+                : 'Your care team decides about the next stage. Export your sessions for the review.'}
+            </p>
+            <div className="actions">
+              {madeByApp && onUpdatePlan && (
+                <button type="button" className="btn btn-primary" onClick={onUpdatePlan}>
+                  <Icon name="refresh-cw" size={18} />
+                  Update my plan
+                </button>
+              )}
+              {!madeByApp && onOpenData && (
+                <button type="button" className="btn btn-primary" onClick={onOpenData}>
+                  <Icon name="download" size={18} />
+                  Export for my care team
+                </button>
+              )}
             </div>
           </Notice>
         </div>
@@ -188,6 +227,12 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               </div>
             </dl>
             <div className="actions">
+              {madeByApp && onUpdatePlan && !review && (
+                <button type="button" className="btn btn-primary" onClick={onUpdatePlan}>
+                  <Icon name="refresh-cw" size={18} />
+                  Update my plan
+                </button>
+              )}
               <button type="button" className="btn" onClick={onLoadProtocol}>
                 <Icon name="file-up" size={18} />
                 Load a new protocol file

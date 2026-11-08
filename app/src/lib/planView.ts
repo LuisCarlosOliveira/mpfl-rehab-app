@@ -1,0 +1,211 @@
+// The pure helpers behind the plan screens. They hold no screen code and no clinical number.
+// Every number that they show comes from a protocol that the generator made, or from the stored answers.
+
+import { contactReason } from './contactCard';
+import type { Exercise, Protocol } from './protocol';
+import { RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
+import type { SessionRecord } from './storage';
+
+/**
+ * What the generator made and the person has not confirmed. It is in memory only. Nothing is saved until Confirm.
+ * `inputs` is null for an early referral, because the questions were not all answered.
+ */
+export type PlanDraft =
+  | { kind: 'referral'; origin: 'create' | 'update'; reason: string; text: string; inputs: GeneratorInputs | null }
+  | {
+      kind: 'plan';
+      origin: 'create' | 'update';
+      protocol: Protocol;
+      why: WhyEntry[];
+      inputs: GeneratorInputs;
+      /** The lines of change against the stored plan. Empty for a new plan, and for an update with no change. */
+      changes: string[];
+      /** A reason that the app offers no Confirm, for example "Ask your care team about the next stage". null: Confirm is open. */
+      hold: string | null;
+    };
+
+/** The draft for a result of the generator. A referral keeps no plan. */
+export function draftOf(
+  result: GenerateResult,
+  origin: 'create' | 'update',
+  inputs: GeneratorInputs | null,
+  changes: string[] = [],
+  hold: string | null = null,
+): PlanDraft {
+  if (result.kind === 'referral') return { kind: 'referral', origin, reason: result.reason, text: result.text, inputs };
+  if (inputs === null) throw new Error('A plan needs the inputs that made it.');
+  return { kind: 'plan', origin, protocol: result.protocol, why: result.why, inputs, changes, hold };
+}
+
+const DAY_MS = 86_400_000;
+const NAMES: Record<Exercise['kind'], string> = {
+  'heel-slide': 'Heel slide',
+  'straight-leg-raise': 'Straight leg raise',
+  'mini-squat': 'Mini squat',
+  'seated-extension-hold': 'Seated knee extension hold',
+};
+
+/** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */
+export function localIsoDate(d: Date): string {
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+}
+
+function dayNumber(iso: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const ms = Date.parse(`${iso}T00:00:00Z`);
+  if (Number.isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== iso) return null;
+  return ms / DAY_MS;
+}
+
+/** Whole weeks from the surgery date to today. null when a date is not real or the surgery date is in the future. */
+export function weeksSince(surgery: string, today: string): number | null {
+  const a = dayNumber(surgery);
+  const b = dayNumber(today);
+  if (a === null || b === null || a > b) return null;
+  return Math.floor((b - a) / 7);
+}
+
+/** True on the review date and after it. */
+export function reviewDue(reviewDate: string | undefined, today: string): boolean {
+  return reviewDate !== undefined && reviewDate <= today;
+}
+
+const activeExercises = (p: Protocol): Exercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.exercises ?? [];
+const phaseName = (p: Protocol) => {
+  const ph = p.phases.find((x) => x.id === p.activePhase);
+  return `Phase ${p.activePhase} ${ph?.name ?? ''}`.trim();
+};
+const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
+
+/** One plain line for each part of the new plan. */
+export function describeNewPlan(protocol: Protocol): string[] {
+  const lines = [`${phaseName(protocol)}.`];
+  for (const e of activeExercises(protocol)) {
+    lines.push(e.maxFlexion === undefined ? `${NAMES[e.kind]}.` : `${NAMES[e.kind]}, knee-bend limit ${e.maxFlexion} degrees.`);
+  }
+  return lines;
+}
+
+/** The changes between the stored plan and the proposal, each with its reason and rule id. Empty when nothing changes. */
+export function describeChanges(current: Protocol, next: Protocol): string[] {
+  const lines: string[] = [];
+  if (next.activePhase !== current.activePhase) {
+    const reason =
+      next.activePhase > current.activePhase
+        ? 'you reported that your care team said you can start the next stage'
+        : 'you did not report that your care team said you can start the next stage';
+    lines.push(`${phaseName(current)} changes to ${phaseName(next)}. Reason: ${reason} (${RULES.PH2.id}).`);
+  }
+  const before = activeExercises(current);
+  const after = activeExercises(next);
+  for (const e of after) {
+    const old = before.find((x) => x.kind === e.kind);
+    if (old === undefined) {
+      lines.push(`${NAMES[e.kind]} added. Reason: you gave a knee-bend limit from your surgeon (${RULES.HEEL.id}).`);
+    } else if (old.maxFlexion !== e.maxFlexion) {
+      lines.push(
+        `Knee-bend limit in your plan: from ${limitText(old)} to ${limitText(e)}. Reason: the limit from your surgeon that you entered (${RULES.RANGE_SURGEON.id}).`,
+      );
+    }
+  }
+  for (const old of before) {
+    if (!after.some((x) => x.kind === old.kind)) {
+      lines.push(`${NAMES[old.kind]} removed. Reason: the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id}).`);
+    }
+  }
+  return lines;
+}
+
+/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. accept.ts enforces the same rule. */
+export function movesForward(current: Protocol, next: Protocol): boolean {
+  if (next.activePhase > current.activePhase) return true;
+  for (const phase of next.phases) {
+    const before = current.phases.find((p) => p.id === phase.id);
+    for (const e of phase.exercises) {
+      const old = before?.exercises.find((x) => x.kind === e.kind);
+      if (old?.maxFlexion !== undefined && (e.maxFlexion === undefined || e.maxFlexion > old.maxFlexion)) return true;
+    }
+  }
+  return false;
+}
+
+/** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */
+export function eventsSince(sessions: readonly SessionRecord[], since: string, painPauseThreshold: number | undefined): number {
+  return sessions.filter((s) => s.date.slice(0, 10) >= since && (s.redFlagBlocks > 0 || contactReason(s, painPauseThreshold) !== null)).length;
+}
+
+const EVIDENCE: Record<Grade, string> = {
+  CONSENSUS: 'Consensus statement',
+  REVIEW: 'Review of studies',
+  STUDY: 'Single study',
+  OPINION: 'Expert opinion',
+  NONE: 'No source gives a value',
+  ENGINEERING: 'Camera value, not a clinical value',
+};
+
+/** The evidence level in plain words, with the code of the knowledge base. */
+export const evidenceLabel = (level: Grade): string => `${EVIDENCE[level]} (${level})`;
+
+/** A source as one line: the id, the authors and the year. */
+export function sourceLine(id: SourceId): string {
+  const s = SOURCES[id];
+  return `${id}: ${s.authors}, ${s.year}`;
+}
+
+const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
+  maxFlexion: { label: 'knee-bend limit', unit: ' degrees' },
+  targetFlexion: { label: 'target knee bend', unit: ' degrees' },
+  returnWithinDeg: { label: 'return within', unit: ' degrees' },
+  sets: { label: 'sets' },
+  reps: { label: 'reps' },
+  reviewDate: { label: 'review date' },
+};
+
+/** One applied value as a line: where it is in the plan, the number, and who gave it. */
+function appliedLine(a: WhyEntry['applied'][number]): string {
+  const [phase, kind, field] = a.path.split('.') as [string, string, string | undefined];
+  const name = field === undefined ? `Phase ${phase.replace('phase', '')}` : (NAMES[kind as Exercise['kind']] ?? kind);
+  const info = FIELD_LABELS[field ?? kind] ?? { label: field ?? kind };
+  const who = a.origin === 'person' ? ' (as entered by you)' : '';
+  return `${name}, ${info.label}: ${a.value}${info.unit ?? ''}${who}`;
+}
+
+export interface WhyView {
+  id: string;
+  title: string;
+  text: string;
+  evidence: string;
+  population: string;
+  conservative?: string;
+  sources: string[];
+  applied: string[];
+  /** True when a clinician has not reviewed the value, as the rule says. */
+  needsReview: boolean;
+}
+
+/** One rule of "Why this plan" as plain fields, so the screen holds no rule logic. */
+export function whyView(e: WhyEntry): WhyView {
+  return {
+    id: e.ruleId,
+    title: RULES[e.ruleId].title,
+    text: e.text,
+    evidence: evidenceLabel(e.grade),
+    population: e.population,
+    conservative: e.conservative,
+    sources: e.sourceIds.map(sourceLine),
+    applied: e.applied.map(appliedLine),
+    needsReview: e.flag === 'clinical-review-needed',
+  };
+}
+
+/** The answers that made the plan, as short lines for "Why this plan". */
+export function answerLines(i: GeneratorInputs): string[] {
+  const limit = i.surgeonLimit.kind === 'degrees' ? `${i.surgeonLimit.degrees} degrees` : i.surgeonLimit.kind === 'none' ? 'No limit' : 'I do not know';
+  return [
+    `Date of surgery: ${i.surgeryDate ?? 'not given'}`,
+    `Operated knee: ${i.side === 'left' ? 'Left' : 'Right'}`,
+    `Operation: MPFL reconstruction only`,
+    `Knee-bend limit from your surgeon: ${limit}`,
+  ];
+}

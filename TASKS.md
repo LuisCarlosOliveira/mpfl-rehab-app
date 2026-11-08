@@ -30,6 +30,18 @@ Status: planned on 2026-11-08. It starts after the UI build and the pairing wiri
 - [ ] Camera denied, no camera, camera lost during a session.
 - [ ] Low memory phone (Redmi A3): load, camera, model, 60 second frame rate.
 
+## Final live test gate (user order, 2026-11-08)
+
+The user ordered: "in the end launch a full and factual live test, fixing any issue found". This gate runs last, on the finished and committed tree. It does not end until the issue list is empty or every open item is recorded with its reason.
+
+- [ ] Freeze: full precheck green, commit, build once. Record the commit id.
+- [ ] Live run A uses the real built app. The real clips play as the fake webcam, made with `scripts/clip-to-webcam.sh`. Test every item of "Features to test with a person in view" and "Every workflow, end to end" above, with one clip for each exercise. Read the screenshots by eye. Keep the console, network and CSP logs.
+- [ ] Live run B uses the real phone over the tailnet. Serve the build on 100.77.0.108. Set the two Chrome flags. Follow the pairing steps of `docs/pairing-wiring.md`. Check the camera, the model load and the frame rate. The user does the taps. Anything not done on the real phone stays marked UNPROVEN.
+- [ ] Factual record: for each check, what was done, what was seen, the evidence file, PASS or FAIL. No result without evidence. A check that did not run is marked NOT RUN with the reason.
+- [ ] Fix loop: each FAIL becomes an issue with evidence. A fix agent fixes it test first. The same check re-runs after the fix. Repeat until no issue is open. Each loop round re-runs the full precheck and the browser suites.
+- [ ] Independent audit of the final tree, then the Opus final verdict (`docs/final-audit.md`).
+- [ ] Final report to the user: what passed, what failed and was fixed, what is still unproven (real phone, real accuracy, clinician review, regulatory decision).
+
 ## Quality gates
 - [ ] Full precheck. Full `npm run e2e`. `npm run e2e:pairing`.
 - [ ] Lighthouse 95 or more. axe zero violations. WebKit smoke test.

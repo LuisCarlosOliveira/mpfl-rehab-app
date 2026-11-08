@@ -9,7 +9,9 @@ import type { Summary } from '../lib/exercises';
 import type { SetsState } from '../lib/sets';
 import type { FrontRecord } from '../lib/views';
 import type { Exercise, Mode } from '../lib/protocol';
+import type { PlanDraft } from '../lib/planView';
 
+export type { PlanDraft };
 export type ExerciseKind = Exercise['kind'];
 export type EndReason = 'stop' | 'gave-way';
 
@@ -37,6 +39,7 @@ export interface AppState {
   cameraSide: Side | null; // the side of the person that the camera is on
   baselineDeg: number | null; // resting flexion measured in Setup. null: none measured.
   run: RunResult | null;
+  draft: PlanDraft | null;
 }
 
 export type Action =
@@ -48,6 +51,9 @@ export type Action =
   | { type: 'red-flags-blocked' }
   | { type: 'setup-done'; exerciseLeg: Side; cameraSide: Side; baselineDeg: number | null }
   | { type: 'session-end'; reason: EndReason; summary: RunSummary }
+  | { type: 'draft'; draft: PlanDraft }
+  | { type: 'plan-accepted' }
+  | { type: 'plan-kept' }
   | { type: 'erased' }
   | { type: 'finish' };
 
@@ -63,15 +69,32 @@ export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: bool
     cameraSide: null,
     baselineDeg: null,
     run: null,
+    draft: null,
   };
 }
+
+const PLAN_FLOW: readonly ScreenId[] = ['onboarding', 'plan', 'confirm', 'referral'];
 
 /** Where a request for `target` really goes. */
 function resolve(state: AppState, target: ScreenId): ScreenId {
   // The companion screen needs no protocol and no red-flag check. The phone only sends landmark numbers (T12b).
   if (target === 'privacy' || target === 'load' || target === 'companion') return target;
+  const fallback: ScreenId = state.hasProtocol ? 'home' : 'load';
+  // The plan flow needs no stored protocol. Patient mode has no flow: a plan that the app made cannot load there.
+  switch (target) {
+    case 'onboarding':
+      return state.mode === 'patient' ? 'load' : target;
+    case 'plan':
+      return state.mode !== 'patient' && state.draft?.kind === 'plan' && state.draft.origin === 'create' ? target : fallback;
+    case 'confirm':
+      return state.mode !== 'patient' && state.draft?.kind === 'plan' ? target : fallback;
+    case 'referral':
+      return state.draft?.kind === 'referral' ? target : fallback;
+  }
   if (!state.hasProtocol) return 'load';
   switch (target) {
+    case 'update':
+      return state.mode === 'patient' ? 'home' : target;
     case 'home':
     case 'redflag':
     case 'dashboard':
@@ -95,12 +118,17 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'open': {
       const screen = resolve(state, action.screen);
       // Leaving the flow drops the cleared check. The next start needs a new one (FR5).
-      return { ...state, screen, redFlagCleared: screen === 'setup' || screen === 'session' ? state.redFlagCleared : false };
+      return {
+        ...state,
+        screen,
+        redFlagCleared: screen === 'setup' || screen === 'session' ? state.redFlagCleared : false,
+        draft: PLAN_FLOW.includes(screen) ? state.draft : null,
+      };
     }
     case 'privacy-seen':
       return { ...state, screen: initialScreen({ seenPrivacy: true, hasProtocol: state.hasProtocol }) };
     case 'protocol-loaded':
-      return { ...state, hasProtocol: true, screen: 'home' };
+      return { ...state, hasProtocol: true, screen: 'home', draft: null };
     case 'choose-exercise': {
       // Every start goes through the check, even if an earlier check was cleared.
       const next = { ...state, exercise: action.exercise, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null };
@@ -125,6 +153,15 @@ export function appReducer(state: AppState, action: Action): AppState {
         redFlagCleared: false, // the next session needs a new check
         run: { reason: action.reason, summary: action.summary },
       };
+    case 'draft': {
+      if (state.mode === 'patient') return state;
+      const d = action.draft;
+      return { ...state, draft: d, screen: d.kind === 'referral' ? 'referral' : d.origin === 'create' ? 'plan' : 'confirm' };
+    }
+    case 'plan-accepted':
+      return { ...state, hasProtocol: true, draft: null, screen: 'home', redFlagCleared: false, run: null };
+    case 'plan-kept':
+      return { ...state, draft: null, screen: state.hasProtocol ? 'home' : 'load' };
     case 'erased':
       // Erase clears the privacy flag and the protocol, so the next start is a first start (FR16, FR26).
       return initialAppState({ seenPrivacy: false, hasProtocol: false, mode: state.mode });

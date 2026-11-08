@@ -1654,3 +1654,176 @@ input[type='file']::file-selector-button {
 .contact-card .actions {
   margin-top: var(--s-3);
 }
+
+/* ===== T23c: Create my plan, the plan, the refusal, Confirm and Update my plan. Appended block. Reuses .choices, .option, .card, .disclosure, .facts, .chip and .action-bar. ===== */
+/* A question with long answers shows one answer in each row, so a phone never needs a second column. */
+.options-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+.limit-field {
+  padding: var(--s-2) var(--s-4) var(--s-3);
+  background: var(--primary-soft);
+  border-radius: var(--r-m);
+}
+.text-input {
+  min-height: var(--touch);
+  width: 100%;
+  max-width: 16rem;
+  padding: 0 var(--s-4);
+  font: inherit;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-m);
+}
+.text-input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+/* The date question has no radio cards, so its own card holds the field and the hint. */
+.field.choices {
+  padding-bottom: var(--s-4);
+}
+.field.choices .detail {
+  margin-top: var(--s-2);
+}
+
+/* The summary of the answers: a row for each answer, with a quiet Change button. */
+.answer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-1);
+}
+.answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-top: 1px solid var(--line);
+}
+.answer-row:first-child {
+  border-top: 0;
+}
+.answer-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step-m1);
+}
+.answer-value {
+  margin: 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+/* The plan before Confirm. */
+.plan-exercises,
+.why-list,
+.why-answers,
+.change-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.plan-exercises {
+  display: grid;
+  gap: var(--s-3);
+}
+.plan-exercise .exercise-name {
+  margin-bottom: var(--s-3);
+}
+.change-list {
+  display: grid;
+  gap: var(--s-3);
+}
+.change-list li {
+  padding-left: var(--s-4);
+  border-left: 3px solid var(--primary);
+}
+
+/* Why this plan: one block for each rule. */
+.why-group {
+  margin: 0;
+  font-weight: 750;
+  font-size: var(--step-1);
+}
+.why-answers {
+  display: grid;
+  gap: var(--s-1);
+}
+.why-list {
+  display: grid;
+  gap: var(--s-5);
+}
+.why-entry {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+.why-entry:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.why-entry > p {
+  margin: 0;
+}
+.why-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.why-head h3 {
+  margin: 0;
+  font-size: var(--step-0);
+}
+.why-source {
+  display: block;
+}
+/* A legend that only a screen reader reads must not take the width of the card (it floats and has width 100% in .choices). */
+.choices legend.visually-hidden {
+  float: none;
+  width: 1px;
+  margin: -1px;
+  display: block;
+}
+/* Each rule of Why this plan is a small disclosure, so the list stays short until the person opens one. */
+.why-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: var(--touch);
+  cursor: pointer;
+  list-style: none;
+}
+.why-details > summary::-webkit-details-marker {
+  display: none;
+}
+.why-details > summary .chev {
+  flex: none;
+  color: var(--muted);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.why-details[open] > summary .chev {
+  transform: rotate(180deg);
+}
+.why-body {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-3);
+}
+.why-body > p {
+  margin: 0;
+}
+.why-list {
+  gap: var(--s-2);
+}
+.why-entry {
+  padding-top: var(--s-2);
+}

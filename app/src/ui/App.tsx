@@ -2,7 +2,9 @@
 // Banners show above every screen (plan FR3, NFR2).
 import { lazy, Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { bannersFor } from '../lib/mode';
+import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
+import { selfProgressionOn } from '../lib/protocol/accept';
 import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
@@ -10,18 +12,23 @@ import type { LandmarkSource } from '../pose/source';
 import { appReducer, initialAppState } from './appState';
 import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
+import { ConfirmPlan } from './ConfirmPlan';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadProtocol } from './LoadProtocol';
 import { Notice } from './Notice';
+import { Onboarding } from './Onboarding';
 import { PairCompanion } from './PairCompanion';
+import { PlanResult } from './PlanResult';
 import { Privacy } from './Privacy';
 import { createSound, type Sound } from './sound';
+import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Session } from './Session';
 import { Setup } from './Setup';
 import { Brand, LoadingScreen } from './Shell';
 import { Summary } from './Summary';
+import { UpdatePlan } from './UpdatePlan';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
 const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
@@ -170,7 +177,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     main.current?.querySelector<HTMLElement>('h1')?.focus();
   }, [state.screen]);
 
-  const banners = bannersFor(mode, protocol?.example === true);
+  const banners = bannersFor(mode, protocol?.example === true, protocol?.generated !== undefined && protocol.approvedOn === undefined);
 
   const screen = (() => {
     switch (state.screen) {
@@ -191,6 +198,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               onOpenProgress={() => dispatch({ type: 'open', screen: 'dashboard' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
+              onUpdatePlan={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'update' }) : undefined}
             />
           );
         }
@@ -233,6 +241,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               source={source}
               second={{ source: pairing.source(), status: pairingView.status, message: pairingView.message }}
               sound={sound}
+              painPauseThreshold={protocol.painPauseThreshold}
               onEnd={(reason, summary) => dispatch({ type: 'session-end', reason, summary })}
             />
           );
@@ -274,6 +283,63 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
             />
           </FocusHeading>
         );
+      case 'onboarding':
+        return (
+          <Onboarding
+            today={localIsoDate(now())}
+            initial={state.draft?.origin === 'create' ? state.draft.inputs : null}
+            onDone={(draft) => dispatch({ type: 'draft', draft })}
+            onCancel={() => dispatch({ type: 'open', screen: protocol ? 'home' : 'load' })}
+          />
+        );
+      case 'plan':
+        if (state.draft?.kind === 'plan') {
+          return <PlanResult draft={state.draft} onUse={() => dispatch({ type: 'open', screen: 'confirm' })} onBack={() => dispatch({ type: 'open', screen: 'onboarding' })} />;
+        }
+        break;
+      case 'referral':
+        if (state.draft?.kind === 'referral') {
+          return (
+            <Referral
+              draft={state.draft}
+              onLoadFile={() => dispatch({ type: 'open', screen: 'load' })}
+              onBack={() => dispatch({ type: 'open', screen: protocol ? 'home' : 'load' })}
+            />
+          );
+        }
+        break;
+      case 'confirm':
+        if (state.draft?.kind === 'plan') {
+          return (
+            <ConfirmPlan
+              db={db}
+              mode={mode}
+              draft={state.draft}
+              current={protocol}
+              onAccepted={(saved) => {
+                setProtocol(saved);
+                dispatch({ type: 'plan-accepted' });
+              }}
+              onKeep={() => dispatch({ type: 'plan-kept' })}
+            />
+          );
+        }
+        break;
+      case 'update':
+        if (protocol) {
+          return (
+            <UpdatePlan
+              db={db}
+              protocol={protocol}
+              today={localIsoDate(now())}
+              selfProgression={selfProgressionOn()}
+              onDone={(draft) => dispatch({ type: 'draft', draft })}
+              onCancel={() => dispatch({ type: 'open', screen: 'home' })}
+              onCreate={() => dispatch({ type: 'open', screen: 'onboarding' })}
+            />
+          );
+        }
+        break;
       case 'companion':
         // The phone screen needs no protocol and no red-flag check. It never starts an exercise.
         return <PairCompanion onExit={() => dispatch({ type: 'open', screen: 'home' })} />;
@@ -291,6 +357,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
           mode={mode}
           initialError={bootError}
           onCancel={protocol ? () => dispatch({ type: 'open', screen: 'home' }) : undefined}
+          onCreatePlan={() => dispatch({ type: 'open', screen: 'onboarding' })}
           onLoaded={() => {
             void loadStoredProtocol(db, mode).then((result) => {
               if (result?.ok) {

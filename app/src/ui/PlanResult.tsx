@@ -1,0 +1,168 @@
+// The plan that the app made, before the person confirms it. Nothing is saved on this screen.
+// Every number comes from the generator output. "Why this plan" lists each rule with its sources, its evidence level
+// and its population caveat, and the values that stay "Ask your surgeon" with the reason.
+import { GENERATED_BANNER } from '../lib/mode';
+import { answerLines, whyView, type PlanDraft } from '../lib/planView';
+import { ASK_SURGEON } from '../lib/protocolGen';
+import { Icon } from './Icon';
+import { EXERCISE_NAMES } from './labels';
+import { Notice } from './Notice';
+import { prescription } from './Home';
+
+type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
+
+interface Props {
+  draft: PlanOnly;
+  onUse: () => void;
+  onBack: () => void;
+}
+
+function WhyList({ entries, label, asks }: { entries: PlanOnly['why']; label: string; asks: boolean }) {
+  return (
+    <ul className="why-list" aria-label={label}>
+      {entries.map((e) => {
+        const v = whyView(e);
+        return (
+          <li key={v.id} className="why-entry">
+            <details className="why-details">
+              <summary>
+                <span className="why-head">
+                  <h3>{v.title}</h3>
+                  {asks && <span className="chip chip-accent">{ASK_SURGEON}</span>}
+                  {v.needsReview && <span className="chip">A clinician has not reviewed this value.</span>}
+                </span>
+                <span className="chev">
+                  <Icon name="chevron-down" />
+                </span>
+              </summary>
+              <div className="why-body">
+            <p>{v.text}</p>
+            <dl className="facts">
+              <div className="fact-row">
+                <dt>Evidence</dt>
+                <dd>{v.evidence}</dd>
+              </div>
+              <div className="fact-row">
+                <dt>Population</dt>
+                <dd>{v.population}</dd>
+              </div>
+              <div className="fact-row">
+                <dt>Sources</dt>
+                <dd>
+                  {v.sources.map((s) => (
+                    <span key={s} className="why-source">
+                      {s}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+              {v.conservative && (
+                <div className="fact-row">
+                  <dt>When sources disagree</dt>
+                  <dd>{v.conservative}</dd>
+                </div>
+              )}
+              {v.applied.length > 0 && (
+                <div className="fact-row">
+                  <dt>Values in your plan</dt>
+                  <dd>
+                    {v.applied.map((a) => (
+                      <span key={a} className="why-source">
+                        {a}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </dl>
+              </div>
+            </details>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function PlanResult({ draft, onUse, onBack }: Props) {
+  const { protocol, why, inputs } = draft;
+  const phase = protocol.phases.find((p) => p.id === protocol.activePhase);
+  const exercises = phase?.exercises ?? [];
+  const made = why.filter((e) => e.outcome === 'generated');
+  const left = why.filter((e) => e.outcome === 'refused');
+  const hasHeel = exercises.some((e) => e.kind === 'heel-slide');
+
+  return (
+    <section aria-labelledby="plan-title" className="narrow">
+      <header className="page-head">
+        <h1 id="plan-title" tabIndex={-1}>
+          Your plan
+        </h1>
+      </header>
+      <div className="stack">
+        <Notice role="note" icon="info">
+          <p>{GENERATED_BANNER}</p>
+        </Notice>
+
+        <section className="stack-s" aria-labelledby="plan-phase">
+          <h2 id="plan-phase">{phase ? `Phase ${phase.id} ${phase.name}` : `Phase ${protocol.activePhase}`}</h2>
+          <ul className="plan-exercises" aria-label="Exercises in your plan">
+            {exercises.map((e) => (
+              <li key={e.kind} className="card plan-exercise">
+                <p className="exercise-name">{EXERCISE_NAMES[e.kind]}</p>
+                <ul className="chips">
+                  {prescription(e).map((line) => (
+                    <li key={line.text} className="chip">
+                      <Icon name={line.icon} size={16} />
+                      {line.text}
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          {!hasHeel && <p className="detail">Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.</p>}
+          <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
+        </section>
+
+        <details className="card disclosure">
+          <summary>
+            <h2>Why this plan</h2>
+            <span className="chip chip-accent">{made.length + left.length} rules</span>
+            <span className="chev">
+              <Icon name="chevron-down" />
+            </span>
+          </summary>
+          <div className="disclosure-body stack">
+            <div className="stack-s">
+              <p className="why-group">Your answers</p>
+              <ul className="why-answers" aria-label="Your answers">
+                {answerLines(inputs).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="stack-s">
+              <p className="why-group">Rules behind your plan</p>
+              <WhyList entries={made} label="Rules behind your plan" asks={false} />
+            </div>
+            <div className="stack-s">
+              <p className="why-group">Not in your plan, and why</p>
+              <WhyList entries={left} label="Not in your plan, and why" asks />
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div className="action-bar">
+        <button type="button" className="btn btn-primary btn-lg" onClick={onUse}>
+          Use this plan
+        </button>
+        <button type="button" className="btn btn-lg" onClick={onBack}>
+          <Icon name="arrow-left" size={18} />
+          Back
+        </button>
+      </div>
+    </section>
+  );
+}

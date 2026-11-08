@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { appReducer, initialAppState, type AppState, type RunResult } from '../src/ui/appState';
+import { appReducer, initialAppState, type AppState, type PlanDraft, type RunResult } from '../src/ui/appState';
+import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { startSets } from '../src/lib/sets';
 import type { Summary } from '../src/lib/exercises';
 
@@ -287,5 +288,116 @@ describe('companion screen (T12b, the phone as the second camera)', () => {
   it('erase from the companion screen is not possible, and an erase resets to the first start', () => {
     const s = appReducer(home(), { type: 'open', screen: 'companion' });
     expect(appReducer(s, { type: 'erased' }).screen).toBe('privacy');
+  });
+});
+
+// ---- The plan generator flow ----
+
+const inputs: GeneratorInputs = {
+  writtenPlan: 'no', procedure: 'mpflr-only', ageBand: '18-plus', bothKnees: false, firstSurgery: 'yes', specialRules: 'no',
+  surgeryDate: '2026-10-20', side: 'left', surgeonLimit: { kind: 'degrees', degrees: 60 }, phaseClearance: 'no', redFlags: {}, pain: 2, swelling: 'none',
+};
+const made = generateProtocol(inputs, '2026-11-08');
+if (made.kind !== 'protocol') throw new Error('expected a plan');
+const planDraft = (origin: 'create' | 'update'): PlanDraft => ({ kind: 'plan', origin, protocol: made.protocol, why: made.why, inputs, changes: [], hold: null });
+const referralDraft: PlanDraft = { kind: 'referral', origin: 'create', reason: 'R2', text: 'The app cannot make a plan for you.', inputs: null };
+const noProtocol = (mode: 'demo' | 'patient' = 'demo') => initialAppState({ seenPrivacy: true, hasProtocol: false, mode });
+
+describe('plan generator flow', () => {
+  it('opens the questions from the Load screen with no protocol', () => {
+    expect(appReducer(noProtocol(), { type: 'open', screen: 'onboarding' }).screen).toBe('onboarding');
+  });
+
+  it('opens the questions with a stored protocol too', () => {
+    expect(appReducer(home(), { type: 'open', screen: 'onboarding' }).screen).toBe('onboarding');
+  });
+
+  it('sends the questions to the Load screen in patient mode', () => {
+    expect(appReducer(noProtocol('patient'), { type: 'open', screen: 'onboarding' }).screen).toBe('load');
+  });
+
+  it('shows the plan after the questions, and keeps it as a draft that saves nothing', () => {
+    const s = appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') });
+    expect(s.screen).toBe('plan');
+    expect(s.draft).toEqual(planDraft('create'));
+    expect(s.hasProtocol).toBe(false);
+  });
+
+  it('shows the refusal for a referral and gives no plan screen', () => {
+    const s = appReducer(noProtocol(), { type: 'draft', draft: referralDraft });
+    expect(s.screen).toBe('referral');
+    expect(s.hasProtocol).toBe(false);
+    expect(appReducer(s, { type: 'open', screen: 'plan' }).screen).toBe('load');
+  });
+
+  it('goes from the plan to the confirmation and back to the questions with the draft kept', () => {
+    let s = appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') });
+    s = appReducer(s, { type: 'open', screen: 'confirm' });
+    expect(s.screen).toBe('confirm');
+    expect(s.draft).not.toBeNull();
+    s = appReducer(s, { type: 'open', screen: 'onboarding' });
+    expect(s.screen).toBe('onboarding');
+    expect(s.draft).not.toBeNull();
+  });
+
+  it('does not open the plan or the confirmation without a draft', () => {
+    expect(appReducer(home(), { type: 'open', screen: 'plan' }).screen).toBe('home');
+    expect(appReducer(home(), { type: 'open', screen: 'confirm' }).screen).toBe('home');
+    expect(appReducer(home(), { type: 'open', screen: 'referral' }).screen).toBe('home');
+  });
+
+  it('goes from the update screen straight to the confirmation, never to a saved plan', () => {
+    let s = appReducer(home(), { type: 'open', screen: 'update' });
+    expect(s.screen).toBe('update');
+    s = appReducer(s, { type: 'draft', draft: planDraft('update') });
+    expect(s.screen).toBe('confirm');
+  });
+
+  it('opens the update screen only with a stored protocol, and not in patient mode', () => {
+    expect(appReducer(noProtocol(), { type: 'open', screen: 'update' }).screen).toBe('load');
+    const patient = initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' });
+    expect(appReducer(patient, { type: 'open', screen: 'update' }).screen).toBe('home');
+  });
+
+  it('ignores a draft in patient mode', () => {
+    const patient = initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' });
+    const s = appReducer(patient, { type: 'draft', draft: planDraft('create') });
+    expect(s.draft).toBeNull();
+    expect(s.screen).toBe('home');
+  });
+
+  it('plan accepted: a protocol is stored, the draft is gone and Home shows', () => {
+    let s = appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') });
+    s = appReducer(s, { type: 'plan-accepted' });
+    expect(s).toMatchObject({ screen: 'home', hasProtocol: true, draft: null });
+  });
+
+  it('plan kept: nothing changes, the draft is gone and the person returns to Home or to Load', () => {
+    const withPlan = appReducer(home(), { type: 'draft', draft: planDraft('update') });
+    expect(appReducer(withPlan, { type: 'plan-kept' })).toMatchObject({ screen: 'home', hasProtocol: true, draft: null });
+    const none = appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') });
+    expect(appReducer(none, { type: 'plan-kept' })).toMatchObject({ screen: 'load', hasProtocol: false, draft: null });
+  });
+
+  it('drops the draft when the person leaves the flow by any other screen', () => {
+    const s = appReducer(appReducer(home(), { type: 'draft', draft: planDraft('update') }), { type: 'open', screen: 'home' });
+    expect(s.draft).toBeNull();
+  });
+
+  it('erase clears the draft with its answers, and the next start is a first start', () => {
+    const s = appReducer(appReducer(home(), { type: 'draft', draft: planDraft('update') }), { type: 'erased' });
+    expect(s).toMatchObject({ screen: 'privacy', hasProtocol: false, draft: null });
+  });
+
+  it('loading a file drops a draft', () => {
+    const s = appReducer(appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') }), { type: 'protocol-loaded' });
+    expect(s).toMatchObject({ screen: 'home', draft: null });
+  });
+
+  it('keeps the red-flag gate: Setup and Session still need a cleared check after a plan is accepted', () => {
+    let s = appReducer(noProtocol(), { type: 'draft', draft: planDraft('create') });
+    s = appReducer(s, { type: 'plan-accepted' });
+    expect(appReducer(s, { type: 'open', screen: 'setup' }).screen).toBe('redflag');
+    expect(appReducer(s, { type: 'open', screen: 'session' }).screen).toBe('redflag');
   });
 });

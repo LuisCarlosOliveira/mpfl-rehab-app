@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { version as APP_VERSION } from '../../../package.json';
 import { MAX_FILE_BYTES, describeFirstIssue, overByteCap } from '../protocol/loader';
 import { protocolIdSchema } from '../protocol/schema';
-import { sessionSchema, type MpflDb, type SessionData } from './db';
+import { loadGeneratorInputs, sessionSchema, storedInputsSchema, type MpflDb, type SessionData } from './db';
 import { getPseudonymId, storedPseudonymId } from './meta';
 
 export const ANGLE_METHOD = '2D webcam estimate, not a goniometer measurement';
@@ -17,6 +17,9 @@ export const exportSchema = z.strictObject({
   protocolId: protocolIdSchema.nullable(),
   exportedAt: z.iso.datetime().max(40),
   sessions: z.array(sessionSchema).max(5000),
+  // The answers for the plan generator (I1 to I9), with the surgery date. Optional, so an old file still reads.
+  // The import reads the sessions only. It never writes these answers to the device.
+  generatorInputs: storedInputsSchema.optional(),
 });
 
 export type ExportFile = z.infer<typeof exportSchema>;
@@ -34,6 +37,7 @@ const SESSION_KEYS = Object.keys(sessionSchema.shape) as Array<keyof SessionData
 async function buildExport(db: MpflDb): Promise<ExportFile> {
   const rows = await db.sessions.orderBy('date').toArray();
   const sessions = rows.map((row) => Object.fromEntries(SESSION_KEYS.map((k) => [k, row[k]])) as SessionData);
+  const generatorInputs = await loadGeneratorInputs(db);
   return {
     schemaVersion: 1,
     appVersion: APP_VERSION,
@@ -42,6 +46,7 @@ async function buildExport(db: MpflDb): Promise<ExportFile> {
     protocolId: sessions.length > 0 ? (sessions[sessions.length - 1] as SessionData).protocolId : null,
     exportedAt: new Date().toISOString(),
     sessions,
+    ...(generatorInputs === null ? {} : { generatorInputs }),
   };
 }
 

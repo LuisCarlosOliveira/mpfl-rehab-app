@@ -27,7 +27,7 @@ export function describeFirstIssue(
 
 export type Mode = 'demo' | 'patient';
 
-export type LoadErrorCode = 'too-large' | 'invalid-json' | 'schema' | 'example-in-patient-mode' | 'not-approved';
+export type LoadErrorCode = 'too-large' | 'invalid-json' | 'schema' | 'example-in-patient-mode' | 'not-approved' | 'generated-not-approved';
 
 export type LoadResult =
   | { ok: true; protocol: Protocol }
@@ -54,6 +54,10 @@ export function loadProtocol(raw: string, mode: Mode): LoadResult {
   const protocol = parsed.data;
   if (mode === 'patient') {
     if (protocol.example) return fail('example-in-patient-mode', 'The example protocol cannot be used in patient mode.');
+    // A plan that the app made has no clinician approval. Patient mode refuses it by its own rule, not as a side effect.
+    if (protocol.generated !== undefined && !protocol.approvedOn) {
+      return fail('generated-not-approved', 'A plan that the app made has no clinician approval. It cannot be used in patient mode.');
+    }
     if (!protocol.approvedOn) return fail('not-approved', 'No clinician approval is recorded in this protocol.');
   }
   return { ok: true, protocol };

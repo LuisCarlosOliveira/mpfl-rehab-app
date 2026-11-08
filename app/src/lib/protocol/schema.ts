@@ -131,11 +131,13 @@ export const surgeonSchema = z.strictObject({
   concurrentProcedures: text(200).optional(),
 });
 
-// The mark of a plan that the app made. `on` is the date of the plan. `rules` names the version of the rule table.
+// The mark of a plan that the app made. `on` is the date of the plan. `rules` lists the ids of the generator rules
+// that made the plan, so a clinician can audit it. An id is short and strict, never free text.
 // It is optional and has no default. The app never removes it from a loaded file.
+export const ruleIdSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,23}$/, 'A rule id is capital letters, digits and underscore, 24 characters at most.');
 export const generatedSchema = z.strictObject({
   on: z.iso.date(),
-  rules: text(20),
+  rules: z.array(ruleIdSchema).max(40),
 });
 
 export const protocolSchema = z.strictObject({

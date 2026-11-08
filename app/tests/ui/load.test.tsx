@@ -113,3 +113,38 @@ describe('Load protocol screen, back button', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 });
+
+describe('Load protocol screen, Create my plan', () => {
+  it('shows Create my plan with the line of the design in demo mode, and calls the handler', () => {
+    const onCreatePlan = vi.fn();
+    render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} onCreatePlan={onCreatePlan} />);
+    expect(screen.getByText('The app uses published protocols. No clinician checks this plan.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create my plan' }));
+    expect(onCreatePlan).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the file picker next to it, with the same label', () => {
+    render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} onCreatePlan={vi.fn()} />);
+    expect(screen.getByLabelText('Protocol file (.json)')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Load protocol file' })).toBeInTheDocument();
+  });
+
+  it('shows no Create my plan in patient mode, even when the handler is given', () => {
+    render(<LoadProtocol db={freshDb()} mode="patient" onLoaded={vi.fn()} onCreatePlan={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Create my plan' })).toBeNull();
+    expect(screen.queryByText(/No clinician checks this plan/)).toBeNull();
+  });
+
+  it('shows no Create my plan without the handler', () => {
+    render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Create my plan' })).toBeNull();
+  });
+
+  it('names a stored plan that the app made, in patient mode, with its own title', async () => {
+    const text = JSON.stringify({ schemaVersion: 1, id: 'g-1', side: 'left', generated: { on: '2026-11-08', rules: ['W1'] }, activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
+    await pick(text, 'patient');
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Plan from the app not allowed');
+    expect(alert).toHaveTextContent('A plan that the app made has no clinician approval. It cannot be used in patient mode.');
+  });
+});

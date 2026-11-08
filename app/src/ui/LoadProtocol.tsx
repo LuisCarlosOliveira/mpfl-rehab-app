@@ -12,6 +12,7 @@ const ERROR_TITLES: Record<string, string> = {
   schema: 'Protocol not valid',
   'example-in-patient-mode': 'Example not allowed',
   'not-approved': 'No approval recorded',
+  'generated-not-approved': 'Plan from the app not allowed',
 };
 
 interface Props {
@@ -20,11 +21,13 @@ interface Props {
   onLoaded: () => void;
   /** A stored file that the app refused at start-up. */
   initialError?: { title: string; message: string } | null;
+  /** Opens the questions of "Create my plan". The button shows in demo mode only. Patient mode refuses a plan that the app made. */
+  onCreatePlan?: () => void;
   /** Set when the app already has a protocol. It lets the patient go back to Home without a file. */
   onCancel?: () => void;
 }
 
-export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel }: Props) {
+export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel, onCreatePlan }: Props) {
   const [error, setError] = useState(initialError);
 
   async function onPick(file: File | undefined) {
@@ -74,6 +77,18 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
           }}
         />
       </div>
+      {mode === 'demo' && onCreatePlan && (
+        <section className="card stack-s mt" aria-labelledby="create-title">
+          <h2 id="create-title">No file from your care team?</h2>
+          <p>The app uses published protocols. No clinician checks this plan.</p>
+          <div className="actions">
+            <button type="button" className="btn" onClick={onCreatePlan}>
+              <Icon name="sliders-horizontal" size={18} />
+              Create my plan
+            </button>
+          </div>
+        </section>
+      )}
       {error && (
         <div className="stack-s mt-s">
           <Notice role="alert" icon="triangle-alert" title={error.title}>

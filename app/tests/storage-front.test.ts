@@ -98,9 +98,9 @@ describe('save, export and import of the second view fields', () => {
     if (!r.ok) expect(r.error.message).toContain('frontChangeDeg');
   });
 
-  it('does not add an index and does not raise the database version', () => {
+  it('adds no index for the session fields', () => {
     const db = freshDb();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3); // version 3 adds the generator answers table. These session fields still add no index.
     expect(db.sessions.schema.indexes.map((i) => i.name).sort()).toEqual(['date', 'exercise']);
   });
 });
