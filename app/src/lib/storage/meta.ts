@@ -4,6 +4,7 @@
 const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
 const PERSIST_KEY = 'mpfl.persistAsked';
+const PRIVACY_KEY = 'mpfl.privacySeen';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = 7;
@@ -42,4 +43,13 @@ export async function requestPersistOnce(): Promise<void> {
   } catch {
     // The browser can refuse. The export reminder is the fallback.
   }
+}
+
+/** The privacy notice shows on the first launch. This flag records that the patient saw it. */
+export function hasSeenPrivacyNotice(): boolean {
+  return localStorage.getItem(PRIVACY_KEY) === '1';
+}
+
+export function markPrivacyNoticeSeen(): void {
+  localStorage.setItem(PRIVACY_KEY, '1');
 }

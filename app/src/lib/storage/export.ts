@@ -87,8 +87,9 @@ export async function importSessions(
 // ---- CSV ---------------------------------------------------------------------
 
 const CSV_COLUMNS = [
-  'pseudonymId', 'schemaVersion', 'appVersion', 'protocolId', 'date', 'exercise', 'side', 'phase',
-  'reps', 'peakFlexion', 'holdSeconds', 'extensionLag', 'pain', 'swelling',
+  'pseudonymId', 'schemaVersion', 'appVersion', 'protocolId', 'date', 'exercise', 'side', 'view', 'phase',
+  'reps', 'peakFlexion', 'holdSeconds', 'topFlexion', 'marginDeg', 'marginSource',
+  'nearLimit', 'overLimit', 'tooFast', 'gaveWayPresses', 'redFlagBlocks', 'pain', 'swelling',
 ] as const;
 
 // Text cells are always quoted. A cell that starts with = + - @ tab or carriage
@@ -114,11 +115,19 @@ export async function exportCsv(db: MpflDb): Promise<string> {
         textCell(s.date),
         textCell(s.exercise),
         textCell(s.side),
+        textCell(s.view),
         numberCell(s.phase),
         numberCell(s.reps),
         numberCell(s.peakFlexion),
         numberCell(s.holdSeconds),
-        numberCell(s.extensionLag),
+        numberCell(s.topFlexion),
+        numberCell(s.marginDeg),
+        textCell(s.marginSource),
+        numberCell(s.nearLimit),
+        numberCell(s.overLimit),
+        numberCell(s.tooFast),
+        numberCell(s.gaveWayPresses),
+        numberCell(s.redFlagBlocks),
         numberCell(s.pain),
         textCell(s.swelling),
       ].join(','),

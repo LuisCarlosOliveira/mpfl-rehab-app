@@ -24,7 +24,15 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   reps: 10,
   peakFlexion: 72.4,
   holdSeconds: null,
-  extensionLag: null,
+  topFlexion: null,
+  marginDeg: 9,
+  marginSource: 'start value, UNVERIFIED for the lite model',
+  view: 'side',
+  nearLimit: 0,
+  overLimit: 0,
+  tooFast: 0,
+  gaveWayPresses: 0,
+  redFlagBlocks: 0,
   pain: 3,
   swelling: 'none',
   protocolId: 'p-001',
@@ -82,7 +90,7 @@ describe('JSON export and import', () => {
     await saveSession(db, session());
     const file = JSON.parse(await exportJson(db));
     expect(Object.keys(file.sessions[0]).sort()).toEqual(
-      ['date', 'exercise', 'extensionLag', 'holdSeconds', 'pain', 'peakFlexion', 'phase', 'protocolId', 'reps', 'schemaVersion', 'side', 'swelling'],
+      ['date', 'exercise', 'gaveWayPresses', 'holdSeconds', 'marginDeg', 'marginSource', 'nearLimit', 'overLimit', 'pain', 'peakFlexion', 'phase', 'protocolId', 'redFlagBlocks', 'reps', 'schemaVersion', 'side', 'swelling', 'tooFast', 'topFlexion', 'view'],
     );
   });
 
