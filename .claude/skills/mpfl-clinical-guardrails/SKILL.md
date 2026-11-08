@@ -11,7 +11,10 @@ The app counts reps and estimates knee angle from a 2D webcam. The error is abou
 - Next to every angle, write: "estimated angle, not a medical measurement".
 - Never write "clinically validated", "clinically proven" or "medically accurate".
 - Never show a goal, pass, fail or milestone, in words or in colour. A user reads "goal reached" as permission to progress.
-- Never judge form. Do not write "correct form", "incorrect form", "good form", "bad form" or "perfect form". No validated threshold exists. A cue states what was measured, for example "depth below your target".
+- Never judge form. No validated threshold exists after MPFL surgery. A cue states what was measured against a limit that the care team set, for example "depth below your target".
+- Do not use these words in screen text: correct, incorrect, good, bad, perfect, wrong, mistake, safe, dangerous, risk of injury, score, grade, pass, fail. Do not use a green or red verdict colour.
+- An in-range rep shows no message. "Within range" reads as a pass.
+- Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin is 9 degrees, a start value that is UNVERIFIED for the `lite` model. The safety side warns early. The counting side gives the benefit of the doubt.
 - Never call a webcam comparison "LSI". LSI needs strength tests. Write "movement symmetry".
 - Show every surgeon decision as "ask your surgeon" when the protocol does not set it. Set no default. The 14 decisions are in `research/clinical.md` section 9.
 - Mark red-flag text "general guidance, not verified for MPFL surgery".

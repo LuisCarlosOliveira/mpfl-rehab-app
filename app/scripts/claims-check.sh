@@ -19,6 +19,18 @@ for pattern in "$phrases" "$apis"; do
   fi
 done
 
+# Screen text: the word ban applies to user-facing files only (src/**/ui/**, cues.ts).
+words='correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail'
+ui_files=$(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) \( -path '*/ui/*' -o -name 'cues.ts' \) 2>/dev/null)
+if [ -n "$ui_files" ]; then
+  # shellcheck disable=SC2086
+  found=$(grep -niwE -e "$words" -e 'risk of injury' $ui_files 2>/dev/null | grep -v 'claims-check:allow' || true)
+  if [ -n "$found" ]; then
+    echo "$found"
+    hits=1
+  fi
+fi
+
 if [ "$hits" -ne 0 ]; then
   echo "claims-check: FAIL"
   exit 1
