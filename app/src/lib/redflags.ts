@@ -1,6 +1,13 @@
-// Red-flag list. General guidance from clinical practice.
-// research/clinical.md section 7 marks every item UNVERIFIED for MPFL surgery.
+// Red-flag list. General guidance, UNVERIFIED for MPFL surgery.
 // The app gives no diagnosis. It tells the user to stop and to contact help.
+// Source of each item (research/clinical.md section 7, research/clinical-update.md section 2.5):
+//   calf: Cincinnati Children's guideline (P2) lists signs of DVT. Consensus, evidence level 5.
+//   swelling: P2 lists persistent or recurrent effusion. No numeric threshold exists.
+//   catching-locking, bend-loss: P2 lists catching or locking, and loss or no progress of range of motion.
+//   giving-way, kneecap-moved: recurrent instability is a known failure (S11, S5, S4). The signs are general practice.
+//   infection: the rate is 1.3 percent (N11). The signs are general practice.
+//   breathless-chest, foot-numb-cold: general practice. UNVERIFIED for MPFL surgery.
+// Not added: "rising irritability" (P2). It has no sign that a person can answer yes or no.
 
 export type RedFlagGroup = 'care-team' | 'emergency';
 
@@ -28,6 +35,8 @@ export const RED_FLAGS: readonly RedFlag[] = [
   },
   { id: 'swelling', group: 'care-team', text: 'Large or growing swelling of the knee after exercise.' },
   { id: 'giving-way', group: 'care-team', text: 'A new feeling that the knee gives way.' },
+  { id: 'catching-locking', group: 'care-team', text: 'Your knee catches or locks.' },
+  { id: 'bend-loss', group: 'care-team', text: 'Your knee bend is getting less, or it is not getting better.' },
 ];
 
 export const MESSAGES: Record<RedFlagGroup, string> = {

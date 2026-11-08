@@ -1,5 +1,7 @@
 // Pure counters. Each one is (state, sample) -> { state, event }.
-// A null flexion (leg not visible) pauses counting and keeps the state.
+// A null flexion (leg not visible) pauses counting. The count stays. A timer that was running
+// restarts, because time with the leg out of view must not count as time in a state.
+// The internal name `lag` stays for the straight leg raise. It now holds the top angle.
 // All thresholds are tuning start values from the exercise definition.
 // They are not clinical evidence.
 
@@ -55,7 +57,7 @@ export function repsStep(
   sample: Sample,
   cfg: RepsConfig,
 ): { state: RepsState; event: RepsEvent } {
-  if (sample.flexion === null) return { state, event: 'paused' };
+  if (sample.flexion === null) return { state: { ...state, candidateSince: null }, event: 'paused' };
   const { flexion, t } = sample;
   const margin = cfg.margin ?? 0;
   const s = { ...state };
@@ -143,7 +145,7 @@ export function holdStep(
   sample: Sample,
   cfg: HoldConfig,
 ): { state: HoldState; event: HoldEvent } {
-  if (sample.flexion === null) return { state, event: 'paused' };
+  if (sample.flexion === null) return { state: { ...state, since: null, counted: false }, event: 'paused' };
   const s = { ...state };
   let event: HoldEvent = null;
   const inPosition = cfg.direction === 'at-least' ? sample.flexion >= cfg.threshold : sample.flexion <= cfg.threshold;
@@ -162,8 +164,9 @@ export function holdStep(
 }
 
 // ---- Extension lag (straight leg raise) ------------------------------------
-// The caller feeds samples while the leg is raised. The lag is the smallest
-// flexion seen: the closest the knee came to full extension.
+// The caller feeds samples while the leg is raised. The value is the smallest
+// flexion seen: the closest the knee came to full extension. The pipeline reports it
+// as the estimated angle at the top. The word "lag" is only an internal name.
 
 export interface LagState {
   lag: number | null;

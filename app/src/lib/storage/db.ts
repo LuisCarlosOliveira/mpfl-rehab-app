@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { z } from 'zod';
-import { EXERCISE_KINDS } from '../protocol/schema';
+import { EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
 import { loadProtocol, type LoadResult, type Mode } from '../protocol';
 import { requestPersistOnce } from './meta';
 
@@ -24,7 +24,7 @@ export const sessionSchema = z.strictObject({
   redFlagBlocks: counter,
   pain: z.number().int().min(0).max(10),
   swelling: z.enum(['none', 'some', 'more']),
-  protocolId: z.string().max(64),
+  protocolId: protocolIdSchema,
   phase: z.number().int().min(1).max(10),
   schemaVersion: z.literal(1),
 });

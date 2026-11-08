@@ -5,7 +5,7 @@
 
 export const MARGIN_DEG = 9;
 
-export const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, heavy model, still photos)';
+export const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)';
 
 export type LimitState = 'above' | 'below' | 'cannot-tell';
 

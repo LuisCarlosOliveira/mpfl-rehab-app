@@ -31,6 +31,8 @@ export function mapCameraError(err: unknown): CameraError {
 }
 
 let active: MediaStream | null = null;
+// Each stop and each start makes older pending starts stale. A stale start stops its own stream.
+let generation = 0;
 
 function onHidden() {
   if (document.visibilityState === 'hidden') stopCamera();
@@ -43,6 +45,7 @@ function removeListeners() {
 
 /** Stop every track and remove the exit listeners. It is fine to call at any time. */
 export function stopCamera(): void {
+  generation += 1;
   removeListeners();
   const stream = active;
   active = null;
@@ -54,21 +57,28 @@ export const stopOnLeave = stopCamera;
 
 export async function startCamera(): Promise<CameraResult> {
   stopCamera();
+  const mine = generation;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-    // The page can go to the background while the permission prompt is open.
-    if (document.visibilityState === 'hidden') {
+    // A stop or a newer start during the permission prompt makes this stream stale.
+    // The page can also go to the background while the prompt is open.
+    if (mine !== generation || document.visibilityState === 'hidden') {
       stream.getTracks().forEach((t) => t.stop());
-      return { ok: false, error: mapCameraError(new Error('hidden')) };
+      return { ok: false, error: mapCameraError(new Error('stopped')) };
     }
     active = stream;
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', stopCamera);
     // A device that disappears ends its track. Release everything then.
-    stream.getTracks().forEach((t) => t.addEventListener('ended', stopCamera, { once: true }));
+    // The check keeps an old stream from stopping a newer one.
+    const onEnded = () => {
+      if (active === stream) stopCamera();
+    };
+    stream.getTracks().forEach((t) => t.addEventListener('ended', onEnded, { once: true }));
     return { ok: true, stream };
   } catch (err) {
-    stopCamera();
+    // A failure after the stream was stored must release it. A newer start is not touched.
+    if (mine === generation) stopCamera();
     return { ok: false, error: mapCameraError(err) };
   }
 }

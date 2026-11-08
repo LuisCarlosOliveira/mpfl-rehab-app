@@ -1,6 +1,29 @@
 import { protocolSchema, type Protocol, type SurgeonField } from './schema';
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_MESSAGE_CHARS = 300;
+
+/** True when the text is over the cap in UTF-8 bytes. The length check is cheap and runs first. */
+export function overByteCap(raw: string): boolean {
+  if (raw.length > MAX_FILE_BYTES) return true;
+  // One UTF-16 unit is at most 3 bytes. Below a third of the cap the text cannot be over it.
+  return raw.length * 3 > MAX_FILE_BYTES && new TextEncoder().encode(raw).length > MAX_FILE_BYTES;
+}
+
+/**
+ * One plain sentence for the first problem of a file. The text is cut, because
+ * a message can repeat a key name from the file and the key can be very long.
+ */
+export function describeFirstIssue(
+  error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> },
+  subject: string,
+): string {
+  const first = error.issues[0];
+  const where = first && first.path.length > 0 ? first.path.map(String).join('.') : 'file';
+  const sentence = `The ${subject} is not valid at "${where}": ${first?.message ?? 'unknown problem'}`;
+  const cut = sentence.length > MAX_MESSAGE_CHARS ? `${sentence.slice(0, MAX_MESSAGE_CHARS)}...` : sentence;
+  return cut.endsWith('.') ? cut : `${cut}.`;
+}
 
 export type Mode = 'demo' | 'patient';
 
@@ -14,7 +37,7 @@ const fail = (code: LoadErrorCode, message: string): LoadResult => ({ ok: false,
 
 /** Parse and check a protocol file. The size check runs before JSON.parse. */
 export function loadProtocol(raw: string, mode: Mode): LoadResult {
-  if (raw.length > MAX_FILE_BYTES) return fail('too-large', 'The file is larger than 5 MB.');
+  if (overByteCap(raw)) return fail('too-large', 'The file is larger than 5 MB.');
 
   let data: unknown;
   try {
@@ -25,9 +48,7 @@ export function loadProtocol(raw: string, mode: Mode): LoadResult {
 
   const parsed = protocolSchema.safeParse(data);
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    const where = first && first.path.length > 0 ? first.path.join('.') : 'file';
-    return fail('schema', `The protocol is not valid at "${where}": ${first?.message ?? 'unknown problem'}`);
+    return fail('schema', describeFirstIssue(parsed.error, 'protocol'));
   }
 
   const protocol = parsed.data;

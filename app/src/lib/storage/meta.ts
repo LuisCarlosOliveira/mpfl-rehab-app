@@ -1,6 +1,8 @@
 // Small local values: pseudonymous id, last export date, "persistent storage asked" flag.
 // All of them live in localStorage, so eraseAll() clears them.
 
+import { z } from 'zod';
+
 const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
 const PERSIST_KEY = 'mpfl.persistAsked';
@@ -12,7 +14,7 @@ const REMINDER_DAYS = 7;
 /** A random id. It is not linked to a person. A new one is made after erase. */
 export function getPseudonymId(): string {
   let id = localStorage.getItem(PSEUDO_KEY);
-  if (!id) {
+  if (!id || !z.uuid().safeParse(id).success) {
     id = crypto.randomUUID();
     localStorage.setItem(PSEUDO_KEY, id);
   }
@@ -31,7 +33,9 @@ export function markExported(when: Date): void {
 export function exportReminderDue(lastExportIso: string | null, now: Date, hasSessions: boolean): boolean {
   if (!hasSessions) return false;
   if (!lastExportIso) return true;
-  return now.getTime() - new Date(lastExportIso).getTime() >= REMINDER_DAYS * DAY_MS;
+  const age = now.getTime() - new Date(lastExportIso).getTime();
+  // A stored value that is not a date counts as no export.
+  return Number.isNaN(age) || age >= REMINDER_DAYS * DAY_MS;
 }
 
 /** Ask the browser to keep the data. Safari can delete site data after about 7 days. Asked once. */

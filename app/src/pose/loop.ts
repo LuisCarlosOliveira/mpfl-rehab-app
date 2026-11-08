@@ -89,7 +89,8 @@ export function startPoseLoop({ video, detect, onFrame, onError }: LoopOptions) 
         return;
       }
     }
-    schedule();
+    // onFrame can call stop. Do not schedule again then.
+    if (!stopped) schedule();
   }
 
   function stop() {

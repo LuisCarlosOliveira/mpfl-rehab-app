@@ -6,7 +6,9 @@ export interface Landmark {
 
 export type Side = 'left' | 'right';
 
-const MIN_VISIBILITY = 0.5;
+// MediaPipe `visibility` is the likelihood that a landmark is visible in the image.
+// The value 0.5 is a start value. It is UNVERIFIED (research/tech.md, section 2.3).
+export const MIN_VISIBILITY = 0.5;
 
 // MediaPipe landmark IDs: hip, knee, ankle.
 const LEG_IDS: Record<Side, [number, number, number]> = {

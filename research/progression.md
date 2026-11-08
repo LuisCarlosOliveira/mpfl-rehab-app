@@ -314,7 +314,7 @@ The three phrases (no "met", "passed" or colour):
 - "Cannot tell, the difference is smaller than the camera error"
 - Fewer than N sessions: "Not enough data". If the leg was not visible: "Cannot tell".
 
-Example: limit 110 degrees, margin 9. A median of 105 reads "Cannot tell". Only 119 or more reads "Above". Only 101 or less reads "Below". The window of informative values is narrow, and the clinician sees that.
+Example: limit 110 degrees, margin 9. A median of 105 reads "Cannot tell". Only 120 or more reads "Above". Only 100 or less reads "Below". A value that differs from the limit by exactly the margin is inside the margin. The rule is "more than the margin". The code and the tests check it (2026-11-08). The window of informative values is narrow, and the clinician sees that.
 
 Block 3, clinician checks: the fixed list of items for the visit, empty, with the evidence label. Example: "Quadriceps strength. Needs a dynamometer. Borrowed from ACL."
 

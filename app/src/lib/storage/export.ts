@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { version as APP_VERSION } from '../../../package.json';
+import { MAX_FILE_BYTES, describeFirstIssue, overByteCap } from '../protocol/loader';
+import { protocolIdSchema } from '../protocol/schema';
 import { sessionSchema, type MpflDb, type SessionData } from './db';
 import { getPseudonymId } from './meta';
 
 export const ANGLE_METHOD = '2D webcam estimate, not a goniometer measurement';
-export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+export const MAX_IMPORT_BYTES = MAX_FILE_BYTES;
 
 // The export holds fixed fields only. It has no name, birth date or free text.
 export const exportSchema = z.strictObject({
@@ -12,7 +14,7 @@ export const exportSchema = z.strictObject({
   appVersion: z.string().max(20),
   angleMethod: z.literal(ANGLE_METHOD),
   pseudonymId: z.uuid(),
-  protocolId: z.string().max(64).nullable(),
+  protocolId: protocolIdSchema.nullable(),
   exportedAt: z.iso.datetime(),
   sessions: z.array(sessionSchema).max(20000),
 });
@@ -49,7 +51,7 @@ export async function exportJson(db: MpflDb): Promise<string> {
 
 /** Read an export file into memory. This never writes to the database. */
 export function parseExport(raw: string): ParseResult {
-  if (raw.length > MAX_IMPORT_BYTES) return fail('too-large', 'The file is larger than 5 MB.');
+  if (overByteCap(raw)) return fail('too-large', 'The file is larger than 5 MB.');
   let data: unknown;
   try {
     data = JSON.parse(raw);
@@ -61,9 +63,7 @@ export function parseExport(raw: string): ParseResult {
   }
   const parsed = exportSchema.safeParse(data);
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    const where = first && first.path.length > 0 ? first.path.join('.') : 'file';
-    return fail('schema', `The file is not valid at "${where}": ${first?.message ?? 'unknown problem'}`);
+    return fail('schema', describeFirstIssue(parsed.error, 'file'));
   }
   return { ok: true, file: parsed.data };
 }
@@ -80,7 +80,7 @@ export async function importSessions(
   if (parsed.file.sessions.some((s) => stored.has(keyOf(s)))) {
     return fail('duplicate', 'Some of these sessions are already stored. Nothing was imported.');
   }
-  await db.sessions.bulkAdd(parsed.file.sessions as never[]);
+  await db.sessions.bulkAdd(parsed.file.sessions);
   return { ok: true, imported: parsed.file.sessions.length };
 }
 
@@ -93,13 +93,16 @@ const CSV_COLUMNS = [
 ] as const;
 
 // Text cells are always quoted. A cell that starts with = + - @ tab or carriage
-// return gets a leading single quote, so a spreadsheet does not run it as a formula.
+// return, or with the wide form of one of the four signs, gets a leading single
+// quote, so a spreadsheet does not run it as a formula.
 function textCell(value: string): string {
-  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  const safe = /^[=+\-@\t\r\uff1d\uff0b\uff0d\uff20]/.test(value) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
 const numberCell = (value: number | null) => (value === null ? '' : String(value));
+
+const cell = (value: string | number | null) => (typeof value === 'string' ? textCell(value) : numberCell(value));
 
 /** CSV is export only. The first row holds the angle method. */
 export async function exportCsv(db: MpflDb): Promise<string> {
@@ -107,30 +110,7 @@ export async function exportCsv(db: MpflDb): Promise<string> {
   const lines = [textCell(ANGLE_METHOD), CSV_COLUMNS.join(',')];
   for (const s of file.sessions) {
     lines.push(
-      [
-        textCell(file.pseudonymId),
-        numberCell(s.schemaVersion),
-        textCell(file.appVersion),
-        textCell(s.protocolId),
-        textCell(s.date),
-        textCell(s.exercise),
-        textCell(s.side),
-        textCell(s.view),
-        numberCell(s.phase),
-        numberCell(s.reps),
-        numberCell(s.peakFlexion),
-        numberCell(s.holdSeconds),
-        numberCell(s.topFlexion),
-        numberCell(s.marginDeg),
-        textCell(s.marginSource),
-        numberCell(s.nearLimit),
-        numberCell(s.overLimit),
-        numberCell(s.tooFast),
-        numberCell(s.gaveWayPresses),
-        numberCell(s.redFlagBlocks),
-        numberCell(s.pain),
-        textCell(s.swelling),
-      ].join(','),
+      CSV_COLUMNS.map((c) => cell(c === 'pseudonymId' ? file.pseudonymId : c === 'appVersion' ? file.appVersion : s[c])).join(','),
     );
   }
   return lines.join('\n') + '\n';

@@ -36,7 +36,7 @@
           "reps": 10,
           "targetFlexion": 30,
           "maxFlexion": 50,
-          "source": "maxFlexion 50: S16 (0 to 50 degrees can limit patellofemoral load in healthy people, link to the graft UNVERIFIED). Other values: PROPOSAL.",
+          "source": "maxFlexion 50: S16, BORROWED (healthy people, 0 to 50 degrees can limit patellofemoral load, graft link UNVERIFIED). Other values: PROPOSAL.",
           "minRepSeconds": 2
         },
         {
@@ -44,7 +44,7 @@
           "sets": 3,
           "holdSeconds": 5,
           "targetFlexion": 0,
-          "source": "Isometric knee extension is named in S1. targetFlexion, sets, holdSeconds: PROPOSAL."
+          "source": "Isometric knee extension is named in S1 (phase 1 list). Phase 2 placement, targetFlexion, sets, holdSeconds: PROPOSAL."
         }
       ]
     }

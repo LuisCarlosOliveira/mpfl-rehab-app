@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # FR4: only the protocol folder may touch the active phase.
-# Fails if code outside src/lib/protocol/ calls setActivePhase, assigns activePhase,
-# or copies a value into it with Object.assign.
+# Fails if code outside src/lib/protocol/ calls setActivePhase, writes to a member
+# named activePhase (any value, with or without spaces), assigns a bare activePhase
+# variable, or copies a value into it with Object.assign.
+# A React prop such as activePhase={store.activePhase} only passes a value to a screen.
+# It is not a write and it passes.
 # Usage: phase-check.sh [folder]   (default: the src folder of the app)
 # A path that does not exist is an error (exit 2).
 set -u
@@ -15,7 +18,9 @@ fi
 
 found=$(grep -rnE --include='*.ts' --include='*.tsx' \
   -e 'setActivePhase' \
-  -e '\bactivePhase[[:space:]]*(=[^=>]|\+=|-=|\+\+|--)' \
+  -e '\.activePhase[[:space:]]*(=[^=]|\+=|-=|\+\+|--)' \
+  -e '\[[^]]*activePhase[^]]*\][[:space:]]*(=[^=]|\+=|-=)' \
+  -e '(^|[^.[:alnum:]_])activePhase[[:space:]]*(=[^={>]|\+=|-=|\+\+|--)' \
   -e 'Object\.assign\([^)]*activePhase' \
   "$target" 2>/dev/null | grep -v '/lib/protocol/' | grep -v 'claims-check:allow' || true)
 

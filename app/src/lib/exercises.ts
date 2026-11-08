@@ -1,9 +1,11 @@
 // Exercise definitions and the pipeline: landmarks -> angle -> filter -> counter.
 // Every threshold here is a TUNING START VALUE. It is not clinical evidence.
+// The knowledge base has no source for any of them. They are PROPOSAL values for tuning on
+// real video (T13). The only number with a source is the margin (margin.ts).
 // The protocol (set by the clinician) supplies targets and ceilings.
 // A missing value gives "ask your surgeon". The app sets no default.
 
-import { flexion, kneeAngle, selectLeg, type Landmark, type Side } from './angle';
+import { MIN_VISIBILITY, flexion, kneeAngle, selectLeg, type Landmark, type Side } from './angle';
 import {
   holdInitial,
   holdStep,
@@ -18,12 +20,12 @@ import { MARGIN_DEG, classifyAgainstLimit, type LimitState } from './margin';
 import { OneEuroFilter } from './oneEuro';
 import type { Exercise } from './protocol';
 
-const MIN_STATE_MS = 300; // start value
-const ENTER_FRACTION = 0.8; // start value: a rep starts at 80 percent of the target
-const EXIT_FRACTION = 0.3; // start value: a rep ends at 30 percent of the target
-const MIN_TARGET = 10; // degrees. Below this, noise decides the count.
-const RAISE_MIN_HEIGHT = 0.05; // image fraction: ankle above hip by this much counts as raised
-const RAISE_SETTLE_MS = 500; // the filter needs time to settle before the lag is read
+const MIN_STATE_MS = 300; // start value. research/tech.md 3.3 says "for example 300 ms", not from a source
+const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent of the target
+const EXIT_FRACTION = 0.3; // PROPOSAL, no source: a rep ends at 30 percent of the target
+const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
+const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
+const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
 
 export type SetupResult =
   | { ok: true; kind: 'reps'; config: RepsConfig }
@@ -60,6 +62,8 @@ export function counterSetup(exercise: Exercise): SetupResult {
       return {
         ok: true,
         kind: 'hold',
+        // The band is the target plus the margin (research/form-opus.md, C5). A missing target
+        // reads as full extension (0). This is a PROPOSAL. A clinician must confirm it.
         config: {
           direction: 'at-most',
           threshold: (exercise.targetFlexion ?? 0) + MARGIN_DEG,
@@ -72,7 +76,7 @@ export function counterSetup(exercise: Exercise): SetupResult {
   }
 }
 
-const visible = (p: Landmark) => (p.visibility ?? 1) >= 0.5;
+const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
 
 /** The leg is raised when the ankle is clearly above the hip in the image. */
 export function isLegRaised(hip: Landmark, ankle: Landmark): boolean {
@@ -115,6 +119,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
   const setup = counterSetup(exercise);
   if (!setup.ok) return setup;
 
+  // Start values. tech.md 3.2 advises minCutoff near 1 Hz, then a higher beta. Not tuned on real video.
   const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
   let peak: number | null = null;
 
@@ -127,14 +132,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
     else if (event === 'too-fast') counts.tooFast += 1;
   };
 
-  // Straight leg raise state
-  let lag = lagInitial();
+  // Straight leg raise state. `top` is the angle at the top of the current lift.
+  let top = lagInitial();
   let raisedSince: number | null = null;
-  let worstLag: number | null = null;
+  let highestTop: number | null = null;
 
   const closeLift = () => {
-    if (lag.lag !== null) worstLag = worstLag === null ? lag.lag : Math.max(worstLag, lag.lag);
-    lag = lagInitial();
+    if (top.lag !== null) highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
+    top = lagInitial();
     raisedSince = null;
   };
 
@@ -168,19 +173,19 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
           hold = out.state;
           return { flexion: f, event: out.event, repMs: null };
         }
-        // Straight leg raise: read the lag only while the leg is raised and settled.
+        // Straight leg raise: read the top angle only while the leg is raised and settled.
         if (isLegRaised(hip, ankle)) {
           if (raisedSince === null) raisedSince = t;
-          if (t - raisedSince >= RAISE_SETTLE_MS) lag = lagStep(lag, sample).state;
+          if (t - raisedSince >= RAISE_SETTLE_MS) top = lagStep(top, sample).state;
         } else if (raisedSince !== null) {
           closeLift();
         }
         return { flexion: f, event: null, repMs: null };
       },
       summary() {
-        const current = lag.lag;
+        const current = top.lag;
         const topFlexion =
-          setup.kind === 'lag' ? (worstLag === null ? current : current === null ? worstLag : Math.max(worstLag, current)) : null;
+          setup.kind === 'lag' ? (highestTop === null ? current : current === null ? highestTop : Math.max(highestTop, current)) : null;
         let topState: Summary['topState'] = null;
         if (setup.kind === 'lag') {
           topState =

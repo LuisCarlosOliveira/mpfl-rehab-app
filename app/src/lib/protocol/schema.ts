@@ -7,6 +7,12 @@ import { MARGIN_DEG } from '../margin';
 const text = (max: number) => z.string().max(max);
 const flexion = z.number().min(0).max(180);
 
+// The id goes into every export. Letters, digits, dot, dash and underscore only,
+// so it cannot hold a name with spaces, a control character or a formula start.
+export const protocolIdSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'The id can hold letters, digits, dot, dash and underscore only, 64 characters at most.');
+
 export const EXERCISE_KINDS = ['heel-slide', 'straight-leg-raise', 'mini-squat', 'seated-extension-hold'] as const;
 
 export const exerciseSchema = z
@@ -50,7 +56,7 @@ const numericCriterion = z.strictObject({
   measure: z.enum(['peakFlexionDeg', 'topFlexionDeg', 'painMax', 'sessionsDone']),
   exerciseId: z.enum(EXERCISE_KINDS).optional(),
   op: z.enum(['atLeast', 'atMost']),
-  limit: z.number(), // a number that the clinician sets. No default.
+  limit: z.number().min(0).max(100000), // a number that the clinician sets. No default.
   lastSessions,
   evidence,
 });
@@ -76,6 +82,9 @@ export const phaseSchema = z.strictObject({
   exercises: z.array(exerciseSchema).max(10),
   reviewCriteria: z.array(reviewCriterionSchema).max(12).optional(),
   reviewDate: z.iso.date().optional(),
+}).refine((p) => new Set(p.exercises.map((e) => e.kind)).size === p.exercises.length, {
+  message: 'An exercise can appear only once in a phase, because a second entry makes the limit unclear.',
+  path: ['exercises'],
 });
 
 // Every surgeon field is optional and has no default.
@@ -91,7 +100,7 @@ export const surgeonSchema = z.strictObject({
 
 export const protocolSchema = z.strictObject({
   schemaVersion: z.literal(1),
-  id: text(64),
+  id: protocolIdSchema,
   example: z.boolean().optional(),
   side: z.enum(['left', 'right']),
   authoredBy: text(100).optional(),
@@ -100,7 +109,15 @@ export const protocolSchema = z.strictObject({
   painPauseThreshold: z.number().int().min(0).max(10).optional(),
   phases: z.array(phaseSchema).min(1).max(10),
   surgeon: surgeonSchema,
-});
+})
+  .refine((p) => new Set(p.phases.map((ph) => ph.id)).size === p.phases.length, {
+    message: 'Two phases have the same id.',
+    path: ['phases'],
+  })
+  .refine((p) => p.phases.some((ph) => ph.id === p.activePhase), {
+    message: 'The active phase must be the id of one of the phases.',
+    path: ['activePhase'],
+  });
 
 export type Protocol = z.infer<typeof protocolSchema>;
 export type Exercise = z.infer<typeof exerciseSchema>;
