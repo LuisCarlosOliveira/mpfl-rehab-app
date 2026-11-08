@@ -313,3 +313,26 @@ describe('buildSdp', () => {
     }
   });
 });
+
+describe('candidate hosts (audit A1-1)', () => {
+  const cand = (host: string) => fields({ candidates: [{ host, port: 40000, protocol: 'udp' }] });
+  const sdpWith = (host: string) =>
+    FIXTURE.split('\r\n').filter((l) => !l.includes('udp 2113937151')).join('\r\n')
+      .replace('a=ice-ufrag', `a=candidate:1 1 udp 2113937151 ${host} 40000 typ host\r\na=ice-ufrag`);
+
+  it.each([
+    '10.0.0.1', '10.255.255.254', '172.16.0.1', '172.31.255.255', '192.168.1.1', '192.168.255.255',
+    '100.64.0.1', '100.84.170.33', '100.127.255.254', '169.254.10.20',
+  ])('accepts the private or tailnet address %s', (host) => {
+    expect(ok(decodeOffer(encodeOffer(cand(host)))).candidates[0]?.host).toBe(host);
+    expect(ok(extractFields(sdpWith(host))).candidates[0]?.host).toBe(host);
+  });
+
+  it.each([
+    '8.8.8.8', '1.2.3.4', '11.0.0.1', '127.0.0.1', '0.0.0.0', '172.15.255.255', '172.32.0.1', '100.63.255.255',
+    '100.128.0.1', '192.167.1.1', '192.169.0.1', '169.253.1.1', '224.0.0.1', '255.255.255.255',
+  ])('refuses the address %s', (host) => {
+    expect(() => encodeOffer(cand(host))).toThrow();
+    expect(extractFields(sdpWith(host))).toEqual({ ok: false, code: 'no-candidate' });
+  });
+});

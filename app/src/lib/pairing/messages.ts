@@ -27,6 +27,8 @@ export const landmarksSchema = z.strictObject({
   type: z.literal('landmarks'),
   tMs: z.number().min(0).max(Number.MAX_SAFE_INTEGER),
   view: z.enum(['side', 'front']),
+  /** Width divided by height of the phone image. The angle function needs it. PROPOSAL range, a camera is not wider than 5 to 1. */
+  aspect: z.number().min(0.2).max(5).optional(),
   landmarks: z.array(landmark).length(LANDMARK_COUNT),
 });
 export const byeSchema = z.strictObject({ type: z.literal('bye') });

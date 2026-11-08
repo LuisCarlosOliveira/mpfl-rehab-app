@@ -3,10 +3,11 @@
 // This file keeps no frame and no image. It passes landmark numbers and a time.
 // The pose model loads on demand with import(), so the first screen stays small.
 import type { Landmark } from '../lib/angle';
-import { startCamera, stopCamera, type CameraError } from './camera';
+import { startCamera, stopCamera, type CameraError, type CameraOptions } from './camera';
+import type { View } from '../lib/views';
 import { startPoseLoop } from './loop';
 
-export type SourceView = 'side';
+export type SourceView = View;
 
 export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number) => void;
 
@@ -33,7 +34,13 @@ const MODEL_ERROR: CameraError = {
 const STOPPED: CameraError = { kind: 'other', message: 'The camera was stopped.' };
 const DEFAULT_ASPECT = 16 / 9;
 
-export function cameraSource(): LandmarkSource {
+export interface CameraSourceOptions extends CameraOptions {
+  /** The view tag of this camera. The default is the side view. */
+  view?: SourceView;
+}
+
+export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOptions = {}): LandmarkSource {
+  const options = Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined;
   type Landmarker = import('./landmarker').Landmarker;
   let landmarker: Landmarker | null = null;
   let stream: MediaStream | null = null;
@@ -58,14 +65,14 @@ export function cameraSource(): LandmarkSource {
   };
 
   return {
-    view: 'side',
+    view,
     async start(onFrame, preview) {
       const mine = ++generation;
       stopLoop();
       // The camera layer can end the tracks alone (tab hidden, device removed). Then ask again.
       if (stream && stream.getTracks().every((t) => t.readyState === 'ended')) stream = null;
       if (!stream) {
-        const camera = await startCamera();
+        const camera = await startCamera(options);
         if (mine !== generation) {
           if (camera.ok) camera.stream.getTracks().forEach((t) => t.stop());
           return { ok: false, error: STOPPED };

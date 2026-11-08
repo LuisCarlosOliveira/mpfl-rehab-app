@@ -11,7 +11,7 @@ export const OFFER_TTL_MS = DEFAULT_TTL_MS; // from the display of the offer to 
 export const HELLO_TTL_MS = 15_000; // PROPOSAL: from the answer to the first channel message. qr-pairing.md section 5 rule 3.
 export const FALLBACK_TEXT = 'Could not pair. The app continues with one camera.';
 
-export type FailCode = 'bad-secret' | 'timeout' | 'no-hello' | 'bad-message';
+export type FailCode = 'bad-secret' | 'timeout' | 'no-hello' | 'bad-message' | 'connection';
 
 export type PairingState =
   | { kind: 'idle' }
@@ -27,6 +27,7 @@ export type PairingEvent =
   | { type: 'hello-received'; secret: Uint8Array }
   | { type: 'message-received'; result: Result<Message, ParseError> }
   | { type: 'tick' }
+  | { type: 'connection-error' } // the browser reports that the peer connection or the channel failed
   | { type: 'close' };
 
 export interface PairingStep {
@@ -56,6 +57,7 @@ function helloSecret(event: PairingEvent): Uint8Array | null {
 export function pairingStep(state: PairingState, event: PairingEvent, now: number): PairingStep {
   if (state.kind === 'failed' || state.kind === 'closed') return to(state);
   if (event.type === 'close') return to({ kind: 'closed' });
+  if (event.type === 'connection-error') return failed('connection');
 
   if (state.kind === 'offer-issued' && !isFresh(state.issuedAt, now, OFFER_TTL_MS)) return failed('timeout');
   if (state.kind === 'waiting-hello' && !isFresh(state.answeredAt, now, HELLO_TTL_MS)) return failed('timeout');

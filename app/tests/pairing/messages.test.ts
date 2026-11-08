@@ -223,3 +223,14 @@ describe('hostile JSON', () => {
     }
   });
 });
+
+describe('aspect of the phone image', () => {
+  const base = { type: 'landmarks', tMs: 1, view: 'front', landmarks: Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5 })) };
+  it('accepts a sensible aspect and a message without one', () => {
+    expect(parseMessage(JSON.stringify({ ...base, aspect: 0.5625 })).ok).toBe(true);
+    expect(parseMessage(JSON.stringify(base)).ok).toBe(true);
+  });
+  it.each([0, -1, 0.1, 6, '1.5', null])('refuses the aspect %s', (aspect) => {
+    expect(parseMessage(JSON.stringify({ ...base, aspect })).ok).toBe(false);
+  });
+});

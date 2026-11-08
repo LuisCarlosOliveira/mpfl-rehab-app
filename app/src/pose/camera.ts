@@ -55,11 +55,21 @@ export function stopCamera(): void {
 /** Call from a route change or an unmount. Same effect as stopCamera. */
 export const stopOnLeave = stopCamera;
 
-export async function startCamera(): Promise<CameraResult> {
+export interface CameraOptions {
+  /** One camera by id. It wins over `facingMode`. */
+  deviceId?: string;
+  /** `user` is the front camera and the default. The phone uses `environment` (rear camera). */
+  facingMode?: 'user' | 'environment';
+}
+
+export async function startCamera(options: CameraOptions = {}): Promise<CameraResult> {
   stopCamera();
   const mine = generation;
+  const video: MediaTrackConstraints = options.deviceId
+    ? { deviceId: { exact: options.deviceId } }
+    : { facingMode: options.facingMode ?? 'user' };
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
     // A stop or a newer start during the permission prompt makes this stream stale.
     // The page can also go to the background while the prompt is open.
     if (mine !== generation || document.visibilityState === 'hidden') {

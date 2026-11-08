@@ -27,10 +27,18 @@ const iceChars = /^[A-Za-z0-9+/]+$/;
 const ipv4 = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
 const mdns = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.local$/;
 
+// A pairing code can only name a host on a private network or on the tailnet (audit A1-1, FR25, NFR1):
+// 10/8, 172.16/12, 192.168/16, 100.64/10 (the tailnet range) and 169.254/16. Loopback and public hosts are refused.
+function isPrivateIpv4(host: string): boolean {
+  if (!ipv4.test(host)) return false;
+  const [a = 0, b = 0] = host.split('.').map(Number);
+  return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254);
+}
+
 const bytesOf = (length: number) => z.custom<Uint8Array>((v) => v instanceof Uint8Array && v.length === length);
 
 const candidateSchema = z.strictObject({
-  host: z.string().refine((h) => mdns.test(h) || (ipv4.test(h) && !/^(0|2[2-5]\d)\./.test(h))),
+  host: z.string().refine((h) => mdns.test(h) || isPrivateIpv4(h)),
   port: z.int().min(1).max(65535),
   protocol: z.literal('udp'),
 });
@@ -187,7 +195,7 @@ export type SdpError = 'too-long' | 'missing-field' | 'bad-field' | 'no-candidat
 
 /**
  * Reads the pairing fields from a local description. It keeps only UDP host candidates of component 1
- * that have an IPv4 address or an mDNS name, and at most 3 of them. The setup role is not read:
+ * that have a private or tailnet IPv4 address or an mDNS name, and at most 3 of them. The setup role is not read:
  * the message type gives the role.
  */
 export function extractFields(sdp: string): Result<SdpFields, SdpError> {
@@ -207,7 +215,7 @@ export function extractFields(sdp: string): Result<SdpFields, SdpError> {
     const [, component, transport, , host, port, typ, type] = rest.split(' ');
     if (component !== '1' || transport?.toLowerCase() !== 'udp' || typ !== 'typ' || type !== 'host') continue;
     const name = (host ?? '').toLowerCase();
-    if (!mdns.test(name) && !ipv4.test(name)) continue;
+    if (!mdns.test(name) && !isPrivateIpv4(name)) continue;
     if (candidates.length < MAX_CANDIDATES) candidates.push({ host: name, port: Number(port), protocol: 'udp' });
   }
   if (candidates.length === 0) return fail('no-candidate');

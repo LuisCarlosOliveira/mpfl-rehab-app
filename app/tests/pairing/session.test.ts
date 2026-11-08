@@ -246,3 +246,20 @@ describe('every event in every state', () => {
     expect(s.kind).toBe('paired');
   });
 });
+
+describe('connection error', () => {
+  it.each([
+    ['an issued offer', offered],
+    ['a waiting hello', waiting],
+    ['a paired link', paired],
+  ])('fails with the fixed text for %s', (_name, make) => {
+    const state = pairingStep(make(), { type: 'connection-error' }, 3000).state;
+    expect(failedCode(state)).toBe('connection');
+    expect(state).toMatchObject({ text: FALLBACK_TEXT });
+  });
+  it('fails an idle link too, and keeps a closed link closed', () => {
+    expect(failedCode(pairingStep(initialState, { type: 'connection-error' }, 1).state)).toBe('connection');
+    const closed = pairingStep(paired(), { type: 'close' }, 5).state;
+    expect(pairingStep(closed, { type: 'connection-error' }, 6).state.kind).toBe('closed');
+  });
+});
