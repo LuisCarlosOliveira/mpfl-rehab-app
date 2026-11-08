@@ -226,7 +226,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Steps: write `.claude/skills/mpfl-clinical-guardrails/SKILL.md`. Content: banned claims, banned goal, pass, fail and milestone wording, and the "ask your surgeon" rule. Also red-flag behavior, no auto-progression, no LSI label for webcam data, the safety floor of FR12 and the camera rules. Required labels: "estimated angle, not a medical measurement" and "EXAMPLE, NOT APPROVED". Write `scripts/claims-check.sh` that searches the source for banned phrases and banned APIs (`MediaRecorder`, `toBlob`, `toDataURL`, `ImageCapture`, `dangerouslySetInnerHTML`).
 - Tests: skillspector scan. The script fails on a fixture with a banned phrase and passes on a clean fixture.
 - Acceptance: scan has no high finding. Script passes and fails as expected. The skill loads with the Skill tool. This task supports NFR2, NFR9 and NFR10.
-- Result: pending.
+- Result: DONE with one open item, 2026-11-08. `SKILL.md` and `app/scripts/claims-check.sh` exist. skillspector scan (static only, the LLM pass was off): risk score 0, no findings. The script was tested on fixtures. A bad fixture fails with exit 1. A clean fixture and a fixture with the allow marker pass. `src` passes. Style check on the skill file: zeros. Open item: the Skill tool does not load the skill in this session, because the session skill list is fixed at start (`Unknown skill`). It must load in a new session in this folder. This is not yet shown. Until then, each brief for an agent says: read `.claude/skills/mpfl-clinical-guardrails/SKILL.md` first.
 
 ### T2. Angle function and visibility gate
 - Agent: main session. Skills: `context7-mcp` (landmark IDs). Tech: TypeScript, Vitest. Depends on: T0.
