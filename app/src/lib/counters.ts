@@ -96,7 +96,8 @@ export function repsStep(
 // ---- Hold timer (seated knee extension hold) -------------------------------
 
 export interface HoldConfig {
-  enter: number; // flexion that counts as "in position"
+  direction: 'at-least' | 'at-most'; // in position when flexion is at least or at most the threshold
+  threshold: number;
   minHoldMs: number;
 }
 
@@ -118,7 +119,8 @@ export function holdStep(
   if (sample.flexion === null) return { state, event: 'paused' };
   const s = { ...state };
   let event: HoldEvent = null;
-  if (sample.flexion >= cfg.enter) {
+  const inPosition = cfg.direction === 'at-least' ? sample.flexion >= cfg.threshold : sample.flexion <= cfg.threshold;
+  if (inPosition) {
     if (s.since === null) s.since = sample.t;
     if (!s.counted && sample.t - s.since >= cfg.minHoldMs) {
       s.counted = true;

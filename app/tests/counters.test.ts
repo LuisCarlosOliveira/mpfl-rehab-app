@@ -92,7 +92,7 @@ describe('repsStep', () => {
 });
 
 describe('holdStep', () => {
-  const hcfg = { enter: 60, minHoldMs: 1000 };
+  const hcfg = { direction: 'at-least' as const, threshold: 60, minHoldMs: 1000 };
 
   it('reports a hold when the angle stays in range long enough', () => {
     let state = holdInitial();
@@ -112,6 +112,16 @@ describe('holdStep', () => {
     state = holdStep(state, { flexion: 20, t: 900 }, hcfg).state;
     for (let t = 1000; t <= 1700; t += 100) state = holdStep(state, { flexion: 70, t }, hcfg).state;
     expect(state.holds).toBe(0);
+  });
+
+  it('holds in the extended direction when flexion stays at or below the threshold', () => {
+    const ext = { direction: 'at-most' as const, threshold: 10, minHoldMs: 1000 };
+    let state = holdInitial();
+    for (let t = 0; t <= 1200; t += 100) state = holdStep(state, { flexion: 5, t }, ext).state;
+    expect(state.holds).toBe(1);
+    let bent = holdInitial();
+    for (let t = 0; t <= 1200; t += 100) bent = holdStep(bent, { flexion: 40, t }, ext).state;
+    expect(bent.holds).toBe(0);
   });
 
   it('pauses on a null sample', () => {
