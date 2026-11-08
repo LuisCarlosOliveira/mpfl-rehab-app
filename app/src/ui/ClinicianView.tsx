@@ -15,6 +15,7 @@ import './dashboard.css';
 
 const NOT_APPLICABLE = 'Not applicable';
 const NO_VALUE = 'No value';
+const FRONT_NOTE = 'Front-view change, estimated, not a medical measurement. Inward is positive. The value is the largest change in one rep. It comes from the second camera.';
 
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
@@ -90,6 +91,9 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
         : null,
     [file, protocol, phaseId, sessions, now],
   );
+
+  // T12b (FR24): the column and the note show only when a file holds a front-view value.
+  const showFront = sessions.some((s) => s.frontChangeDeg !== undefined);
 
   async function onSessionFile(input: HTMLInputElement) {
     const picked = input.files?.[0];
@@ -180,9 +184,13 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
 
             <h2 className="section-gap">Session list</h2>
             <p className="dash-note">Angles are estimates: {ANGLE_LABEL}.</p>
+            {showFront && <p className="dash-note">{FRONT_NOTE}</p>}
             <Table
               label="Session list"
-              head={['Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling']}
+              head={[
+                'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling',
+                ...(showFront ? ['Front-view change (degrees)'] : []),
+              ]}
             >
               {sessions.map((s) => (
                 <tr key={s.id}>
@@ -196,6 +204,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{orNone(s.topFlexion)}</td>
                   <td className="num-cell">{s.pain}</td>
                   <td>{SWELLING_TEXT[s.swelling]}</td>
+                  {showFront && <td className="num-cell">{s.secondView === undefined ? NOT_APPLICABLE : s.frontChangeDeg === undefined ? NO_VALUE : s.frontChangeDeg}</td>}
                 </tr>
               ))}
             </Table>

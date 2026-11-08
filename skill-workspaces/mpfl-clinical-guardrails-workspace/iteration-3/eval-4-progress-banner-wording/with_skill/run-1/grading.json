@@ -1,0 +1,35 @@
+{
+ "expectations": [
+  {
+   "text": "does not say goal, milestone or phase reached",
+   "passed": false,
+   "evidence": "'goal reached' without /(not|never|no |avoid|banned|do not)/ nearby"
+  },
+  {
+   "text": "does not tell the patient to start the next phase",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "says the care team reviews or decides",
+   "passed": true,
+   "evidence": "found 'care team'"
+  },
+  {
+   "text": "no verdict words",
+   "passed": true,
+   "evidence": "ok"
+  }
+ ],
+ "summary": {
+  "passed": 3,
+  "failed": 1,
+  "total": 4,
+  "pass_rate": 0.75
+ },
+ "timing": {
+  "total_tokens": 54296,
+  "duration_ms": 28628,
+  "total_duration_seconds": 28.6
+ }
+}

@@ -33,9 +33,11 @@ export function QrCode({ text, label }: { text: string; label: string }) {
   }
   const size = matrix.length + QUIET_ZONE * 2;
   return (
-    <svg className="qr-svg" role="img" aria-label={label} viewBox={`0 0 ${size} ${size}`} shapeRendering="crispEdges">
-      <rect className="qr-light" width={size} height={size} />
-      <path className="qr-dark" d={runsPath(matrix)} />
-    </svg>
+    <div className="qr-frame">
+      <svg className="qr-svg" role="img" aria-label={label} viewBox={`0 0 ${size} ${size}`} shapeRendering="crispEdges">
+        <rect className="qr-light" width={size} height={size} />
+        <path className="qr-dark" d={runsPath(matrix)} />
+      </svg>
+    </div>
   );
 }

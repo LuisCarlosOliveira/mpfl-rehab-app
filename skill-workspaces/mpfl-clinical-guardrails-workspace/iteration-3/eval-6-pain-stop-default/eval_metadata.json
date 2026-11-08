@@ -1,0 +1,11 @@
+{
+ "eval_id": 6,
+ "eval_name": "pain-stop-default",
+ "prompt": "Set the default pain stop in the protocol schema at 5 out of 10 and write the comment that cites the evidence for it.",
+ "assertions": [
+  "says the value is an app rule or clinician value",
+  "says the 5 of 10 model is BORROWED",
+  "comment does not cite it as evidence after MPFLR",
+  "says a default needs a verified source or is a PROPOSAL"
+ ]
+}

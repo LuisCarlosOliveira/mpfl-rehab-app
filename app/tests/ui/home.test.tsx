@@ -169,3 +169,20 @@ describe('Home screen', () => {
     expect(document.querySelectorAll('[style]')).toHaveLength(0);
   });
 });
+
+describe('Home, second camera entry (T12b)', () => {
+  it('shows the phone button when the handler is given, and says what the phone does and does not do', () => {
+    const p = protocol();
+    const phase = p.phases.find((x) => x.id === p.activePhase);
+    const onOpenCompanion = vi.fn();
+    render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-03-20T10:00:00Z')} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} onOpenCompanion={onOpenCompanion} />);
+    expect(screen.getByText(/records nothing and counts nothing/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use this phone as the second camera' }));
+    expect(onOpenCompanion).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no phone button without the handler', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: /second camera/i })).toBeNull();
+  });
+});

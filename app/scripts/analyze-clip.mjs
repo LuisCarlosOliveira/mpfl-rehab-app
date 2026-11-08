@@ -1,6 +1,8 @@
 // Runs the real pose pipeline of the app on a local video file and writes numbers only.
 // Usage: node scripts/analyze-clip.mjs <video> --leg left|right --exercise heel-slide|mini-squat|straight-leg-raise|seated-hold
 //          [--reference <csv>] [--target <deg>] [--max-flexion <deg>] [--hold-seconds <s>] [--out <folder>]
+//          [--baseline <deg> | --baseline-from <s>-<s>] [--return-within <deg>] [--camera-side left|right]
+// The resting angle (baseline) comes from the first steady window of the clip, with the real rule of the app.
 // Steps: ffprobe, ffmpeg (capped size, own fps), vite build and preview on port 4185, a Chromium page.
 // Privacy: no frame or image is written. Any request to a foreign origin stops the run (exit 3).
 // Exit codes: 0 done, 2 bad input, 3 a foreign request or a run error.
@@ -10,7 +12,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { agreementFromReference, ClipInputError, parseArgs, readReference, summarize, textSummary } from './clip-lib.mjs';
+import { agreementFromReference, ClipInputError, parseArgs, readReference, resolveReturnWithin, summarize, textSummary } from './clip-lib.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(here, '..');
@@ -128,15 +130,31 @@ async function main() {
     });
     convert(args.file, join(dist, 'clip.webm'), info.fps);
 
+    // The example protocol gives the return value when the option is missing. Only this tool does that.
+    const example = JSON.parse(readFileSync(join(appDir, 'src/lib/protocol/example-protocol.json'), 'utf8'));
+    const returnWithin = resolveReturnWithin(args, example);
+    if (returnWithin.source === 'example protocol') {
+      console.log(`Return value ${returnWithin.value} degrees: default taken from the example protocol (PROPOSAL, not clinical). Use --return-within to change it.`);
+    }
+    const baselineConfig = args.baseline ?? (args.baselineFrom ? { fromMs: args.baselineFrom.fromS * 1000, toMs: args.baselineFrom.toS * 1000 } : null);
     const exercise = {
       kind: args.kind,
       targetFlexion: args.target,
+      ...(returnWithin.value === null ? {} : { returnWithinDeg: returnWithin.value }),
       ...(args.maxFlexion === null ? {} : { maxFlexion: args.maxFlexion }),
       holdSeconds: args.holdSeconds,
     };
-    const run = await runInBrowser({ videoUrl: '/clip.webm', fps: info.fps, leg: args.leg, exercise }, dist);
+    const run = await runInBrowser({ videoUrl: '/clip.webm', fps: info.fps, leg: args.leg, cameraSide: args.cameraSide, exercise, baseline: baselineConfig }, dist);
 
     const summary = summarize(run.frames, { videoFps: info.fps, processingMs: run.processingMs, minVisibility: run.minVisibility });
+    const clipInfo = {
+      baseline: run.baseline,
+      returnWithin,
+      countBlock: run.pipeline.countBlock ?? null,
+      sessionStartS: run.sessionStartS,
+      legRole: run.pipeline.legRole ?? null,
+      identity: run.identity,
+    };
     const agreement = refs ? agreementFromReference(run.frames, refs) : null;
     const report = {
       tool: 'analyze-clip',
@@ -148,15 +166,18 @@ async function main() {
       ],
       input: { name: basename(args.file), ...info },
       converted: { width: run.width, height: run.height, duration_s: run.duration_s },
-      options: { leg: args.leg, exercise: args.exercise, target: args.target, maxFlexion: args.maxFlexion, holdSeconds: args.holdSeconds },
+      options: { leg: args.leg, cameraSide: args.cameraSide, baseline: args.baseline, baselineFrom: args.baselineFrom, returnWithin, exercise: args.exercise, target: args.target, maxFlexion: args.maxFlexion, holdSeconds: args.holdSeconds },
       summary: { ...summary, medianDetectMs: run.medianDetectMs },
+      baseline: run.baseline,
+      sessionStartS: run.sessionStartS,
+      identity: run.identity,
       pipeline: run.pipeline,
       agreement,
       frames: run.frames,
     };
     mkdirSync(outDir, { recursive: true });
     writeFileSync(join(outDir, `${name}.json`), JSON.stringify(report, null, 1));
-    const text = textSummary(name, args, summary, agreement);
+    const text = textSummary(name, args, summary, agreement, clipInfo);
     writeFileSync(join(outDir, `${name}.txt`), text + '\n');
     console.log(text);
     console.log(`Written: ${join(outDir, name)}.json and .txt`);

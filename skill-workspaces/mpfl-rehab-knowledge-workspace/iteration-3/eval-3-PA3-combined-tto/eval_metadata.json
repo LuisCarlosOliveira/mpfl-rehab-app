@@ -1,0 +1,14 @@
+{
+ "eval_id": 3,
+ "eval_name": "PA3-combined-tto",
+ "prompt": "The patient also had a tibial tubercle osteotomy. Use the isolated template?",
+ "assertions": [
+  "says not to apply the isolated template",
+  "cites S10 with 56 percent delayed or non-weight bearing",
+  "says P2 excludes realignment",
+  "names N5 and the disagreement",
+  "requires a surgeon protocol",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

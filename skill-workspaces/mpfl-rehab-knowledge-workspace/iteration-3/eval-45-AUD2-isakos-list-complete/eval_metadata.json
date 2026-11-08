@@ -1,0 +1,13 @@
+{
+ "eval_id": 45,
+ "eval_name": "AUD2-isakos-list-complete",
+ "prompt": "Is the ISAKOS 2013 return-to-play list in the knowledge base complete and read from the primary document?",
+ "assertions": [
+  "says second-hand via ME1",
+  "says Table 1 has 10 rows and the base quotes 6",
+  "says the primary document was not found",
+  "does not claim the list is complete",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

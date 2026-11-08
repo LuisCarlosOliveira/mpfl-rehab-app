@@ -10,15 +10,19 @@
 // T17: `side` is the leg that the person chose in Setup. The pipeline tracks exactly this leg.
 // Neutral notes: no return value, no resting angle, far leg, and the moving-leg note. A note never blocks.
 // The moving-leg note never changes the leg and never counts a rep for the other leg.
+// T12b: an optional second camera (the phone, a front view). The screen shows one small status chip and nothing else of it.
+// The front-view knee change goes into the end summary for the clinician only (FR24). No live cue, no number, no word for it.
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { cueFor, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
 import { countBlock } from '../lib/counters';
 import { createIdentityWatcher } from '../lib/legIdentity';
+import { createFrontRecorder, type FrontRecorder } from '../lib/views';
 import { MARGIN_DEG } from '../lib/margin';
 import { SET_TEXT, countRep, finish, nextSet, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
 import type { Exercise } from '../lib/protocol';
+import type { PairingStatus } from '../pairing/pairing';
 import type { LandmarkSource } from '../pose/source';
 import type { EndReason, RunSummary } from './appState';
 import type { Sound } from './sound';
@@ -79,6 +83,16 @@ const INITIAL_VIEW: View = {
   identity: false,
 };
 
+/** The second camera and the state of its link. The shell passes it when a phone was paired in Setup. */
+export interface SecondView {
+  source: LandmarkSource;
+  status: PairingStatus;
+  /** The fixed text after a failure. */
+  message: string | null;
+}
+
+const SECOND_STOPPED = 'The second camera stopped. The session continues with one camera.';
+
 interface Props {
   exercise: Exercise;
   /** The leg that the person chose. */
@@ -88,11 +102,13 @@ interface Props {
   /** The resting angle from Setup, in degrees. null or missing: no rep counts. */
   baselineDeg?: number | null;
   source: LandmarkSource;
+  /** Optional. Missing means one camera. */
+  second?: SecondView;
   sound: Sound;
   onEnd: (reason: EndReason, summary: RunSummary) => void;
 }
 
-export function Session({ exercise, side, cameraSide, baselineDeg, source, sound, onEnd }: Props) {
+export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, onEnd }: Props) {
   const setup = counterSetup(exercise);
   const ready = setup.ok;
   const needsHandCount = setup.ok && setup.kind === 'lag';
@@ -108,6 +124,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
   const watcher = useRef<ReturnType<typeof createIdentityWatcher> | null>(null);
   const pipeline = useRef<Pipeline | null>(null);
   const ended = useRef(false);
+  const recorder = useRef<FrontRecorder | null>(null);
+  const wasConnected = useRef(false);
+  const secondSource = second?.source;
+  const secondConnected = second?.status === 'connected';
+  if (secondConnected) wasConnected.current = true;
 
   // The ref is for the frame loop. The state is for the screen.
   const applySets = (next: SetsState) => {
@@ -144,6 +165,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
       if (moving !== null) state.otherLegMoves = moving === otherLeg(side);
       state.flexion = out.flexion;
       state.frameAt = now;
+      if (out.repMs !== null) recorder.current?.rep(timeMs, out.repMs); // a counted rep gives the window for the front view
       sound.playFor(out.event as CueEvent);
       if (out.event !== null && COUNTED_EVENTS.has(out.event)) applySets(countRep(setsRef.current));
       const text = cueFor(out.event as CueEvent, { repMs: out.repMs, minRepMs });
@@ -194,15 +216,26 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
     };
   }, [exercise, side, cameraSide, baselineDeg, source, ready, attempt]);
 
+  // The second camera starts after the first one. It has its own effect, so a change of its link never restarts the main camera.
+  useEffect(() => {
+    if (!ready || !secondSource || !secondConnected) return;
+    recorder.current ??= createFrontRecorder(side, () => secondSource.aspect());
+    const rec = recorder.current;
+    void secondSource.start((landmarks, timeMs) => rec.frame(landmarks, timeMs));
+    return () => secondSource.stop();
+  }, [ready, secondSource, secondConnected, side]);
+
   function end(reason: EndReason) {
     if (ended.current) return;
     ended.current = true;
     source.stop();
+    secondSource?.stop();
     // A session with no frame still gets an empty summary from a fresh pipeline.
     // The counts come from the set logic, so a rep during a set pause is not in the result.
     const done = finish(setsRef.current);
     const base = getPipeline()?.summary() ?? EMPTY_SUMMARY;
     const counted = total(done);
+    const front = recorder.current?.finish() ?? null;
     const isHold = setup.ok && setup.kind === 'hold';
     const isHand = needsHandCount; // the hand count of a straight leg raise keeps the old null when nothing was counted
     onEnd(reason, {
@@ -210,6 +243,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
       reps: isHold || isHand ? (isHold || counted === 0 ? null : counted) : counted,
       holds: isHold ? counted : null,
       sets: done,
+      ...(front === null ? {} : { front }),
     });
   }
 
@@ -249,6 +283,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
           {EXERCISE_NAMES[exercise.kind]}
         </h1>
         <div className="session-meta">
+          {secondConnected && (
+            <p className="chip chip-soft">
+              <Icon name="phone" size={16} />
+              Second camera connected
+            </p>
+          )}
           <button type="button" className="btn btn-ghost" onClick={toggleMute}>
             <Icon name={muted ? 'volume-x' : 'volume-2'} size={20} />
             {muted ? 'Unmute sound' : 'Mute sound'}
@@ -330,6 +370,17 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, sound
             {view.identity && (
               <Notice role="status" icon="info">
                 <p>{LEG_TEXT.identity}</p>
+              </Notice>
+            )}
+
+            {second?.status === 'failed' && second.message && (
+              <Notice role="status" icon="info">
+                <p>{second.message}</p>
+              </Notice>
+            )}
+            {second?.status === 'closed' && wasConnected.current && (
+              <Notice role="status" icon="info">
+                <p>{SECOND_STOPPED}</p>
               </Notice>
             )}
 

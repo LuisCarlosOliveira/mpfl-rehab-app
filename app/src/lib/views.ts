@@ -133,3 +133,73 @@ export function frontKneeInward(
   const state = limitDeg === undefined ? 'no-limit' : classifyAgainstLimit(changeDeg, limitDeg, MARGIN_DEG);
   return { changeDeg, marginDeg: MARGIN_DEG, state };
 }
+
+// ---- The front view during a session (T12b, FR24) -------------------------------------------------
+// The side view counts the reps. The front view has no counter. So each counted side rep gives a time window,
+// and the front frames inside this window make one change value. The values are for the clinician only.
+// Nothing here keeps a frame after the session ends. The buffer holds landmark numbers for a short time.
+
+/** PROPOSAL: how long the buffer holds front frames. A rep that lasts longer than this gives no value. */
+export const FRONT_BUFFER_MS = 60_000;
+
+export interface FrontRecord {
+  /** Reps that gave a change value. A rep with too few usable frames is not counted here. */
+  reps: number;
+  /** The largest change over those reps, inward positive. Absent when no rep gave a value. */
+  changeDeg?: number;
+}
+
+export interface FrontRecorder {
+  /** One frame of the front view. `null` means that the pose was lost. `tMs` is on the same clock as `rep`. */
+  frame(landmarks: Landmark[] | null, tMs: number): void;
+  /** One counted rep of the side view: the time that it ended and how long it lasted. */
+  rep(endMs: number, repMs: number): void;
+  /** The record, or null when no front frame with landmarks arrived. The recorder is finished after this call. */
+  finish(): FrontRecord | null;
+  /** The number of frames in the buffer. */
+  buffered(): number;
+}
+
+/** `aspect` is read when a rep is settled, because the phone can change it. `limitDeg` is the clinician limit, if any. */
+export function createFrontRecorder(side: Side, aspect: () => number, limitDeg?: number): FrontRecorder {
+  let frames: { t: number; landmarks: Landmark[] }[] = [];
+  let latest = Number.NEGATIVE_INFINITY;
+  let seen = false;
+  const pending: { from: number; to: number }[] = [];
+  const values: number[] = [];
+
+  const settle = (w: { from: number; to: number }) => {
+    const slice = frames.filter((f) => f.t >= w.from && f.t <= w.to).map((f) => f.landmarks);
+    const result = frontKneeInward(slice, side, aspect(), limitDeg);
+    if (result !== null) values.push(result.changeDeg);
+  };
+  const settleDue = () => {
+    for (let i = pending.length - 1; i >= 0; i--) {
+      if (latest > pending[i]!.to) settle(pending.splice(i, 1)[0]!);
+    }
+  };
+
+  return {
+    frame(landmarks, tMs) {
+      latest = Math.max(latest, tMs);
+      if (landmarks !== null) {
+        seen = true;
+        frames.push({ t: tMs, landmarks });
+      }
+      settleDue();
+      frames = frames.filter((f) => f.t >= latest - FRONT_BUFFER_MS);
+    },
+    rep(endMs, repMs) {
+      const window = { from: endMs - repMs - PAIR_TOLERANCE_MS, to: endMs + PAIR_TOLERANCE_MS };
+      if (latest > window.to) settle(window);
+      else pending.push(window);
+    },
+    finish() {
+      pending.splice(0).forEach(settle);
+      if (!seen) return null;
+      const changeDeg = values.reduce<number | undefined>((best, v) => (best === undefined || Math.abs(v) > Math.abs(best) ? v : best), undefined);
+      return changeDeg === undefined ? { reps: 0 } : { reps: values.length, changeDeg };
+    },
+    buffered: () => frames.length,
+  };
+}

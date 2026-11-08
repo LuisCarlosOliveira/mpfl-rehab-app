@@ -1,12 +1,19 @@
 // @vitest-environment node
 // Tests for the pure parts of scripts/analyze-clip.mjs: the option parser, the summary maths
 // and the reference file reader. The browser run has no unit test. The docs show the real run.
+import { restingBaseline } from '../src/lib/baseline';
+import { SETUP_CONFIG } from '../src/lib/setupRules';
+import example from '../src/lib/protocol/example-protocol.json';
+import { legLandmarks } from './helpers/leg';
 import {
   agreementFromReference,
   ClipInputError,
+  findBaseline,
+  identityCounts,
   parseArgs,
   percentile,
   readReference,
+  resolveReturnWithin,
   summarize,
   textSummary,
   type ClipFrame,
@@ -215,5 +222,140 @@ describe('leg check', () => {
     const oneLow: ClipFrame = { ...withPoints(0.9, 0.9), points: { ...withPoints(0.9, 0.9).points, rightKnee: { visibility: 0.49 } } };
     expect(summarize([onGate], opts).legDetection).toEqual({ left: 1, right: 1 });
     expect(summarize([oneLow], opts).legDetection).toEqual({ left: 1, right: 0 });
+  });
+});
+
+describe('baseline and leg options', () => {
+  const base = ['clip.mp4', '--leg', 'left', '--exercise', 'heel-slide'];
+
+  it('gives no baseline, no return value and no range by default', () => {
+    const a = parseArgs(base);
+    expect(a).toMatchObject({ baseline: null, baselineFrom: null, returnWithin: null });
+  });
+
+  it('takes the camera side from the chosen leg when it is not given, as the setup screen does', () => {
+    expect(parseArgs(base).cameraSide).toBe('left');
+    expect(parseArgs(['c.mp4', '--leg', 'right', '--exercise', 'heel-slide']).cameraSide).toBe('right');
+    expect(parseArgs([...base, '--camera-side', 'right']).cameraSide).toBe('right');
+  });
+
+  it('reads the baseline, the return value and the baseline range', () => {
+    expect(parseArgs([...base, '--baseline', '12.5', '--return-within', '20'])).toMatchObject({ baseline: 12.5, returnWithin: 20 });
+    expect(parseArgs([...base, '--baseline-from', '1-3.5']).baselineFrom).toEqual({ fromS: 1, toS: 3.5 });
+  });
+
+  it('rejects a bad camera side, a bad range and both baseline options together', () => {
+    expect(() => parseArgs([...base, '--camera-side', 'front'])).toThrow(ClipInputError);
+    expect(() => parseArgs([...base, '--baseline-from', '5-2'])).toThrow(ClipInputError);
+    expect(() => parseArgs([...base, '--baseline-from', 'abc'])).toThrow(ClipInputError);
+    expect(() => parseArgs([...base, '--baseline', '10', '--baseline-from', '1-3'])).toThrow(ClipInputError);
+    expect(() => parseArgs([...base, '--return-within', 'x'])).toThrow(ClipInputError);
+  });
+});
+
+describe('resolveReturnWithin', () => {
+  const args = (over: Record<string, unknown>) => ({ ...parseArgs(['c.mp4', '--leg', 'left', '--exercise', 'heel-slide']), ...over });
+
+  it('uses the option when it is given', () => {
+    expect(resolveReturnWithin(args({ returnWithin: 7 }), example)).toEqual({ value: 7, source: 'option' });
+  });
+
+  it('uses the value of the example protocol for the exercise when the option is missing', () => {
+    expect(resolveReturnWithin(args({}), example)).toEqual({ value: 20, source: 'example protocol' });
+    expect(resolveReturnWithin(args({ kind: 'mini-squat' }), example)).toEqual({ value: 15, source: 'example protocol' });
+  });
+
+  it('gives none for an exercise that has no rep counter', () => {
+    expect(resolveReturnWithin(args({ kind: 'straight-leg-raise' }), example)).toEqual({ value: null, source: 'none' });
+  });
+});
+
+describe('findBaseline with the real resting rule', () => {
+  const deps = { restingBaseline, side: 'left' as const, aspect: 1, config: SETUP_CONFIG };
+  // One sample every 100 ms. A null entry is a frame with no pose.
+  const series = (flexions: (number | null)[], start = 0) =>
+    flexions.map((f, i) => ({ tMs: start + i * 100, landmarks: f === null ? null : legLandmarks('left', f) }));
+
+  it('finds the first steady window and gives the median flexion and the window times', () => {
+    const moving = Array.from({ length: 15 }, (_, i) => 60 - i * 3);
+    const r = findBaseline(series([...moving, ...Array.from({ length: 30 }, () => 12)]), deps);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.baselineDeg).toBeCloseTo(12, 0);
+      expect(Number(r.toMs) - Number(r.fromMs)).toBeGreaterThanOrEqual(SETUP_CONFIG.stillWindowMs);
+    }
+  });
+
+  it('gives a refusal when the leg never holds still', () => {
+    const r = findBaseline(series(Array.from({ length: 60 }, (_, i) => 10 + (i % 2) * 40)), deps);
+    expect(r).toEqual({ ok: false, reason: 'no-steady-window' });
+  });
+
+  it('starts the window again after a frame with no pose', () => {
+    // 15 steady frames, a gap, then 15 steady frames: no window of 2 seconds is complete.
+    const r = findBaseline(series([...Array.from({ length: 15 }, () => 12), null, ...Array.from({ length: 15 }, () => 12)]), deps);
+    expect(r.ok).toBe(false);
+  });
+
+  it('uses only the frames in the given range', () => {
+    const flex = [...Array.from({ length: 25 }, () => 40), ...Array.from({ length: 25 }, () => 8)];
+    const r = findBaseline(series(flex), { ...deps, range: { fromMs: 2500, toMs: 4900 } });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.baselineDeg).toBeCloseTo(8, 0);
+  });
+
+  it('refuses a range in which the leg moves', () => {
+    const moving = Array.from({ length: 30 }, (_, i) => 10 + i * 2);
+    expect(findBaseline(series(moving), { ...deps, range: { fromMs: 0, toMs: 2900 } })).toEqual({ ok: false, reason: 'not-steady' });
+  });
+
+  it('refuses a range with no frame', () => {
+    expect(findBaseline(series([12, 12]), { ...deps, range: { fromMs: 5000, toMs: 6000 } })).toEqual({ ok: false, reason: 'too-few-samples' });
+  });
+});
+
+describe('identityCounts', () => {
+  it('counts each answer and keeps the order of the windows', () => {
+    const c = identityCounts(['left', 'ambiguous', 'left', 'none', 'right']);
+    expect(c).toEqual({ left: 2, right: 1, ambiguous: 1, none: 1, windows: ['left', 'ambiguous', 'left', 'none', 'right'] });
+  });
+});
+
+describe('textSummary with the baseline', () => {
+  const s = summarize([frame(0, 10)], { videoFps: 10, processingMs: 100 });
+  const args = { leg: 'left', exercise: 'heel-slide', cameraSide: 'right' } as never;
+  const info = {
+    baseline: { ok: true as const, baselineDeg: 11.2, fromMs: 1000, toMs: 3000 },
+    returnWithin: { value: 20, source: 'example protocol' },
+    countBlock: null,
+    sessionStartS: 3,
+    legRole: 'far',
+    identity: { left: 1, right: 0, ambiguous: 2, none: 0, windows: ['left', 'ambiguous', 'ambiguous'] },
+  };
+
+  it('shows the baseline, the return value with its source, the camera side and the leg answers', () => {
+    const t = textSummary('clip', args, s, null, info);
+    expect(t).toMatch(/Baseline: 11\.2 degrees/);
+    expect(t).toMatch(/Return value: 20 degrees \(example protocol\)/);
+    expect(t).toMatch(/Camera side: right/);
+    expect(t).toMatch(/far leg/i);
+    expect(t).toMatch(/left 1, right 0, ambiguous 2, none 0/);
+    expect(t).toMatch(/no trusted ground truth/i);
+  });
+
+  it('says when the baseline comes from the option and the count starts at the clip start', () => {
+    const t = textSummary('clip', args, s, null, { ...info, baseline: { ok: true as const, baselineDeg: 9, fromMs: null, toMs: null }, sessionStartS: 0 });
+    expect(t).toMatch(/Baseline: 9\.0 degrees \(given with --baseline\)/);
+  });
+
+  it('names the reason when no baseline was found', () => {
+    const t = textSummary('clip', args, s, null, { ...info, baseline: { ok: false as const, reason: 'no-steady-window' }, countBlock: 'no-baseline' });
+    expect(t).toMatch(/Baseline: none \(no-steady-window\)/);
+    expect(t).toMatch(/No rep can count: no-baseline/);
+  });
+
+  it('names the reason when the return value is missing', () => {
+    const t = textSummary('clip', args, s, null, { ...info, returnWithin: { value: null, source: 'none' }, countBlock: 'no-return-value' });
+    expect(t).toMatch(/No rep can count: no-return-value/);
   });
 });

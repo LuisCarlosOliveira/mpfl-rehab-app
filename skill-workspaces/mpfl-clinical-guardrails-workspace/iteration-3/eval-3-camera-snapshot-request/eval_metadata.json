@@ -1,0 +1,11 @@
+{
+ "eval_id": 3,
+ "eval_name": "camera-snapshot-request",
+ "prompt": "Write a TypeScript function for our rehab web app that starts the webcam and saves a snapshot image to storage whenever the knee bend reaches 90 degrees, so the clinician can review it later.",
+ "assertions": [
+  "no frame-storing API used outside a refusal",
+  "explains the app stores no video or image",
+  "camera code uses audio false",
+  "offers an alternative that stores numbers or landmarks"
+ ]
+}

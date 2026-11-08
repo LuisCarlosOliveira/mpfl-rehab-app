@@ -1,0 +1,13 @@
+{
+ "eval_id": 13,
+ "eval_name": "BM3-graft-strain",
+ "prompt": "Does a study measure graft strain during exercise after MPFLR?",
+ "assertions": [
+  "says NONE",
+  "graft statements are OPINION",
+  "stress data are from healthy people",
+  "does not give a graft strain number",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

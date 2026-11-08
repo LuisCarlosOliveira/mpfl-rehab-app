@@ -5,6 +5,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import '../pairing/pair.css';
+import { Icon } from './Icon';
+import { Notice } from './Notice';
 import { QrCode } from '../pairing/qrCode';
 import { startQrScan } from '../pairing/qrReader';
 import { startCamera, stopCamera, type CameraResult } from '../pose/camera';
@@ -53,7 +55,9 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
   const video = useRef<HTMLVideoElement>(null);
   const stopScan = useRef<(() => void) | null>(null);
   const cameraOn = useRef(false);
+  const stream = useRef<MediaStream | null>(null);
   const { status } = view;
+  const active = status === 'starting' || status === 'offer' || status === 'connecting';
 
   useEffect(() => h1.current?.focus(), [status]);
 
@@ -62,6 +66,7 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
     stopScan.current = null;
     if (cameraOn.current) depsRef.current.stopCamera();
     cameraOn.current = false;
+    stream.current = null;
   };
   useEffect(() => release, []);
 
@@ -77,16 +82,22 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
     const camera = await depsRef.current.startCamera();
     if (camera.ok) {
       cameraOn.current = true;
-      if (video.current) {
-        video.current.srcObject = camera.stream;
-        void video.current.play().catch(() => undefined);
-      }
-      stopScan.current = depsRef.current.startScan(video.current ?? document.createElement('video'), (text) => void pairing.submitAnswer(text));
+      stream.current = camera.stream;
     } else {
       setCameraError(camera.error.message);
     }
-    await pairing.begin();
+    await pairing.begin(); // the status changes, the camera view of step 2 appears, and the effect below attaches the stream
   }
+
+  // The view of the phone code exists only after pairing began. Attach the stream to it and start the scan there,
+  // so that the person sees what the camera sees and can aim the phone screen.
+  useEffect(() => {
+    const element = video.current;
+    if (!active || !stream.current || !element || stopScan.current) return;
+    element.srcObject = stream.current;
+    void element.play().catch(() => undefined);
+    stopScan.current = depsRef.current.startScan(element, (text) => void pairing.submitAnswer(text));
+  }, [active, pairing]);
 
   function skip() {
     release();
@@ -101,63 +112,76 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
     pairing.reset();
   }
 
-  const active = status === 'starting' || status === 'offer' || status === 'connecting';
-
   return (
-    <section className="pair-screen" aria-labelledby="pair-host-title">
-      <h1 id="pair-host-title" tabIndex={-1} ref={h1}>
-        {HOST_TITLE}
-      </h1>
+    <section className="pair-screen stack" aria-labelledby="pair-host-title">
+      <header className="page-head">
+        <h1 id="pair-host-title" tabIndex={-1} ref={h1}>
+          {HOST_TITLE}
+        </h1>
+      </header>
 
       {status === 'idle' && (
-        <>
+        <div className="card stack-s">
           <p className="pair-lead">A phone can be a second camera. It sends body points only. It never sends video or pictures.</p>
           <p className="pair-lead">Pairing takes two codes. The phone and this laptop must be on the same network.</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={() => void start()}>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => void start()}>
+              <Icon name="phone" size={20} />
               Start pairing
             </button>
-            <button type="button" className="pair-btn" onClick={skip}>
+            <button type="button" className="btn btn-lg" onClick={skip}>
               Skip, use one camera
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {active && (
         <>
-          <p role="status" className="pair-status">{STATUS_TEXT[status]}</p>
+          <Notice role="status" icon="info">
+            <p>{STATUS_TEXT[status]}</p>
+          </Notice>
           {view.offerText && (
-            <div className="pair-block">
-              <h2>Step 1. Scan this code with the phone</h2>
+            <section className="card stack-s" aria-labelledby="pair-host-step1">
+              <h2 id="pair-host-step1">Step 1. Scan this code with the phone</h2>
               <p>On the phone, open this app and choose Use this phone as the second camera.</p>
               <div className="pair-qr">
                 <QrCode text={view.offerText} label="Pairing code of this laptop" />
               </div>
-              <div className="pair-field">
+              <div className="field">
                 <label htmlFor="pair-offer-text">Code as text</label>
-                <textarea id="pair-offer-text" className="pair-code" readOnly value={view.offerText} />
+                <textarea id="pair-offer-text" name="pair-offer" className="pair-code" readOnly value={view.offerText} spellCheck={false} autoComplete="off" />
               </div>
-            </div>
+            </section>
           )}
-          <div className="pair-block">
-            <h2>Step 2. Scan the phone code</h2>
+          <section className="card stack-s" aria-labelledby="pair-host-step2">
+            <h2 id="pair-host-step2">Step 2. Scan the phone code</h2>
             <p>Hold the phone screen in front of this laptop camera.</p>
-            <video ref={video} className="pair-video" muted playsInline aria-label="Camera view for the phone code" />
-            {cameraError && <p role="alert">{cameraError}</p>}
-            <div className="pair-field">
-              <label htmlFor="pair-paste-answer">Or paste the phone code</label>
-              <textarea id="pair-paste-answer" className="pair-code" value={pasted} onChange={(e) => setPasted(e.target.value)} spellCheck={false} autoComplete="off" />
+            <div className="frame pair-frame">
+              <video ref={video} className="preview" muted playsInline aria-label="Camera view for the phone code" />
             </div>
-            {view.message && <p role="alert">{view.message}</p>}
-            <div className="pair-actions">
-              <button type="button" className="pair-btn pair-btn-primary" disabled={pasted.trim() === '' || status !== 'offer'} onClick={() => void pairing.submitAnswer(pasted.trim())}>
+            {cameraError && (
+              <Notice role="alert" icon="triangle-alert">
+                <p>{cameraError}</p>
+              </Notice>
+            )}
+            <div className="field">
+              <label htmlFor="pair-paste-answer">Or paste the phone code</label>
+              <textarea id="pair-paste-answer" name="pair-answer" className="pair-code" value={pasted} onChange={(e) => setPasted(e.target.value)} spellCheck={false} autoComplete="off" />
+            </div>
+            {view.message && (
+              <Notice role="alert" icon="triangle-alert">
+                <p>{view.message}</p>
+              </Notice>
+            )}
+            <div className="actions">
+              <button type="button" className="btn btn-primary" disabled={pasted.trim() === '' || status !== 'offer'} onClick={() => void pairing.submitAnswer(pasted.trim())}>
                 Use this code
               </button>
             </div>
-          </div>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn" onClick={skip}>
+          </section>
+          <div className="actions">
+            <button type="button" className="btn" onClick={skip}>
               Skip, use one camera
             </button>
           </div>
@@ -165,31 +189,35 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
       )}
 
       {status === 'connected' && (
-        <>
-          <p role="status" className="pair-status">{STATUS_TEXT.connected}</p>
+        <div className="card stack-s">
+          <Notice role="status" icon="phone">
+            <p>{STATUS_TEXT.connected}</p>
+          </Notice>
           <p className="pair-lead">The phone is the second camera. Keep the phone on while you exercise.</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={onDone}>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={onDone}>
               Continue
+              <Icon name="chevron-right" size={20} />
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {(status === 'failed' || status === 'closed') && (
-        <>
-          <p role="alert" className="pair-status">
-            {view.message ?? STATUS_TEXT[status]}
-          </p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={retry}>
+        <div className="card stack-s">
+          <Notice role="alert" icon="triangle-alert">
+            <p>{view.message ?? STATUS_TEXT[status]}</p>
+          </Notice>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={retry}>
+              <Icon name="refresh-cw" size={20} />
               Try again
             </button>
-            <button type="button" className="pair-btn" onClick={skip}>
+            <button type="button" className="btn btn-lg" onClick={skip}>
               Continue with one camera
             </button>
           </div>
-        </>
+        </div>
       )}
     </section>
   );

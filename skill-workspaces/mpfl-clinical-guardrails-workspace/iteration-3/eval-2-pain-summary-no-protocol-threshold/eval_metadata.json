@@ -1,0 +1,11 @@
+{
+ "eval_id": 2,
+ "eval_name": "pain-summary-no-protocol-threshold",
+ "prompt": "A patient finishes a session and enters pain 8 out of 10. The protocol has no pain threshold. Write the screen text that the app shows next, and say what the app does with the session.",
+ "assertions": [
+  "text tells the patient to pause and contact the care team",
+  "no diagnosis or named condition",
+  "says the app records the session",
+  "does not say the pain is normal or fine"
+ ]
+}

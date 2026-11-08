@@ -4,22 +4,25 @@
 //    After the camera starts, the setup check (FR27, src/lib/setupRules.ts) reads each frame.
 //    One large line shows the instruction. A list shows each rule with a word. The countdown starts the exercise.
 // Source of the copy: research/ux-flow.md sections 6.2, 7 and 8.3.
-// T12b: the optional "Add a second device" step is a hidden slot (`second-device-slot`) after the live check. It is not built yet.
+// T12b: the optional step "Add a second camera (optional)" shows PairHost between the position guide and the camera.
+// The shell passes `pair` only when it can pair. Without it, Setup is the single camera flow and shows nothing of a second camera.
+// Skip, Back and Cancel stop the pairing. A connected phone stays connected for the camera step and the Session.
 // T17: the person first says which leg will exercise and which side of them the camera is on. The protocol side is
 // preselected. The answers last for this session only. They never change the protocol or the active phase.
-// The camera guide drawing shows the side view only. Nothing in the protocol or in src/lib/views.ts decides yet
-// that a second (front) view applies. When it does, add 'front' to CAMERA_VIEWS.
-import { useEffect, useRef, useState } from 'react';
+// The camera guide drawing shows the side view. After a phone is connected it also shows the front view.
+import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { countsReps } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import { guideFor, type GuideKind } from '../lib/guides';
 import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
+import type { Pairing, PairingView } from '../pairing/pairing';
 import type { FrameHandler, LandmarkSource } from '../pose/source';
 import { ASK_SURGEON_TEXT } from './askSurgeon';
 import { CameraFigure, GuideFigure } from './GuideFigure';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
+import { PairHost } from './PairHost';
 import { LEG_TEXT, countdownSeconds, ruleRows } from './setupView';
 import type { Sound } from './sound';
 
@@ -43,8 +46,11 @@ export interface SetupDone {
   baselineDeg: number | null;
 }
 
-/** The camera views that the guide drawing shows. Only the side view applies until a second view is decided. */
-const CAMERA_VIEWS: CameraView[] = ['side'];
+/** The camera views that the guide drawing shows. The front view joins the side view when a phone is connected. */
+const SIDE_ONLY: CameraView[] = ['side'];
+const SIDE_AND_FRONT: CameraView[] = ['side', 'front'];
+const SECOND_CAMERA_BUTTON = 'Add a second camera (optional)';
+const SECOND_CAMERA_TEXT = 'A phone can be a second camera in front of you. It sends body points only, no video.';
 const CAMERA_CAPTION: Record<CameraView, string> = {
   side: `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`,
   front: `Camera in front of you, at knee height, ${distanceText()} away.`,
@@ -63,13 +69,16 @@ interface Props {
   /** The protocol value for the return of the knee, in degrees from the resting angle. Absent means ask the surgeon. */
   returnWithinDeg?: number;
   source: LandmarkSource;
+  /** The pairing of the second camera. Missing means that this app run offers one camera only. */
+  pair?: { pairing: Pairing; view: PairingView };
   sound: Sound;
   onReady: (done: SetupDone) => void;
   onCancel: () => void;
 }
 
-export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, sound, onReady, onCancel }: Props) {
-  const [step, setStep] = useState<'guide' | 'camera'>('guide');
+export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, onReady, onCancel }: Props) {
+  const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
+  const [pairUsed, setPairUsed] = useState(false); // the optional step was opened. The step list keeps it.
   const [camera, setCamera] = useState<Camera>({ kind: 'idle' });
   const [live, setLive] = useState<Live | null>(null);
   const [stabilizer] = useState(() => createSetupStabilizer());
@@ -130,6 +139,23 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     setCamera(result.ok ? { kind: 'running' } : { kind: 'error', message: result.error.message });
   }
 
+  // The pairing is stopped on every way out of this step. A connected phone stays on for the camera step and the Session.
+  const stopPairing = () => {
+    if (pair && pair.view.status !== 'idle') pair.pairing.close();
+  };
+  function openPair() {
+    if (!pair) return;
+    if (pair.view.status !== 'idle') pair.pairing.reset(); // an old closed or skipped link starts again
+    setPairUsed(true);
+    setStep('pair');
+  }
+  function cancel() {
+    stopPairing();
+    onCancel();
+  }
+  const connected = pair?.view.status === 'connected';
+  const cameraViews = connected ? SIDE_AND_FRONT : SIDE_ONLY;
+
   const running = camera.kind === 'running';
   const otherLegChosen = leg !== side;
   const needsReturnValue = countsReps(kind) && returnWithinDeg === undefined;
@@ -153,12 +179,56 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     { icon: 'clock', label: 'Speed', text: guide.speed },
     { icon: 'video-off', label: 'What the camera must see', text: guide.cameraMustSee },
   ];
-  const cameraGuide = CAMERA_VIEWS.map((view) => (
+  const cameraGuide = cameraViews.map((view) => (
     <figure key={view} className="figure-card camera-guide">
       <CameraFigure view={view} kind={kind} description={CAMERA_CAPTION[view]} />
       <figcaption>{CAMERA_CAPTION[view]}</figcaption>
     </figure>
   ));
+
+  const order: readonly (typeof step)[] = pairUsed ? ['guide', 'pair', 'camera'] : ['guide', 'camera'];
+  const labels = { guide: 'Position guide', pair: 'Second camera', camera: 'Camera' } as const;
+  const stepList = (
+    <ol className="steps" aria-label="Steps">
+      {order.map((id, i) => {
+        const here = order.indexOf(step);
+        return (
+          <Fragment key={id}>
+            {i > 0 && <li className="step-line" aria-hidden="true" />}
+            <li className={i < here ? 'step step-done' : 'step'} aria-current={id === step ? 'step' : undefined}>
+              <span className="step-dot">{i < here ? <Icon name="check" size={14} /> : i + 1}</span>
+              {labels[id]}
+            </li>
+          </Fragment>
+        );
+      })}
+    </ol>
+  );
+
+  if (step === 'pair' && pair) {
+    return (
+      <div className="stack">
+        {stepList}
+        <PairHost pairing={pair.pairing} view={pair.view} onDone={() => setStep('camera')} onSkip={() => setStep('camera')} />
+        <div className="actions">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              stopPairing();
+              setStep('guide');
+            }}
+          >
+            <Icon name="arrow-left" size={18} />
+            Back
+          </button>
+          <button type="button" className="btn" onClick={cancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section aria-labelledby="setup-title">
@@ -169,22 +239,12 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           </h1>
           <p className="detail">Exercise: {exerciseName}</p>
         </div>
-        <button type="button" className="btn" onClick={onCancel}>
+        <button type="button" className="btn" onClick={cancel}>
           Cancel
         </button>
       </header>
 
-      <ol className="steps" aria-label="Steps">
-        <li className={step === 'guide' ? 'step' : 'step step-done'} aria-current={step === 'guide' ? 'step' : undefined}>
-          <span className="step-dot">{step === 'guide' ? '1' : <Icon name="check" size={14} />}</span>
-          Position guide
-        </li>
-        <li className="step-line" aria-hidden="true" />
-        <li className="step" aria-current={step === 'camera' ? 'step' : undefined}>
-          <span className="step-dot">2</span>
-          Camera
-        </li>
-      </ol>
+      {stepList}
 
       {step === 'guide' ? (
         <div className="stack">
@@ -264,6 +324,18 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               </div>
             ))}
           </dl>
+          {pair && (
+            <div className="card card-flat stack-s">
+              <h2>Second camera</h2>
+              <p>{SECOND_CAMERA_TEXT}</p>
+              <div className="actions">
+                <button type="button" className="btn" disabled={otherLegChosen && !confirmedOther} onClick={openPair}>
+                  <Icon name="phone" size={18} />
+                  {SECOND_CAMERA_BUTTON}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="action-bar">
             <button
               type="button"
@@ -345,13 +417,11 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               <p>
                 Put the camera at the side that you chose. Step back until your whole chosen leg shows. Hold still for 2 seconds.
               </p>
+              {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
             </div>
             {returnNotice}
             {cameraGuide}
           </aside>
-
-          {/* T12b: the optional "Add a second device" step goes into this container. It stays hidden until the decision. */}
-          <section className="second-device-slot" data-slot="second-device" hidden />
 
           <div className="action-bar setup-bar">
             {running ? (

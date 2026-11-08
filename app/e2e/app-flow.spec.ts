@@ -185,9 +185,9 @@ test('the guide step, the camera step and the setup rules', async ({ page }) => 
   for (const label of ['Start position', 'Leg and camera', 'Hands and support', 'Range', 'Speed', 'What the camera must see']) {
     await expect(page.locator('dt', { hasText: label })).toBeVisible();
   }
-  // Two drawings, each an image with a text alternative.
+  // Three drawings (start, end and the camera guide), each an image with a text alternative.
   const drawings = page.getByRole('img');
-  await expect(drawings).toHaveCount(2);
+  await expect(drawings).toHaveCount(3);
   for (const svg of await drawings.all()) expect(((await svg.getAttribute('aria-label')) ?? '').length).toBeGreaterThan(20);
   await expect(page.getByText('Your limit is 90 degrees. Your care team sets it.')).toBeVisible();
 
@@ -255,6 +255,8 @@ test('Save writes one session with the fixed fields and no image data (FR6)', as
   const fields = [
     'date', 'exercise', 'side', 'reps', 'peakFlexion', 'holdSeconds', 'topFlexion', 'marginDeg', 'marginSource', 'view',
     'nearLimit', 'overLimit', 'tooFast', 'gaveWayPresses', 'redFlagBlocks', 'pain', 'swelling', 'protocolId', 'phase', 'schemaVersion',
+    // Optional fields of the set logic and the leg choice. The heel slide of the example protocol sets them all.
+    'setsPrescribed', 'repsPrescribed', 'repsPerSet', 'legTracked', 'cameraSide',
   ];
   expect(Object.keys(sessions[0]!).sort()).toEqual([...fields, 'id'].sort());
   expect(sessions[0]).toMatchObject({ exercise: 'heel-slide', side: 'left', pain: 3, swelling: 'some', protocolId: 'example-001', schemaVersion: 1 });

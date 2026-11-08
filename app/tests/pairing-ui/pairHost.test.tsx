@@ -205,4 +205,20 @@ describe('PairHost', () => {
     expect(videos[0]!.getAttribute('aria-label')).toBe('Camera view for the phone code');
     await waitFor(() => expect(videos[0]!.muted).toBe(true));
   });
+
+  it('shows the camera view in step 2 and scans from that same element, so the person can aim the phone screen', async () => {
+    await toOffer();
+    const view = screen.getByLabelText('Camera view for the phone code') as HTMLVideoElement;
+    expect(view.srcObject).toBe(stream);
+    expect(deps.startScan.mock.calls[0]![0]).toBe(view);
+  });
+
+  it('shows no camera view and starts no scan when the camera is blocked', async () => {
+    deps.startCamera.mockResolvedValue({ ok: false, error: { kind: 'permission-denied', message: 'Camera access was blocked.' } });
+    setup();
+    press('Start pairing');
+    await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    expect((screen.getByLabelText('Camera view for the phone code') as HTMLVideoElement).srcObject ?? null).toBeNull(); // jsdom has no srcObject until it is set
+    expect(deps.startScan).not.toHaveBeenCalled();
+  });
 });

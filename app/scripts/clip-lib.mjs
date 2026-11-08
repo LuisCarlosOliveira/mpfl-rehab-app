@@ -12,12 +12,20 @@ const KINDS = {
 };
 const USAGE =
   'Usage: node scripts/analyze-clip.mjs <video> --leg left|right --exercise heel-slide|mini-squat|straight-leg-raise|seated-hold ' +
-  '[--reference <csv>] [--target <deg>] [--max-flexion <deg>] [--hold-seconds <s>] [--out <folder>]';
+  '[--reference <csv>] [--target <deg>] [--max-flexion <deg>] [--hold-seconds <s>] [--out <folder>] ' +
+  '[--baseline <deg> | --baseline-from <s>-<s>] [--return-within <deg>] [--camera-side left|right]';
 
 // PROPOSAL values for the analysis only. The app itself sets no default (ask your surgeon).
 const DEFAULT_TARGET_DEG = 60;
 const DEFAULT_HOLD_S = 5;
-const NUMBER_FLAGS = { '--target': 'target', '--max-flexion': 'maxFlexion', '--hold-seconds': 'holdSeconds' };
+const NUMBER_FLAGS = {
+  '--target': 'target',
+  '--max-flexion': 'maxFlexion',
+  '--hold-seconds': 'holdSeconds',
+  '--baseline': 'baseline',
+  '--return-within': 'returnWithin',
+};
+const RANGE = /^(\d+\.?\d*)-(\d+\.?\d*)$/;
 
 export function parseArgs(argv) {
   const args = {
@@ -30,6 +38,10 @@ export function parseArgs(argv) {
     target: DEFAULT_TARGET_DEG,
     maxFlexion: null,
     holdSeconds: DEFAULT_HOLD_S,
+    baseline: null,
+    baselineFrom: null,
+    returnWithin: null,
+    cameraSide: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -47,6 +59,13 @@ export function parseArgs(argv) {
       if (!Object.hasOwn(KINDS, value)) throw new ClipInputError(`--exercise must be one of ${Object.keys(KINDS).join(', ')}, not "${value}".`);
       args.exercise = value;
       args.kind = KINDS[value];
+    } else if (a === '--camera-side') {
+      if (value !== 'left' && value !== 'right') throw new ClipInputError(`--camera-side must be left or right, not "${value}".`);
+      args.cameraSide = value;
+    } else if (a === '--baseline-from') {
+      const m = RANGE.exec(value);
+      if (!m || Number(m[1]) >= Number(m[2])) throw new ClipInputError(`--baseline-from must be two seconds like 1-3, the first one smaller, not "${value}".`);
+      args.baselineFrom = { fromS: Number(m[1]), toS: Number(m[2]) };
     } else if (a === '--reference') {
       args.reference = value;
     } else if (a === '--out') {
@@ -62,7 +81,55 @@ export function parseArgs(argv) {
   if (args.file === null) throw new ClipInputError(`The video file is missing. ${USAGE}`);
   if (args.leg === null) throw new ClipInputError(`--leg is missing. ${USAGE}`);
   if (args.exercise === null) throw new ClipInputError(`--exercise is missing. ${USAGE}`);
+  if (args.baseline !== null && args.baselineFrom !== null) throw new ClipInputError('Use --baseline or --baseline-from, not both.');
+  // The setup screen of the app starts with the camera on the side of the chosen leg.
+  args.cameraSide ??= args.leg;
   return args;
+}
+
+/**
+ * The return value of the analysis. The option wins. Without it the value comes from the example protocol.
+ * Only this tool takes the example value as a default. The app has no default.
+ */
+export function resolveReturnWithin(args, protocol) {
+  if (args.returnWithin !== null) return { value: args.returnWithin, source: 'option' };
+  const exercise = protocol.phases.flatMap((p) => p.exercises).find((e) => e.kind === args.kind);
+  if (exercise?.returnWithinDeg === undefined) return { value: null, source: 'none' };
+  return { value: exercise.returnWithinDeg, source: 'example protocol' };
+}
+
+/**
+ * The resting angle of a clip, from the real rule of the app. `restingBaseline` and `config` come from the caller,
+ * so the maths stays in src/lib. samples: { tMs, landmarks | null } in time order.
+ * With `range` it uses the frames in that range. Without it, it takes the first window that the rule accepts.
+ * The window trim is the one of createSetupStabilizer (src/lib/setupRules.ts).
+ */
+export function findBaseline(samples, { restingBaseline, side, aspect, config, range = null }) {
+  const times = (history) => ({ fromMs: history[0].tMs, toMs: history[history.length - 1].tMs });
+  if (range !== null) {
+    const history = samples.filter((s) => s.landmarks && s.tMs >= range.fromMs && s.tMs <= range.toMs);
+    const r = restingBaseline(history, side, aspect, config);
+    return r.ok ? { ok: true, baselineDeg: r.baselineDeg, ...times(history) } : { ok: false, reason: r.reason };
+  }
+  let history = [];
+  for (const s of samples) {
+    if (!s.landmarks) {
+      history = [];
+      continue;
+    }
+    history.push(s);
+    while (history[1] && history[1].tMs <= s.tMs - config.stillWindowMs) history.shift();
+    const r = restingBaseline(history, side, aspect, config);
+    if (r.ok) return { ok: true, baselineDeg: r.baselineDeg, ...times(history) };
+  }
+  return { ok: false, reason: 'no-steady-window' };
+}
+
+/** Counts of the answers of the moving-leg check, one answer for each window. */
+export function identityCounts(answers) {
+  const c = { left: 0, right: 0, ambiguous: 0, none: 0 };
+  for (const a of answers) c[a] += 1;
+  return { ...c, windows: [...answers] };
 }
 
 const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
@@ -172,7 +239,29 @@ export function agreementFromReference(frames, refs, maxGapS = MAX_GAP_S) {
 
 const fix = (v, d = 1) => (v === null ? 'none' : v.toFixed(d));
 
-export function textSummary(name, args, s, agreement) {
+function infoLines(args, info) {
+  const b = info.baseline;
+  const lines = [
+    b.ok && b.fromMs === null
+      ? `Baseline: ${fix(b.baselineDeg)} degrees (given with --baseline). The count starts at the start of the clip.`
+      : b.ok
+      ? `Baseline: ${fix(b.baselineDeg)} degrees (median of a still window, ${fix(b.fromMs / 1000)} to ${fix(b.toMs / 1000)} s). The count starts at ${fix(info.sessionStartS)} s.`
+      : `Baseline: none (${b.reason}).`,
+    info.returnWithin.value === null
+      ? 'Return value: none for this exercise.'
+      : `Return value: ${info.returnWithin.value} degrees (${info.returnWithin.source}).`,
+    `Camera side: ${args.cameraSide}. The chosen ${args.leg} leg is the ${info.legRole ?? 'unknown'} leg.`,
+  ];
+  if (info.countBlock) lines.push(`No rep can count: ${info.countBlock}.`);
+  const i = info.identity;
+  lines.push(
+    `Moving-leg check (windows of the clip): left ${i.left}, right ${i.right}, ambiguous ${i.ambiguous}, none ${i.none}. ` +
+      'There is no trusted ground truth for the leg. This is a hint, not a reference.',
+  );
+  return lines;
+}
+
+export function textSummary(name, args, s, agreement, info = null) {
   const lines = [
     `Clip: ${name}. Leg: ${args.leg}. Exercise: ${args.exercise}.`,
     `Frames: ${s.frames}. Video fps: ${fix(s.videoFps)}. Processing fps (offline, with seeks): ${fix(s.processingFps)}.`,
@@ -182,6 +271,7 @@ export function textSummary(name, args, s, agreement) {
     `Reps counted: ${s.reps}. Peak angles: ${s.repPeaks.map((p) => fix(p)).join(', ') || 'none'}.`,
     'These are estimated angles, not a medical measurement. One clip is a smoke test, not validation.',
   ];
+  if (info) lines.push(...infoLines(args, info));
   const other = args.leg === 'left' ? 'right' : 'left';
   if (s.legDetection && s.legDetection[other] - s.legDetection[args.leg] > LEG_WARN_DIFF) {
     lines.push(

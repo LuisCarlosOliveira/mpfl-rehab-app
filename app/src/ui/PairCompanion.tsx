@@ -5,6 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { FALLBACK_TEXT } from '../lib/pairing';
 import { createThrottle, landmarksMessage, SEND_HZ } from '../pairing/frameMessage';
 import '../pairing/pair.css';
+import { Icon } from './Icon';
+import { Notice } from './Notice';
+import { PairSteps } from './PairSteps';
 import { QrCode } from '../pairing/qrCode';
 import { startQrScan } from '../pairing/qrReader';
 import { createCompanionLink, type CompanionLink } from '../pairing/rtcLink';
@@ -165,101 +168,124 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     setStep('stopped');
   }
 
+  const stepIndex = step === 'intro' ? 0 : step === 'scan' || step === 'answer' ? 1 : step === 'run' ? 2 : null;
+
   return (
-    <section className="pair-screen" aria-labelledby="pair-companion-title">
-      <h1 id="pair-companion-title" tabIndex={-1} ref={h1}>
-        {COMPANION_TITLE}
-      </h1>
+    <section className="pair-screen stack" aria-labelledby="pair-companion-title">
+      <header className="page-head">
+        <h1 id="pair-companion-title" tabIndex={-1} ref={h1}>
+          {COMPANION_TITLE}
+        </h1>
+      </header>
+
+      {stepIndex !== null && <PairSteps current={stepIndex} />}
 
       {step === 'intro' && (
-        <>
+        <div className="card stack-s">
           <p className="pair-lead">This phone becomes the second camera of the app on your laptop. It sends body points only. It never sends video or pictures.</p>
           <p className="pair-lead">Put the phone upright in front of you, so that it sees your legs. The screen stays on while the phone works.</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={() => void beginScan()}>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => void beginScan()}>
+              <Icon name="camera" size={20} />
               Scan the laptop code
             </button>
-            <button type="button" className="pair-btn" onClick={onExit}>
+            <button type="button" className="btn btn-lg" onClick={onExit}>
               Back
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {step === 'scan' && (
-        <>
+        <div className="card stack-s">
           <p className="pair-lead">Point the rear camera at the code on the laptop screen.</p>
-          <video ref={viewfinder} className="pair-video" muted playsInline aria-label="Camera view for the laptop code" />
-          {error && <p role="alert">{error}</p>}
-          <div className="pair-field">
-            <label htmlFor="pair-paste-offer">Or paste the laptop code</label>
-            <textarea id="pair-paste-offer" className="pair-code" value={pasted} onChange={(e) => setPasted(e.target.value)} spellCheck={false} autoComplete="off" />
+          <div className="frame pair-frame">
+            <video ref={viewfinder} className="preview" muted playsInline aria-label="Camera view for the laptop code" />
           </div>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" disabled={pasted.trim() === ''} onClick={() => void acceptOffer(pasted.trim())}>
+          {error && (
+            <Notice role="alert" icon="triangle-alert">
+              <p>{error}</p>
+            </Notice>
+          )}
+          <div className="field">
+            <label htmlFor="pair-paste-offer">Or paste the laptop code</label>
+            <textarea id="pair-paste-offer" name="pair-offer" className="pair-code" value={pasted} onChange={(e) => setPasted(e.target.value)} spellCheck={false} autoComplete="off" />
+          </div>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" disabled={pasted.trim() === ''} onClick={() => void acceptOffer(pasted.trim())}>
               Use this code
             </button>
-            <button type="button" className="pair-btn" onClick={() => { releaseAll(); setStep('intro'); }}>
+            <button type="button" className="btn btn-lg" onClick={() => { releaseAll(); setStep('intro'); }}>
               Cancel
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {step === 'answer' && answer && (
-        <>
+        <div className="card stack-s">
           <p className="pair-lead">Show this code to the laptop. On the laptop, choose Scan the phone code.</p>
           <div className="pair-qr">
             <QrCode text={answer} label="Pairing code of this phone" />
           </div>
-          <div className="pair-field">
+          <div className="field">
             <label htmlFor="pair-answer-text">Code as text</label>
-            <textarea id="pair-answer-text" className="pair-code" readOnly value={answer} />
+            <textarea id="pair-answer-text" name="pair-answer" className="pair-code" readOnly value={answer} spellCheck={false} autoComplete="off" />
           </div>
-          <p role="status" className="pair-status">Waiting for the laptop</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn" onClick={stop}>
+          <Notice role="status" icon="info">
+            <p>Waiting for the laptop</p>
+          </Notice>
+          <div className="actions">
+            <button type="button" className="btn btn-lg" onClick={stop}>
               Cancel
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {step === 'run' && (
-        <>
-          <p role="status" className="pair-status">{sending ? 'Sending' : 'Connected'}</p>
+        <div className="card stack-s">
+          <Notice role="status" icon="phone">
+            <p>{sending ? 'Sending' : 'Connected'}</p>
+          </Notice>
           <p className="pair-lead">The camera is on. The phone sends body points only. It shows no video and sends none.</p>
           <video ref={hiddenVideo} className="pair-offscreen" muted playsInline aria-hidden="true" />
-          <button type="button" className="pair-btn pair-btn-primary pair-btn-stop" onClick={stop}>
+          <button type="button" className="btn btn-primary btn-lg btn-block pair-btn-stop" onClick={stop}>
+            <Icon name="square" size={22} fill="currentColor" />
             Stop
           </button>
-        </>
+        </div>
       )}
 
       {step === 'stopped' && (
-        <>
-          <p role="status" className="pair-status">Stopped</p>
+        <div className="card stack-s">
+          <Notice role="status" icon="info">
+            <p>Stopped</p>
+          </Notice>
           <p className="pair-lead">The camera is off. You can close this page.</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={onExit}>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={onExit}>
               Back
             </button>
           </div>
-        </>
+        </div>
       )}
 
       {step === 'failed' && (
-        <>
-          <p role="alert" className="pair-status">{error ?? FALLBACK_TEXT}</p>
-          <div className="pair-actions">
-            <button type="button" className="pair-btn pair-btn-primary" onClick={() => { setError(null); setStep('intro'); }}>
+        <div className="card stack-s">
+          <Notice role="alert" icon="triangle-alert">
+            <p>{error ?? FALLBACK_TEXT}</p>
+          </Notice>
+          <div className="actions">
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => { setError(null); setStep('intro'); }}>
+              <Icon name="refresh-cw" size={20} />
               Try again
             </button>
-            <button type="button" className="pair-btn" onClick={onExit}>
+            <button type="button" className="btn btn-lg" onClick={onExit}>
               Back
             </button>
           </div>
-        </>
+        </div>
       )}
     </section>
   );

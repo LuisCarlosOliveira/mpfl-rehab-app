@@ -1,40 +1,36 @@
-/* Styles of the two pairing screens. Only the custom properties of src/ui/styles.css are used.
-   The class names start with pair- so that they cannot clash with the other screens.
-   The colours carry no meaning. The status is always a word. */
+/* Styles that only the two pairing screens need. The screens use the shared parts of src/ui/styles.css:
+   .card, .btn, .notice, .steps, .frame, .field and .chip. Only the custom properties of that file are used.
+   No colour carries a meaning. The status is always a word and an icon. */
 .pair-screen {
   max-width: 44rem;
 }
 .pair-lead {
-  font-size: 1.125rem;
-}
-.pair-block {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-.pair-status {
-  margin: 1rem 0;
-  padding: 0.5rem 0.75rem;
-  border: 2px solid var(--ink);
-  border-left-width: 10px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-weight: 700;
+  font-size: var(--step-0);
 }
 .pair-qr {
-  max-width: 20rem;
-  margin: 0.5rem 0;
+  width: fit-content;
+  max-width: 100%;
 }
-.pair-video {
+/* The camera view of a code scan is a small frame, not a full preview. */
+.pair-frame {
+  max-width: 24rem;
+}
+.pair-code {
   display: block;
   width: 100%;
-  max-width: 20rem;
-  aspect-ratio: 4 / 3;
-  background: var(--disabled-bg);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
+  min-height: 6rem;
+  padding: var(--s-3);
+  font-family: var(--font-num);
+  font-size: var(--step-m1);
+  color: var(--ink);
+  background: var(--raised);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-m);
+  overflow-wrap: anywhere;
+}
+.pair-code:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 /* The phone runs the camera but shows no picture. The element stays in the page, one pixel wide, so that the browser keeps decoding. */
 .pair-offscreen {
@@ -44,66 +40,8 @@
   opacity: 0;
   pointer-events: none;
 }
-.pair-field {
-  margin: 1rem 0;
-}
-.pair-field label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-.pair-code {
-  display: block;
-  width: 100%;
-  min-height: 6rem;
-  padding: 0.5rem;
-  font-family: var(--font-num);
-  font-size: 1rem;
-  color: var(--ink);
-  background: var(--surface);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  overflow-wrap: anywhere;
-}
-.pair-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 1.25rem 0;
-}
-.pair-btn {
-  min-height: 48px;
-  min-width: 48px;
-  padding: 0.5rem 1.25rem;
-  font: inherit;
-  font-weight: 700;
-  color: var(--ink);
-  background: var(--surface);
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-.pair-btn-primary {
-  background: var(--ink);
-  color: var(--surface);
-}
-.pair-btn:disabled {
-  background: var(--disabled-bg);
-  color: var(--disabled-ink);
-  border-color: var(--disabled-ink);
-  cursor: not-allowed;
-}
 /* The Stop button of the phone: large, easy to hit with a thumb. */
-.pair-btn-stop {
-  width: 100%;
-  min-height: 72px;
-  font-size: 1.5rem;
-}
-.pair-screen h1:focus {
-  outline: none;
-}
-.pair-btn:focus-visible,
-.pair-code:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
+.btn.pair-btn-stop {
+  min-height: 4.5rem;
+  font-size: var(--step-2);
 }

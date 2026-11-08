@@ -138,14 +138,11 @@ describe('Setup, position guide step (FR28)', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
-  it('keeps the optional second-device step hidden (T12b), in a named container on the camera step', () => {
+  it('has no hidden second-device slot any more. The step is a real step that the shell turns on (T12b)', () => {
     const { container } = setup();
     expect(screen.queryByText(/second (device|camera)/i)).toBeNull();
     toCamera();
-    const slot = container.querySelector('[data-slot="second-device"]')!;
-    expect(slot).not.toBeNull();
-    expect(slot).not.toBeVisible();
-    expect(slot).toBeEmptyDOMElement();
+    expect(container.querySelector('[data-slot="second-device"]')).toBeNull();
   });
 });
 

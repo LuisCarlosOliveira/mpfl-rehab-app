@@ -114,12 +114,12 @@ describe('CSV leg columns', () => {
 
   it('writes the two sides as quoted text at the end of the row', async () => {
     const { row } = await rows({ legTracked: 'right', cameraSide: 'left' });
-    expect(row).toMatch(/,"right","left"$/);
+    expect(row).toMatch(/,"right","left",,,$/); // the three second view cells follow, empty here
   });
 
   it('leaves both cells empty for an old session', async () => {
     const { row } = await rows({});
-    expect(row).toMatch(/,,$/);
+    expect(row).toMatch(/,,,,,$/); // the two leg cells and the three second view cells
     expect(row).not.toContain('undefined');
   });
 

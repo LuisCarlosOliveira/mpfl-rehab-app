@@ -1,0 +1,35 @@
+{
+ "expectations": [
+  {
+   "text": "no banned verdict word in any message",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "in-range case (d) shows no message",
+   "passed": true,
+   "evidence": "found '(d) Rep in range | No message. Show nothing'"
+  },
+  {
+   "text": "no green or red verdict colour",
+   "passed": false,
+   "evidence": "forbidden 'red'"
+  },
+  {
+   "text": "a message states the limit or the measured value",
+   "passed": true,
+   "evidence": "found 'limit'"
+  }
+ ],
+ "summary": {
+  "passed": 3,
+  "failed": 1,
+  "total": 4,
+  "pass_rate": 0.75
+ },
+ "timing": {
+  "total_tokens": 57448,
+  "duration_ms": 26277,
+  "total_duration_seconds": 26.3
+ }
+}

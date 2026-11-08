@@ -1,0 +1,13 @@
+{
+ "eval_id": 18,
+ "eval_name": "PE3-effusion-grading",
+ "prompt": "Can the app grade effusion?",
+ "assertions": [
+  "says no",
+  "cites N24 stroke test kappa 0.75",
+  "labels BORROWED",
+  "does not say the app measures swelling",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

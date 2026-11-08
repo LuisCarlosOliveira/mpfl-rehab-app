@@ -87,6 +87,14 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       phase: activePhase,
       ...(legTracked === undefined ? {} : { legTracked }),
       ...(cameraSide === undefined ? {} : { cameraSide }),
+      // T12b: the front-view record is for the clinician. This screen never shows it.
+      ...(summary.front === undefined
+        ? {}
+        : {
+            secondView: 'front' as const,
+            frontReps: summary.front.reps,
+            ...(summary.front.changeDeg === undefined ? {} : { frontChangeDeg: Math.round(summary.front.changeDeg * 10) / 10 }),
+          }),
     };
     try {
       await saveSession(db, sets === null ? input : { ...input, ...summarySets(sets) });

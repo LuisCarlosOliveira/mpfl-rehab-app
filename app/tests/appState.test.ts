@@ -245,3 +245,47 @@ describe('leg choice and camera side (T17)', () => {
     expect(erased.exerciseLeg).toBeNull();
   });
 });
+
+describe('companion screen (T12b, the phone as the second camera)', () => {
+  const noProtocol = (): AppState => initialAppState({ seenPrivacy: true, hasProtocol: false });
+
+  it('opens from Home with a protocol', () => {
+    expect(appReducer(home(), { type: 'open', screen: 'companion' }).screen).toBe('companion');
+  });
+  it('opens on a device with no stored protocol, such as the phone', () => {
+    expect(appReducer(noProtocol(), { type: 'open', screen: 'companion' }).screen).toBe('companion');
+  });
+  it('the privacy notice still comes first on the first launch', () => {
+    const first = initialAppState({ seenPrivacy: false, hasProtocol: false });
+    expect(first.screen).toBe('privacy');
+    expect(appReducer(first, { type: 'privacy-seen' }).screen).toBe('load');
+  });
+  it('leaving it goes Home with a protocol and to the Load screen without one', () => {
+    const withFile = appReducer(home(), { type: 'open', screen: 'companion' });
+    expect(appReducer(withFile, { type: 'open', screen: 'home' }).screen).toBe('home');
+    const without = appReducer(noProtocol(), { type: 'open', screen: 'companion' });
+    expect(appReducer(without, { type: 'open', screen: 'home' }).screen).toBe('load');
+  });
+  it('changes nothing of the run: no exercise, no cleared check, no leg, no baseline', () => {
+    const before = home();
+    const after = appReducer(before, { type: 'open', screen: 'companion' });
+    expect({ ...after, screen: before.screen }).toEqual(before);
+  });
+  it('drops a cleared red-flag check, so the next start needs a new one', () => {
+    let s = appReducer(home(), { type: 'choose-exercise', exercise: 'heel-slide' });
+    s = appReducer(s, { type: 'red-flags-clear' });
+    expect(s.redFlagCleared).toBe(true);
+    s = appReducer(s, { type: 'open', screen: 'companion' });
+    expect(s.redFlagCleared).toBe(false);
+    expect(appReducer(s, { type: 'open', screen: 'session' }).screen).toBe('redflag');
+    expect(appReducer(s, { type: 'open', screen: 'setup' }).screen).toBe('redflag');
+  });
+  it('never opens Setup or Session by itself, and ignores setup-done', () => {
+    const s = appReducer(home(), { type: 'open', screen: 'companion' });
+    expect(appReducer(s, { type: 'setup-done', exerciseLeg: 'left', cameraSide: 'left', baselineDeg: 0 }).screen).toBe('companion');
+  });
+  it('erase from the companion screen is not possible, and an erase resets to the first start', () => {
+    const s = appReducer(home(), { type: 'open', screen: 'companion' });
+    expect(appReducer(s, { type: 'erased' }).screen).toBe('privacy');
+  });
+});

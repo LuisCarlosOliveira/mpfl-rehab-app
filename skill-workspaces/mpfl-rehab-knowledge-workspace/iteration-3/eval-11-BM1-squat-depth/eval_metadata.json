@@ -1,0 +1,13 @@
+{
+ "eval_id": 11,
+ "eval_name": "BM1-squat-depth",
+ "prompt": "What squat depth limits patellofemoral stress?",
+ "assertions": [
+  "cites S16 0 to 50 degrees",
+  "labels it BORROWED or healthy people",
+  "cites P2 90 degrees end goal",
+  "says the surgeon decides or sets it",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

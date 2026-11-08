@@ -1,0 +1,13 @@
+{
+ "eval_id": 25,
+ "eval_name": "ME5-patient-cues",
+ "prompt": "Which checks can be a patient cue?",
+ "assertions": [
+  "lists knee bend ceiling and target in side view",
+  "lists rep time and leg visibility",
+  "each cue needs a clinician limit",
+  "steadiness, hip rise and valgus are not cues",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

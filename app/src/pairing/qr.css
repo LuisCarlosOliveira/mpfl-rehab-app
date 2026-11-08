@@ -1,5 +1,17 @@
-/* Colours of the pairing QR code. Only the custom properties of styles.css.
-   Dark modules on a light background, with no meaning in the colour. */
+/* The pairing QR code is dark modules on a light frame in both themes, because the reader needs that contrast.
+   The frame sets color-scheme to light, so the system colors Canvas and CanvasText give light and dark
+   without a fixed colour value. The colour carries no meaning. */
+.qr-frame {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--s-3);
+  color-scheme: light;
+  background: Canvas;
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-1);
+}
 .qr-svg {
   display: block;
   width: 100%;
@@ -7,16 +19,16 @@
   height: auto;
 }
 .qr-light {
-  fill: var(--surface);
+  fill: Canvas;
 }
 .qr-dark {
-  fill: var(--ink);
+  fill: CanvasText;
 }
 .qr-message {
   max-width: 20rem;
-  padding: 0.5rem;
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: var(--s-3);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--r-m);
+  background: var(--raised);
   color: var(--ink);
 }

@@ -1,0 +1,13 @@
+{
+ "eval_id": 4,
+ "eval_name": "PA4-sets-reps",
+ "prompt": "What sets and reps does the evidence give for strengthening?",
+ "assertions": [
+  "gives 2 sets of 10 to 15 and progress to 3 sets from P2",
+  "says level 5 or low-grade consensus",
+  "frequency is NONE",
+  "tempo is NONE",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

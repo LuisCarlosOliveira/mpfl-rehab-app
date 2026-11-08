@@ -1,0 +1,13 @@
+{
+ "eval_id": 6,
+ "eval_name": "RS1-validated-rts-battery",
+ "prompt": "Is there a validated RTS battery after MPFLR?",
+ "assertions": [
+  "says no validated battery",
+  "cites S1 not well established",
+  "cites S6 14 to 40 percent met all criteria",
+  "does not call any battery validated",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

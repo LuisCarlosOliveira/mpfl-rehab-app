@@ -1,0 +1,14 @@
+{
+ "eval_id": 12,
+ "eval_name": "BM2-open-chain-arc",
+ "prompt": "What open-chain arc do the guidelines allow later?",
+ "assertions": [
+  "gives 90 to 30 degrees from P2",
+  "gives 90 to 40 degrees from P1",
+  "gives 90 to 45 degrees from AS1 as BORROWED",
+  "does not present one arc as consensus",
+  "notes the P2 arc is in a Note or the P1 arc belongs to phase 2",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

@@ -8,6 +8,7 @@ import { exportReminderDue, getLastExport, type MpflDb } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
+import { CompanionEntry } from './CompanionEntry';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -55,9 +56,11 @@ interface Props {
   /** The two buttons show only when the handler is given, as in the data screen. */
   onOpenProgress?: () => void;
   onOpenData?: () => void;
+  /** T12b: opens the phone screen. It shows only when the handler is given. */
+  onOpenCompanion?: () => void;
 }
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   useEffect(() => {
@@ -233,6 +236,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               </button>
             </div>
           </section>
+
+          {onOpenCompanion && <CompanionEntry onOpen={onOpenCompanion} />}
         </div>
       </div>
     </section>

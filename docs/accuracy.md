@@ -190,3 +190,77 @@ The 8 clips are public videos under Creative Commons Attribution (CC BY). The fi
 - Clip 06: "Seated Knee Flexion" by Motion, https://www.youtube.com/watch?v=G0EdB5vwmJY, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 - Clip 07: "Mini Squats - Stage 1 PFPS" by Spire Injury Clinic, https://www.youtube.com/watch?v=NRcuNnO988g, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 - Clip 08: "Quads   03 Straight Leg Raise" by MyMichiganHealth, https://www.youtube.com/watch?v=gH-CJTv7TyQ, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
+
+## Re-run after the baseline rule, 2026-11-08
+
+This section is a plausibility check of the clip tool after task T17. It is not validation. Before this run, the tool called `createPipeline` with no baseline. Since T17 the counter counts no rep without a baseline, so the old tool counted 0 reps. The tool now takes the baseline from the first still window of the clip, with the real functions `restingBaseline` and `isStill`. It then calls the real `createPipeline` with the baseline, the leg and the camera side ([clip analysis](clip-analysis.md)). The pose model is `lite`. The target is 60 degrees. The return value is the value of the example protocol: 20 degrees for the heel slide and 15 degrees for the mini squat. This is a PROPOSAL and not clinical evidence. The count starts when the still window ends. No frame and no image is stored in the repository.
+
+### Results for each clip
+
+"Leg" is the leg with the higher detection in the saved landmarks of the first runs. "Detection" is the share of frames in which the three joints of this leg are visible. "Baseline" is the median flexion of the first still window and the times of the window. "Blocked" is the reason that the pipeline gives when no rep can count. "Before" is the reps of the earlier run. "By eye" is the rough count of one person. It is not a reference.
+
+| Clip | Exercise | Leg | Detection | Baseline | Blocked | Reps or result now | Before | By eye |
+|---|---|---|---|---|---|---|---|---|
+| 01 | heel slide | left | 94.1 percent | none (no still window) | no-baseline | 0 reps | left leg 4 | 6 to 7 swings |
+| 02 | heel slide | left | 82.7 percent | none (no still window) | no-baseline | 0 reps | left leg 4 | not recorded |
+| 03 | straight leg raise | right | 100 percent | 1.0 degrees (5.1 to 7.1 s) | none | top angle 12 degrees, no rep counter | top 34 (left leg) | not recorded |
+| 04 | straight leg raise | left | 99.8 percent | 3.1 degrees (8.1 to 10.1 s) | none | top angle 3 degrees, no rep counter | none | not recorded |
+| 05 | mini squat | left | 79.9 percent | 1.0 degrees (3.6 to 5.6 s) | none | 2 reps, peaks 64 and 66 degrees | 2 | about 3 |
+| 06 | seated hold | left | 91.4 percent | 101.0 degrees (5.1 to 7.1 s) | none | 1 hold, no rep counter | 1 hold (right leg) | not recorded |
+| 07 | mini squat | right | 100 percent | 2.0 degrees (3.0 to 5.0 s) | none | 1 rep, peak 59 degrees | 1 | unclear |
+| 08 | straight leg raise | right | 93.5 percent | none (no still window) | none, no rep counter | no top angle | none | not recorded |
+
+For clips 01 and 02 the person never holds still for 2 seconds. The calmest 2.2 second window of the left leg has a move of 0.043 and 0.055 of the frame height. The rule allows 0.02. The app gives the same answer to a person who never holds still: no baseline, no rep. So the old counts of 4 reps for these clips do not come back with the real rule.
+
+A sensitivity run gives the result if a baseline exists. It uses `--baseline 5`, a value that I set by hand from the lowest angles of the clip. It is not the rule of the app.
+
+| Clip | Reps with `--baseline 5` | Rep times (s) | Peaks (degrees) |
+|---|---|---|---|
+| 01 left | 4 | 5.3, 12.0, 18.4, 24.9 | 141, 141, 135, 133 |
+| 02 left | 5 | 2.1, 13.2, 17.3, 24.1, 30.3 | 82, 174, 129, 129, 130 |
+
+### What changed and what did not
+
+- Clips 05 and 07 give the same counts as before (2 and 1). The still window ends at 5.6 s and 5.0 s, so the count starts there. No rep in these clips is lost.
+- Clips 01 and 02 count 0 reps, with the reason `no-baseline`. With a hand baseline of 5 degrees the count is 4 for clip 01, as before, and 5 for clip 02 (before: 4). The extra rep in clip 02 is at 2.1 s with a peak of 82 degrees. I do not know why the old rule did not count it.
+- The eye count for clip 01 is 6 to 7 swings. The tool counts 4 reps of the left leg. The two legs move one after the other, so the eye count can mix both legs. This stays unexplained. No goniometer or manual frame count exists.
+- Clip 06 gets a baseline of 101 degrees, because the seated person holds the knee bent. The seated hold does not use the baseline. A resting angle that high is a reason for a clinician to look at the rule.
+- Clip 02 has a peak of 174 degrees in one rep. This stays unexplained, as in the first run.
+- Clip 08 has no still window. Its angles stay at 92 to 133 degrees, so the tool still does not show a knee angle for this clip.
+
+### Moving-leg check on the saved landmarks
+
+The tool runs the real function of `src/lib/legIdentity.ts` on every window of 6 seconds of the clip. The app uses only the first 3 windows. The table shows all windows, and the first 3 in brackets for the cases that differ.
+
+| Clip | Left | Right | Ambiguous | None | Chosen leg |
+|---|---|---|---|---|---|
+| 01 | 0 | 0 | 5 (first 3: 3) | 0 | left |
+| 02 | 4 (first 3: 2) | 0 | 1 | 0 | left |
+| 03 | 0 | 5 (first 3: 3) | 2 | 0 | right |
+| 04 | 1 | 0 | 4 | 1 | left |
+| 05 | 3 (first 3: 2) | 1 | 0 | 0 | left |
+| 06 | 4 (first 3: 3) | 0 | 0 | 0 | left |
+| 07 | 0 | 1 | 3 | 2 | right |
+| 08 | 1 | 2 | 0 | 1 | right |
+
+There is no trusted ground truth for the leg. Nobody wrote down which leg moved or which side the camera was on. The answers agree with the chosen leg for clips 02, 03, 05, 06 and 08 in most windows. They are ambiguous for clips 01, 04 and 07, where both legs move or neither moves much. The chosen leg is the one with the higher detection. This is not proof that it is the leg that does the exercise.
+
+### Method B check in the real built app
+
+The script `app/scripts/clip-to-webcam.sh` converted 4 clips to MJPEG files (640 x 360, 30 frames each second). A Playwright script loaded the real built app and the file as the fake camera. It loaded the example protocol and chose the leg. It pressed Start camera and Start exercise. It then read the live angle on the Session screen for 45 seconds. Only the numbers were kept.
+
+| Clip | Leg chosen in the app | Live angle range seen | Offline range (Method A) |
+|---|---|---|---|
+| 01 | left | 4 to 141 degrees (52 different values) | 4 to 141 |
+| 03 | right | 0 to 81 degrees (40 values) | 0 to 50 |
+| 04 | left | 0 to 130 degrees (39 values) | 1 to 49 |
+| 07 | right | 0 to 55 degrees (16 values) | 0 to 59 |
+
+The fake camera shows the clip: the angle changes and the file size reaches the page unchanged (640 x 360). The ranges for clips 01 and 07 match the offline range. The ranges for clips 03 and 04 are larger than the offline range, and I do not know why. Clip 04 has close-up cuts, and real-time detection can differ from the frame-by-frame run. I did not check the restart of the loop.
+
+### Limits of this re-run
+
+- No goniometer data. No angle was compared with a reference.
+- One person for each clip. The people are not patients.
+- The tool applies only the still rule of the setup check. The app also needs the other setup rules (whole leg in view, side-on).
+- This is a plausibility check, not validation.

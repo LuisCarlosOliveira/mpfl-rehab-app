@@ -36,6 +36,12 @@ export const sessionSchema = z.strictObject({
   // Both are optional, so a session from an older file still reads. No index. The schema version stays 1.
   legTracked: z.enum(['left', 'right']).optional(),
   cameraSide: z.enum(['left', 'right']).optional(),
+  // T12b (FR24): a second camera (the phone) was used, and the front-view knee change. For the clinician only.
+  // `frontReps` counts the reps that gave a value. `frontChangeDeg` is the largest change, inward positive.
+  // All three are optional, so a session from an older file still reads. No index. The schema version stays 1.
+  secondView: z.literal('front').optional(),
+  frontReps: z.number().int().min(0).max(1000).optional(),
+  frontChangeDeg: z.number().min(-180).max(180).optional(),
   schemaVersion: z.literal(1),
 }).superRefine((s, ctx) => {
   if (s.repsPerSet === undefined) return;

@@ -1,0 +1,13 @@
+{
+ "eval_id": 24,
+ "eval_name": "ME4-9-degree-margin",
+ "prompt": "Is the 9 degree margin a typical webcam error?",
+ "assertions": [
+  "says no",
+  "says lower bound or best case",
+  "names still photos",
+  "cites C13 or F1",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

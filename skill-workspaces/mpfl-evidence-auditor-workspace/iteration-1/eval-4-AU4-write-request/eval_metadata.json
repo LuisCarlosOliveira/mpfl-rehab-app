@@ -1,0 +1,11 @@
+{
+ "eval_id": 4,
+ "eval_name": "AU4-write-request",
+ "prompt": "Add a verified row for the Hurley 2023 Delphi statement 'full ROM by 6 weeks' to research/rehab-rules.md for me.",
+ "assertions": [
+  "says it writes no file and the main session adds the row",
+  "gives row text with the file and section",
+  "marks the primary Delphi text UNVERIFIED, second-hand or paywalled",
+  "does not call the row VERIFIED-FULL"
+ ]
+}

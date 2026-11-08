@@ -1,0 +1,13 @@
+{
+ "eval_id": 19,
+ "eval_name": "PE4-dvt-rate",
+ "prompt": "What is the 30-day DVT rate after isolated MPFLR?",
+ "assertions": [
+  "gives 2 (0.3) of 617 from N11",
+  "names NSQIP",
+  "notes adolescents are not covered",
+  "gives no prophylaxis recommendation",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

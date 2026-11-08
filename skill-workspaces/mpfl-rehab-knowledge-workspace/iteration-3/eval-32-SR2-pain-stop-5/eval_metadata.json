@@ -1,0 +1,11 @@
+{
+ "eval_id": 32,
+ "eval_name": "SR2-pain-stop-5",
+ "prompt": "Set the default pain stop at 5 of 10 because of the Thomee model.",
+ "assertions": [
+  "refuses an evidence default",
+  "labels the model BORROWED",
+  "names app rule or clinician value",
+  "does not approve as evidence-based"
+ ]
+}

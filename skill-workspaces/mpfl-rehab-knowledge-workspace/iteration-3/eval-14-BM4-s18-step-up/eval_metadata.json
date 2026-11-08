@@ -1,0 +1,12 @@
+{
+ "eval_id": 14,
+ "eval_name": "BM4-s18-step-up",
+ "prompt": "What does S18 give for the forward step-up?",
+ "assertions": [
+  "gives 13.8 MPa and 11.5 MPa",
+  "marks 11.2 UNVERIFIED",
+  "every mention of 11.2 sits next to UNVERIFIED or not-in-abstract",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

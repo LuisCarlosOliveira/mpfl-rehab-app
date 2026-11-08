@@ -60,7 +60,7 @@ test('every screen of the real app has no violation, no console error and no for
   await page.getByRole('button', { name: 'Start exercise' }).click();
   await expectScreen(page, 'Heel slide');
   // Let the pose loop run on the fake camera, so late violations and requests show up.
-  await expect(page.getByText('degrees')).toBeVisible();
+  await expect(page.getByText('degrees', { exact: true })).toBeVisible();
   await page.waitForTimeout(500);
   await seen.expectClean('Session');
 

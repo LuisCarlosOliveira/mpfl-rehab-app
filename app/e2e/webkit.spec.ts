@@ -259,11 +259,19 @@ for (const [w, h] of [
   });
 }
 
-test('pairing screens: skipped while no second camera button exists', async ({ page }) => {
+test('pairing screens load: the laptop step in Setup and the phone screen', async ({ page }) => {
   await setup(page);
   await toSetupGuide(page);
-  const button = page.getByRole('button', { name: /second camera/i });
-  test.skip((await button.count()) === 0, 'Pairing is not wired into Setup yet. No button with the text "second camera".');
-  await button.first().click();
-  await expect(heading(page)).toBeVisible();
+  await page.getByRole('button', { name: 'Add a second camera (optional)' }).click();
+  await expect(heading(page)).toHaveText('Add a second camera');
+  await expect(page.getByRole('button', { name: 'Start pairing' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip, use one camera' }).click();
+  await expect(page.getByRole('button', { name: 'Start camera' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expectScreen(page, 'Home');
+  await page.getByRole('button', { name: 'Use this phone as the second camera' }).click();
+  await expect(heading(page)).toHaveText('Use this phone as the second camera');
+  await expect(page.getByRole('button', { name: 'Scan the laptop code' })).toBeVisible();
+  // Not covered: a real pairing in WebKit. The pairing specs run in Chromium only.
+  expect(await gumCalls(page), 'no camera request before a press').toBe(0);
 });

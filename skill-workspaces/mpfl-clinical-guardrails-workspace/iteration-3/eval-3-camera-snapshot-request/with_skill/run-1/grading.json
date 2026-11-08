@@ -1,0 +1,35 @@
+{
+ "expectations": [
+  {
+   "text": "no frame-storing API used outside a refusal",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "explains the app stores no video or image",
+   "passed": true,
+   "evidence": "found 'no video'"
+  },
+  {
+   "text": "camera code uses audio false",
+   "passed": true,
+   "evidence": "found 'audio: false'"
+  },
+  {
+   "text": "offers an alternative that stores numbers or landmarks",
+   "passed": true,
+   "evidence": "found 'numbers'"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 59194,
+  "duration_ms": 40920,
+  "total_duration_seconds": 40.9
+ }
+}

@@ -7,6 +7,7 @@ import type { Side } from '../lib/angle';
 import { initialScreen, type ScreenId } from '../lib/flow';
 import type { Summary } from '../lib/exercises';
 import type { SetsState } from '../lib/sets';
+import type { FrontRecord } from '../lib/views';
 import type { Exercise, Mode } from '../lib/protocol';
 
 export type ExerciseKind = Exercise['kind'];
@@ -15,6 +16,8 @@ export type EndReason = 'stop' | 'gave-way';
 /** The counter summary with the set data of the run. Session adds `sets`. Summary reads it. */
 export interface RunSummary extends Summary {
   sets?: SetsState;
+  /** T12b: the front-view record of the second camera. It goes to the clinician record only. Absent: one camera. */
+  front?: FrontRecord;
 }
 
 export interface RunResult {
@@ -65,7 +68,8 @@ export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: bool
 
 /** Where a request for `target` really goes. */
 function resolve(state: AppState, target: ScreenId): ScreenId {
-  if (target === 'privacy' || target === 'load') return target;
+  // The companion screen needs no protocol and no red-flag check. The phone only sends landmark numbers (T12b).
+  if (target === 'privacy' || target === 'load' || target === 'companion') return target;
   if (!state.hasProtocol) return 'load';
   switch (target) {
     case 'home':

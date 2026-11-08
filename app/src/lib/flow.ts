@@ -11,6 +11,7 @@ export const SCREEN_IDS = [
   'dashboard',
   'data',
   'clinician',
+  'companion', // the phone as the second camera. It has no protocol and no exercise.
 ] as const;
 
 export type ScreenId = (typeof SCREEN_IDS)[number];

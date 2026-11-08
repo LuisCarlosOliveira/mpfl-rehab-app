@@ -1,0 +1,13 @@
+{
+ "eval_id": 22,
+ "eval_name": "ME2-slr-lag-cue",
+ "prompt": "Can the app cue SLR extension lag of 10 degrees?",
+ "assertions": [
+  "says no cue",
+  "cites P2 10 degrees",
+  "says the threshold is inside the error",
+  "says to log the top angle",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

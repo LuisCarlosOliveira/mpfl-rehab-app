@@ -1,0 +1,13 @@
+{
+ "eval_id": 10,
+ "eval_name": "RS5-mpfl-rsi-56",
+ "prompt": "Is MPFL-RSI above 56 a validated cutoff?",
+ "assertions": [
+  "says not validated",
+  "cites S1 and N14",
+  "cites S21 with 59.2 and AUC 0.70",
+  "does not call it a validated cutoff",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

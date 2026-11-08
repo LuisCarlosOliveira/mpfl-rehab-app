@@ -10,6 +10,10 @@ export interface ClipArgs {
   target: number;
   maxFlexion: number | null;
   holdSeconds: number;
+  baseline: number | null;
+  baselineFrom: { fromS: number; toS: number } | null;
+  returnWithin: number | null;
+  cameraSide: Leg;
 }
 export interface ClipFrame {
   time_s: number;
@@ -49,4 +53,41 @@ export function percentile(values: number[], p: number): number | null;
 export function summarize(frames: ClipFrame[], opts: { videoFps: number; processingMs: number; minVisibility?: number }): ClipSummary;
 export function readReference(text: string): ReferenceRow[];
 export function agreementFromReference(frames: ClipFrame[], refs: ReferenceRow[], maxGapS?: number): Agreement;
-export function textSummary(name: string, args: ClipArgs, summary: ClipSummary, agreement: Agreement | null): string;
+export interface ClipSample<L> {
+  tMs: number;
+  landmarks: L | null;
+}
+export type BaselineFound =
+  | { ok: true; baselineDeg: number; fromMs: number | null; toMs: number | null }
+  | { ok: false; reason: string };
+export interface IdentityCounts {
+  left: number;
+  right: number;
+  ambiguous: number;
+  none: number;
+  windows: string[];
+}
+export interface ClipInfo {
+  baseline: BaselineFound;
+  returnWithin: { value: number | null; source: string };
+  countBlock: string | null;
+  sessionStartS: number;
+  legRole: string | null;
+  identity: IdentityCounts;
+}
+export function resolveReturnWithin(
+  args: Pick<ClipArgs, 'returnWithin' | 'kind'>,
+  protocol: { phases: { exercises: { kind: string; returnWithinDeg?: number }[] }[] },
+): { value: number | null; source: string };
+export function findBaseline<L>(
+  samples: ClipSample<L>[],
+  opts: {
+    restingBaseline: (history: { tMs: number; landmarks: L }[], side: Leg, aspect: number, config: never) => { ok: true; baselineDeg: number } | { ok: false; reason: string };
+    side: Leg;
+    aspect: number;
+    config: { stillWindowMs: number };
+    range?: { fromMs: number; toMs: number } | null;
+  },
+): BaselineFound;
+export function identityCounts(answers: string[]): IdentityCounts;
+export function textSummary(name: string, args: ClipArgs, summary: ClipSummary, agreement: Agreement | null, info?: ClipInfo | null): string;

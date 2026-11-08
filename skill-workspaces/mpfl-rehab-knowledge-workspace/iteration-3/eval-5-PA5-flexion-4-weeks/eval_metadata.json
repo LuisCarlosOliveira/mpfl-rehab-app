@@ -1,0 +1,14 @@
+{
+ "eval_id": 5,
+ "eval_name": "PA5-flexion-4-weeks",
+ "prompt": "Which flexion target at 4 weeks?",
+ "assertions": [
+  "gives 90 degrees by 4 weeks and 120 by 6 weeks from P2",
+  "gives the S1 range",
+  "says the surgeon decides or sets it",
+  "does not give one value alone: shows more than one source",
+  "says the P2 targets are passive range (PROM) and the camera sees active motion",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

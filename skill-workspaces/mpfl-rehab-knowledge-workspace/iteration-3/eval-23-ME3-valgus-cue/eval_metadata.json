@@ -1,0 +1,13 @@
+{
+ "eval_id": 23,
+ "eval_name": "ME3-valgus-cue",
+ "prompt": "Can the app show knee valgus to the patient?",
+ "assertions": [
+  "says no",
+  "cites M2 frontal plane not valid",
+  "cites F4 bias about 19 degrees",
+  "says NO BUILD",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

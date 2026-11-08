@@ -24,6 +24,17 @@ describe('initialScreen', () => {
   });
 });
 
+describe('companion screen id', () => {
+  it('is a known screen, and the first screen is never the companion', () => {
+    expect(SCREEN_IDS).toContain('companion');
+    for (const seen of [true, false]) {
+      for (const has of [true, false]) {
+        expect(initialScreen({ seenPrivacy: seen, hasProtocol: has })).not.toBe('companion');
+      }
+    }
+  });
+});
+
 describe('appMode', () => {
   it('is patient mode only when the flag is exactly "true"', () => {
     expect(appMode('true')).toBe('patient');

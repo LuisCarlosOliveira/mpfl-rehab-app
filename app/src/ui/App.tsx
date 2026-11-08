@@ -4,13 +4,17 @@ import { lazy, Suspense, useEffect, useMemo, useReducer, useRef, useState, type 
 import { bannersFor } from '../lib/mode';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
 import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb, type SessionRecord } from '../lib/storage';
+import { usePairing } from '../pairing/usePairing';
+import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
 import { appReducer, initialAppState } from './appState';
 import { Banners } from './Banners';
+import { CompanionEntry } from './CompanionEntry';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadProtocol } from './LoadProtocol';
 import { Notice } from './Notice';
+import { PairCompanion } from './PairCompanion';
 import { Privacy } from './Privacy';
 import { createSound, type Sound } from './sound';
 import { RedFlag } from './RedFlag';
@@ -85,11 +89,13 @@ export interface AppProps {
   now?: () => Date;
   /** The sound cues. The app makes one. Tests give one over a fake audio context. */
   sound?: Sound;
+  /** Tests give a fake peer connection for the second camera. The app gives nothing. */
+  pairingDeps?: LinkDeps;
 }
 
 type Boot = { ready: false } | { ready: true; protocol: Protocol | null; error: { title: string; message: string } | null };
 
-export function App({ db, mode, source, now = () => new Date(), sound }: AppProps) {
+export function App({ db, mode, source, now = () => new Date(), sound, pairingDeps }: AppProps) {
   const [soundInUse] = useState(() => sound ?? createSound());
   const [boot, setBoot] = useState<Boot>({ ready: false });
 
@@ -122,15 +128,16 @@ export function App({ db, mode, source, now = () => new Date(), sound }: AppProp
       </div>
     );
   }
-  return <Shell db={db} mode={mode} source={source} now={now} sound={soundInUse} protocol={boot.protocol} bootError={boot.error} />;
+  return <Shell db={db} mode={mode} source={source} now={now} sound={soundInUse} pairingDeps={pairingDeps} protocol={boot.protocol} bootError={boot.error} />;
 }
 
-interface ShellProps extends Required<AppProps> {
+interface ShellProps extends Required<Omit<AppProps, 'pairingDeps'>> {
+  pairingDeps?: LinkDeps;
   protocol: Protocol | null;
   bootError: { title: string; message: string } | null;
 }
 
-function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootError: storedError }: ShellProps) {
+function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProtocol, bootError: storedError }: ShellProps) {
   const [protocol, setProtocol] = useState(storedProtocol);
   const [bootError, setBootError] = useState(storedError);
   const [state, dispatch] = useReducer(
@@ -138,6 +145,14 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
     { seenPrivacy: hasSeenPrivacyNotice(), hasProtocol: storedProtocol !== null, mode },
     initialAppState,
   );
+
+  // The second camera (T12b). One pairing lives from Setup to the end of the Session, so the Session can read it.
+  // It stops when the person leaves Setup and Session by any way: Cancel, Stop, "Knee gave way or hurts", or a new screen.
+  const { pairing, view: pairingView } = usePairing(pairingDeps);
+  const pairingOpen = ['starting', 'offer', 'connecting', 'connected'].includes(pairingView.status);
+  useEffect(() => {
+    if (pairingOpen && state.screen !== 'setup' && state.screen !== 'session') pairing.close();
+  }, [pairingOpen, state.screen, pairing]);
 
   // The only source of the active phase is the read-only store (FR4).
   const store = useMemo(() => (protocol ? createProtocolStore(protocol) : null), [protocol]);
@@ -175,6 +190,7 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
               onOpenProgress={() => dispatch({ type: 'open', screen: 'dashboard' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
+              onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
             />
           );
         }
@@ -198,6 +214,7 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               limit={exercise.maxFlexion}
               returnWithinDeg={exercise.returnWithinDeg}
               source={source}
+              pair={{ pairing, view: pairingView }}
               sound={sound}
               onReady={(done) => dispatch({ type: 'setup-done', ...done })}
               onCancel={() => dispatch({ type: 'open', screen: 'home' })}
@@ -214,6 +231,7 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               cameraSide={state.cameraSide ?? undefined}
               baselineDeg={state.baselineDeg}
               source={source}
+              second={{ source: pairing.source(), status: pairingView.status, message: pairingView.message }}
               sound={sound}
               onEnd={(reason, summary) => dispatch({ type: 'session-end', reason, summary })}
             />
@@ -256,6 +274,9 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
             />
           </FocusHeading>
         );
+      case 'companion':
+        // The phone screen needs no protocol and no red-flag check. It never starts an exercise.
+        return <PairCompanion onExit={() => dispatch({ type: 'open', screen: 'home' })} />;
       case 'clinician':
         return (
           <FocusHeading key="clinician">
@@ -264,20 +285,26 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
         );
     }
     return (
-      <LoadProtocol
-        db={db}
-        mode={mode}
-        initialError={bootError}
-        onCancel={protocol ? () => dispatch({ type: 'open', screen: 'home' }) : undefined}
-        onLoaded={() => {
-          void loadStoredProtocol(db, mode).then((result) => {
-            if (result?.ok) {
-              setProtocol(result.protocol);
-              dispatch({ type: 'protocol-loaded' });
-            }
-          });
-        }}
-      />
+      <>
+        <LoadProtocol
+          db={db}
+          mode={mode}
+          initialError={bootError}
+          onCancel={protocol ? () => dispatch({ type: 'open', screen: 'home' }) : undefined}
+          onLoaded={() => {
+            void loadStoredProtocol(db, mode).then((result) => {
+              if (result?.ok) {
+                setProtocol(result.protocol);
+                dispatch({ type: 'protocol-loaded' });
+              }
+            });
+          }}
+        />
+        {/* A new phone has no protocol, so the way to the phone screen sits here too. */}
+        <div className="narrow mt">
+          <CompanionEntry onOpen={() => dispatch({ type: 'open', screen: 'companion' })} />
+        </div>
+      </>
     );
   })();
 
