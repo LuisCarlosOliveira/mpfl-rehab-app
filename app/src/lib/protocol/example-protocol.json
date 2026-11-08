@@ -15,7 +15,8 @@
           "reps": 10,
           "targetFlexion": 60,
           "maxFlexion": 90,
-          "source": "Exercise name: S1 (clinical.md). Range grows 20 to 30 degrees a week in S1. targetFlexion, maxFlexion, sets, reps: PROPOSAL. The surgeon sets the real limit."
+          "source": "Name: S1. Range grows 20 to 30 degrees a week (S1). targetFlexion, maxFlexion, sets, reps, minRepSeconds: PROPOSAL. The surgeon sets the real limit.",
+          "minRepSeconds": 2
         },
         {
           "kind": "straight-leg-raise",
@@ -35,7 +36,8 @@
           "reps": 10,
           "targetFlexion": 30,
           "maxFlexion": 50,
-          "source": "maxFlexion 50: S16 says 0 to 50 degrees can limit patellofemoral loading in healthy people. Link to graft safety is UNVERIFIED. targetFlexion, sets, reps: PROPOSAL."
+          "source": "maxFlexion 50: S16 (0 to 50 degrees can limit patellofemoral load in healthy people, link to the graft UNVERIFIED). Other values: PROPOSAL.",
+          "minRepSeconds": 2
         },
         {
           "kind": "seated-extension-hold",

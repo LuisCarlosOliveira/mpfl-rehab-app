@@ -14,6 +14,7 @@ import {
   type HoldConfig,
   type RepsConfig,
 } from './counters';
+import { MARGIN_DEG, classifyAgainstLimit, type LimitState } from './margin';
 import { OneEuroFilter } from './oneEuro';
 import type { Exercise } from './protocol';
 
@@ -21,7 +22,6 @@ const MIN_STATE_MS = 300; // start value
 const ENTER_FRACTION = 0.8; // start value: a rep starts at 80 percent of the target
 const EXIT_FRACTION = 0.3; // start value: a rep ends at 30 percent of the target
 const MIN_TARGET = 10; // degrees. Below this, noise decides the count.
-const HOLD_EXTENSION_MARGIN = 10; // start value: degrees of flexion that still count as extended
 const RAISE_MIN_HEIGHT = 0.05; // image fraction: ankle above hip by this much counts as raised
 const RAISE_SETTLE_MS = 500; // the filter needs time to settle before the lag is read
 
@@ -48,6 +48,8 @@ export function counterSetup(exercise: Exercise): SetupResult {
           target,
           minStateMs: MIN_STATE_MS,
           maxFlexion: exercise.maxFlexion,
+          margin: MARGIN_DEG,
+          minRepMs: exercise.minRepSeconds === undefined ? undefined : exercise.minRepSeconds * 1000,
         },
       };
     }
@@ -60,7 +62,7 @@ export function counterSetup(exercise: Exercise): SetupResult {
         kind: 'hold',
         config: {
           direction: 'at-most',
-          threshold: (exercise.targetFlexion ?? 0) + HOLD_EXTENSION_MARGIN,
+          threshold: (exercise.targetFlexion ?? 0) + MARGIN_DEG,
           minHoldMs: exercise.holdSeconds * 1000,
         },
       };
@@ -77,16 +79,28 @@ export function isLegRaised(hip: Landmark, ankle: Landmark): boolean {
   return visible(hip) && visible(ankle) && hip.y - ankle.y > RAISE_MIN_HEIGHT;
 }
 
+export interface EventCounts {
+  nearLimit: number;
+  overLimit: number;
+  tooFast: number;
+}
+
 export interface Summary {
   reps: number | null;
   holds: number | null;
   peakFlexion: number | null;
-  extensionLag: number | null;
+  // Estimated angle at the top of the straight leg raise. The highest value over the lifts.
+  topFlexion: number | null;
+  // The top angle against maxTopFlexion: above, below or cannot-tell. 'no-limit' when the
+  // protocol sets none. null for any other exercise.
+  topState: LimitState | 'no-limit' | null;
+  eventCounts: EventCounts;
 }
 
 export interface StepOutput {
   flexion: number | null; // filtered, degrees
   event: string | null;
+  repMs: number | null; // rep time when a rep was counted on this sample
 }
 
 export interface Pipeline {
@@ -106,6 +120,12 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
 
   let reps = repsInitial();
   let hold = holdInitial();
+  const counts: EventCounts = { nearLimit: 0, overLimit: 0, tooFast: 0 };
+  const tally = (event: string | null) => {
+    if (event === 'near-limit') counts.nearLimit += 1;
+    else if (event === 'over-limit') counts.overLimit += 1;
+    else if (event === 'too-fast') counts.tooFast += 1;
+  };
 
   // Straight leg raise state
   let lag = lagInitial();
@@ -124,13 +144,13 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
       step(landmarks, t) {
         if (landmarks === null) {
           filter.reset();
-          return { flexion: null, event: 'paused' };
+          return { flexion: null, event: 'paused', repMs: null };
         }
         const [hip, knee, ankle] = selectLeg(landmarks, side);
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) {
           filter.reset();
-          return { flexion: null, event: 'paused' };
+          return { flexion: null, event: 'paused', repMs: null };
         }
         const f = filter.filter(raw, t);
         peak = peak === null ? f : Math.max(peak, f);
@@ -139,12 +159,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
         if (setup.kind === 'reps') {
           const out = repsStep(reps, sample, setup.config);
           reps = out.state;
-          return { flexion: f, event: out.event };
+          tally(out.event);
+          const counted = out.event === 'rep' || out.event === 'too-fast';
+          return { flexion: f, event: out.event, repMs: counted ? out.state.lastRepMs : null };
         }
         if (setup.kind === 'hold') {
           const out = holdStep(hold, sample, setup.config);
           hold = out.state;
-          return { flexion: f, event: out.event };
+          return { flexion: f, event: out.event, repMs: null };
         }
         // Straight leg raise: read the lag only while the leg is raised and settled.
         if (isLegRaised(hip, ankle)) {
@@ -153,17 +175,24 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
         } else if (raisedSince !== null) {
           closeLift();
         }
-        return { flexion: f, event: null };
+        return { flexion: f, event: null, repMs: null };
       },
       summary() {
         const current = lag.lag;
-        const extensionLag =
+        const topFlexion =
           setup.kind === 'lag' ? (worstLag === null ? current : current === null ? worstLag : Math.max(worstLag, current)) : null;
+        let topState: Summary['topState'] = null;
+        if (setup.kind === 'lag') {
+          topState =
+            exercise.maxTopFlexion === undefined ? 'no-limit' : classifyAgainstLimit(topFlexion, exercise.maxTopFlexion, MARGIN_DEG);
+        }
         return {
           reps: setup.kind === 'reps' ? reps.reps : null,
           holds: setup.kind === 'hold' ? hold.holds : null,
           peakFlexion: peak,
-          extensionLag,
+          topFlexion,
+          topState,
+          eventCounts: { ...counts },
         };
       },
     },

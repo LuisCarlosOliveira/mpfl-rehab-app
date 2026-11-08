@@ -1,5 +1,6 @@
 import { counterSetup, createPipeline, isLegRaised } from '../src/lib/exercises';
 import type { Exercise } from '../src/lib/protocol';
+import { MARGIN_DEG } from '../src/lib/margin';
 import { gauss, legLandmarks, rng } from './helpers/leg';
 
 const ex = (over: Partial<Exercise> & Pick<Exercise, 'kind'>): Exercise => ({ source: 'PROPOSAL', ...over });
@@ -26,7 +27,7 @@ describe('counterSetup', () => {
 
   it('builds an extended hold from holdSeconds', () => {
     const r = counterSetup(ex({ kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0 }));
-    expect(r).toMatchObject({ ok: true, kind: 'hold', config: { direction: 'at-most', threshold: 10, minHoldMs: 5000 } });
+    expect(r).toMatchObject({ ok: true, kind: 'hold', config: { direction: 'at-most', threshold: MARGIN_DEG, minHoldMs: 5000 } });
   });
 
   it('asks the surgeon when a hold has no duration', () => {
@@ -142,7 +143,7 @@ describe('replay: seated extension hold', () => {
   });
 });
 
-describe('replay: straight leg raise lag', () => {
+describe('replay: straight leg raise, angle at the top', () => {
   const slr = ex({ kind: 'straight-leg-raise' });
 
   function lifts(minFlexions: number[]) {
@@ -161,23 +162,90 @@ describe('replay: straight leg raise lag', () => {
     return made.pipeline.summary();
   }
 
-  it('reports the worst lag over the lifts', () => {
+  it('reports the highest angle at the top over the lifts', () => {
     const s = lifts([8, 4, 6]);
-    expect(s.extensionLag).not.toBeNull();
-    expect(s.extensionLag as number).toBeGreaterThan(6);
-    expect(s.extensionLag as number).toBeLessThan(10);
+    expect(s.topFlexion).not.toBeNull();
+    expect(s.topFlexion as number).toBeGreaterThan(6);
+    expect(s.topFlexion as number).toBeLessThan(10);
   });
 
-  it('reports null lag when the leg never rises', () => {
+  it('reports no angle at the top when the leg never rises', () => {
     const made = createPipeline(slr, 'left', 1);
     if (!made.ok) throw new Error('setup failed');
     for (let i = 0; i < 30; i++) made.pipeline.step(legLandmarks('left', 0, { hip: { x: 0.3, y: 0.7 }, thighAngle: 0 }), i * DT);
-    expect(made.pipeline.summary().extensionLag).toBeNull();
+    expect(made.pipeline.summary().topFlexion).toBeNull();
   });
 });
 
 describe('createPipeline', () => {
   it('fails with ask-your-surgeon when a setting is missing', () => {
     expect(createPipeline(ex({ kind: 'heel-slide' }), 'left', 1)).toMatchObject({ ok: false, reason: 'ask-your-surgeon' });
+  });
+});
+
+describe('pipeline: margin events and tallies', () => {
+  const heel = ex({ kind: 'heel-slide', targetFlexion: 45, maxFlexion: 50 });
+
+  it('gives near-limit and counts the rep when the peak is inside the margin of the limit', () => {
+    const { summary, events } = run(heel, trace(3, 52));
+    expect(events).toContain('near-limit');
+    expect(summary.reps).toBe(3);
+    expect(summary.eventCounts.nearLimit).toBeGreaterThanOrEqual(1);
+    expect(summary.eventCounts.overLimit).toBe(0);
+  });
+
+  it('gives over-limit and no count when the peak is above limit plus margin', () => {
+    const { summary, events } = run(heel, trace(3, 75));
+    expect(events).toContain('over-limit');
+    expect(summary.reps).toBe(0);
+    expect(summary.eventCounts.overLimit).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives too-fast only when the protocol sets minRepSeconds', () => {
+    const fast = run(ex({ kind: 'heel-slide', targetFlexion: 45, minRepSeconds: 4 }), trace(4, 70, 2000));
+    expect(fast.events).toContain('too-fast');
+    expect(fast.summary.eventCounts.tooFast).toBeGreaterThanOrEqual(1);
+    const none = run(ex({ kind: 'heel-slide', targetFlexion: 45 }), trace(4, 70, 2000));
+    expect(none.events).not.toContain('too-fast');
+  });
+});
+
+describe('pipeline: top angle against maxTopFlexion', () => {
+  const slr = (over: Partial<Exercise> = {}) => ex({ kind: 'straight-leg-raise', ...over });
+
+  function lift(exercise: Exercise, flex: number) {
+    const made = createPipeline(exercise, 'left', 1);
+    if (!made.ok) throw new Error('setup failed');
+    let t = 0;
+    const lying = { hip: { x: 0.3, y: 0.7 } };
+    const frames = (f: number, angle: number, n: number) => {
+      for (let i = 0; i < n; i++, t += DT) made.pipeline.step(legLandmarks('left', f, { ...lying, thighAngle: angle }), t);
+    };
+    frames(0, 0, 15);
+    frames(flex, -Math.PI / 6, 40);
+    frames(0, 0, 15);
+    return made.pipeline.summary();
+  }
+
+  it('reports no state when the protocol sets no limit', () => {
+    expect(lift(slr(), 25).topState).toBe('no-limit');
+  });
+
+  it('says above when the top angle is more than the margin over the limit', () => {
+    expect(lift(slr({ maxTopFlexion: 10 }), 30).topState).toBe('above');
+  });
+
+  it('says cannot tell inside the margin', () => {
+    expect(lift(slr({ maxTopFlexion: 20 }), 24).topState).toBe('cannot-tell');
+  });
+
+  it('says below when the top angle is more than the margin under the limit', () => {
+    expect(lift(slr({ maxTopFlexion: 40 }), 10).topState).toBe('below');
+  });
+
+  it('says nothing for an exercise that is not a leg raise', () => {
+    const made = createPipeline(ex({ kind: 'heel-slide', targetFlexion: 45 }), 'left', 1);
+    if (!made.ok) throw new Error('setup failed');
+    expect(made.pipeline.summary().topState).toBeNull();
   });
 });

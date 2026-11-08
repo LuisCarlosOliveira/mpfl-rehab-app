@@ -143,3 +143,108 @@ describe('lagStep', () => {
     expect(state.state.lag).toBeNull();
   });
 });
+
+// ---- margin rule (FR8) -------------------------------------------------------
+// Target 45, ceiling 50, margin 9. The rep counts from 36 (target minus margin).
+// The warning starts at 41 (limit minus margin). The count is refused above 59 (limit plus margin).
+describe('repsStep with a margin', () => {
+  const mcfg: RepsConfig = { enter: 36, exit: 15, target: 45, minStateMs: 300, maxFlexion: 50, margin: 9 };
+
+  // Ramp 1 degree per sample up to the peak, hold the peak for 12 samples (a spike shorter
+  // than the minimum state time must not count), come back, then dwell at rest.
+  function shape(peak: number): Array<[number, number]> {
+    const out: Array<[number, number]> = [];
+    let t = 0;
+    for (let f = 0; f <= peak; f += 1, t += 33) out.push([f, t]);
+    for (let i = 0; i < 12; i++, t += 33) out.push([peak, t]);
+    for (let f = peak; f >= 0; f -= 1, t += 33) out.push([f, t]);
+    for (let i = 0; i < 12; i++, t += 33) out.push([0, t]);
+    return out;
+  }
+  const count = (events: string[], name: string) => events.filter((e) => e === name).length;
+
+  it('counts nothing when the peak stays below the entry threshold of target minus margin', () => {
+    const { state, events } = run(shape(35), mcfg);
+    expect(state.reps).toBe(0);
+    expect(events).toEqual([]);
+  });
+
+  it('counts a rep that reaches target minus margin, with no warning', () => {
+    const { state, events } = run(shape(40), mcfg);
+    expect(state.reps).toBe(1);
+    expect(count(events, 'near-limit')).toBe(0);
+    expect(count(events, 'over-limit')).toBe(0);
+  });
+
+  it('warns once from limit minus margin and still counts the rep', () => {
+    const { state, events } = run(shape(41), mcfg);
+    expect(state.reps).toBe(1);
+    expect(count(events, 'near-limit')).toBe(1);
+  });
+
+  it.each([45, 50, 55, 59])('counts a rep that peaks at %s, inside the margin of the limit, with one warning', (peak) => {
+    const { state, events } = run(shape(peak), mcfg);
+    expect(state.reps).toBe(1);
+    expect(count(events, 'near-limit')).toBe(1);
+    expect(count(events, 'over-limit')).toBe(0);
+  });
+
+  it.each([60, 70, 90])('alerts and refuses the count when the peak is %s, above limit plus margin', (peak) => {
+    const { state, events } = run(shape(peak), mcfg);
+    expect(state.reps).toBe(0);
+    expect(count(events, 'over-limit')).toBe(1);
+  });
+
+  it('keeps the alert and gives no count for a rep that went over, then counts the next good rep', () => {
+    const both = [...shape(70), ...shape(40).map(([f, t]) => [f, t + 100000] as [number, number])];
+    const { state } = run(both, mcfg);
+    expect(state.reps).toBe(1);
+  });
+
+  it('works without a margin as before (a margin of zero)', () => {
+    const { state, events } = run(shape(51), { ...mcfg, margin: undefined });
+    expect(state.reps).toBe(0);
+    expect(count(events, 'over-limit')).toBe(1);
+  });
+});
+
+describe('repsStep rep time', () => {
+  const tcfg: RepsConfig = { enter: 36, exit: 15, target: 45, minStateMs: 300, margin: 9, minRepMs: 2000 };
+
+  // One rep as a triangle of the given length, then a dwell at rest.
+  function triangle(peak: number, durationMs: number): Array<[number, number]> {
+    const n = Math.round(durationMs / 33);
+    const out: Array<[number, number]> = [];
+    let t = 0;
+    for (let i = 0; i <= n; i++, t += 33) out.push([peak * (1 - Math.abs((2 * i) / n - 1)), t]);
+    for (let i = 0; i < 12; i++, t += 33) out.push([0, t]);
+    return out;
+  }
+
+  it('gives too-fast and still counts the rep when the rep is shorter than the minimum', () => {
+    const { state, events } = run(triangle(90, 1200), tcfg);
+    expect(state.reps).toBe(1);
+    expect(events).toContain('too-fast');
+    expect(events).not.toContain('rep');
+  });
+
+  it('gives a plain rep when the rep is longer than the minimum', () => {
+    const { state, events } = run(triangle(90, 3600), tcfg);
+    expect(state.reps).toBe(1);
+    expect(events).toContain('rep');
+    expect(events).not.toContain('too-fast');
+  });
+
+  it('gives no too-fast event when the protocol sets no minimum', () => {
+    const { events } = run(triangle(90, 1200), { ...tcfg, minRepMs: undefined });
+    expect(events).not.toContain('too-fast');
+    expect(events).toContain('rep');
+  });
+
+  it('records the rep time in the state', () => {
+    const { state } = run(triangle(90, 3600), tcfg);
+    expect(state.lastRepMs).not.toBeNull();
+    expect(state.lastRepMs as number).toBeGreaterThan(2000);
+    expect(state.lastRepMs as number).toBeLessThan(3600);
+  });
+});
