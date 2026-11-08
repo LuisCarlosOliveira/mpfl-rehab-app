@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "example-001",
+  "example": true,
+  "side": "left",
+  "activePhase": 1,
+  "phases": [
+    {
+      "id": 1,
+      "name": "Protection",
+      "exercises": [
+        {
+          "kind": "heel-slide",
+          "sets": 3,
+          "reps": 10,
+          "targetFlexion": 60,
+          "maxFlexion": 90,
+          "source": "Exercise name: S1 (clinical.md). Range grows 20 to 30 degrees a week in S1. targetFlexion, maxFlexion, sets, reps: PROPOSAL. The surgeon sets the real limit."
+        },
+        {
+          "kind": "straight-leg-raise",
+          "sets": 3,
+          "reps": 10,
+          "source": "Exercise name and the idea of SLR without lag: S1. sets and reps: PROPOSAL."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Strengthening",
+      "exercises": [
+        {
+          "kind": "mini-squat",
+          "sets": 3,
+          "reps": 10,
+          "targetFlexion": 30,
+          "maxFlexion": 50,
+          "source": "maxFlexion 50: S16 says 0 to 50 degrees can limit patellofemoral loading in healthy people. Link to graft safety is UNVERIFIED. targetFlexion, sets, reps: PROPOSAL."
+        },
+        {
+          "kind": "seated-extension-hold",
+          "sets": 3,
+          "holdSeconds": 5,
+          "targetFlexion": 0,
+          "source": "Isometric knee extension is named in S1. targetFlexion, sets, holdSeconds: PROPOSAL."
+        }
+      ]
+    }
+  ],
+  "surgeon": {}
+}

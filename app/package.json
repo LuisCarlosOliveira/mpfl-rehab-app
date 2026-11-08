@@ -10,7 +10,7 @@
     "lint": "eslint src tests",
     "test": "vitest run --maxWorkers=2",
     "e2e": "playwright test --workers=1",
-    "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/deps-check.sh"
+    "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/deps-check.sh && bash scripts/claims-check.sh src && bash scripts/phase-check.sh src"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.2.2",
