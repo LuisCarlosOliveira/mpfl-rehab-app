@@ -1,0 +1,22 @@
+/* Colours of the pairing QR code. Only the custom properties of styles.css.
+   Dark modules on a light background, with no meaning in the colour. */
+.qr-svg {
+  display: block;
+  width: 100%;
+  max-width: 20rem;
+  height: auto;
+}
+.qr-light {
+  fill: var(--surface);
+}
+.qr-dark {
+  fill: var(--ink);
+}
+.qr-message {
+  max-width: 20rem;
+  padding: 0.5rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}

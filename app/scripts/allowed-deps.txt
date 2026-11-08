@@ -1,9 +1,11 @@
 # Allowed direct dependencies. Add a line only with a reason in MPFL_APP_PLAN.md.
 @mediapipe/tasks-vision
 dexie
+jsqr
 react
 react-dom
 recharts
+uqr
 zod
 @axe-core/playwright
 @playwright/test

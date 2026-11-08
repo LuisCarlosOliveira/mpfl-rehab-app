@@ -16,7 +16,7 @@ for p in "${paths[@]}"; do
 done
 
 phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|(correct|incorrect|good|bad|perfect) form|\bLSI\b'
-apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|getImageData|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\('
+apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\('
 
 hits=0
 for pattern in "$phrases" "$apis"; do
@@ -26,6 +26,31 @@ for pattern in "$phrases" "$apis"; do
     hits=1
   fi
 done
+
+# Pixel read: getImageData is banned in every file except pairing/qrReader.ts (relative to a
+# given folder, or the file itself). There it is allowed on ONE line, and that line must end
+# with the marker. A marker anywhere else does not help. Any other line that names it fails.
+reader_ok() {
+  local f="$1" p
+  for p in "${paths[@]}"; do
+    p="${p%/}"
+    [ "$f" = "$p/pairing/qrReader.ts" ] && return 0
+    [ "$f" = "$p" ] && [[ "$f" == */pairing/qrReader.ts ]] && return 0
+  done
+  return 1
+}
+allowed_lines=0
+while IFS= read -r hit; do
+  [ -z "$hit" ] && continue
+  file="${hit%%:*}"
+  rest="${hit#*:}"; text="${rest#*:}"
+  if reader_ok "$file" && [[ "$text" == *claims-check:allow ]] && [ "$allowed_lines" -eq 0 ]; then
+    allowed_lines=1
+    continue
+  fi
+  echo "$hit"
+  hits=1
+done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.json' --include='*.html' -e 'getImageData' "${paths[@]}" 2>/dev/null)
 
 # Patient text: the word ban applies to the files that hold text a patient reads:
 # any file under a ui folder, cues.ts, redflags.ts and camera.ts.

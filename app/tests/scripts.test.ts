@@ -215,3 +215,67 @@ describe('model-hash-check.sh: built output (S-05)', () => {
     expect(r.stdout).toMatch(/differs from public\/models\/SHA256SUMS/);
   });
 });
+
+describe('claims-check.sh: pixel read only in the QR reader (T12b)', () => {
+  const read = 'const img = ctx.getImageData(0, 0, w, h);';
+  const marked = `${read} // claims-check:allow`;
+
+  it('fails on getImageData in another file, also with the marker', () => {
+    put('lib/other.ts', read);
+    expect(run(claims, dir).status).toBe(1);
+    put('lib/other.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on getImageData in a file with the same name in another folder', () => {
+    put('lib/pairing/qrReader.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes on one marked line in pairing/qrReader.ts', () => {
+    put('pairing/qrReader.ts', `const a = 1;\n${marked}\n`);
+    const r = run(claims, dir);
+    expect(r.status).toBe(0);
+  });
+
+  it('passes when the folder holds the marked reader and a clean file', () => {
+    put('pairing/qrReader.ts', marked);
+    put('lib/clean.ts', 'export const x = 1;');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('fails on getImageData in qrReader.ts without the marker', () => {
+    put('pairing/qrReader.ts', read);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a second getImageData line without the marker', () => {
+    put('pairing/qrReader.ts', `${marked}\n${read}\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a second getImageData line with the marker', () => {
+    put('pairing/qrReader.ts', `${marked}\n${marked}\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a comment that names getImageData without the marker', () => {
+    put('pairing/qrReader.ts', `${marked}\n// do not call getImageData twice\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('still checks the other banned APIs in qrReader.ts', () => {
+    put('pairing/qrReader.ts', `${marked}\nconst u = canvas.toDataURL();\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('names the file in the failure output', () => {
+    put('lib/other.ts', read);
+    expect(run(claims, dir).stdout).toContain('other.ts');
+  });
+
+  it('accepts the reader when a single file is given', () => {
+    const file = put('pairing/qrReader.ts', marked);
+    expect(run(claims, file).status).toBe(0);
+  });
+});
