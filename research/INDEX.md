@@ -25,4 +25,4 @@ Rule: do not copy a fact from these files into another file. Link to the file an
 3. If no section supports the item, mark it PROPOSAL (a design suggestion) or UNVERIFIED. Never present it as evidence.
 4. If your work finds a new fact, add it to the matching file and keep the mark VERIFIED or UNVERIFIED. Do not make a second copy.
 5. Follow the guardrail skill for every word that a patient reads.
-6. A named agent for this knowledge base does not exist. A general agent gets a brief that names this index.
+6. The specialist is the skill `mpfl-rehab-knowledge` and the read-only agent of the same name. The agent type loads in a new session. Until then, a general agent gets a brief that names this index and the agent file.
