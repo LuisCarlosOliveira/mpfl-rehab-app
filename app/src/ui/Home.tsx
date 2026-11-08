@@ -41,9 +41,12 @@ interface Props {
   onOpenPrivacy: () => void;
   /** Goes to the Load screen. It erases nothing. Old sessions stay (ux-flow U6). */
   onLoadProtocol: () => void;
+  /** The two buttons show only when the handler is given, as in the data screen. */
+  onOpenProgress?: () => void;
+  onOpenData?: () => void;
 }
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   useEffect(() => {
@@ -153,9 +156,21 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
             to your care team.
           </p>
         )}
-        <button type="button" className="btn" onClick={onOpenPrivacy}>
-          Privacy notice
-        </button>
+        <div className="actions">
+          {onOpenProgress && (
+            <button type="button" className="btn" onClick={onOpenProgress}>
+              Progress
+            </button>
+          )}
+          {onOpenData && (
+            <button type="button" className="btn" onClick={onOpenData}>
+              My data
+            </button>
+          )}
+          <button type="button" className="btn" onClick={onOpenPrivacy}>
+            Privacy notice
+          </button>
+        </div>
       </div>
     </section>
   );

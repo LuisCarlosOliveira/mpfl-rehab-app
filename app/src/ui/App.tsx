@@ -1,9 +1,9 @@
 // The app shell. It holds the stored protocol and the navigation state (appState.ts).
 // Banners show above every screen (plan FR3, NFR2).
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { bannersFor } from '../lib/mode';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
-import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb } from '../lib/storage';
+import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb, type SessionRecord } from '../lib/storage';
 import type { LandmarkSource } from '../pose/source';
 import { appReducer, initialAppState } from './appState';
 import { Banners } from './Banners';
@@ -16,6 +16,62 @@ import { RedFlag } from './RedFlag';
 import { Session } from './Session';
 import { Setup } from './Setup';
 import { Summary } from './Summary';
+
+// These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
+const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
+const DataScreen = lazy(() => import('./DataScreen').then((m) => ({ default: m.DataScreen })));
+const ClinicianView = lazy(() => import('./ClinicianView').then((m) => ({ default: m.ClinicianView })));
+
+/** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
+function FocusHeading({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    document.querySelector<HTMLElement>('main h1')?.focus();
+  }, []);
+  return children;
+}
+
+type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[] };
+
+/** Reads the sessions in the parent, so the dashboard stays a pure view (plan FR13). */
+function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
+  const [rows, setRows] = useState<Rows>({ state: 'loading' });
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve()
+      .then(() => db.sessions.orderBy('date').toArray())
+      .then(
+        (sessions) => alive && setRows({ state: 'ready', sessions }),
+        () => alive && setRows({ state: 'error' }),
+      );
+    return () => {
+      alive = false;
+    };
+  }, [db]);
+
+  if (rows.state === 'loading') return <h1>Loading</h1>;
+  if (rows.state === 'error') {
+    return (
+      <FocusHeading>
+        <section aria-labelledby="progress-error-title">
+          <h1 id="progress-error-title" tabIndex={-1}>
+            Progress
+          </h1>
+          <p role="alert">Your sessions could not be read. Go back and try again.</p>
+          <div className="actions">
+            <button type="button" className="btn" onClick={onBack}>
+              Back
+            </button>
+          </div>
+        </section>
+      </FocusHeading>
+    );
+  }
+  return (
+    <FocusHeading>
+      <Dashboard sessions={rows.sessions} onBack={onBack} />
+    </FocusHeading>
+  );
+}
 
 export interface AppProps {
   db: MpflDb;
@@ -69,8 +125,9 @@ interface ShellProps extends Required<AppProps> {
   bootError: { title: string; message: string } | null;
 }
 
-function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootError }: ShellProps) {
+function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootError: storedError }: ShellProps) {
   const [protocol, setProtocol] = useState(storedProtocol);
+  const [bootError, setBootError] = useState(storedError);
   const [state, dispatch] = useReducer(
     appReducer,
     { seenPrivacy: hasSeenPrivacyNotice(), hasProtocol: storedProtocol !== null },
@@ -111,6 +168,8 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               onStart={(kind) => dispatch({ type: 'choose-exercise', exercise: kind })}
               onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
+              onOpenProgress={() => dispatch({ type: 'open', screen: 'dashboard' })}
+              onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
             />
           );
         }
@@ -168,6 +227,30 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
           );
         }
         break;
+      case 'dashboard':
+        return <Progress db={db} onBack={() => dispatch({ type: 'open', screen: 'home' })} />;
+      case 'data':
+        return (
+          <FocusHeading key="data">
+            <DataScreen
+              db={db}
+              onBack={() => dispatch({ type: 'open', screen: 'home' })}
+              onErased={() => {
+                // Nothing of the old protocol stays in memory.
+                setProtocol(null);
+                setBootError(null);
+                dispatch({ type: 'erased' });
+              }}
+              onOpenClinician={() => dispatch({ type: 'open', screen: 'clinician' })}
+            />
+          </FocusHeading>
+        );
+      case 'clinician':
+        return (
+          <FocusHeading key="clinician">
+            <ClinicianView mode={mode} now={now} onBack={() => dispatch({ type: 'open', screen: 'data' })} />
+          </FocusHeading>
+        );
     }
     return (
       <LoadProtocol
@@ -190,7 +273,9 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
   return (
     <div className="app">
       <Banners texts={banners} />
-      <main ref={main}>{screen}</main>
+      <main ref={main}>
+        <Suspense fallback={<h1>Loading</h1>}>{screen}</Suspense>
+      </main>
     </div>
   );
 }

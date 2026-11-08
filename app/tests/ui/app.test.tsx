@@ -230,4 +230,44 @@ describe('App flow', () => {
     click('Back to Home');
     await heading('Home');
   });
+
+  it('shows Loading while a lazy screen loads, then the screen with the focus on its heading', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    render(<App db={db} mode="demo" source={mockSource()} />);
+    await heading('Home');
+    click('My data');
+    expect(screen.getByRole('heading', { level: 1, name: 'Loading' })).toBeInTheDocument();
+    const h1 = await heading('My data');
+    await waitFor(() => expect(h1).toHaveFocus());
+    expect(screen.queryByRole('heading', { name: 'Loading' })).toBeNull();
+  });
+
+  it('keeps the banners above the new screens', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    render(<App db={db} mode="demo" source={mockSource()} />);
+    await heading('Home');
+    click('Progress');
+    await heading('Progress');
+    expect(screen.getByText(PROTOTYPE_BANNER)).toBeInTheDocument();
+  });
+
+  it('a start from Home after a visit to Progress still needs the red-flag check', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    const source = mockSource();
+    render(<App db={db} mode="demo" source={source} />);
+    await heading('Home');
+    click('Progress');
+    await heading('Progress');
+    click('Back');
+    await heading('Home');
+    click('Start Heel slide');
+    await heading('Check before you exercise');
+    expect(source.start).not.toHaveBeenCalled();
+  });
 });

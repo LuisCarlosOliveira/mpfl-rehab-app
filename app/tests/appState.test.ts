@@ -110,7 +110,42 @@ describe('protocol and privacy', () => {
     expect(appReducer(initialAppState({ seenPrivacy: false, hasProtocol: false }), { type: 'privacy-seen' }).screen).toBe('load');
     expect(appReducer(initialAppState({ seenPrivacy: false, hasProtocol: true }), { type: 'privacy-seen' }).screen).toBe('home');
   });
-  it('the screens of a later task fall back to Home', () => {
-    expect(appReducer(home(), { type: 'open', screen: 'dashboard' }).screen).toBe('home');
+  it('Progress and My data open from Home', () => {
+    expect(appReducer(home(), { type: 'open', screen: 'dashboard' }).screen).toBe('dashboard');
+    expect(appReducer(home(), { type: 'open', screen: 'data' }).screen).toBe('data');
   });
+  it('the care team view opens from My data only', () => {
+    const data = appReducer(home(), { type: 'open', screen: 'data' });
+    expect(appReducer(data, { type: 'open', screen: 'clinician' }).screen).toBe('clinician');
+    expect(appReducer(home(), { type: 'open', screen: 'clinician' }).screen).toBe('home');
+  });
+  it('Back goes from each new screen to its parent', () => {
+    const dashboard = appReducer(home(), { type: 'open', screen: 'dashboard' });
+    expect(appReducer(dashboard, { type: 'open', screen: 'home' }).screen).toBe('home');
+    const data = appReducer(home(), { type: 'open', screen: 'data' });
+    expect(appReducer(data, { type: 'open', screen: 'home' }).screen).toBe('home');
+    const clinician = appReducer(data, { type: 'open', screen: 'clinician' });
+    expect(appReducer(clinician, { type: 'open', screen: 'data' }).screen).toBe('data');
+  });
+  it('the new screens need a stored protocol', () => {
+    const none = initialAppState({ seenPrivacy: true, hasProtocol: false });
+    expect(appReducer(none, { type: 'open', screen: 'dashboard' }).screen).toBe('load');
+    expect(appReducer(none, { type: 'open', screen: 'data' }).screen).toBe('load');
+  });
+  it('the new screens do not skip the red-flag check of a start', () => {
+    const data = appReducer(home(), { type: 'open', screen: 'data' });
+    expect(appReducer(data, { type: 'open', screen: 'session' }).screen).toBe('redflag');
+    expect(appReducer(data, { type: 'open', screen: 'setup' }).screen).toBe('redflag');
+  });
+  it('after erase the app shows what a first start shows, with no protocol and no run', () => {
+    const state = { ...appReducer(home(), { type: 'open', screen: 'data' }), exercise: 'heel-slide' as const, redFlagBlocks: 2 };
+    const erased = appReducer(state, { type: 'erased' });
+    expect(erased).toEqual(initialAppState({ seenPrivacy: false, hasProtocol: false }));
+    expect(erased.screen).toBe('privacy');
+  });
+  it('after erase and the notice, the app asks for the protocol file', () => {
+    const erased = appReducer(home(), { type: 'erased' });
+    expect(appReducer(erased, { type: 'privacy-seen' }).screen).toBe('load');
+  });
+
 });

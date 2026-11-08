@@ -32,6 +32,7 @@ export type Action =
   | { type: 'red-flags-clear' }
   | { type: 'red-flags-blocked' }
   | { type: 'session-end'; reason: EndReason; summary: Summary }
+  | { type: 'erased' }
   | { type: 'finish' };
 
 export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: boolean }): AppState {
@@ -52,15 +53,18 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
   switch (target) {
     case 'home':
     case 'redflag':
+    case 'dashboard':
+    case 'data':
       return target;
+    case 'clinician':
+      // The care team view opens from My data only.
+      return state.screen === 'data' || state.screen === 'clinician' ? target : 'home';
     case 'setup':
     case 'session':
       if (!state.redFlagCleared) return 'redflag';
       return state.exercise === null ? 'home' : target;
     case 'summary':
       return state.run === null ? 'home' : 'summary';
-    default:
-      return 'home'; // Dashboard, Data and Clinician view are built in T11.
   }
 }
 
@@ -94,6 +98,9 @@ export function appReducer(state: AppState, action: Action): AppState {
         redFlagCleared: false, // the next session needs a new check
         run: { reason: action.reason, summary: action.summary },
       };
+    case 'erased':
+      // Erase clears the privacy flag and the protocol, so the next start is a first start (FR16, FR26).
+      return initialAppState({ seenPrivacy: false, hasProtocol: false });
     case 'finish':
       return { ...state, screen: 'home', run: null, exercise: null, redFlagCleared: false, redFlagBlocks: 0 };
   }

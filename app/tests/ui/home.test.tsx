@@ -16,7 +16,7 @@ const protocol = (over: Record<string, unknown> = {}): Protocol => {
 };
 
 function setup(p: Protocol = protocol(), now = new Date('2026-03-20T10:00:00Z'), db = freshDb()) {
-  const props = { onStart: vi.fn(), onOpenPrivacy: vi.fn(), onLoadProtocol: vi.fn() };
+  const props = { onStart: vi.fn(), onOpenPrivacy: vi.fn(), onLoadProtocol: vi.fn(), onOpenProgress: vi.fn(), onOpenData: vi.fn() };
   const phase = p.phases.find((x) => x.id === p.activePhase);
   render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={db} now={() => now} {...props} />);
   return { db, ...props };
@@ -118,5 +118,22 @@ describe('Home screen', () => {
     const { onLoadProtocol } = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Load a new protocol file' }));
     expect(onLoadProtocol).toHaveBeenCalledTimes(1);
+  });
+
+  it('has a Progress button and a My data button', () => {
+    const { onOpenProgress, onOpenData } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Progress' }));
+    expect(onOpenProgress).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'My data' }));
+    expect(onOpenData).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the export date, the Ask your surgeon list and the new buttons together', () => {
+    setup();
+    const block = screen.getByRole('heading', { level: 2, name: 'Your data' }).parentElement!;
+    expect(within(block).getByText(/last export/i)).toBeInTheDocument();
+    expect(within(block).getByRole('button', { name: 'Progress' })).toHaveClass('btn');
+    expect(within(block).getByRole('button', { name: 'My data' })).toHaveClass('btn');
+    expect(screen.getByRole('heading', { level: 2, name: 'Decisions for your surgeon' })).toBeInTheDocument();
   });
 });
