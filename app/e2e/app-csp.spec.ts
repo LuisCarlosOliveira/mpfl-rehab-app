@@ -41,7 +41,11 @@ test('every screen of the real app has no violation, no console error and no for
   await expect(page.getByText('Stop. Do not exercise. Call emergency services now.')).toBeVisible();
   await seen.expectClean('RedFlag, blocked');
 
-  await page.getByLabel('Sudden shortness of breath or chest pain.').uncheck();
+  // The block is sticky for the visit. Only a fresh visit from Home continues.
+  await page.getByRole('button', { name: 'Back to Home' }).click();
+  await expectScreen(page, 'Home');
+  await page.getByRole('button', { name: 'Start Heel slide' }).click();
+  await expectScreen(page, 'Check before you exercise');
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
   await expect(page.getByRole('heading', { name: 'Position guide' })).toBeVisible();

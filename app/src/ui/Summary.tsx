@@ -38,6 +38,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
   const [pain, setPain] = useState<number | null>(null);
   const [swelling, setSwelling] = useState<SwellingAnswer | null>(null);
   const [saved, setSaved] = useState(false);
+  const [discarded, setDiscarded] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
@@ -86,6 +87,12 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
     }
   }
 
+  // No write. The pause message stays when the answers trigger it (FR12), so Done shows after it.
+  function doNotSave() {
+    if (verdict?.pause) setDiscarded(true);
+    else onDone();
+  }
+
   const top = topAngleText(summary.topFlexion);
 
   return (
@@ -129,8 +136,9 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
         )}
       </dl>
       {top && <p>{top}</p>}
+      {summary.reps === 0 && <p>No repetitions were counted.</p>}
 
-      {!saved ? (
+      {!saved && !discarded ? (
         <>
           <fieldset className="choices">
             <legend>How much pain do you have now? 0 is no pain. 10 is the worst pain.</legend>
@@ -170,6 +178,9 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
             >
               Save
             </button>
+            <button type="button" className="btn" onClick={doNotSave}>
+              Do not save
+            </button>
           </div>
           {(pain === null || swelling === null) && <p className="detail">Answer both questions to save.</p>}
         </>
@@ -177,7 +188,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
         <>
           <PauseNotice verdict={verdict} pain={pain} />
           <p role="status" tabIndex={-1} ref={savedNote}>
-            Session saved.
+            {discarded ? 'Session not saved.' : 'Session saved.'}
           </p>
           <div className="actions">
             <button type="button" className="btn btn-primary" onClick={onDone}>

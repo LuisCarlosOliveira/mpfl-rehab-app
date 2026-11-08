@@ -66,6 +66,11 @@ describe('FR12 through the whole app', () => {
     fireEvent.click(screen.getByLabelText(flag.text));
     fireEvent.click(screen.getByLabelText(flag.text));
     fireEvent.click(screen.getByLabelText(flag.text));
+    // The block stays for the visit. Only Back to Home and a new start go on.
+    expect(screen.getByRole('button', { name: /none of these apply/i })).toBeDisabled();
+    click('Back to Home');
+    await heading('Home');
+    click('Start Heel slide');
     click(/none of these apply/i);
     await heading('Set up the camera');
     click('Next: set up the camera');

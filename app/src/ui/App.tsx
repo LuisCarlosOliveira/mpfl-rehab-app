@@ -130,7 +130,7 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
   const [bootError, setBootError] = useState(storedError);
   const [state, dispatch] = useReducer(
     appReducer,
-    { seenPrivacy: hasSeenPrivacyNotice(), hasProtocol: storedProtocol !== null },
+    { seenPrivacy: hasSeenPrivacyNotice(), hasProtocol: storedProtocol !== null, mode },
     initialAppState,
   );
 
@@ -241,7 +241,7 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
                 setBootError(null);
                 dispatch({ type: 'erased' });
               }}
-              onOpenClinician={() => dispatch({ type: 'open', screen: 'clinician' })}
+              onOpenClinician={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'clinician' }) : undefined}
             />
           </FocusHeading>
         );

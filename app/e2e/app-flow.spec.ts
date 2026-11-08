@@ -94,7 +94,7 @@ test('Home shows the protocol, and a reload keeps it (FR26)', async ({ page }) =
   expect(await readStore(page, 'protocol')).toHaveLength(1);
 });
 
-test('a ticked emergency item blocks, and unticking lets the patient continue', async ({ page }) => {
+test('a ticked emergency item blocks for the visit, and only a fresh visit continues', async ({ page }) => {
   await toRedFlag(page);
   await expectBanners(page, { example: true });
   const carry = page.getByRole('button', { name: 'None of these apply. Continue' });
@@ -109,10 +109,15 @@ test('a ticked emergency item blocks, and unticking lets the patient continue', 
   await page.getByLabel('Your knee catches or locks.').check();
   await expect(page.getByRole('alert').filter({ hasText: BLOCK_EMERGENCY })).toBeVisible();
   await page.getByLabel('Sudden shortness of breath or chest pain.').uncheck();
-  await expect(page.getByRole('alert')).toContainText('Stop. Do not exercise. Contact your care team.');
+  await expect(page.getByRole('alert')).toContainText(BLOCK_EMERGENCY);
   await expect(carry).toBeDisabled();
 
+  // Unticking does not lift the block. Back to Home and a fresh visit start with an empty list.
   await page.getByLabel('Your knee catches or locks.').uncheck();
+  await expect(carry).toBeDisabled();
+  await page.getByRole('button', { name: 'Back to Home' }).click();
+  await page.getByRole('button', { name: 'Start Heel slide' }).click();
+  await expectScreen(page, 'Check before you exercise');
   await expect(carry).toBeEnabled();
   await carry.click();
   await expectScreen(page, 'Set up the camera');
@@ -145,7 +150,7 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   await expectScreen(page, 'Summary');
   await page.getByLabel('2', { exact: true }).check();
   await page.getByLabel('No swelling').check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('button', { name: 'Done' }).click();
   await expectScreen(page, 'Home');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
@@ -221,14 +226,14 @@ test('the pause message shows from the answers, without Save (S-01)', async ({ p
   await toSummary(page);
   const pause = page.getByText(PAUSE);
   await expect(pause).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 
   await answer(page, '2', 'No swelling');
   await expect(pause).toHaveCount(0);
 
   await answer(page, '7', 'No swelling');
   await expect(pause).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled(); // Save was not pressed
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled(); // Save was not pressed
 
   await answer(page, '2', 'No swelling');
   await expect(pause).toHaveCount(0);
@@ -242,7 +247,7 @@ test('the pause message shows from the answers, without Save (S-01)', async ({ p
 test('Save writes one session with the fixed fields and no image data (FR6)', async ({ page }) => {
   await toSummary(page);
   await answer(page, '3', 'Some swelling');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Session saved.')).toBeVisible();
 
   const sessions = await readStore(page, 'sessions');
@@ -267,7 +272,7 @@ test('Save writes one session with the fixed fields and no image data (FR6)', as
 test('a double press on Save keeps one record', async ({ page }) => {
   await toSummary(page);
   await answer(page, '1', 'No swelling');
-  await page.getByRole('button', { name: 'Save' }).dblclick();
+  await page.getByRole('button', { name: 'Save', exact: true }).dblclick();
   await expect(page.getByText('Session saved.')).toBeVisible();
   expect(await readStore(page, 'sessions')).toHaveLength(1);
 });

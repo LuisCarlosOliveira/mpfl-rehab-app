@@ -5,7 +5,7 @@
 
 import { initialScreen, type ScreenId } from '../lib/flow';
 import type { Summary } from '../lib/exercises';
-import type { Exercise } from '../lib/protocol';
+import type { Exercise, Mode } from '../lib/protocol';
 
 export type ExerciseKind = Exercise['kind'];
 export type EndReason = 'stop' | 'gave-way';
@@ -18,6 +18,7 @@ export interface RunResult {
 export interface AppState {
   screen: ScreenId;
   hasProtocol: boolean;
+  mode: Mode; // FR22a: in patient mode the care team view stays closed
   redFlagCleared: boolean;
   redFlagBlocks: number; // blocks in this run. They go into the session record.
   exercise: ExerciseKind | null;
@@ -35,10 +36,11 @@ export type Action =
   | { type: 'erased' }
   | { type: 'finish' };
 
-export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: boolean }): AppState {
+export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: boolean; mode?: Mode }): AppState {
   return {
     screen: initialScreen(flags),
     hasProtocol: flags.hasProtocol,
+    mode: flags.mode ?? 'demo',
     redFlagCleared: false,
     redFlagBlocks: 0,
     exercise: null,
@@ -57,7 +59,8 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
     case 'data':
       return target;
     case 'clinician':
-      // The care team view opens from My data only.
+      // The care team view opens from My data only, and never in patient mode (FR22a).
+      if (state.mode === 'patient') return state.screen === 'data' ? 'data' : 'home';
       return state.screen === 'data' || state.screen === 'clinician' ? target : 'home';
     case 'setup':
     case 'session':
@@ -100,7 +103,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       };
     case 'erased':
       // Erase clears the privacy flag and the protocol, so the next start is a first start (FR16, FR26).
-      return initialAppState({ seenPrivacy: false, hasProtocol: false });
+      return initialAppState({ seenPrivacy: false, hasProtocol: false, mode: state.mode });
     case 'finish':
       return { ...state, screen: 'home', run: null, exercise: null, redFlagCleared: false, redFlagBlocks: 0 };
   }

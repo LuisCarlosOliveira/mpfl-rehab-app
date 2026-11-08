@@ -106,6 +106,51 @@ describe('Summary screen', () => {
     expect(await screen.findByText(PAUSE_MESSAGE)).toBeInTheDocument();
   });
 
+  it('Do not save goes to Home and writes nothing', async () => {
+    const { db, onDone } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(await db.sessions.count()).toBe(0);
+  });
+
+  it('Do not save works with no answers and keeps Save as it was', () => {
+    setup();
+    expect(screen.getByRole('button', { name: 'Do not save' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('Do not save still shows the pause message when the answers trigger it, then Done goes Home', async () => {
+    const { db, onDone } = setup();
+    answer(8, /no swelling/i);
+    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    expect(onDone).not.toHaveBeenCalled();
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(await db.sessions.count()).toBe(0);
+  });
+
+  it('has no Do not save button after the save', async () => {
+    setup();
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    expect(screen.queryByRole('button', { name: 'Do not save' })).toBeNull();
+  });
+
+  it('says that no repetitions were counted for an empty session, and Save stays available', () => {
+    setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, peakFlexion: null } } });
+    expect(screen.getByText('No repetitions were counted.')).toBeInTheDocument();
+    answer(1, /no swelling/i);
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
+  it('does not say it when a repetition was counted', () => {
+    setup();
+    expect(screen.queryByText('No repetitions were counted.')).toBeNull();
+  });
+
   it('saves the session with counters, topFlexion, margin fields and the side view', async () => {
     const { db } = setup({ redFlagBlocks: 2 });
     answer(4, /some swelling/i);

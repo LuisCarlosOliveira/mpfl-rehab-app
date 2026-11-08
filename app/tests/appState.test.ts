@@ -119,6 +119,23 @@ describe('protocol and privacy', () => {
     expect(appReducer(data, { type: 'open', screen: 'clinician' }).screen).toBe('clinician');
     expect(appReducer(home(), { type: 'open', screen: 'clinician' }).screen).toBe('home');
   });
+  it('in patient mode no request opens the care team view, from My data or from Home', () => {
+    const patient = () => initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' });
+    const data = appReducer(patient(), { type: 'open', screen: 'data' });
+    expect(data.screen).toBe('data');
+    expect(appReducer(data, { type: 'open', screen: 'clinician' }).screen).toBe('data');
+    expect(appReducer(patient(), { type: 'open', screen: 'clinician' }).screen).toBe('home');
+  });
+  it('patient mode stays after Erase', () => {
+    const s = appReducer(initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' }), { type: 'erased' });
+    const loaded = appReducer(s, { type: 'protocol-loaded' });
+    const data = appReducer(loaded, { type: 'open', screen: 'data' });
+    expect(appReducer(data, { type: 'open', screen: 'clinician' }).screen).toBe('data');
+  });
+  it('demo mode opens the care team view from My data', () => {
+    const data = appReducer(initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'demo' }), { type: 'open', screen: 'data' });
+    expect(appReducer(data, { type: 'open', screen: 'clinician' }).screen).toBe('clinician');
+  });
   it('Back goes from each new screen to its parent', () => {
     const dashboard = appReducer(home(), { type: 'open', screen: 'dashboard' });
     expect(appReducer(dashboard, { type: 'open', screen: 'home' }).screen).toBe('home');

@@ -23,13 +23,13 @@ const heading = (name: string) => screen.findByRole('heading', { level: 1, name 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 
 /** A database with a stored protocol and two saved sessions, and the app open on Home. */
-async function openHome() {
+async function openHome(mode: 'demo' | 'patient' = 'demo') {
   const db = freshDb();
   markPrivacyNoticeSeen();
-  await saveProtocol(db, protocolText(), 'demo');
+  await saveProtocol(db, protocolText(), mode);
   await saveSession(db, { ...sessionInput(), date: '2026-03-01T10:00:00.000Z', peakFlexion: 50, pain: 2 });
   await saveSession(db, { ...sessionInput(), date: '2026-03-02T10:00:00.000Z', peakFlexion: 60, pain: 3 });
-  const view = render(<App db={db} mode="demo" source={mockSource()} />);
+  const view = render(<App db={db} mode={mode} source={mockSource()} />);
   await heading('Home');
   return { db, ...view };
 }
@@ -83,6 +83,13 @@ describe('My data', () => {
     await heading('Home');
     const today = getLastExport()!.slice(0, 10);
     expect(screen.getByText(today)).toBeInTheDocument();
+  });
+
+  it('shows no way to the care team view in patient mode', async () => {
+    await openHome('patient');
+    click('My data');
+    await heading('My data');
+    expect(screen.queryByRole('button', { name: /care team/i })).toBeNull();
   });
 
   it('opens the care team view with an exported file and goes back to My data', async () => {

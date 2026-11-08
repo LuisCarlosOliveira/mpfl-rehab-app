@@ -1,5 +1,5 @@
 // FR5. A tick list from RED_FLAGS (src/lib/redflags.ts). Any tick blocks the session and
-// shows the message of its group. Source of the copy: research/ux-flow.md section 8.3.
+// shows the message of its group. The block stays until the patient goes back to Home. Source of the copy: research/ux-flow.md section 8.3.
 import { useEffect, useRef, useState } from 'react';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, evaluateRedFlags, type RedFlagGroup } from '../lib/redflags';
 
@@ -16,7 +16,9 @@ interface Props {
 
 export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
-  const result = evaluateRedFlags(ticked);
+  // The block lasts for the visit. A tick stays here even when the patient clears it (FR5).
+  const [everTicked, setEverTicked] = useState<Record<string, boolean>>({});
+  const result = evaluateRedFlags(everTicked);
 
   // Count one block for each visit, not one for each tick.
   const counted = useRef(false);
@@ -43,7 +45,11 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
               <input
                 type="checkbox"
                 checked={ticked[flag.id] === true}
-                onChange={(e) => setTicked((t) => ({ ...t, [flag.id]: e.target.checked }))}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setTicked((t) => ({ ...t, [flag.id]: on }));
+                  if (on) setEverTicked((t) => ({ ...t, [flag.id]: true }));
+                }}
               />
               <span>{flag.text}</span>
             </label>
@@ -56,6 +62,7 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
           <div className="attention">
             <p className="attention-title">{result.message}</p>
             <p className="detail">{GENERAL_GUIDANCE_NOTE}</p>
+            <p>Go back to Home to start again.</p>
           </div>
         )}
       </div>

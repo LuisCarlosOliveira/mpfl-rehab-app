@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { cueFor, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, type Pipeline, type Summary } from '../lib/exercises';
+import { MARGIN_DEG } from '../lib/margin';
 import type { Exercise } from '../lib/protocol';
 import type { LandmarkSource } from '../pose/source';
 import type { EndReason } from './appState';
@@ -17,7 +18,7 @@ import { ASK_SURGEON_TEXT } from './askSurgeon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
-const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen
+const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
 const STALE_MS = 2000; // PROPOSAL, no source: no frame for this long shows the camera notice
 
 /** The summary when no frame came in and no pipeline can be made. Used only if the exercise has no counter setup. */
@@ -116,6 +117,10 @@ export function Session({ exercise, side, source, sound, onEnd }: Props) {
         state.cue = { text, alert: out.event === 'over-limit', paused: out.event === 'paused', until: now + CUE_SHOW_MS };
       } else if (state.cue?.paused && out.event !== 'paused') {
         state.cue = null; // the leg is back in view
+      }
+      // The alert stays while the knee stays above the limit plus the margin. The timeout starts when it returns.
+      if (state.cue?.alert && exercise.maxFlexion !== undefined && out.flexion !== null && out.flexion > exercise.maxFlexion + MARGIN_DEG) {
+        state.cue.until = now + CUE_SHOW_MS;
       }
     };
 

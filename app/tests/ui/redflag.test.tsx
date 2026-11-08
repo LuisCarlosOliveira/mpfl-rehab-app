@@ -57,13 +57,50 @@ describe('RedFlag screen', () => {
     expect(props.onBlocked).toHaveBeenCalledTimes(1);
   });
 
-  it('an unticked list continues', () => {
+  it('an untouched list continues', () => {
+    const props = setup();
+    fireEvent.click(screen.getByRole('button', { name: /none of these apply/i }));
+    expect(props.onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the block for the visit when the patient unticks the item', () => {
     const props = setup();
     const flag = RED_FLAGS[0]!;
     fireEvent.click(screen.getByLabelText(flag.text));
     fireEvent.click(screen.getByLabelText(flag.text));
-    fireEvent.click(screen.getByRole('button', { name: /none of these apply/i }));
-    expect(props.onClear).toHaveBeenCalledTimes(1);
+    const next = screen.getByRole('button', { name: /none of these apply/i });
+    expect(next).toBeDisabled();
+    expect(screen.getByText(MESSAGES[flag.group])).toBeInTheDocument();
+    fireEvent.click(next);
+    expect(props.onClear).not.toHaveBeenCalled();
+    expect(props.onBlocked).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the emergency message when only a care team item stays ticked', () => {
+    setup();
+    const care = RED_FLAGS.find((f) => f.group === 'care-team')!;
+    const emergency = RED_FLAGS.find((f) => f.group === 'emergency')!;
+    fireEvent.click(screen.getByLabelText(emergency.text));
+    fireEvent.click(screen.getByLabelText(care.text));
+    fireEvent.click(screen.getByLabelText(emergency.text));
+    expect(screen.getByText(MESSAGES.emergency)).toBeInTheDocument();
+    expect(screen.queryByText(MESSAGES['care-team'])).toBeNull();
+  });
+
+  it('tells the patient to go back to Home to start again, only after a block', () => {
+    setup();
+    expect(screen.queryByText(/go back to home to start again/i)).toBeNull();
+    fireEvent.click(screen.getByLabelText(RED_FLAGS[0]!.text));
+    expect(screen.getByText(/go back to home to start again/i)).toBeInTheDocument();
+  });
+
+  it('counts one block when the patient ticks again after an untick', () => {
+    const props = setup();
+    const flag = RED_FLAGS[0]!;
+    fireEvent.click(screen.getByLabelText(flag.text));
+    fireEvent.click(screen.getByLabelText(flag.text));
+    fireEvent.click(screen.getByLabelText(flag.text));
+    expect(props.onBlocked).toHaveBeenCalledTimes(1);
   });
 
   it('has a way back to Home', () => {

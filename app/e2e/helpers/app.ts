@@ -178,7 +178,7 @@ export async function saveOneSession(page: Page, pain = '3', swelling = 'Some sw
   await toSummary(page);
   await page.getByLabel(pain, { exact: true }).check();
   await page.getByLabel(swelling).check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Session saved.')).toBeVisible();
   await page.getByRole('button', { name: 'Done' }).click();
   await expectScreen(page, 'Home');

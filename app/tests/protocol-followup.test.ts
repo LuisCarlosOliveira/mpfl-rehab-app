@@ -63,8 +63,35 @@ describe('exercise: minRepSeconds and maxTopFlexion', () => {
     expect(r.ok).toBe(false);
   });
 
-  it('accepts a maxFlexion equal to the targetFlexion', () => {
-    expect(load(make({ phases: [phase({}, { ...heel, targetFlexion: 70, maxFlexion: 70 })] })).ok).toBe(true);
+  it('rejects a maxFlexion equal to the targetFlexion and names the exercise, the margin and the fix', () => {
+    const r = load(make({ phases: [phase({}, { ...heel, targetFlexion: 70, maxFlexion: 70 })] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error.message).toMatch(/heel-slide/);
+      expect(r.error.message).toMatch(new RegExp(`margin of ${MARGIN_DEG} degrees`));
+      expect(r.error.message).toMatch(/raise maxFlexion or lower targetFlexion/i);
+    }
+  });
+
+  it('rejects a maxFlexion at the target plus the margin, and accepts one degree more', () => {
+    const at = { ...heel, targetFlexion: 30, maxFlexion: 30 + MARGIN_DEG };
+    expect(load(make({ phases: [phase({}, at)] })).ok).toBe(false);
+    expect(load(make({ phases: [phase({}, { ...at, maxFlexion: 30 + MARGIN_DEG + 1 })] })).ok).toBe(true);
+  });
+
+  it('applies the rule to a mini squat in a second phase', () => {
+    const squat = { kind: 'mini-squat', targetFlexion: 40, maxFlexion: 45, source: 'PROPOSAL' };
+    expect(load(make({ phases: [phase(), phase({ id: 2 }, squat)] })).ok).toBe(false);
+  });
+
+  it('does not apply the rule when only one of the two values is set', () => {
+    expect(load(make({ phases: [phase({}, { ...heel, targetFlexion: undefined })] })).ok).toBe(true);
+    expect(load(make({ phases: [phase({}, { ...heel, maxFlexion: undefined })] })).ok).toBe(true);
+  });
+
+  it('keeps a hold exercise with a target of 0 valid, because the hold counter has no limit', () => {
+    const hold = { kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0, source: 'PROPOSAL' };
+    expect(load(make({ phases: [phase({}, hold)] })).ok).toBe(true);
   });
 });
 

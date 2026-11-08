@@ -32,6 +32,25 @@ async function setup(inputs: SessionInput[] = [sessionInput()]) {
 
 const readBlob = (blob: Blob) => blob.text();
 
+describe('DataScreen care team button', () => {
+  const open = async (onOpenClinician?: () => void) => {
+    const db = freshDb();
+    render(<DataScreen db={db} onBack={vi.fn()} onErased={vi.fn()} onOpenClinician={onOpenClinician} />);
+    await waitFor(() => expect(screen.queryByText('Counting sessions.')).toBeNull());
+  };
+  it('shows the button when a handler is given', async () => {
+    const handler = vi.fn();
+    await open(handler);
+    fireEvent.click(screen.getByRole('button', { name: /open a session file \(care team\)/i }));
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+  it('shows no button and no care team block when no handler is given', async () => {
+    await open();
+    expect(screen.queryByRole('button', { name: /care team/i })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Care team' })).toBeNull();
+  });
+});
+
 describe('DataScreen export', () => {
   it('warns in plain words that the file holds health data', async () => {
     await setup();

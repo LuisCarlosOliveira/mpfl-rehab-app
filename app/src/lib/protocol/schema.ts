@@ -31,6 +31,17 @@ export const exerciseSchema = z
     message: 'maxFlexion must not be smaller than targetFlexion',
     path: ['maxFlexion'],
   })
+  // Only the rep counters use both values. The hold counter ignores maxFlexion.
+  .superRefine((e, ctx) => {
+    if (e.kind !== 'heel-slide' && e.kind !== 'mini-squat') return;
+    if (e.maxFlexion === undefined || e.targetFlexion === undefined || e.maxFlexion < e.targetFlexion) return;
+    if (e.maxFlexion > e.targetFlexion + MARGIN_DEG) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['maxFlexion'],
+      message: `For ${e.kind}, maxFlexion (${e.maxFlexion}) must be more than targetFlexion (${e.targetFlexion}) plus the margin of ${MARGIN_DEG} degrees. Raise maxFlexion or lower targetFlexion. A closer limit gives a stop cue on every rep.`,
+    });
+  })
   .refine((e) => e.maxTopFlexion === undefined || e.maxTopFlexion >= MARGIN_DEG, {
     message: `maxTopFlexion must be at least ${MARGIN_DEG} degrees, the camera margin. A smaller limit cannot be measured.`,
     path: ['maxTopFlexion'],

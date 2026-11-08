@@ -22,6 +22,14 @@ function setup(exercise: Exercise = HEEL_SLIDE, source: MockSource = mockSource(
   return { source, onEnd, audio, ...view };
 }
 
+/** Rest, then a slow rise above the limit of 90 degrees plus the margin. Returns the next time. */
+function riseAboveLimit(source: MockSource): number {
+  let t = 0;
+  for (let i = 0; i < 10; i++, t += 100) act(() => source.emit(legLandmarks('left', 0), t));
+  for (let i = 1; i <= 12; i++, t += 100) act(() => source.emit(legLandmarks('left', 10 * i), t));
+  return t;
+}
+
 const polite = () => document.querySelector('[role="status"][aria-live="polite"]')!;
 const alertRegion = () => document.querySelector('[role="alert"]')!;
 
@@ -113,6 +121,40 @@ describe('Session screen', () => {
     expect(polite()).not.toBeEmptyDOMElement();
     tick(5000);
     expect(polite()).toBeEmptyDOMElement();
+  });
+
+  it('keeps the over-limit text while the knee stays above the limit, then follows the timeout', () => {
+    const { source } = setup();
+    let t = riseAboveLimit(source);
+    // The knee stays above the limit plus the margin for 8 seconds. This is longer than the cue timeout.
+    for (let i = 0; i < 80; i++) {
+      act(() => source.emit(legLandmarks('left', 120), t));
+      t += 100;
+      tick(100);
+    }
+    expect(alertRegion()).toHaveTextContent('Stop at your limit, do not push.');
+    // The knee returns below the limit. The text follows the normal timeout.
+    for (let i = 0; i < 10; i++) {
+      act(() => source.emit(legLandmarks('left', 20), t));
+      t += 100;
+    }
+    tick(1000);
+    expect(alertRegion()).toHaveTextContent('Stop at your limit, do not push.');
+    tick(5000);
+    expect(alertRegion()).toBeEmptyDOMElement();
+  });
+
+  it('makes the over-limit sound once while the knee stays above the limit', () => {
+    const { source, audio } = setup();
+    audio.sound.unlock();
+    let t = riseAboveLimit(source);
+    const after = audio.oscillators.length;
+    for (let i = 0; i < 80; i++) {
+      act(() => source.emit(legLandmarks('left', 120), t));
+      t += 100;
+      tick(100);
+    }
+    expect(audio.oscillators.length).toBe(after);
   });
 
   it('a missing leg shows "Show your whole leg." and shows it no more when the leg returns', () => {
