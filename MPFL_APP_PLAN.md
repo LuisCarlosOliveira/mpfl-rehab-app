@@ -73,6 +73,8 @@ Rejected: backend in the MVP, Next.js, MoveNet, server-side pose, native app, au
 
 The clinician view reads a session file that the patient exports. It reuses the patient dashboard component with a different data source. It holds the file in memory only. It never writes to the local database.
 
+Second view (user decision, 2026-11-08): the user wants more camera angles for each exercise. The plan adds an optional second view from an Android phone on the same network (FR25, tasks T9c and T12b). The single-camera flow stays complete. If pairing fails, the app drops back to one camera. A second view measures better. It does not create a validated cut-off for good form, and it does not give 3D accuracy. Evidence: `research/dual-camera.md` and `research/dual-camera-opus.md`.
+
 Limits of this design: the file is unsigned and the patient can edit it. The file holds health data. Section 11 and `docs/clinical-limits.md` say this.
 
 ### 1.5 Intended purpose (draft, for expert review)
@@ -91,7 +93,7 @@ Protocol rules:
 
 ## 2. Requirements
 
-Priority: M = MVP, F = future. Each requirement has an acceptance criterion (AC) that a test or a check can prove.
+Priority: M = MVP, M2 = built right after the single-camera flow works, F = future. Each requirement has an acceptance criterion (AC) that a test or a check can prove.
 
 ### 2.1 Functional
 
@@ -119,14 +121,15 @@ Priority: M = MVP, F = future. Each requirement has an acceptance criterion (AC)
 | FR19 | F | Left and right comparison from two recordings. Label it "movement symmetry", never "LSI". | Not built. |
 | FR20 | F | Frontal-plane valgus, trunk lean, hip drop and any "correct form" label. No validated threshold exists (`research/clinical.md` section 4). | Not built. |
 | FR21 | F | Clinician protocol authoring form, accounts, shared data, live dashboard, encrypted export. | Not built. |
-| FR24 | F | Front-view set: knee moving inward as a change from the start of the rep. Recorded for the clinician, with a stick-figure replay from stored landmarks (no image). No live cue. Needs an own accuracy test and a clinician limit. | Not built. |
+| FR24 | M2 | Front view, from the second device or from a turn-to-camera set: knee moving inward as a change from the start of the rep. Recorded for the clinician, with a stick-figure replay from stored landmarks (no image). No live cue. Needs an own accuracy test and a clinician limit. | Unit test of the per-rep change value. The replay shows no image. The clinician view shows the value with its margin. |
+| FR25 | M2 | Optional second view from an Android phone on the same network. The phone runs the pose model and sends only landmark numbers over a WebRTC data channel, with no third-party server (empty `iceServers`). Pairing by QR codes. If pairing fails, the app continues with one camera. Side-view criteria C1 to C6 keep using the side view. | A two-tab test pairs and streams landmarks. A network test shows no third-party host and no video. Pairing failure falls back to one camera. A real-phone test records the frame rate of each view (target 15 or more) and the result. |
 | FR22 | F | Progression suggestions. Needs clinical validation and regulatory review. | Not built. |
 
 ### 2.2 Non-functional
 
 | ID | Requirement | Acceptance criterion |
 |---|---|---|
-| NFR1 Privacy | No video leaves the device by design, proven by the network test. No third-party scripts. Self-host the model and WASM files. | Playwright network check: all requests go to the own origin. |
+| NFR1 Privacy | No video leaves the device by design, proven by the network test. With a second device, no video leaves either device, and the network test also covers WebRTC (no STUN server, no relay). No third-party scripts. Self-host the model and WASM files. | Playwright network check: all requests go to the own origin. |
 | NFR2 Claims | Every angle shows "estimated angle, not a medical measurement". No text says "clinically validated". No goal, pass, fail or milestone wording. | Text test on every route and error state. `claims-check.sh` passes. |
 | NFR3 Accuracy | Document the angle error. Record that `lite` accuracy is not known. Run a Bland-Altman check if reference data exists. Reported errors range from about 3 to 15 degrees. The 15 degree figure is UNVERIFIED. The app uses a start margin of 9 degrees (Okuno 2026, heavy model, still photos). It is UNVERIFIED for `lite`. | `docs/accuracy.md` holds real numbers or the statement that no reference data exists. |
 | NFR4 Performance | Pose loop median is at least 15 frames per second over 60 seconds, headed Chromium, dev machine, `lite` model. Phone speed is UNVERIFIED until a phone test. | Median value recorded in `docs/accuracy.md`. |
@@ -168,6 +171,10 @@ exported JSON -> Zod schema -> memory only -> same dashboard (clinician view)
 Session record fields: date, exercise, side, reps, peak flexion, hold seconds and `topFlexion` (the estimated angle at the top). Also margin degrees, margin source, pain, swelling, protocol id, phase and `schemaVersion`.
 
 Reuse: MediaPipe, Dexie, Recharts, Zod. Own code: angle, filter, counters. These are small. A package adds risk and gives no gain.
+
+### 3.0 Views
+
+The pipeline runs once for each view. A view is a source of landmarks with a tag: `side` or `front`. A local camera and a paired phone both give a source with the same shape. The single-camera flow uses one source. A pure function pairs the reps of two views by time. Sync stays loose, because each view is analysed alone. Triangulation to 3D is out of scope.
 
 ### 3.1 Pose loop rule
 
@@ -323,9 +330,16 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Acceptance: FR8 and FR23 pass. A mutation check (remove the margin from the ceiling test) fails at least one test.
 - Result: pending.
 
+### T9c. Views and source interface
+- Agent: main session. Skills: `mpfl-clinical-guardrails`, `mpfl-rehab-knowledge`. Tech: TypeScript, Vitest. Depends on: T8, T9, T9b. Source: `research/dual-camera-opus.md` section 5 (KISS recommendation).
+- Steps: test first. Define a `LandmarkSource` interface (start, stop, a stream of landmarks with a time and a view tag). Wrap the local camera and the mock source in it, with an optional `deviceId` in `camera.ts`. Write the pure function `pairReps` that joins the reps of two views by time. Add a `view` field to the session record and the export (`side` by default). Compute the per-rep knee-inward change for a front view as a pure function, with the margin and "cannot tell" state. Record it for the clinician only (FR24).
+- Tests: a source gives landmarks in order. Two mock sources with an offset of up to 100 ms pair correctly. Reps in only one view stay unpaired. The inward-change value is the change from the first frame of the rep and never an absolute angle. A noise test with an error equal to the margin.
+- Acceptance: FR24 passes its unit tests. The single-camera path is unchanged and all earlier tests pass.
+- Result: pending.
+
 ### T10. Session screens
-- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T8, T9, T9b.
-- Steps: build five screens. Home shows the active phase, approval fields, last export, banners and build flag text. RedFlag. Session shows video, live angle, rep count, cues, live region, and the Stop and "knee gave way" buttons. Summary asks pain and swelling, saves, and applies the safety floor. Privacy. Test first for the rule parts: red-flag block, safety floor, buttons. Show a cue only from `src/lib/cues.ts`. An in-range rep shows no message. Use no green or red verdict colour.
+- Agent: Frontend Developer (Sonnet). Skills: `frontend-design:frontend-design`, `mpfl-clinical-guardrails`, `web-design-guidelines`. Tech: React. Depends on: T6, T8, T9, T9b, T9c.
+- Steps: build five screens. Home shows the active phase, approval fields, last export, banners and build flag text. RedFlag. Session shows video, live angle, rep count, cues, live region, and the Stop and "knee gave way" buttons. Summary asks pain and swelling, saves, and applies the safety floor. Privacy. Test first for the rule parts: red-flag block, safety floor, buttons. Show a cue only from `src/lib/cues.ts`. An in-range rep shows no message. Use no green or red verdict colour. The setup flow has one optional step "Add a second device" that is hidden until T12b. The Session screen accepts one or two sources.
 - Tests: Testing Library for FR5, FR10 (audio mock), FR11, FR12. `claims-check.sh` passes. Every route shows the label "estimated angle, not a medical measurement" where an angle appears.
 - Acceptance: FR3, FR5, FR10, FR11, FR12, FR17 and FR18 pass their tests.
 - Result: pending.
@@ -344,9 +358,16 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Acceptance: flows pass. Zero foreign requests. axe has 0 serious or critical issues. Lighthouse accessibility is 95 or more. Keyboard checklist is complete.
 - Result: pending.
 
+### T12b. Second device pairing (developer first)
+- Agent: main session (design and tests), Frontend Developer (page). Skills: `mpfl-clinical-guardrails`, `vite-react-best-practices`, `context7-mcp`, `chrome-devtools-mcp:a11y-debugging`. Tech: WebRTC data channel, QR encoder and decoder, Playwright. Depends on: T9c, T12. Source: `research/dual-camera-opus.md` sections 4 and 5.
+- Steps: search once more for a small open-source QR pairing library with a permissive license and add it to `scripts/allowed-deps.txt` with a reason. Build the pairing with `iceServers: []`, a one-time secret, a timeout and a fallback to one camera. The phone page runs the landmarker and sends landmarks only. Test first with two tabs on one machine. Then test with the real phone on the local network. Write a short setup guide for the patient in the setup flow.
+- Tests: Playwright with two pages and two fake videos. A network test with no STUN and no relay host. Pairing failure gives the single-camera mode. A test proves that no video track is sent. The real-phone test records frame rate per view, pairing time, heat and battery notes. The CSP and network test are extended to cover WebRTC.
+- Acceptance: the two-tab test passes. The network test shows only local peers and no video. The real-phone result is recorded with the device facts, or the blocker is written down. Go and no-go gate for patient use. Each view runs at 15 or more frames per second with both views running. A clinician finds the front value useful.
+- Result: pending.
+
 ### T13. Accuracy and performance record
 - Agent: main session. Skills: none. Tech: Node script, Playwright. Depends on: T8, T12.
-- Steps: measure the frame rate (median over 60 seconds, headed Chromium). Write the Bland-Altman script for paired data. Without reference data, write that fact. Add a manual iOS Safari checklist (HTTPS, user gesture to start, `playsinline`, orientation). Record the iOS result as UNVERIFIED if no device exists. Test whether `lite` accuracy can be assessed. Do not invent numbers. Measure the margin and the test-retest error of the `lite` model against a goniometer in a real camera setup. This needs participants and a goniometer. Without them, the 9 degree start value stays and is labelled UNVERIFIED.
+- Steps: measure the frame rate (median over 60 seconds, headed Chromium). Write the Bland-Altman script for paired data. Without reference data, write that fact. Add a manual iOS Safari checklist (HTTPS, user gesture to start, `playsinline`, orientation). Record the iOS result as UNVERIFIED if no device exists. Test whether `lite` accuracy can be assessed. Do not invent numbers. Measure the margin and the test-retest error of the `lite` model against a goniometer in a real camera setup. This needs participants and a goniometer. Without them, the 9 degree start value stays and is labelled UNVERIFIED. Measure each view on its own, because the front view has a different error.
 - Tests: the script runs on a small synthetic pair file.
 - Acceptance: `docs/accuracy.md` holds measured numbers or a clear statement of no reference data. It states that errors of about 3 to 15 degrees are reported (the 15 degree figure is UNVERIFIED).
 - Result: pending.
@@ -437,3 +458,7 @@ Clinical limits are in `research/clinical.md` and `docs/clinical-limits.md`. Thi
 - The real error of the `lite` model on a home webcam in live video is unknown. No study measures it. Every margin depends on T13.
 - About 20 citations in `research/form.md` were not confirmed by the second agent. Two sources cannot be opened: the JMIR preprint 102399 and the JOSPT 2018 FPPA review. They are UNVERIFIED.
 - Model weights license: the card says Apache-2.0. It also says the model is for entertainment and not for life-critical decisions. This does not block the build. It must be decided, with a legal review, before any release to a patient.
+- Decided by the user, 2026-11-08: more camera angles are wanted. The second view is planned as FR25 with tasks T9c and T12b.
+- Needed from the user before T12b: is a hosted HTTPS address for the phone page acceptable, because a phone cannot use `localhost`? Can the allowed-dependency list grow by one QR library? What privacy wording is used for two devices? The reports advise against third-party webcam apps.
+- Needed from the user for the real-phone test: the Android model and version, and the Chrome versions on the phone and the computer. Also a USB data cable and a phone stand. Also the router model and whether client isolation or a guest network is on. Also consent to record a short test set.
+- Unproven risks of the second device: router client isolation and local address hiding in Chrome (UNVERIFIED). Also a phone that sleeps or heats up. Also WebRTC traffic that the CSP and the current network test do not cover.
