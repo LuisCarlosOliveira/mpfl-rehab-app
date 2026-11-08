@@ -38,3 +38,26 @@ export function ruleRows(current: SetupRuleId): RuleRowState[] {
 export function countdownSeconds(leftMs: number | null): number | null {
   return leftMs === null ? null : Math.ceil(leftMs / 1000);
 }
+
+// Texts of the leg choice (T17). Plain, neutral, no verdict word and no advice.
+// Source: docs/leg-and-baseline-design.md section 5.4.
+export const LEG_TEXT = {
+  legQuestion: 'Which leg will you exercise?',
+  planLeg: 'Operated leg in your plan',
+  cameraQuestion: 'Which side of you is the camera on?',
+  // PROPOSAL: the camera question starts on the side of the chosen leg, because the guide puts the camera there.
+  cameraHint: 'The guide puts the camera on the side of your chosen leg. Change this if your camera is on the other side.',
+  otherLegConfirm: 'Your plan names the other leg. The app will follow the leg that you chose. It does not change your plan. Continue?',
+  continueButton: 'Continue with this leg',
+  farLeg: 'The camera is on the other side. The estimated angle can be less exact.',
+  identity: 'The camera sees your other leg move more. Make sure that the chosen leg is the one that moves.',
+  resting: (deg: number) => `Resting angle: ${deg} degrees. Estimated angle, not a medical measurement.`,
+  // PROPOSAL (T17): the app has no default return value. The notice shows in Setup and in Session.
+  noReturnValue: 'Your protocol has no return value. Ask your surgeon.',
+  noReturnValueDetail: 'The app counts no rep. The angle and the peak still show.',
+  noBaseline: 'The app has no resting angle. Stop, then start again and hold still in Setup.',
+  noBaselineDetail: 'The app counts no rep until it has one. The angle and the peak still show.',
+} as const;
+
+/** The side that the person did not choose. */
+export const otherLeg = (side: 'left' | 'right') => (side === 'left' ? 'right' : 'left');

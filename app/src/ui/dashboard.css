@@ -1,19 +1,27 @@
-/* Styles for the progress charts, the data screen and the care team view.
-   Only the custom properties of styles.css. One neutral ink colour for every mark.
-   No colour carries a meaning. Nothing moves. */
+/* Progress charts, tables, the data screen and the care team view. Same tokens as styles.css.
+   dataviz rules: thin marks, one hue (the primary teal), quiet grid, text in text colours, a table next to every chart.
+   No goal line, no trend arrow, no colour that carries a meaning. Nothing moves. */
 
 .dash-chart {
-  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--shadow-1);
 }
 .dash-chart h2 {
-  margin-bottom: 0.25rem;
+  font-size: var(--step-1);
+}
+.dash-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step-m1);
 }
 .dash-chart-box {
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding-top: var(--s-2);
 }
 /* The chart has a fixed size and scales down with its box. The numbers are in the table. */
 .dash-chart-box .recharts-wrapper {
@@ -24,58 +32,66 @@
   display: block;
   width: 100% !important; /* Recharts sets 100% height in a style value. Auto height keeps the shape of the viewBox. */
   height: auto !important;
+  overflow: visible;
 }
 .dash-chart-box .recharts-text,
 .dash-chart-box .recharts-label {
-  fill: var(--ink);
-  font-size: 18px;
+  fill: var(--muted);
+  font-size: 14px;
+  font-family: var(--font-text);
 }
-.dash-chart-box .recharts-cartesian-axis-line,
+.dash-chart-box .recharts-cartesian-axis-line {
+  stroke: var(--edge);
+}
 .dash-chart-box .recharts-cartesian-axis-tick-line {
-  stroke: var(--ink);
+  stroke: none;
 }
 .dash-chart-box .recharts-cartesian-grid line {
   stroke: var(--line);
-  stroke-dasharray: 2 4;
+  stroke-dasharray: none;
 }
 .dash-chart-box .recharts-line-curve {
-  stroke: var(--ink);
-  stroke-width: 2;
+  stroke: var(--chart);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .dash-chart-box .recharts-dot {
-  fill: var(--ink);
-  stroke: var(--ink);
+  fill: var(--chart);
+  stroke: var(--raised);
+  stroke-width: 2.5;
 }
 .dash-chart-box .recharts-bar-rectangle path {
-  fill: var(--ink);
+  fill: var(--chart);
 }
 
-/* Tables: numbers right-aligned, the table scrolls inside its own box on a narrow screen. */
+/* Tables: numbers right-aligned, the table scrolls inside its own box. */
 .table-scroll {
-  margin: 0.5rem 0;
-  overflow-x: auto;
+  max-height: 18rem;
+  overflow: auto;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border-radius: var(--r-m);
+  background: var(--raised);
 }
 .data-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 1rem;
-}
-.data-table caption {
-  padding: 0.5rem 0.75rem;
-  text-align: left;
-  font-weight: 700;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--step-m1);
 }
 .data-table th,
 .data-table td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem var(--s-4);
   border-top: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
-.data-table th[scope='col'] {
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-top: 0;
+  background: var(--sunken);
   color: var(--muted);
   font-weight: 700;
 }
@@ -89,43 +105,93 @@
   font-family: var(--font-text);
 }
 
-.dash-note {
-  margin: 0.5rem 0;
-  color: var(--muted);
+.chart-list {
+  display: grid;
+  gap: var(--s-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 62rem) {
+  .chart-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Data screen */
 .status-line {
-  margin: 0.75rem 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-m);
+  background: var(--primary-soft);
+  font-weight: 650;
 }
-.btn-danger {
-  border-width: 3px; /* a thick border marks the one action that erases. It is not a colour. */
+.data-grid {
+  display: grid;
+  gap: var(--s-5);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 62rem) {
+  .data-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.card-erase {
+  border: 2.5px solid var(--accent-ink);
+  box-shadow: none;
 }
 
 /* Erase confirmation: a native dialog */
 .erase-dialog {
-  max-width: min(32rem, calc(100vw - 2rem));
-  padding: 1rem 1.25rem;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: var(--s-6);
   color: var(--ink);
-  background: var(--surface);
-  border: 3px solid var(--ink);
-  border-radius: var(--radius);
+  background: var(--raised);
+  border: 0;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+.erase-dialog:not([open]) {
+  opacity: 0;
+  transform: scale(0.97);
+}
+@starting-style {
+  .erase-dialog[open] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
 .erase-dialog::backdrop {
-  background: var(--ink);
-  opacity: 0.6;
+  background: var(--scrim);
+  transition: opacity 180ms ease-out;
 }
 .erase-dialog h2 {
-  margin-top: 0;
+  margin-bottom: var(--s-3);
+}
+.erase-dialog p + p {
+  margin-top: var(--s-2);
 }
 
-@media (max-width: 30rem) {
-  .dash-chart-box {
-    padding: 0.25rem;
-  }
+/* The confirm button of the erase dialog: the strong indigo block, with an icon and words. */
+.erase-dialog .btn-strong:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Care team view */
+.review-grid {
+  display: grid;
+  gap: var(--s-5);
+}
+.section-gap {
+  margin-top: var(--s-6);
 }

@@ -15,12 +15,17 @@ export interface Sample {
 // - A rep counts if the peak reaches the target minus the margin.
 // - From the ceiling minus the margin the event is near-limit. The rep still counts.
 // - Above the ceiling plus the margin the event is over-limit. The rep does not count.
+// A rep ends when the flexion is back within `returnWithin` degrees of the `baseline`, the resting
+// angle that Setup measured (PROPOSAL, T17: the knowledge base has no source for a fixed return value).
+// The protocol sets `returnWithin`. The app has no default. Without it, or without a baseline, no rep counts
+// and the state says why (`blocked`). The ceiling alerts stay on, because they are a safety rule.
 // The rep time runs from the first sample at the entry threshold to the first sample at
-// the exit threshold. It does not include the slow start of the movement.
+// the end of the rep. It does not include the slow start of the movement.
 
 export interface RepsConfig {
   enter: number; // flexion that starts a rep
-  exit: number; // flexion that ends a rep
+  baseline?: number; // resting flexion measured in Setup. Missing means no rep counts.
+  returnWithin?: number; // protocol value: a rep ends within this many degrees of the baseline. Missing means no rep counts.
   target: number; // the peak must reach this, minus the margin, to count
   minStateMs: number; // a threshold must hold this long
   maxFlexion?: number; // ceiling from the protocol
@@ -37,6 +42,16 @@ export interface RepsState {
   overLimit: boolean;
   reps: number;
   lastRepMs: number | null;
+  blocked: CountBlock | null; // why no rep can count, or null
+}
+
+/** Why no rep can count: the protocol sets no return value, or Setup measured no resting angle. */
+export type CountBlock = 'no-return-value' | 'no-baseline';
+
+export function countBlock(cfg: Pick<RepsConfig, 'baseline' | 'returnWithin'>): CountBlock | null {
+  if (cfg.returnWithin === undefined) return 'no-return-value';
+  if (cfg.baseline === undefined) return 'no-baseline';
+  return null;
 }
 
 export type RepsEvent = 'rep' | 'too-fast' | 'shallow' | 'near-limit' | 'over-limit' | 'paused' | null;
@@ -50,6 +65,7 @@ export const repsInitial = (): RepsState => ({
   overLimit: false,
   reps: 0,
   lastRepMs: null,
+  blocked: null,
 });
 
 export function repsStep(
@@ -60,7 +76,8 @@ export function repsStep(
   if (sample.flexion === null) return { state: { ...state, candidateSince: null }, event: 'paused' };
   const { flexion, t } = sample;
   const margin = cfg.margin ?? 0;
-  const s = { ...state };
+  const s = { ...state, blocked: countBlock(cfg) };
+  const exit = s.blocked === null ? (cfg.baseline as number) + (cfg.returnWithin as number) : null;
   let event: RepsEvent = null;
 
   if (cfg.maxFlexion !== undefined) {
@@ -71,6 +88,15 @@ export function repsStep(
       s.nearLimit = true;
       event = 'near-limit';
     }
+  }
+
+  if (exit === null) {
+    // No rep can count. A lift ends for the ceiling alerts when the knee goes below the enter value.
+    if (flexion < cfg.enter) {
+      s.nearLimit = false;
+      s.overLimit = false;
+    }
+    return { state: s, event };
   }
 
   if (s.phase === 'EXTENDED') {
@@ -95,7 +121,7 @@ export function repsStep(
     }
   } else {
     s.peak = Math.max(s.peak, flexion);
-    if (flexion <= cfg.exit) {
+    if (flexion <= exit) {
       if (s.candidateSince === null) s.candidateSince = t;
       if (t - s.candidateSince >= cfg.minStateMs) {
         if (!s.overLimit) {

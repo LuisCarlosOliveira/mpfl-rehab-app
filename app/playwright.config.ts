@@ -51,5 +51,11 @@ export default defineConfig({
       // The real built app with the fake camera. The fake-ui flag accepts the permission prompt.
       use: { browserName: 'chromium', baseURL: `http://127.0.0.1:${APP_PORT}`, launchOptions: { args: fake } },
     },
+    {
+      name: 'webkit',
+      testMatch: 'webkit.spec.ts',
+      // The Safari engine on the real built app. No fake camera flags exist, so the spec stubs getUserMedia.
+      use: { browserName: 'webkit', baseURL: `http://127.0.0.1:${APP_PORT}` },
+    },
   ],
 });

@@ -43,8 +43,20 @@ describe('make-notices.mjs', () => {
     expect(body).toContain('Apache License');
   });
 
-  it('the committed file equals the generated file', () => {
+  it('the committed file starts with the generated file', () => {
     expect(existsSync('public/THIRD_PARTY_NOTICES.txt')).toBe(true);
-    expect(readFileSync('public/THIRD_PARTY_NOTICES.txt', 'utf8')).toBe(generate());
+    expect(readFileSync('public/THIRD_PARTY_NOTICES.txt', 'utf8').startsWith(generate())).toBe(true);
+  });
+
+  // The font file and the icon paths are not npm dependencies. The script does not list them. Their notices follow the generated text.
+  it('ends with the notice of the Figtree font and the notice of the Lucide icon paths', () => {
+    const committed = readFileSync('public/THIRD_PARTY_NOTICES.txt', 'utf8');
+    const extra = committed.slice(generate().length);
+    expect(extra).toContain('== Figtree font');
+    expect(extra).toContain('SIL Open Font License, Version 1.1');
+    expect(extra).toContain('Copyright 2022 The Figtree Project Authors');
+    expect(extra).toContain('== Lucide icon paths');
+    expect(extra).toContain('ISC License');
+    expect(extra).toContain('Copyright (c) 2026 Lucide Icons and Contributors');
   });
 });

@@ -18,7 +18,7 @@ const tick = (ms = 250) => act(() => void vi.advanceTimersByTime(ms));
 
 function setup(exercise: Exercise = HEEL_SLIDE, source: MockSource = mockSource(), audio = audioHarness()) {
   const onEnd = vi.fn();
-  const view = render(<Session exercise={exercise} side="left" source={source} sound={audio.sound} onEnd={onEnd} />);
+  const view = render(<Session exercise={exercise} side="left" baselineDeg={0} source={source} sound={audio.sound} onEnd={onEnd} />);
   return { source, onEnd, audio, ...view };
 }
 
@@ -174,7 +174,7 @@ describe('Session screen', () => {
     let commits = 0;
     render(
       <Profiler id="session" onRender={() => (commits += 1)}>
-        <Session exercise={HEEL_SLIDE} side="left" source={source} sound={audioHarness().sound} onEnd={vi.fn()} />
+        <Session exercise={HEEL_SLIDE} side="left" baselineDeg={0} source={source} sound={audioHarness().sound} onEnd={vi.fn()} />
       </Profiler>,
     );
     tick(); // the first frame state
@@ -298,12 +298,12 @@ describe('Session camera loss', () => {
     source.nextStart = { ok: false, error: { kind: 'other', message: 'The camera was stopped.' } };
     setup(HEEL_SLIDE, source);
     await act(async () => undefined);
-    expect(document.querySelector('.attention[role="alert"]')).toHaveTextContent('The camera was stopped.');
+    expect(document.querySelector('.notice[role="alert"]')).toHaveTextContent('The camera was stopped.');
     source.nextStart = { ok: true };
     fireEvent.click(screen.getByRole('button', { name: 'Try the camera again' }));
     await act(async () => undefined);
     expect(source.start).toHaveBeenCalledTimes(2);
-    expect(document.querySelector('.attention[role="alert"]')).toBeNull();
+    expect(document.querySelector('.notice[role="alert"]')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Try the camera again' })).toBeNull();
   });
 
@@ -311,14 +311,14 @@ describe('Session camera loss', () => {
     const { source } = setup();
     act(() => source.emit(legLandmarks('left', 20), 0));
     tick(3000);
-    const notice = document.querySelector('.attention[role="alert"]')!;
+    const notice = document.querySelector('.notice[role="alert"]')!;
     expect(notice).toHaveTextContent(/no camera image for 2 seconds/i);
     expect(screen.getByRole('button', { name: 'Try the camera again' })).toBeInTheDocument();
   });
 
   it('keeps the plain waiting text as a status, with no retry button', () => {
     setup();
-    expect(document.querySelector('.attention[role="status"]')).toHaveTextContent('Waiting for the camera.');
+    expect(document.querySelector('.notice[role="status"]')).toHaveTextContent('Waiting for the camera.');
     expect(screen.queryByRole('button', { name: 'Try the camera again' })).toBeNull();
   });
 });

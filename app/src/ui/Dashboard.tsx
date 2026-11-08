@@ -6,6 +6,7 @@ import { useId, type ReactNode } from 'react';
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { buildProgressSeries, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
 import type { SessionRecord } from '../lib/storage';
+import { Icon } from './Icon';
 import './dashboard.css';
 
 const CHART_WIDTH = 480;
@@ -21,6 +22,8 @@ export interface ChartSeries {
   kind: 'line' | 'bar';
   yLabel: string;
   yDomain: [number, number | 'auto'];
+  /** Fixed tick values. Without it the axis picks them. */
+  yTicks?: number[];
   whenHeader: string;
   data: ChartPoint[];
 }
@@ -48,6 +51,7 @@ export function chartSeries(series: ProgressSeries): ChartSeries[] {
     kind: 'line',
     yLabel: 'pain, 0 to 10',
     yDomain: [0, 10],
+    yTicks: [0, 2, 4, 6, 8, 10],
     whenHeader: 'Session (UTC)',
     data: series.pain.points.map((p) => ({ label: p.date.slice(0, 10), value: p.pain })),
   };
@@ -79,7 +83,7 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   const titleId = `${id}-title`;
   const summaryId = `${id}-summary`;
   const xAxis = <XAxis dataKey="label" interval="preserveStartEnd" label={{ value: 'Date', position: 'insideBottom', offset: -22 }} />;
-  const yAxis = <YAxis domain={chart.yDomain} allowDecimals={false} label={{ value: chart.yLabel, angle: -90, position: 'insideLeft', offset: 8 }} />;
+  const yAxis = <YAxis domain={chart.yDomain} ticks={chart.yTicks} allowDecimals={false} label={{ value: chart.yLabel, angle: -90, position: 'insideLeft', offset: 8 }} />;
   const common = { width: CHART_WIDTH, height: CHART_HEIGHT, data: chart.data, margin: MARGIN, accessibilityLayer: false };
 
   return (
@@ -134,11 +138,11 @@ export function DashboardCharts({ sessions }: { sessions: readonly SessionRecord
   const series = buildProgressSeries(sessions);
   const rows = toTableRows(series);
   return (
-    <>
+    <div className="chart-list">
       {chartSeries(series).map((chart) => (
         <ChartBlock key={chart.title} chart={chart} rows={rows.filter((r) => r.series === chart.title)} />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -151,21 +155,25 @@ interface Props {
 export function Dashboard({ sessions, title = 'Progress', onBack }: Props) {
   return (
     <section aria-labelledby="dashboard-title">
-      <h1 id="dashboard-title" tabIndex={-1}>
-        {title}
-      </h1>
-      <div className="actions">
+      <header className="page-head">
+        <h1 id="dashboard-title" tabIndex={-1}>
+          {title}
+        </h1>
         <button type="button" className="btn" onClick={onBack}>
+          <Icon name="arrow-left" size={18} />
           Back
         </button>
-      </div>
+      </header>
       {sessions.length === 0 ? (
-        <p>No sessions yet. Do a session and save it. Your charts will show here.</p>
+        <div className="empty">
+          <Icon name="chart-line" size={44} />
+          <p>No sessions yet. Do a session and save it. Your charts will show here.</p>
+        </div>
       ) : (
-        <>
-          <p>These numbers are a webcam estimate. Send the file to your care team. They decide any change to your plan.</p>
+        <div className="stack">
+          <p className="lede">These numbers are a webcam estimate. Send the file to your care team. They decide any change to your plan.</p>
           <DashboardCharts sessions={sessions} />
-        </>
+        </div>
       )}
     </section>
   );

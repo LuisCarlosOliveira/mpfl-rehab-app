@@ -4,15 +4,19 @@
 // real video (T13). The only number with a source is the margin (margin.ts).
 // The protocol (set by the clinician) supplies targets and ceilings.
 // A missing value gives "ask your surgeon". The app sets no default.
+// A rep ends when the knee is back within `returnWithinDeg` of the resting angle (T17, PROPOSAL). The old fixed
+// fraction of the target is gone from the app path. Without a protocol value or a baseline no rep counts.
 
 import { MIN_VISIBILITY, flexion, kneeAngle, selectLeg, type Landmark, type Side } from './angle';
 import {
+  countBlock,
   holdInitial,
   holdStep,
   lagInitial,
   lagStep,
   repsInitial,
   repsStep,
+  type CountBlock,
   type HoldConfig,
   type RepsConfig,
 } from './counters';
@@ -22,10 +26,12 @@ import type { Exercise } from './protocol';
 
 const MIN_STATE_MS = 300; // start value. research/tech.md 3.3 says "for example 300 ms", not from a source
 const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent of the target
-const EXIT_FRACTION = 0.3; // PROPOSAL, no source: a rep ends at 30 percent of the target
 const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
 const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
+
+/** The exercises that count reps. Only these need a return value and a resting angle. */
+export const countsReps = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'mini-squat';
 
 export type SetupResult =
   | { ok: true; kind: 'reps'; config: RepsConfig }
@@ -46,7 +52,7 @@ export function counterSetup(exercise: Exercise): SetupResult {
         kind: 'reps',
         config: {
           enter: target * ENTER_FRACTION,
-          exit: target * EXIT_FRACTION,
+          returnWithin: exercise.returnWithinDeg, // PROPOSAL (T17): no default. A missing value counts no rep.
           target,
           minStateMs: MIN_STATE_MS,
           maxFlexion: exercise.maxFlexion,
@@ -83,6 +89,11 @@ export function isLegRaised(hip: Landmark, ankle: Landmark): boolean {
   return visible(hip) && visible(ankle) && hip.y - ankle.y > RAISE_MIN_HEIGHT;
 }
 
+/** The leg that the person exercises, seen from the camera: on the camera side (near) or on the other side (far). */
+export type LegRole = 'near' | 'far';
+
+export const legRoleOf = (leg: Side, cameraSide: Side): LegRole => (leg === cameraSide ? 'near' : 'far');
+
 export interface EventCounts {
   nearLimit: number;
   overLimit: number;
@@ -99,6 +110,10 @@ export interface Summary {
   // protocol sets none. null for any other exercise.
   topState: LimitState | 'no-limit' | null;
   eventCounts: EventCounts;
+  // Why no rep can count (T17): no protocol return value, or no resting angle. null when reps can count.
+  countBlock?: CountBlock | null;
+  // Near or far from the camera. null when the camera side is not known.
+  legRole?: LegRole | null;
 }
 
 export interface StepOutput {
@@ -114,10 +129,19 @@ export interface Pipeline {
 
 export type PipelineResult = { ok: true; pipeline: Pipeline } | Extract<SetupResult, { ok: false }>;
 
-/** `aspect` is video width divided by video height. */
-export function createPipeline(exercise: Exercise, side: Side, aspect: number): PipelineResult {
-  const setup = counterSetup(exercise);
-  if (!setup.ok) return setup;
+export interface PipelineOptions {
+  /** Resting flexion measured in Setup. null or missing: no rep counts. */
+  baselineDeg?: number | null;
+  /** The side of the person that the camera is on. It sets `legRole`. */
+  cameraSide?: Side;
+}
+
+/** `side` is the leg that the person chose. `aspect` is video width divided by video height. */
+export function createPipeline(exercise: Exercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
+  const made = counterSetup(exercise);
+  if (!made.ok) return made;
+  const setup =
+    made.kind === 'reps' ? { ...made, config: { ...made.config, baseline: options.baselineDeg ?? undefined } } : made;
 
   // Start values. tech.md 3.2 advises minCutoff near 1 Hz, then a higher beta. Not tuned on real video.
   const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
@@ -198,6 +222,8 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number): 
           topFlexion,
           topState,
           eventCounts: { ...counts },
+          countBlock: setup.kind === 'reps' ? countBlock(setup.config) : null,
+          legRole: options.cameraSide === undefined ? null : legRoleOf(side, options.cameraSide),
         };
       },
     },

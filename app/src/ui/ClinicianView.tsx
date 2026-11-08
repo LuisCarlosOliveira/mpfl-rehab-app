@@ -9,6 +9,8 @@ import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSum
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
 import { DashboardCharts, TableScroll } from './Dashboard';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
+import { Icon } from './Icon';
+import { Notice } from './Notice';
 import './dashboard.css';
 
 const NOT_APPLICABLE = 'Not applicable';
@@ -124,75 +126,84 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
 
   return (
     <section aria-labelledby="clinician-title">
-      <h1 id="clinician-title" tabIndex={-1}>
-        Care team view
-      </h1>
-      <div className="actions">
+      <header className="page-head">
+        <h1 id="clinician-title" tabIndex={-1}>
+          Care team view
+        </h1>
         <button type="button" className="btn" onClick={onBack}>
+          <Icon name="arrow-left" size={18} />
           Back
         </button>
-      </div>
+      </header>
 
-      <div className="field">
-        <label htmlFor="clinician-session-file">Session file (.json)</label>
-        <input id="clinician-session-file" type="file" accept=".json,application/json" onChange={(e) => void onSessionFile(e.target)} />
-      </div>
-      {fileError && (
-        <div className="attention" role="alert">
-          <p className="attention-title">Session file not opened</p>
-          <p>{fileError}</p>
+      <div className="stack">
+        <div className="dropzone field">
+          <span className="drop-icon">
+            <Icon name="file-text" size={26} />
+          </span>
+          <label htmlFor="clinician-session-file">Session file (.json)</label>
+          <input id="clinician-session-file" type="file" accept=".json,application/json" onChange={(e) => void onSessionFile(e.target)} />
         </div>
-      )}
+        {fileError && (
+          <Notice role="alert" icon="triangle-alert" title="Session file not opened">
+            <p>{fileError}</p>
+          </Notice>
+        )}
 
-      {file && (
-        <>
-          <p className="banner" role="note">
-            {BANNER}
-          </p>
-          <p className="dash-note">This file stays in memory. The app does not store it. It is gone when you close or reload this page.</p>
+        {file && (
+          <>
+            <Notice tone="strong" icon="shield-check">
+              <p className="banner-text" role="note">
+                {BANNER}
+              </p>
+            </Notice>
+            <p className="dash-note">This file stays in memory. The app does not store it. It is gone when you close or reload this page.</p>
 
-          <div className="field">
-            <label htmlFor="clinician-protocol-file">Protocol file (.json), for the review summary</label>
-            <input id="clinician-protocol-file" type="file" accept=".json,application/json" onChange={(e) => void onProtocolFile(e.target)} />
-          </div>
-          {protocolError && (
-            <div className="attention" role="alert">
-              <p className="attention-title">Protocol file not opened</p>
-              <p>{protocolError}</p>
+            <div className="dropzone field">
+              <span className="drop-icon">
+                <Icon name="list-checks" size={26} />
+              </span>
+              <label htmlFor="clinician-protocol-file">Protocol file (.json), for the review summary</label>
+              <input id="clinician-protocol-file" type="file" accept=".json,application/json" onChange={(e) => void onProtocolFile(e.target)} />
             </div>
-          )}
+            {protocolError && (
+              <Notice role="alert" icon="triangle-alert" title="Protocol file not opened">
+                <p>{protocolError}</p>
+              </Notice>
+            )}
 
-          {protocol && summary ? (
-            <ReviewSummaryBlock protocol={protocol} phaseId={summary.header.phase.id} onPhase={setPhaseId} summary={summary} />
-          ) : (
-            <p>Pick a protocol file to see the review summary.</p>
-          )}
+            {protocol && summary ? (
+              <ReviewSummaryBlock protocol={protocol} phaseId={summary.header.phase.id} onPhase={setPhaseId} summary={summary} />
+            ) : (
+              <p>Pick a protocol file to see the review summary.</p>
+            )}
 
-          <h2>Session list</h2>
-          <p className="dash-note">Angles are estimates: {ANGLE_LABEL}.</p>
-          <Table
-            label="Session list"
-            head={['Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling']}
-          >
-            {sessions.map((s) => (
-              <tr key={s.id}>
-                <td>{s.date.slice(0, 16).replace('T', ' ')}</td>
-                <td>{EXERCISE_NAMES[s.exercise]}</td>
-                <td className="num-cell">{s.phase}</td>
-                <td>{s.protocolId}</td>
-                <td className="num-cell">{orNone(s.reps)}</td>
-                <td className="num-cell">{orNone(s.holdSeconds)}</td>
-                <td className="num-cell">{orNone(s.peakFlexion)}</td>
-                <td className="num-cell">{orNone(s.topFlexion)}</td>
-                <td className="num-cell">{s.pain}</td>
-                <td>{SWELLING_TEXT[s.swelling]}</td>
-              </tr>
-            ))}
-          </Table>
+            <h2 className="section-gap">Session list</h2>
+            <p className="dash-note">Angles are estimates: {ANGLE_LABEL}.</p>
+            <Table
+              label="Session list"
+              head={['Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling']}
+            >
+              {sessions.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.date.slice(0, 16).replace('T', ' ')}</td>
+                  <td>{EXERCISE_NAMES[s.exercise]}</td>
+                  <td className="num-cell">{s.phase}</td>
+                  <td>{s.protocolId}</td>
+                  <td className="num-cell">{orNone(s.reps)}</td>
+                  <td className="num-cell">{orNone(s.holdSeconds)}</td>
+                  <td className="num-cell">{orNone(s.peakFlexion)}</td>
+                  <td className="num-cell">{orNone(s.topFlexion)}</td>
+                  <td className="num-cell">{s.pain}</td>
+                  <td>{SWELLING_TEXT[s.swelling]}</td>
+                </tr>
+              ))}
+            </Table>
 
-          <DashboardCharts sessions={sessions} />
-        </>
-      )}
+            <DashboardCharts sessions={sessions} />
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -211,7 +222,7 @@ function ReviewSummaryBlock({
   const { header, events, rows, clinicianChecks, painSwellingTable } = summary;
   return (
     <>
-      <h2>Review summary</h2>
+      <h2 className="section-gap">Review summary</h2>
       <div className="field">
         <label htmlFor="clinician-phase">Phase to review</label>
         <select id="clinician-phase" value={phaseId} onChange={(e) => onPhase(Number(e.target.value))}>
@@ -223,8 +234,8 @@ function ReviewSummaryBlock({
         </select>
       </div>
 
-      <section className="block" role="region" aria-label="Summary header">
-        <dl className="facts">
+      <section className="card" role="region" aria-label="Summary header">
+        <dl className="facts facts-split">
           {(
             [
               ['Pseudonymous id', header.pseudonymId ?? 'Not set'],
@@ -243,7 +254,7 @@ function ReviewSummaryBlock({
         </dl>
       </section>
 
-      <h3>Events in this file</h3>
+      <h3 className="section-gap">Events in this file</h3>
       <Table label="Events in this file" head={['Event', 'Count']}>
         {(Object.keys(EVENT_LABEL) as (keyof typeof EVENT_LABEL)[]).map((key) => (
           <tr key={key}>
@@ -253,7 +264,7 @@ function ReviewSummaryBlock({
         ))}
       </Table>
 
-      <h3>Review criteria</h3>
+      <h3 className="section-gap">Review criteria</h3>
       {rows.length === 0 ? (
         <p>This phase has no review criteria.</p>
       ) : (
@@ -264,16 +275,18 @@ function ReviewSummaryBlock({
         </Table>
       )}
 
-      <h3>Checks for the visit</h3>
-      <ul className="plain-list" aria-label="Checks for the visit">
+      <h3 className="section-gap">Checks for the visit</h3>
+      <ul className="points" aria-label="Checks for the visit">
         {clinicianChecks.map((c) => (
-          <li key={c.key}>
-            {c.text} <span className="detail">{c.evidenceLabel}</span>
+          <li key={c.key} className="point">
+            <p>
+              {c.text} <span className="detail">{c.evidenceLabel}</span>
+            </p>
           </li>
         ))}
       </ul>
 
-      <h3>Pain and swelling by session</h3>
+      <h3 className="section-gap">Pain and swelling by session</h3>
       <Table label="Pain and swelling by session" head={['Date and time (UTC)', 'Exercise', 'Pain (0 to 10)', 'Swelling']}>
         {painSwellingTable.map((r) => (
           <tr key={r.sessionId}>

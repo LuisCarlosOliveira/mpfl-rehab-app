@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { appReducer, initialAppState, type AppState } from '../src/ui/appState';
+import { appReducer, initialAppState, type AppState, type RunResult } from '../src/ui/appState';
+import { startSets } from '../src/lib/sets';
 import type { Summary } from '../src/lib/exercises';
 
 const summary: Summary = {
@@ -165,4 +166,82 @@ describe('protocol and privacy', () => {
     expect(appReducer(erased, { type: 'privacy-seen' }).screen).toBe('load');
   });
 
+});
+
+describe('typed set data', () => {
+  it('carries the set data of a run in the typed result', () => {
+    const sets = startSets({ sets: 2, reps: 3 });
+    const run: RunResult = { reason: 'stop', summary: { ...summary, sets } };
+    expect(run.summary.sets?.prescription).toEqual({ sets: 2, reps: 3 });
+  });
+
+  it('keeps the set data from the session end in the run', () => {
+    const sets = startSets({ sets: 2, reps: 3 });
+    let s = appReducer(home(), { type: 'choose-exercise', exercise: 'heel-slide' });
+    s = appReducer(s, { type: 'red-flags-clear' });
+    s = appReducer(s, { type: 'open', screen: 'session' });
+    s = appReducer(s, { type: 'session-end', reason: 'stop', summary: { ...summary, sets } });
+    expect(s.run?.summary.sets).toBe(sets);
+  });
+});
+
+describe('leg choice and camera side (T17)', () => {
+  const inSetup = () => {
+    let s = appReducer(home(), { type: 'choose-exercise', exercise: 'heel-slide' });
+    s = appReducer(s, { type: 'red-flags-clear' });
+    return s;
+  };
+  const done = { type: 'setup-done', exerciseLeg: 'right', cameraSide: 'left', baselineDeg: 14 } as const;
+
+  it('starts with no leg, no camera side and no baseline', () => {
+    const s = home();
+    expect([s.exerciseLeg, s.cameraSide, s.baselineDeg]).toEqual([null, null, null]);
+  });
+
+  it('keeps the choice and opens Session when Setup is done', () => {
+    const s = appReducer(inSetup(), done);
+    expect(s.screen).toBe('session');
+    expect([s.exerciseLeg, s.cameraSide, s.baselineDeg]).toEqual(['right', 'left', 14]);
+  });
+
+  it('changes only the three fields and the screen, so the protocol side and the phase stay as they are', () => {
+    const before = inSetup();
+    const after = appReducer(before, done);
+    const strip = (s: AppState) => ({ ...s, exerciseLeg: null, cameraSide: null, baselineDeg: null, screen: 'x' });
+    expect(strip(after)).toEqual(strip(before));
+    expect([after.exerciseLeg, after.cameraSide, after.baselineDeg, after.screen]).toEqual(['right', 'left', 14, 'session']);
+  });
+
+  it('keeps a missing baseline as null', () => {
+    const s = appReducer(inSetup(), { ...done, baselineDeg: null });
+    expect(s.baselineDeg).toBeNull();
+    expect(s.screen).toBe('session');
+  });
+
+  it('ignores Setup done outside Setup and does not open Session', () => {
+    const s = appReducer(home(), done);
+    expect(s.screen).toBe('home');
+    expect(s.exerciseLeg).toBeNull();
+  });
+
+  it('does not open Session without a cleared red-flag check', () => {
+    let s = appReducer(inSetup(), { type: 'red-flags-blocked' });
+    s = appReducer(s, done);
+    expect(s.screen).not.toBe('session');
+  });
+
+  it('forgets the choice when a new exercise starts, so the choice lasts for one session only', () => {
+    let s = appReducer(inSetup(), done);
+    s = appReducer(s, { type: 'choose-exercise', exercise: 'mini-squat' });
+    expect([s.exerciseLeg, s.cameraSide, s.baselineDeg]).toEqual([null, null, null]);
+  });
+
+  it('forgets the choice at finish and at erase', () => {
+    const ended = appReducer(appReducer(inSetup(), done), { type: 'session-end', reason: 'stop', summary });
+    expect(ended.exerciseLeg).toBe('right'); // Summary still needs it
+    const fin = appReducer(ended, { type: 'finish' });
+    expect([fin.exerciseLeg, fin.cameraSide, fin.baselineDeg]).toEqual([null, null, null]);
+    const erased = appReducer(ended, { type: 'erased' });
+    expect(erased.exerciseLeg).toBeNull();
+  });
 });

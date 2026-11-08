@@ -1,4 +1,5 @@
 import {
+  countBlock,
   holdInitial,
   holdStep,
   lagInitial,
@@ -8,7 +9,7 @@ import {
   type RepsConfig,
 } from '../src/lib/counters';
 
-const cfg: RepsConfig = { enter: 60, exit: 30, target: 70, minStateMs: 300 };
+const cfg: RepsConfig = { enter: 60, baseline: 0, returnWithin: 30, target: 70, minStateMs: 300 };
 
 // Run a list of [flexion, ms] samples through the reps counter.
 function run(samples: Array<[number | null, number]>, config: RepsConfig = cfg) {
@@ -91,6 +92,116 @@ describe('repsStep', () => {
   });
 });
 
+// ---- Return to the resting angle (T17) -------------------------------------
+// A rep ends when the flexion is back within returnWithin degrees of the baseline.
+// The baseline is the resting angle that Setup measured. The protocol sets returnWithin.
+
+describe('repsStep: return relative to the resting angle', () => {
+  const rcfg = (baseline: number | undefined, returnWithin: number | undefined): RepsConfig => ({
+    enter: 48,
+    baseline,
+    returnWithin,
+    target: 60,
+    minStateMs: 300,
+    maxFlexion: 90,
+    margin: 9,
+  });
+
+  // One rep from `rest` up to `peak` and back to `rest`, 33 ms a sample, with a dwell at rest.
+  const repFrom = (rest: number, peak: number, start = 0): Array<[number, number]> => {
+    const out: Array<[number, number]> = [];
+    let t = start;
+    for (let f = rest; f < peak; f += 5, t += 33) out.push([f, t]);
+    for (let i = 0; i < 12; i++, t += 33) out.push([peak, t]);
+    for (let f = peak; f > rest; f -= 5, t += 33) out.push([f, t]);
+    for (let i = 0; i < 14; i++, t += 33) out.push([rest, t]);
+    return out;
+  };
+  const reps = (samples: Array<[number | null, number]>, config: RepsConfig) =>
+    run(samples, config).events.filter((e) => e === 'rep').length;
+
+  it('counts reps for a person who rests at 25 degrees', () => {
+    const config = rcfg(25, 10);
+    const all: Array<[number, number]> = [];
+    let t = 0;
+    for (let i = 0; i < 3; i++) {
+      const rep = repFrom(25, 70, t);
+      all.push(...rep);
+      t = (rep[rep.length - 1] as [number, number])[1] + 33;
+    }
+    expect(reps(all, config)).toBe(3);
+  });
+
+  it('counts the old failing case: the knee never goes below 22 and the baseline is 22', () => {
+    // The old rule needed 18 degrees for a target of 60. This leg rests above it.
+    const rep = repFrom(22, 70);
+    expect(reps(rep, rcfg(0, 18))).toBe(0);
+    expect(reps(rep, rcfg(22, 18))).toBe(1);
+  });
+
+  it('does not end the rep while the knee is farther from the baseline than returnWithin', () => {
+    const rep = repFrom(25, 70).map(([f, t]): [number, number] => [f === 25 ? 40 : f, t]);
+    expect(reps(rep, rcfg(25, 10))).toBe(0);
+  });
+
+  it('ends the rep exactly at the baseline plus returnWithin', () => {
+    const config = rcfg(25, 10);
+    const rep = repFrom(25, 70).map(([f, t]): [number, number] => [f === 25 ? 35 : f, t]);
+    expect(reps(rep, config)).toBe(1);
+    const above = repFrom(25, 70).map(([f, t]): [number, number] => [f === 25 ? 35.5 : f, t]);
+    expect(reps(above, config)).toBe(0);
+  });
+
+  it('does not double count for noise around the return value', () => {
+    const config = rcfg(25, 10);
+    const samples: Array<[number, number]> = [];
+    let t = 0;
+    for (let f = 25; f <= 70; f += 5, t += 33) samples.push([f, t]);
+    for (let i = 0; i < 12; i++, t += 33) samples.push([70, t]);
+    for (let f = 70; f >= 25; f -= 5, t += 33) samples.push([f, t]);
+    for (let i = 0; i < 14; i++, t += 33) samples.push([25, t]); // the rep ends here
+    for (let i = 0; i < 40; i++, t += 33) samples.push([35 + (i % 2 === 0 ? 3 : -3), t]); // noise at the return value
+    expect(reps(samples, config)).toBe(1);
+  });
+
+  it('counts no rep and gives the reason when the protocol has no return value', () => {
+    const config = rcfg(0, undefined);
+    const rep = repFrom(0, 70);
+    expect(reps(rep, config)).toBe(0);
+    expect(run(rep, config).state.blocked).toBe('no-return-value');
+    expect(countBlock(config)).toBe('no-return-value');
+  });
+
+  it('counts no rep and gives the reason when there is no baseline', () => {
+    const config = rcfg(undefined, 10);
+    expect(reps(repFrom(0, 70), config)).toBe(0);
+    expect(run(repFrom(0, 70), config).state.blocked).toBe('no-baseline');
+    expect(countBlock(config)).toBe('no-baseline');
+  });
+
+  it('names the missing protocol value first when both are missing', () => {
+    expect(countBlock(rcfg(undefined, undefined))).toBe('no-return-value');
+  });
+
+  it('gives no reason when both values are present', () => {
+    expect(countBlock(rcfg(0, 10))).toBeNull();
+    expect(run(repFrom(0, 70), rcfg(0, 10)).state.blocked).toBeNull();
+  });
+
+  it('keeps the ceiling alerts while it counts no rep', () => {
+    const config = rcfg(0, undefined);
+    const events = run(repFrom(0, 105), config).events;
+    expect(events).toContain('near-limit');
+    expect(events).toContain('over-limit');
+  });
+
+  it('gives the ceiling alert again for a second lift after the knee comes down, while it counts no rep', () => {
+    const config = rcfg(0, undefined);
+    const events = run([...repFrom(0, 105), ...repFrom(0, 105, 5000)], config).events;
+    expect(events.filter((e) => e === 'over-limit')).toHaveLength(2);
+  });
+});
+
 describe('holdStep', () => {
   const hcfg = { direction: 'at-least' as const, threshold: 60, minHoldMs: 1000 };
 
@@ -148,7 +259,7 @@ describe('lagStep', () => {
 // Target 45, ceiling 50, margin 9. The rep counts from 36 (target minus margin).
 // The warning starts at 41 (limit minus margin). The count is refused above 59 (limit plus margin).
 describe('repsStep with a margin', () => {
-  const mcfg: RepsConfig = { enter: 36, exit: 15, target: 45, minStateMs: 300, maxFlexion: 50, margin: 9 };
+  const mcfg: RepsConfig = { enter: 36, baseline: 0, returnWithin: 15, target: 45, minStateMs: 300, maxFlexion: 50, margin: 9 };
 
   // Ramp 1 degree per sample up to the peak, hold the peak for 12 samples (a spike shorter
   // than the minimum state time must not count), come back, then dwell at rest.
@@ -209,7 +320,7 @@ describe('repsStep with a margin', () => {
 });
 
 describe('repsStep rep time', () => {
-  const tcfg: RepsConfig = { enter: 36, exit: 15, target: 45, minStateMs: 300, margin: 9, minRepMs: 2000 };
+  const tcfg: RepsConfig = { enter: 36, baseline: 0, returnWithin: 15, target: 45, minStateMs: 300, margin: 9, minRepMs: 2000 };
 
   // One rep as a triangle of the given length, then a dwell at rest.
   function triangle(peak: number, durationMs: number): Array<[number, number]> {

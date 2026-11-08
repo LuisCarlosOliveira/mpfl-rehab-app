@@ -92,6 +92,51 @@ describe('evaluateSetup, details', () => {
   });
 });
 
+describe('evaluateSetup, the chosen leg and the chosen camera side (T17)', () => {
+  const ready = (lm: Landmark[], side: 'left' | 'right', camera?: 'left' | 'right') =>
+    evaluateSetup(lm, side, 1, SETUP_CONFIG, steady(lm), camera).id;
+
+  it('checks the chosen leg: the right leg is seen and the left leg is not needed', () => {
+    expect(ready(legLandmarks('right', 20), 'right', 'right')).toBe('ready');
+  });
+
+  it('asks to turn the leg when the chosen leg is the near leg and the other leg is clearer', () => {
+    const lm = legLandmarks('right', 20);
+    expect(ready(lm, 'left', 'left')).toBe('turn-leg');
+  });
+
+  it('asks to show the leg, and not to turn, when the chosen leg is the far leg and it is hidden', () => {
+    // The person put the camera on the left side and chose the right leg. The near left leg hides it.
+    const lm = legLandmarks('left', 20);
+    lm[28] = { x: 0.5, y: 0.7, visibility: 0.1 };
+    expect(ready(lm, 'right', 'left')).toBe('show-leg');
+  });
+
+  it('keeps the old behaviour when no camera side is given: the camera is on the side of the chosen leg', () => {
+    const lm = legLandmarks('right', 20);
+    expect(ready(lm, 'left')).toBe('turn-leg');
+  });
+
+  it('applies the side-on rule to the far hip of the chosen camera side', () => {
+    // Camera on the left: the near hip is the left hip (23). The far hip is the right hip (24).
+    const lm = legLandmarks('left', 20);
+    lm[24] = { x: 0.7, y: 0.3, visibility: 1 };
+    expect(ready(lm, 'left', 'left')).toBe('side-on');
+  });
+
+  it('applies the side-on rule when the chosen leg is the far leg: the near hip is the other one', () => {
+    // Camera on the left, chosen leg right. Near hip 23 is visible and far from the right hip 24.
+    const lm = legLandmarks('right', 20);
+    lm[23] = { x: 0.7, y: 0.3, visibility: 1 };
+    expect(ready(lm, 'right', 'left')).toBe('side-on');
+  });
+
+  it('does not fail the side-on rule when the near hip is hidden, because the far leg is in the view', () => {
+    const lm = legLandmarks('right', 20);
+    expect(ready(lm, 'right', 'left')).toBe('ready');
+  });
+});
+
 describe('createSetupStabilizer', () => {
   const sample = (lm: Landmark[] | null = good()) => ({ landmarks: lm, side: 'left' as const, aspect: 1 });
   // Same positions, but the knee is hidden and the right side is clear.
@@ -150,6 +195,15 @@ describe('createSetupStabilizer', () => {
     const stab = createSetupStabilizer();
     expect(stab(sample(null), 0).announce).toBe(SETUP_TEXT['no-pose']);
     expect(stab(sample(null), 100).announce).toBeNull();
+  });
+
+  it('passes the camera side to the rules', () => {
+    const stab = createSetupStabilizer();
+    const lm = legLandmarks('right', 20);
+    lm[23] = { x: 0.7, y: 0.3, visibility: 1 };
+    let last = stab({ landmarks: lm, side: 'right', cameraSide: 'left', aspect: 1 }, 0);
+    for (let t = 100; t <= 3000; t += 100) last = stab({ landmarks: lm, side: 'right', cameraSide: 'left', aspect: 1 }, t);
+    expect(last.rule).toBe('side-on');
   });
 
   it('runs a 5-second countdown and then reports ready', () => {

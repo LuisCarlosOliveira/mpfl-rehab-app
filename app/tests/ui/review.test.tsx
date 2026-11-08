@@ -8,7 +8,7 @@ import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';
 import { App } from '../../src/ui/App';
 import { appReducer, initialAppState } from '../../src/ui/appState';
 import { Session } from '../../src/ui/Session';
-import { HEEL_SLIDE, audioHarness, fileOf, freshDb, mockSource, playRep, protocolText } from './helpers';
+import { HEEL_SLIDE, audioHarness, fileOf, freshDb, mockSource, playRep, protocolText, readyLegOf } from './helpers';
 
 beforeEach(() => localStorage.clear());
 afterEach(() => {
@@ -75,9 +75,12 @@ describe('FR12 through the whole app', () => {
     await heading('Set up the camera');
     click('Next: set up the camera');
     click('Start camera');
-    fireEvent.click(await screen.findByRole('button', { name: 'Start exercise' }));
+    const start = await screen.findByRole('button', { name: 'Start exercise' });
+    // The leg holds still, so Setup measures the resting angle that the rep counter needs (T17).
+    for (let t = 0; t <= 3500; t += 100) act(() => source.emit(readyLegOf(example.side as 'left' | 'right', 0), t));
+    fireEvent.click(start);
     await heading('Heel slide');
-    playRep(source, example.side as 'left' | 'right', 60);
+    playRep(source, example.side as 'left' | 'right', 60, 4000);
     click('Stop');
     await heading('Summary');
     fireEvent.click(screen.getByRole('radio', { name: '7' }));

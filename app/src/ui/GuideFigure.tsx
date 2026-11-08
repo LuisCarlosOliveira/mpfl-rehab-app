@@ -1,11 +1,12 @@
 // The position guide drawing (FR28) and the camera guide drawing. Plain svg made from src/lib/figure.ts.
 // No photo and no video of a person. The svg is an image (role="img") with a text alternative from the guide.
 // Style comes from classes (.fg-*) in figures.css and from svg attributes. No inline style attribute.
-// Meaning does not rely on colour: the operated leg is the thicker limb, it has a label and its knee has a ring.
+// Meaning does not rely on colour: the operated leg is the thicker limb, it has a ring on the knee and a legend.
 import type { Side } from '../lib/angle';
 import {
   cameraPlan,
   figureFor,
+  type Box,
   type CameraView,
   type Figure,
   type FigureFrame,
@@ -13,7 +14,6 @@ import {
   type Joint,
   type Limb,
   type Point,
-  VIEW,
 } from '../lib/figure';
 import type { GuideKind } from '../lib/guides';
 import './figures.css';
@@ -21,6 +21,7 @@ import './figures.css';
 const num = (n: number) => Math.round(n * 100) / 100;
 const rad = (deg: number) => (deg * Math.PI) / 180;
 const points = (pts: Point[]) => pts.map((p) => `${num(p.x)},${num(p.y)}`).join(' ');
+const viewBox = (b: Box) => `${b.x} ${b.y} ${b.w} ${b.h}`;
 
 /** The path of the arc at the knee, from the line beyond the thigh to the shank. Null when the knee is straight. */
 function arcPath(arc: Figure['kneeArc']): string | null {
@@ -41,41 +42,28 @@ function wedgePath(arc: Figure['kneeArc']): string {
   return `M ${num(c.x)} ${num(c.y)} L ${arcPath(arc)!.slice(2)} Z`;
 }
 
-function Limbs({ limbs, pts }: { limbs: Limb[]; pts: Record<Joint, Point> }) {
+function Limbs({ limbs, pts, halo = true }: { limbs: Limb[]; pts: Record<Joint, Point>; halo?: boolean }) {
   return (
     <>
-      {limbs.map((l) => (
-        <line
-          key={`${l.from}-${l.to}`}
-          className={`fg-limb fg-${l.leg}`}
-          x1={num(pts[l.from].x)}
-          y1={num(pts[l.from].y)}
-          x2={num(pts[l.to].x)}
-          y2={num(pts[l.to].y)}
-          strokeWidth={l.width}
-        />
-      ))}
+      {limbs.map((l) => {
+        const line = { x1: num(pts[l.from].x), y1: num(pts[l.from].y), x2: num(pts[l.to].x), y2: num(pts[l.to].y) };
+        return (
+          <g key={`${l.from}-${l.to}`}>
+            {/* A thin halo in the card colour keeps a limb apart from the limb behind it. */}
+            {halo && l.leg !== 'far' && <line className="fg-limb fg-halo" {...line} strokeWidth={l.width + 3} />}
+            <line className={`fg-limb fg-${l.leg}`} {...line} strokeWidth={l.width} />
+          </g>
+        );
+      })}
     </>
   );
 }
 
-function Label({ label, className = 'fg-text' }: { label: { text: string; box: FigureLabel['box'] }; className?: string }) {
-  // The box holds the top left corner. The baseline sits near the bottom of the box.
+function Label({ label, size, className = 'fg-text' }: { label: Pick<FigureLabel, 'text' | 'at'>; size: number; className?: string }) {
   return (
-    <text className={className} x={label.box.x} y={label.box.y + 12.5}>
+    <text className={className} x={label.at.x} y={label.at.y} fontSize={size}>
       {label.text}
     </text>
-  );
-}
-
-/** A small camera icon: a body, a lens and a top bump. */
-function CameraIcon({ at, w, h }: { at: Point; w: number; h: number }) {
-  return (
-    <g>
-      <rect className="fg-camera-body" x={at.x - w / 2} y={at.y - h / 2} width={w} height={h} rx="2" />
-      <rect className="fg-camera-body" x={at.x - w / 4} y={at.y - h / 2 - 3} width={w / 2} height="4" rx="1" />
-      <circle className="fg-camera-lens" cx={at.x} cy={at.y + 0.5} r={h / 3.2} />
-    </g>
   );
 }
 
@@ -94,17 +82,19 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg }: Props) 
   const arc = frame === 'end' ? arcPath(fig.kneeArc) : null;
   const byKey = (key: FigureLabel['key']) => fig.labels.find((l) => l.key === key)!;
   const frameName = frame === 'start' ? 'Start position' : 'End position';
+  const { view, labelSize: size } = fig;
   return (
-    <svg className="fig" viewBox={`0 0 ${VIEW.w} ${fig.height}`} role="img" aria-label={description} focusable="false">
+    <svg className="fig" viewBox={viewBox(view)} role="img" aria-label={description} focusable="false">
       <title>{frameName}</title>
       <desc>{description}</desc>
       {fig.surface.rects.map((r, i) => (
         <rect key={i} className="fg-object" x={r.x} y={r.y} width={r.w} height={r.h} rx={r.r} />
       ))}
-      {fig.surface.key !== 'mat' && <line className="fg-floor" x1="3" x2="147" y1={fig.floorY} y2={fig.floorY} />}
+      {fig.floor && <line className="fg-floor" x1={view.x + 2} x2={view.x + view.w - 2} y1={fig.floor.y} y2={fig.floor.y} />}
+      <Label label={byKey('surface')} size={size} className="fg-text-object" />
       {fig.ghost && (
         <g className="fg-ghost">
-          <Limbs limbs={fig.ghost.limbs} pts={fig.ghost.points} />
+          <Limbs limbs={fig.ghost.limbs} pts={fig.ghost.points} halo={false} />
           <circle className="fg-head" cx={num(fig.ghost.head.center.x)} cy={num(fig.ghost.head.center.y)} r={fig.ghost.head.r} />
         </g>
       )}
@@ -113,16 +103,13 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg }: Props) 
       {arc && <line className="fg-ref" x1={num(fig.kneeArc.reference.from.x)} y1={num(fig.kneeArc.reference.from.y)} x2={num(fig.kneeArc.reference.to.x)} y2={num(fig.kneeArc.reference.to.y)} />}
       {arc && <path className="fg-wedge" d={wedgePath(fig.kneeArc)} />}
       {arc && <path className="fg-arc" d={arc} />}
-      <circle className="fg-knee-mark" cx={num(fig.points.knee.x)} cy={num(fig.points.knee.y)} r="10" />
+      <circle className="fg-knee-mark" cx={num(fig.kneeRing.center.x)} cy={num(fig.kneeRing.center.y)} r={fig.kneeRing.r} />
       <line className="fg-arrow" x1={num(fig.arrow.from.x)} y1={num(fig.arrow.from.y)} x2={num(fig.arrow.to.x)} y2={num(fig.arrow.to.y)} />
       <polygon className="fg-arrow-head" points={points(fig.arrow.head)} />
-      <Label label={byKey('frame')} />
-      <Label label={byKey('surface')} />
-      <circle className="fg-knee-mark" cx="14" cy={byKey('operatedLeg').box.y + 8} r="6" />
-      <Label label={byKey('operatedLeg')} />
-      <CameraIcon {...fig.camera} />
-      <Label label={byKey('camera')} />
-      {fig.kneeArc.label && <Label label={fig.kneeArc.label} className="fg-text-accent" />}
+      <Label label={byKey('frame')} size={size} />
+      <circle className="fg-knee-mark" cx={fig.legendRing.center.x} cy={fig.legendRing.center.y} r={fig.legendRing.r} />
+      <Label label={byKey('operatedLeg')} size={size} />
+      {fig.kneeArc.label && <Label label={fig.kneeArc.label} size={size} className="fg-text-accent" />}
     </svg>
   );
 }
@@ -130,33 +117,46 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg }: Props) 
 interface CameraProps {
   view: CameraView;
   kind: GuideKind;
-  side: Side;
   /** The text alternative. */
   description: string;
 }
 
-/** The camera placement drawing, seen from above. Not used by the Setup screen yet. See the report. */
-export function CameraFigure({ view, kind, side, description }: CameraProps) {
-  const plan = cameraPlan(view, kind, side);
+/** The camera placement drawing: the person in profile, the phone on a stand at knee height, the view cone and the distance. */
+export function CameraFigure({ view, kind, description }: CameraProps) {
+  const plan = cameraPlan(view, kind);
+  const { figure: f, phone, distance } = plan;
+  const size = plan.labelSize;
+  const label = (key: (typeof plan.labels)[number]['key']) => plan.labels.find((l) => l.key === key)!;
   return (
-    <svg className="fig" viewBox={`0 0 ${plan.size.w} ${plan.size.h}`} role="img" aria-label={description} focusable="false">
+    <svg className="fig" viewBox={viewBox(plan.box)} role="img" aria-label={description} focusable="false">
       <title>{view === 'side' ? 'Side view camera position' : 'Front view camera position'}</title>
       <desc>{description}</desc>
       <polygon className="fg-cone" points={points(plan.cone)} />
-      {plan.legs.map((l) => (
-        <line key={l.leg} className={`fg-limb fg-${l.leg}`} x1={num(l.from.x)} y1={num(l.from.y)} x2={num(l.to.x)} y2={num(l.to.y)} strokeWidth={l.width} />
+      {f.surface.rects.map((r, i) => (
+        <rect key={i} className="fg-object" x={r.x} y={r.y} width={r.w} height={r.h} rx={r.r} />
       ))}
-      <rect className="fg-limb-fill fg-head" x={plan.body.x} y={plan.body.y} width={plan.body.w} height={plan.body.h} rx={plan.body.r} />
-      <circle className="fg-head" cx={num(plan.head.center.x)} cy={num(plan.head.center.y)} r={plan.head.r} />
-      <line className="fg-arrow" x1={plan.distance.from.x} y1={plan.distance.from.y} x2={plan.distance.to.x} y2={plan.distance.to.y} />
-      <polygon className="fg-arrow-head" points={points(plan.distance.head)} />
-      <polygon className="fg-arrow-head" points={points(plan.distance.tail)} />
-      <circle className="fg-knee-mark" cx={num(plan.kneeMark.x)} cy={num(plan.kneeMark.y)} r="8" />
-      <line className="fg-leader" x1={num(plan.leader.from.x)} y1={num(plan.leader.from.y)} x2={num(plan.leader.to.x)} y2={num(plan.leader.to.y)} />
-      <CameraIcon {...plan.camera} />
-      {plan.labels.map((l) => (
-        <Label key={l.key} label={l} />
+      {f.floor && <line className="fg-floor" x1={plan.box.x + 2} x2={plan.box.x + plan.box.w - 2} y1={f.floor.y} y2={f.floor.y} />}
+      <Limbs limbs={f.limbs} pts={f.points} />
+      <circle className="fg-head" cx={num(f.head.center.x)} cy={num(f.head.center.y)} r={f.head.r} />
+      <circle className="fg-knee-mark" cx={num(f.kneeRing.center.x)} cy={num(f.kneeRing.center.y)} r={f.kneeRing.r} />
+      <line className="fg-level" x1={num(plan.level.from.x + f.kneeRing.r)} y1={plan.level.from.y} x2={num(plan.level.to.x)} y2={plan.level.to.y} />
+      <line className="fg-stand" x1={phone.stem.from.x} y1={phone.stem.from.y} x2={phone.stem.to.x} y2={phone.stem.to.y} />
+      <line className="fg-stand" x1={phone.foot.from.x} y1={phone.foot.from.y} x2={phone.foot.to.x} y2={phone.foot.to.y} />
+      <rect className="fg-camera-body" x={phone.body.x} y={phone.body.y} width={phone.body.w} height={phone.body.h} rx={phone.body.r} />
+      <circle className="fg-camera-lens" cx={phone.lens.x} cy={phone.lens.y} r={phone.lensR} />
+      <line className="fg-arrow" x1={distance.from.x} y1={distance.from.y} x2={distance.to.x} y2={distance.to.y} />
+      <polygon className="fg-arrow-head" points={points(distance.head)} />
+      <polygon className="fg-arrow-head" points={points(distance.tail)} />
+      {distance.ticks.map((t, i) => (
+        <line key={i} className="fg-leader" x1={t.from.x} y1={t.from.y} x2={t.to.x} y2={t.to.y} />
       ))}
+      <Label label={label('view')} size={size} />
+      <Label label={label('camera')} size={size} />
+      <Label label={label('distance')} size={size} className="fg-text-accent" />
+      <circle className="fg-knee-mark" cx={plan.legendRing.center.x} cy={plan.legendRing.center.y} r={plan.legendRing.r} />
+      <Label label={label('operatedLeg')} size={size} />
+      <line className="fg-level" x1={plan.legendLevel.from.x} y1={plan.legendLevel.from.y} x2={plan.legendLevel.to.x} y2={plan.legendLevel.to.y} />
+      <Label label={label('height')} size={size} />
     </svg>
   );
 }

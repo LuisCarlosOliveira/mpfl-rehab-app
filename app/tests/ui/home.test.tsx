@@ -136,4 +136,36 @@ describe('Home screen', () => {
     expect(within(block).getByRole('button', { name: 'My data' })).toHaveClass('btn');
     expect(screen.getByRole('heading', { level: 2, name: 'Decisions for your surgeon' })).toBeInTheDocument();
   });
+
+  it('keeps the surgeon list closed in a details element until the person opens it', () => {
+    setup();
+    const summary = screen.getByRole('heading', { level: 2, name: 'Decisions for your surgeon' }).closest('summary')!;
+    const details = summary.closest('details')!;
+    expect(details.open).toBe(false);
+    expect(summary).toHaveTextContent(`${ASK_SURGEON_ITEMS.length + 5} items`);
+    details.open = true; // jsdom does not toggle a details element on a click, so the test sets the state
+    for (const item of ASK_SURGEON_ITEMS) expect(within(details).getByText(item)).toBeInTheDocument();
+  });
+
+  it('makes the first exercise with a target the hero card, with its end-position drawing', () => {
+    setup();
+    const cards = screen.getAllByRole('listitem').filter((li) => li.classList.contains('exercise'));
+    expect(cards[0]).toHaveClass('exercise-featured');
+    expect(cards[1]).not.toHaveClass('exercise-featured');
+    expect(within(cards[0]!).getByRole('img', { name: /end position/i })).toBeInTheDocument();
+    expect(within(cards[1]!).queryByRole('img')).toBeNull();
+    expect(within(cards[0]!).getByRole('button', { name: 'Start Heel slide' })).toHaveClass('btn-lg');
+  });
+
+  it('shows the plan of an exercise as chips and hides every icon from assistive technology', () => {
+    setup();
+    const chips = screen.getAllByText('3 sets of 10 reps').map((c) => c.closest('li'));
+    for (const chip of chips) expect(chip).toHaveClass('chip');
+    for (const icon of document.querySelectorAll('svg:not([role="img"])')) expect(icon).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('sets no inline style attribute (the CSP and the design rule)', () => {
+    setup();
+    expect(document.querySelectorAll('[style]')).toHaveLength(0);
+  });
 });

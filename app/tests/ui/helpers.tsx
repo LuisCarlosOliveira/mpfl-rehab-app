@@ -29,6 +29,7 @@ export const HEEL_SLIDE: Exercise = {
   reps: 10,
   targetFlexion: 60,
   maxFlexion: 90,
+  returnWithinDeg: 18,
   minRepSeconds: 2,
   source: 'test',
 };
@@ -118,3 +119,15 @@ export function audioHarness() {
 
 /** The setup frames of a leg that the check accepts: the whole leg, big enough, side-on. */
 export const readyLeg = () => legLandmarks('left', 20, { length: 0.3, hip: { x: 0.5, y: 0.2 } });
+
+/** Setup frames of the chosen leg that the check accepts, for either side. */
+export const readyLegOf = (side: Side, flexion = 20) => legLandmarks(side, flexion, { length: 0.3, hip: { x: 0.5, y: 0.2 } });
+
+/** One frame with both legs shown. A flexion of null hides that leg. The hip and the line from hip to ankle stay still. */
+export function twoLegs(left: number | null, right: number | null) {
+  const a = legLandmarks('left', left ?? 0, { length: 0.3, hip: { x: 0.5, y: 0.2 } });
+  const b = legLandmarks('right', right ?? 0, { length: 0.3, hip: { x: 0.5, y: 0.2 } });
+  if (left === null) [23, 25, 27].forEach((i) => (a[i] = { ...a[i]!, visibility: 0.1 }));
+  if (right === null) [24, 26, 28].forEach((i) => (b[i] = { ...b[i]!, visibility: 0.1 }));
+  return a.map((p, k) => (k === 24 || k === 26 || k === 28 ? b[k]! : p));
+}

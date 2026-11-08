@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { MAX_FILE_BYTES, type Mode } from '../lib/protocol';
 import { saveProtocol, type MpflDb } from '../lib/storage';
+import { Icon } from './Icon';
+import { Notice } from './Notice';
 
 const ERROR_TITLES: Record<string, string> = {
   'too-large': 'File too large',
@@ -48,12 +50,17 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
   }
 
   return (
-    <section aria-labelledby="load-title">
-      <h1 id="load-title" tabIndex={-1}>
-        Load protocol file
-      </h1>
-      <p>Your care team gives you a protocol file. Pick it once. The app keeps it on this device.</p>
-      <div className="field">
+    <section aria-labelledby="load-title" className="narrow">
+      <header className="page-head">
+        <h1 id="load-title" tabIndex={-1}>
+          Load protocol file
+        </h1>
+      </header>
+      <p className="lede">Your care team gives you a protocol file. Pick it once. The app keeps it on this device.</p>
+      <div className="dropzone field mt">
+        <span className="drop-icon">
+          <Icon name="file-up" size={30} />
+        </span>
         <label htmlFor="protocol-file">Protocol file (.json)</label>
         <input
           id="protocol-file"
@@ -68,14 +75,16 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
         />
       </div>
       {error && (
-        <div className="attention" role="alert">
-          <p className="attention-title">{error.title}</p>
-          <p>{error.message}</p>
+        <div className="stack-s mt-s">
+          <Notice role="alert" icon="triangle-alert" title={error.title}>
+            <p>{error.message}</p>
+          </Notice>
         </div>
       )}
       {onCancel && (
         <div className="actions">
           <button type="button" className="btn" onClick={onCancel}>
+            <Icon name="arrow-left" size={18} />
             Back to Home
           </button>
         </div>

@@ -1,25 +1,29 @@
 /* Position guide and camera guide drawings (FR28). Colours come from classes, never from style attributes.
-   One calm body colour. The operated leg is darker and thicker. No green or red verdict colour.
-   Meaning does not rely on colour: the operated leg is also the thicker limb and it has a label and a marked knee. */
+   The palette is the palette of styles.css. The --fig- names are the names of this file only.
+   One calm body colour. The operated leg is the darkest and the thickest limb, and it has a ring on its knee.
+   No green or red verdict colour. Meaning does not rely on colour: words and the ring carry it too.
+   The label size is set by the svg attribute font-size, so it follows the view box. It is about 15 px at 300 px width. */
 
 :root {
-  --fig-body: #4f6f8d; /* head, torso and arm. 4.8:1 on the surface */
-  --fig-near: #2b4a68; /* the operated leg. 8:1 on the surface */
-  --fig-far: #6f8aa3; /* the other leg. 3.3:1 on the surface */
-  --fig-ghost: #4f6f8d;
-  --fig-object: #c9c4b8; /* mat, chair and counter */
-  --fig-object-line: #6b665b;
-  --fig-accent: #17407a; /* angle arc, knee mark, view cone and arrows. Same blue as the focus colour */
-  --fig-camera: #1c1e21;
+  --fig-body: var(--muted); /* head, torso and arm. 7.8:1 on the card in light, 8.6:1 in dark */
+  --fig-near: var(--ink); /* the operated leg */
+  --fig-far: var(--edge); /* the other leg. 3.4:1 on the card, a stroke needs 3:1 */
+  --fig-object: var(--sunken); /* mat, chair and counter */
+  --fig-object-line: var(--edge);
+  --fig-accent: var(--chart); /* knee ring, arc, arrows and the distance. 7:1 on the card, text needs 4.5:1 */
+  --fig-cone: var(--primary-soft);
+  --fig-camera: var(--ink);
 }
 
 .fig {
   display: block;
   width: 100%;
+  max-width: 22rem; /* a label stays 14 px or more, because the picture is never narrower than 288 px on a phone */
   height: auto;
-  background: var(--surface);
+  margin-inline: auto;
+  background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--r-l);
 }
 .fg-floor {
   stroke: var(--fig-object-line);
@@ -41,33 +45,38 @@
 .fg-far {
   stroke: var(--fig-far);
 }
+.fg-halo {
+  stroke: var(--raised);
+}
 .fg-near {
   stroke: var(--fig-near);
 }
 .fg-head {
   fill: var(--fig-body);
-  stroke: var(--surface);
+  stroke: var(--raised);
   stroke-width: 1.5;
 }
 .fg-ghost {
-  opacity: 0.22;
-}
-.fg-ghost .fg-limb {
-  stroke: var(--fig-ghost);
+  opacity: 0.3;
 }
 .fg-ghost .fg-head {
-  fill: var(--fig-ghost);
+  stroke: none;
 }
 .fg-knee-mark {
   fill: none;
   stroke: var(--fig-accent);
-  stroke-width: 2.5;
+  stroke-width: 2;
 }
 .fg-arc {
   fill: none;
   stroke: var(--fig-accent);
-  stroke-width: 3;
+  stroke-width: 2.5;
   stroke-linecap: round;
+}
+.fg-wedge {
+  fill: var(--fig-accent);
+  fill-opacity: 0.22;
+  stroke: none;
 }
 .fg-ref {
   fill: none;
@@ -78,7 +87,7 @@
 .fg-arrow {
   fill: none;
   stroke: var(--fig-accent);
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: round;
 }
 .fg-arrow-head {
@@ -88,36 +97,44 @@
   fill: var(--fig-camera);
 }
 .fg-camera-lens {
-  fill: var(--surface);
+  fill: var(--raised);
   stroke: var(--fig-camera);
   stroke-width: 1.5;
 }
+.fg-stand {
+  stroke: var(--fig-camera);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
 .fg-cone {
-  fill: var(--fig-accent);
-  fill-opacity: 0.07;
+  fill: var(--fig-cone);
+  fill-opacity: 0.55;
+  stroke: var(--fig-accent);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+.fg-level {
   stroke: var(--fig-accent);
   stroke-width: 1.5;
-  stroke-dasharray: 5 4;
-}
-.fg-text {
-  fill: var(--ink);
-  font-family: var(--font-text);
-  font-size: 14px;
-  font-weight: 700;
-}
-.fg-text-accent {
-  fill: var(--fig-accent);
-  font-family: var(--font-text);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.fg-wedge {
-  fill: var(--fig-accent);
-  fill-opacity: 0.25;
-  stroke: none;
+  stroke-dasharray: 1.5 3;
+  stroke-linecap: round;
 }
 .fg-leader {
   stroke: var(--fig-accent);
   stroke-width: 1.5;
+}
+.fg-text,
+.fg-text-object,
+.fg-text-accent {
+  font-family: var(--font-text);
+  font-weight: 700;
+}
+.fg-text {
+  fill: var(--ink);
+}
+.fg-text-object {
+  fill: var(--muted);
+}
+.fg-text-accent {
+  fill: var(--fig-accent);
 }

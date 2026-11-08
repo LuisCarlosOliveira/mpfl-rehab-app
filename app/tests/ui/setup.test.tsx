@@ -7,7 +7,7 @@ import { audioHarness, mockSource, readyLeg, type MockSource } from './helpers';
 
 afterEach(cleanup);
 
-function setup(source: MockSource = mockSource(), over: { limit?: number } = {}) {
+function setup(source: MockSource = mockSource(), over: { limit?: number; targetFlexion?: number } = {}) {
   const onReady = vi.fn();
   const onCancel = vi.fn();
   const audio = audioHarness();
@@ -17,6 +17,7 @@ function setup(source: MockSource = mockSource(), over: { limit?: number } = {})
       side="left"
       exerciseName="Heel slide"
       limit={over.limit}
+      targetFlexion={over.targetFlexion}
       source={source}
       sound={audio.sound}
       onReady={onReady}
@@ -60,15 +61,51 @@ describe('Setup, position guide step (FR28)', () => {
     expect(source.start).not.toHaveBeenCalled();
   });
 
-  it('draws a start and an end figure as plain svg images with a text alternative from the guide', () => {
+  it('draws a start, an end and a camera figure as plain svg images with a text alternative', () => {
     const { container } = setup();
     const guide = guideFor('heel-slide');
     const images = screen.getAllByRole('img');
-    expect(images).toHaveLength(2);
+    expect(images).toHaveLength(3);
     expect(images[0]).toHaveAccessibleName(expect.stringContaining(guide.startPosition));
     expect(images[1]).toHaveAccessibleName(expect.stringContaining(guide.range));
+    expect(images[2]).toHaveAccessibleName(/camera at the side of your chosen leg, at knee height, 2 to 2\.5 m away/i);
     images.forEach((img) => expect(img.tagName.toLowerCase()).toBe('svg'));
     expect(container.querySelector('foreignObject, image')).toBeNull();
+  });
+
+  it('shows the side view of the camera guide only, until a second view is decided', () => {
+    setup();
+    expect(screen.getAllByText(/side view/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/front view/i)).toBeNull();
+  });
+
+  it('draws the end figure with the target of the exercise, and no number without a target', () => {
+    const { container } = setup(mockSource(), { targetFlexion: 75 });
+    expect(container.textContent).toContain(`75${String.fromCharCode(176)}`);
+    cleanup();
+    const none = setup();
+    expect(none.container.textContent).not.toMatch(/\d\d${String.fromCharCode(176)}/);
+  });
+
+  it('shows the step indicator with the position guide as the current step', () => {
+    setup();
+    const steps = within(screen.getByRole('list', { name: 'Steps' })).getAllByRole('listitem');
+    expect(steps[0]).toHaveAttribute('aria-current', 'step');
+    expect(steps[0]).toHaveTextContent('Position guide');
+    toCamera();
+    const after = within(screen.getByRole('list', { name: 'Steps' })).getAllByRole('listitem');
+    expect(after.find((li) => li.getAttribute('aria-current') === 'step')).toHaveTextContent('Camera');
+  });
+
+  it('writes the six notes as a description list with a term and a description in each card', () => {
+    const { container } = setup();
+    const list = container.querySelector('dl.guide-notes')!;
+    const cards = [...list.children];
+    expect(cards).toHaveLength(6);
+    cards.forEach((card) => {
+      expect([...card.children].map((c) => c.tagName)).toEqual(['DT', 'DD']);
+      expect(card.querySelector('dt svg')).not.toBeNull();
+    });
   });
 
   it('has no inline style attribute anywhere on the screen', () => {
@@ -101,9 +138,14 @@ describe('Setup, position guide step (FR28)', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
-  it('keeps the optional second-device step hidden (T12b)', () => {
-    setup();
+  it('keeps the optional second-device step hidden (T12b), in a named container on the camera step', () => {
+    const { container } = setup();
     expect(screen.queryByText(/second (device|camera)/i)).toBeNull();
+    toCamera();
+    const slot = container.querySelector('[data-slot="second-device"]')!;
+    expect(slot).not.toBeNull();
+    expect(slot).not.toBeVisible();
+    expect(slot).toBeEmptyDOMElement();
   });
 });
 
@@ -114,6 +156,15 @@ describe('Setup, camera step', () => {
     expect(screen.getByText(/does not record or send video/i)).toBeInTheDocument();
     expect(screen.getByText(/other people in the view are also seen by the camera/i)).toBeInTheDocument();
     expect(source.start).not.toHaveBeenCalled();
+  });
+
+  it('shows the camera frame, the camera guide and the Start button on the camera step', () => {
+    const { container } = setup();
+    toCamera();
+    expect(container.querySelector('.frame video')).not.toBeNull();
+    expect(screen.getByText(/your camera view shows here/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+    expect(screen.getByRole('img')).toHaveAccessibleName(/2 to 2\.5 m/);
   });
 
   it('starts the camera and unlocks the sound after a press of "Start camera" only', async () => {
@@ -196,6 +247,17 @@ describe('Setup, live check (FR27)', () => {
     items.forEach((li) => expect(li.textContent).toMatch(/not seen/));
     frames(source, 100, 4500);
     expect(within(list).getAllByRole('listitem').every((li) => /: seen$/.test(li.textContent ?? ''))).toBe(true);
+  });
+
+  it('shows each rule as a chip with an icon and a word', async () => {
+    const { source } = await cameraRunning();
+    act(() => source.emit(null, 0));
+    const items = within(screen.getByRole('list', { name: 'Camera check' })).getAllByRole('listitem');
+    items.forEach((li) => {
+      expect(li.querySelector('svg')).not.toBeNull();
+      expect(li.querySelector('.rule-word')?.textContent).toMatch(/^(seen|not seen)$/);
+    });
+    expect(items[0]).toHaveClass('rule-missing');
   });
 
   it('carries only the announce text in the polite live region', async () => {

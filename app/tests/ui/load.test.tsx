@@ -84,6 +84,22 @@ describe('Load protocol screen', () => {
   });
 });
 
+describe('Load protocol screen, design', () => {
+  it('shows the picker in a drop area with a hidden icon, and no inline style', () => {
+    const { container } = render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} />);
+    const zone = screen.getByLabelText('Protocol file (.json)').closest('.dropzone')!;
+    expect(zone.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(container.querySelector('[style]')).toBeNull();
+  });
+
+  it('shows a refused file as a notice with a title in the alert role', async () => {
+    await pick(exampleText(), 'patient');
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveClass('notice');
+    expect(alert.querySelector('.notice-title')).toHaveTextContent('Example not allowed');
+  });
+});
+
 describe('Load protocol screen, back button', () => {
   it('has no back button when no stored protocol exists', () => {
     render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} />);

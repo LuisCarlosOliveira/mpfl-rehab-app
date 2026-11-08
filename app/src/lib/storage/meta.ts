@@ -43,10 +43,16 @@ function newId(): string {
 // Kept for this page load only when storage is blocked, so the id stays the same.
 let memoryId: string | null = null;
 
+/** The id stored on this device, or null. This never writes. */
+export function storedPseudonymId(): string | null {
+  const stored = read(PSEUDO_KEY);
+  return stored && z.uuid().safeParse(stored).success ? stored : null;
+}
+
 /** A random id. It is not linked to a person. A new one is made after erase. */
 export function getPseudonymId(): string {
-  const stored = read(PSEUDO_KEY);
-  if (stored && z.uuid().safeParse(stored).success) return stored;
+  const stored = storedPseudonymId();
+  if (stored) return stored;
   const id = memoryId ?? newId();
   memoryId = write(PSEUDO_KEY, id) ? null : id;
   return id;

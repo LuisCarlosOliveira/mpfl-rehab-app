@@ -26,7 +26,25 @@ export const sessionSchema = z.strictObject({
   swelling: z.enum(['none', 'some', 'more']),
   protocolId: protocolIdSchema,
   phase: z.number().int().min(1).max(10),
+  // Set data. All three fields are optional, so a session from an older file still reads (T16).
+  // The schema version stays 1 because no field was removed or changed.
+  setsPrescribed: z.number().int().min(1).max(20).optional(),
+  repsPrescribed: z.number().int().min(1).max(100).optional(),
+  // One entry for each started set. With no prescription it holds one entry, the plain count.
+  repsPerSet: z.array(z.number().int().min(0).max(1000)).max(20).optional(),
+  // T17: the leg that the pipeline tracked and the side of the person that the camera was on.
+  // Both are optional, so a session from an older file still reads. No index. The schema version stays 1.
+  legTracked: z.enum(['left', 'right']).optional(),
+  cameraSide: z.enum(['left', 'right']).optional(),
   schemaVersion: z.literal(1),
+}).superRefine((s, ctx) => {
+  if (s.repsPerSet === undefined) return;
+  if (s.repsPrescribed !== undefined && s.repsPerSet.some((r) => r > (s.repsPrescribed as number))) {
+    ctx.addIssue({ code: 'custom', path: ['repsPerSet'], message: 'A set cannot hold more reps than repsPrescribed.' });
+  }
+  if (s.setsPrescribed !== undefined && s.repsPerSet.length > s.setsPrescribed) {
+    ctx.addIssue({ code: 'custom', path: ['repsPerSet'], message: 'There cannot be more sets than setsPrescribed.' });
+  }
 });
 
 export type SessionData = z.infer<typeof sessionSchema>;

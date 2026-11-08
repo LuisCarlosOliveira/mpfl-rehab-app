@@ -3,6 +3,8 @@
 // The visibility gate is MIN_VISIBILITY of angle.ts (FR7, UNVERIFIED value).
 
 import { MIN_VISIBILITY, selectLeg, type Landmark, type Side } from './angle';
+import { restingBaseline } from './baseline';
+import { isStill } from './still';
 
 export interface SetupConfig {
   edgeFraction: number;
@@ -46,7 +48,7 @@ export type SetupRuleId = 'no-pose' | 'turn-leg' | 'show-leg' | 'whole-leg' | 'c
 // Fixed instruction texts. ux-flow 6.2. The text of 'still' names 2 seconds, the window of SETUP_CONFIG.
 export const SETUP_TEXT: Record<SetupRuleId, string> = {
   'no-pose': 'Step into the view.',
-  'turn-leg': 'Turn so your operated leg faces the camera.',
+  'turn-leg': 'Turn so your chosen leg faces the camera.',
   'show-leg': 'Your hip, knee and ankle must show. Remove anything that covers your leg.',
   'whole-leg': 'Move back. Show your whole leg.',
   closer: 'Move closer.',
@@ -74,22 +76,9 @@ const otherSide = (side: Side): Side => (side === 'left' ? 'right' : 'left');
 const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
 const meanVisibility = (leg: Landmark[]) => leg.reduce((sum, p) => sum + (p.visibility ?? 1), 0) / leg.length;
 
-function isStill(history: SetupSample[], side: Side, aspect: number, config: SetupConfig): boolean {
-  const first = history[0];
-  const last = history[history.length - 1];
-  if (!first || !last || last.tMs - first.tMs < config.stillWindowMs) return false;
-  return ([0, 1, 2] as const).every((i) => {
-    const pts = history.map((s) => selectLeg(s.landmarks, side)[i]);
-    const xs = pts.map((p) => p.x);
-    const ys = pts.map((p) => p.y);
-    const dx = (Math.max(...xs) - Math.min(...xs)) * aspect;
-    const dy = Math.max(...ys) - Math.min(...ys);
-    return Math.hypot(dx, dy) <= config.stillMaxMove;
-  });
-}
-
 /**
  * Returns the first failed rule in priority order, or ready.
+ * `side` is the leg that the person chose. `cameraSide` is the side of the person that the camera is on. It defaults to `side`.
  * `aspect` is video width divided by height. `history` holds recent samples, newest last, and is needed for the stillness rule.
  */
 export function evaluateSetup(
@@ -98,6 +87,7 @@ export function evaluateSetup(
   aspect: number,
   config: SetupConfig = SETUP_CONFIG,
   history: SetupSample[] = [],
+  cameraSide: Side = side,
 ): SetupResult {
   const out = (id: SetupRuleId): SetupResult => ({ id, text: SETUP_TEXT[id], ready: id === 'ready' });
 
@@ -105,8 +95,9 @@ export function evaluateSetup(
   const leg = selectLeg(landmarks, side);
 
   if (!leg.every(visible)) {
+    // A far leg is expected to be hidden by the near leg, so turning the body does not help then.
     const other = selectLeg(landmarks, otherSide(side));
-    return out(meanVisibility(other) > meanVisibility(leg) ? 'turn-leg' : 'show-leg');
+    return out(cameraSide === side && meanVisibility(other) > meanVisibility(leg) ? 'turn-leg' : 'show-leg');
   }
 
   const e = config.edgeFraction;
@@ -117,9 +108,13 @@ export function evaluateSetup(
   const legLength = Math.hypot((hip.x - knee.x) * aspect, hip.y - knee.y) + Math.hypot((knee.x - ankle.x) * aspect, knee.y - ankle.y);
   if (legLength / Math.max(aspect, 1) < config.minLegFraction) return out('closer');
 
-  // The far hip is often hidden when the view is side-on. A hidden far hip does not fail the rule.
-  const farHip = landmarks[HIP[otherSide(side)]];
-  if (farHip && visible(farHip) && (Math.abs(hip.x - farHip.x) * aspect) / legLength > config.maxHipGap) return out('side-on');
+  // The far hip is often hidden when the view is side-on. A hidden hip does not fail the rule.
+  // The near hip is the hip on the camera side. It is the hip of the chosen leg when that leg is near.
+  const nearHip = landmarks[HIP[cameraSide]];
+  const farHip = landmarks[HIP[otherSide(cameraSide)]];
+  if (nearHip && farHip && visible(nearHip) && visible(farHip) && (Math.abs(nearHip.x - farHip.x) * aspect) / legLength > config.maxHipGap) {
+    return out('side-on');
+  }
 
   if (!isStill(history, side, aspect, config)) return out('still');
   return out('ready');
@@ -127,7 +122,10 @@ export function evaluateSetup(
 
 export interface SetupSampleInput {
   landmarks: Landmark[] | null;
+  /** The leg that the person chose. */
   side: Side;
+  /** The side of the person that the camera is on. Missing means the side of the chosen leg. */
+  cameraSide?: Side;
   aspect: number;
 }
 
@@ -140,6 +138,8 @@ export interface StabilizedSetup {
   announce: string | null;
   /** Milliseconds left in the start countdown, or null if it is not running. */
   countdownLeftMs: number | null;
+  /** The resting flexion of the chosen leg in degrees, once the check is ready. Otherwise null. */
+  baselineDeg: number | null;
 }
 
 /**
@@ -154,6 +154,7 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
   let extraMs = 0;
   let announced: SetupRuleId | null = null;
   let announcedAt = -Infinity;
+  let baselineDeg: number | null = null;
 
   const step = (sample: SetupSampleInput, tMs: number): StabilizedSetup => {
     if (sample.landmarks) {
@@ -164,7 +165,12 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
       history = [];
     }
 
-    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history).id;
+    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history, sample.cameraSide).id;
+    if (current === 'ready') {
+      // The leg held still, so the median of the window is the resting angle. The newest good value stays.
+      const rest = restingBaseline(history, sample.side, sample.aspect, config);
+      if (rest.ok) baselineDeg = rest.baselineDeg;
+    }
     if (shown === null) {
       shown = current;
     } else if (current === shown) {
@@ -177,8 +183,10 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
       }
     }
 
-    if (shown !== 'ready') readySince = null;
-    else if (readySince === null) readySince = tMs;
+    if (shown !== 'ready') {
+      readySince = null;
+      baselineDeg = null; // the person moved: measure again
+    } else if (readySince === null) readySince = tMs;
     const countdownLeftMs = readySince === null ? null : Math.max(0, readySince + config.countdownMs + extraMs - tMs);
 
     let announce: string | null = null;
@@ -187,7 +195,7 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
       announced = shown;
       announcedAt = tMs;
     }
-    return { rule: shown, text: SETUP_TEXT[shown], ready: countdownLeftMs === 0, announce, countdownLeftMs };
+    return { rule: shown, text: SETUP_TEXT[shown], ready: countdownLeftMs === 0, announce, countdownLeftMs, baselineDeg };
   };
 
   return Object.assign(step, {

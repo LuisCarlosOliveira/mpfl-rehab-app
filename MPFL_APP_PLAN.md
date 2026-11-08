@@ -2,7 +2,7 @@
 
 This file is the single source of truth. Research inputs are in `research/clinical.md`, `research/apps.md` and `research/tech.md`. Each fact there is marked VERIFIED or UNVERIFIED. This plan keeps those marks.
 
-Status: revision 5 (audited). T0 to T6, T8 and T9 are done. T7 is blocked. Date: 2026-11-08.
+Status: revision 5 (audited twice). The logic and the single-camera screens are built (T0 to T6b, T8 to T12). T7 is blocked. T9c, T10b, T11, T11b, T12b, T13, T14 and T15 are partial. The app is a prototype, not a medical device, and not done: section 7 lists the unmet criteria. Date: 2026-11-08.
 
 ## 0. Progress checklist
 
@@ -463,44 +463,65 @@ Done means every command below passes. Evidence goes in section 8.
 8. The traceability table in section 8 maps FR1 to FR18, FR23, FR26 to FR29 and NFR1 to NFR10 to a passing test name.
 9. Review agents have 0 open high findings. A high finding is a data exposure or a bypass of a safety rule.
 
+Status on 2026-11-08 (audit 2, [docs/audit-2.md](docs/audit-2.md) A3-2). The work is NOT done. These criteria are unmet or only partly met:
+
+- Criterion 2: unmet. `app/playwright.config.ts` has Chromium projects only. No WebKit smoke test exists.
+- Criterion 5: partly met. axe finds 0 violations on 13 screens in the browser suite. No Lighthouse run exists, so the score of 95 or more is not shown.
+- Criterion 4: partly met. `npm audit --omit=dev` showed 0 vulnerabilities at T14. It was not re-run after the later dependency changes. The model hash check passes in `precheck`.
+- Criterion 8: partly met. The table in section 8 maps each requirement to files and tests. FR9 has no recorded video replay, FR25 has no real-phone test, and NFR4 has no 60 second run.
+- Criterion 9: unmet. Audit 2 reports 3 open HIGH findings (A2-1 to A2-3). The fix commit `dcf27be` addresses them, and no independent re-review has confirmed it.
+- NFR3: only the statement that no reference data exists. No goniometer data and no real-video accuracy result exist.
+- NFR4: unmet. No 60 second frame-rate run exists, on the dev machine or on the Redmi A3.
+- Clinician review: not done. No clinician reviewed any protocol value, cue text, red-flag item or the pause floor.
+- Section 10, the final audit: pending.
+
+Criteria 1, 3, 6 and 7 have evidence in section 8. The counts there come from the Result lines. They were not re-run for this edit.
+
 ## 8. Verification evidence
 
-Each line: task, command, result, date. Update the table after each task.
+Each line: requirement, code, test evidence, status. Rebuilt on 2026-11-08 from the code, `git log --stat`, the Result lines of section 6 and [docs/audit-2.md](docs/audit-2.md) (A3-1). The files named below exist in `app/src` and `app/tests`. Paths in the test column are under `app/tests`, or `app/e2e` for `.spec.ts` files.
 
-State on 2026-11-08: `npm test` shows 164 tests passing in 13 files. `npm run e2e` shows 10 browser tests passing. `npm run precheck` exits 0. Per-task counts are in the Result lines of section 6. Mutation checks are recorded there too.
+State on 2026-11-08 (counts from the Result lines of T12, T9c and T12b, not re-run for this edit): 1,392 unit tests in 67 files. The main browser project has 99 tests. The two pairing browser projects (`pairing`, `pairing-ip`, config `e2e/pairing/playwright.config.ts`) have 18 tests and are not in `npm run e2e`. Per-task counts and mutation checks are in the Result lines of section 6.
 
-| Req | Test (file: title) | Status |
-|---|---|---|
-| FR1 | `protocol.test.ts`: named invalid fixtures, oversize, unknown key, `__proto__`, long string, script string | Covered |
-| FR2 | `protocol.test.ts`: surgeon field text, empty surgeon fields | Partly. The new fields wait for T5b |
-| FR3 | `protocol.test.ts`: refuses the example in patient mode, example marker | Partly. The banner on each screen waits for T10 |
-| FR4 | `protocol.test.ts`: no setter, frozen protocol. `scripts.test.ts`: `phase-check.sh` cases | Covered |
-| FR5 | `redflags.test.ts`: each item blocks, emergency wins | Partly. The direct-route redirect waits for T10 and T12 |
-| FR6 | none yet | Not covered. T12, and a Blob scan test in T6b or T12 |
-| FR7 | `angle.test.ts`, `oneEuro.test.ts`, `counters.test.ts` (null pauses) | Covered. The live display waits for T10 |
-| FR8 | `counters.test.ts`: ceiling alert, partial range | Partly. The margin rule waits for T9b |
-| FR9 | `exercises.test.ts`: heel slide, squat ceiling, hold, lag | Covered with synthetic traces. Recorded replay waits for T7 |
-| FR10 | none yet | Not covered. T10 |
-| FR11 | `storage.test.ts`: stores a session | Partly. The buttons wait for T10 |
-| FR12 | none yet | Not covered. T10 |
-| FR13 | none yet | Not covered. T11 |
-| FR14 | `storage.test.ts`: version fields, round trip, fixed fields, CSV quoting and formula cells | Covered. The export warning waits for T11 |
-| FR15 | `storage.test.ts`: `parseExport` writes nothing, unknown version | Partly. The view waits for T11 |
-| FR16 | `storage.test.ts`: erase clears all four stores (mocks) | Covered. A real browser check waits for T12 |
-| FR17 | `storage.test.ts`: reminder cases, persist asked once | Covered. The Home display waits for T10 |
-| FR18 | none yet | Not covered. T6b and T10 |
-| FR23 | none yet | Not covered. T9b and T10 |
-| FR26 to FR29 | none yet | Not covered. T6b, T10 and T10b |
-| NFR1 | `e2e/landmarker.spec.ts`, `pose/landmarker.test.ts` | Partly. The whole-app network test waits for T12 |
-| NFR2 | `scripts.test.ts`: `claims-check.sh` cases | Partly. A text test on each route waits for T10 and T12 |
-| NFR3 | none yet | Not covered. T13 |
-| NFR4 | `pose/loop.test.ts`: median frame rate | Partly. The 60-second run waits for T13 |
-| NFR5 | none yet | Not covered. T12 |
-| NFR6 | `e2e/headers.spec.ts`, `pose/modelHash.test.ts` | Partly. `npm audit` waits for T14 |
-| NFR7 | `deps-check.sh` in `precheck` | Covered by the script |
-| NFR8 | `ste-check.py` as a command | Not covered. T15 |
-| NFR9 | `pose/camera.test.ts`, `e2e/camera*.spec.ts` | Covered for code. The explanation text waits for T10b |
-| NFR10 | `protocol.test.ts` script string. ESLint rule | Partly. A link-string test waits for T11 |
+| Req | Code | Test evidence | Status |
+|---|---|---|---|
+| FR1 | `lib/protocol/loader.ts` | `protocol.test.ts`, `data-rederivation.test.ts`, `ui/load.test.tsx` | Covered |
+| FR2 | `lib/protocol/schema.ts` | `protocol.test.ts`, `protocol-followup.test.ts` | Covered |
+| FR3 | `lib/mode.ts`, `ui/Banners.tsx` | `flow.test.ts`, `ui/app.test.tsx`, `e2e/app-flow.spec.ts` | Covered |
+| FR4 | `lib/protocol/store.ts` | `protocol.test.ts`, `scripts.test.ts` (`phase-check.sh`) | Covered. The check is a grep |
+| FR5 | `lib/redflags.ts`, `ui/appState.ts`, `ui/RedFlag.tsx` | `redflags.test.ts`, `ui/redflag.test.tsx`, `appState.test.ts` | Partly. A2-2 fix in `dcf27be` has no independent re-review. The app has no URL routes, so no direct-route browser test exists |
+| FR6 | no frame API in `src` | `data-rederivation.test.ts`, `e2e/app-flow.spec.ts` | Covered |
+| FR7 | `lib/angle.ts`, `lib/oneEuro.ts` | `angle.test.ts`, `oneEuro.test.ts` | Covered on synthetic landmarks |
+| FR8 | `lib/counters.ts`, `lib/margin.ts` | `counters.test.ts`, `margin.test.ts` | Covered in code. The margin of 9 degrees is UNVERIFIED for `lite`. A clinician must confirm the rule |
+| FR9 | `lib/exercises.ts` | `exercises.test.ts` | Partly. Synthetic traces only. No recorded video replay (T7 blocked) |
+| FR10 | `lib/cues.ts`, `ui/sound.ts`, `ui/Session.tsx` | `ui/sound.test.ts`, `ui/session.test.tsx`, `e2e/app-sound.spec.ts` | Covered |
+| FR11 | `ui/Session.tsx`, `ui/Summary.tsx` | `ui/session.test.tsx`, `ui/summary.test.tsx` | Covered |
+| FR12 | `lib/safety.ts`, `ui/Summary.tsx` | `safety.test.ts`, `ui/summary.test.tsx` | Covered. The value 7 is a PROPOSAL for clinician review |
+| FR13 | `lib/progress.ts`, `ui/Dashboard.tsx` | `progress.test.ts`, `ui/dashboard.test.tsx` | Covered |
+| FR14 | `lib/storage/export.ts`, `ui/DataScreen.tsx` | `storage.test.ts`, `ui/dataScreen.test.tsx`, `e2e/app-data.spec.ts` | Covered. The import and the CSV guard have no browser test |
+| FR15 | `ui/ClinicianView.tsx` | `ui/clinicianView.test.tsx` | Covered |
+| FR16 | `lib/storage/db.ts`, `lib/storage/meta.ts` | `storage.test.ts`, `e2e/app-data.spec.ts` | Covered, with a browser test |
+| FR17 | `lib/storage/meta.ts`, `ui/Home.tsx` | `storage.test.ts`, `ui/home.test.tsx` | Covered |
+| FR18 | `ui/Privacy.tsx`, `lib/storage/meta.ts` | `ui/privacy.test.tsx`, `storage-followup.test.ts` | Covered |
+| FR19 to FR21, FR22b | none | none | Future, as planned |
+| FR22a | `lib/reviewSummary.ts`, `lib/margin.ts` | `reviewSummary.test.ts`, `ui/review.test.tsx` | Covered in code. A clinician must review the wording and the regulatory class |
+| FR23 | `lib/cues.ts`, `ui/styles.css` | `cues.test.ts`, `ui/noVerdict.test.tsx`, `ui/styles.test.ts` | Covered |
+| FR24 | `lib/views.ts` | `views.test.ts` | Partly. Unit only. No screen uses it, and no stick-figure replay exists |
+| FR25 | `lib/pairing/`, `pairing/`, `ui/PairHost.tsx`, `ui/PairCompanion.tsx` | `pairing/*.test.ts`, `pairing-ui/*.test.ts(x)`, `e2e/pairing.spec.ts` and `e2e/pairing/` (18 browser tests) | Partly. Built and tested in a browser. Not wired into the screens. No real-phone test and no network test of the WebRTC link |
+| FR26 | `lib/storage/db.ts` | `storage-followup.test.ts` | Covered |
+| FR27 | `lib/setupRules.ts`, `ui/Setup.tsx`, `ui/setupView.ts` | `setupRules.test.ts`, `ui/setup.test.tsx`, `ui/setupView.test.ts` | Partly. Rules are tested on synthetic landmarks. No speech output exists, and the text "Use the same place as last time" is not shown (A4-3) |
+| FR28 | `lib/guides.ts`, `lib/figure.ts`, `ui/GuideFigure.tsx` | `guides.test.ts`, `figure.test.ts`, `ui/guideFigure.test.tsx` | Covered |
+| FR29 | `ui/LoadProtocol.tsx` | `ui/load.test.tsx`, `e2e/app-flow.spec.ts` | Covered |
+| NFR1 | CSP in `public/_headers` and `index.html` | `e2e/app-csp.spec.ts`, `e2e/landmarker.spec.ts` | Partly. One device only. WebRTC is not covered |
+| NFR2 | `scripts/claims-check.sh` | `scripts.test.ts`, `ui/noVerdict.test.tsx` | Partly. The word list has gaps (A1-7) |
+| NFR3 | `docs/accuracy.md`, `scripts/bland-altman.mjs` | `blandAltman.test.ts` | Met only as the statement that no reference data exists |
+| NFR4 | `pose/loop.ts` | `pose/loop.test.ts` (median math) | Not met. No 60 second run exists |
+| NFR5 | CSS, `ui/` | `e2e/app-a11y.spec.ts` (axe, 13 screens) | Partly. No Lighthouse run. No WebKit run |
+| NFR6 | `public/_headers`, `scripts/model-hash-check.sh` | `e2e/headers.spec.ts`, `pose/modelHash.test.ts` | Partly. `npm audit --omit=dev` was not re-run after T14 |
+| NFR7 | `scripts/deps-check.sh`, `app/.npmrc` | `deps-check.sh` in `precheck` | Covered by the script. `app/.npmrc` has no test. Two packages have no user yet (A1-9) |
+| NFR8 | all docs | `ste-check.py` as a command | Covered by the command. Not part of `precheck` |
+| NFR9 | `pose/camera.ts` | `pose/camera.test.ts`, `e2e/camera-exit.spec.ts`, `e2e/camera-denied.spec.ts`, `e2e/camera-none.spec.ts` | Covered |
+| NFR10 | no `dangerouslySetInnerHTML`, ESLint rule | `ui/clinicianView.test.tsx`, `ui/privacy.test.tsx`, `protocol.test.ts` | Covered |
 
 ## 9. Independent plan review
 

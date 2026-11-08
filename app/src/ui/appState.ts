@@ -3,16 +3,23 @@
 // A direct request for them goes to the red-flag screen.
 // Rule (FR11): Stop and "knee gave way or hurts" both end the session and go to Summary.
 
+import type { Side } from '../lib/angle';
 import { initialScreen, type ScreenId } from '../lib/flow';
 import type { Summary } from '../lib/exercises';
+import type { SetsState } from '../lib/sets';
 import type { Exercise, Mode } from '../lib/protocol';
 
 export type ExerciseKind = Exercise['kind'];
 export type EndReason = 'stop' | 'gave-way';
 
+/** The counter summary with the set data of the run. Session adds `sets`. Summary reads it. */
+export interface RunSummary extends Summary {
+  sets?: SetsState;
+}
+
 export interface RunResult {
   reason: EndReason;
-  summary: Summary;
+  summary: RunSummary;
 }
 
 export interface AppState {
@@ -22,6 +29,10 @@ export interface AppState {
   redFlagCleared: boolean;
   redFlagBlocks: number; // blocks in this run. They go into the session record.
   exercise: ExerciseKind | null;
+  // T17: the answers of Setup. They last for one session. They never change the protocol side or the active phase.
+  exerciseLeg: Side | null; // the leg that the person chose. The pipeline tracks exactly this leg.
+  cameraSide: Side | null; // the side of the person that the camera is on
+  baselineDeg: number | null; // resting flexion measured in Setup. null: none measured.
   run: RunResult | null;
 }
 
@@ -32,7 +43,8 @@ export type Action =
   | { type: 'choose-exercise'; exercise: ExerciseKind }
   | { type: 'red-flags-clear' }
   | { type: 'red-flags-blocked' }
-  | { type: 'session-end'; reason: EndReason; summary: Summary }
+  | { type: 'setup-done'; exerciseLeg: Side; cameraSide: Side; baselineDeg: number | null }
+  | { type: 'session-end'; reason: EndReason; summary: RunSummary }
   | { type: 'erased' }
   | { type: 'finish' };
 
@@ -44,6 +56,9 @@ export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: bool
     redFlagCleared: false,
     redFlagBlocks: 0,
     exercise: null,
+    exerciseLeg: null,
+    cameraSide: null,
+    baselineDeg: null,
     run: null,
   };
 }
@@ -84,12 +99,17 @@ export function appReducer(state: AppState, action: Action): AppState {
       return { ...state, hasProtocol: true, screen: 'home' };
     case 'choose-exercise': {
       // Every start goes through the check, even if an earlier check was cleared.
-      const next = { ...state, exercise: action.exercise, redFlagCleared: false };
+      const next = { ...state, exercise: action.exercise, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null };
       return { ...next, screen: resolve(next, 'redflag') };
     }
     case 'red-flags-clear': {
       const next = { ...state, redFlagCleared: true };
       return { ...next, screen: resolve(next, 'setup') };
+    }
+    case 'setup-done': {
+      if (state.screen !== 'setup') return state;
+      const next = { ...state, exerciseLeg: action.exerciseLeg, cameraSide: action.cameraSide, baselineDeg: action.baselineDeg };
+      return { ...next, screen: resolve(next, 'session') };
     }
     case 'red-flags-blocked':
       return { ...state, redFlagCleared: false, redFlagBlocks: state.redFlagBlocks + 1 };
@@ -105,6 +125,16 @@ export function appReducer(state: AppState, action: Action): AppState {
       // Erase clears the privacy flag and the protocol, so the next start is a first start (FR16, FR26).
       return initialAppState({ seenPrivacy: false, hasProtocol: false, mode: state.mode });
     case 'finish':
-      return { ...state, screen: 'home', run: null, exercise: null, redFlagCleared: false, redFlagBlocks: 0 };
+      return {
+        ...state,
+        screen: 'home',
+        run: null,
+        exercise: null,
+        redFlagCleared: false,
+        redFlagBlocks: 0,
+        exerciseLeg: null,
+        cameraSide: null,
+        baselineDeg: null,
+      };
   }
 }

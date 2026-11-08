@@ -20,7 +20,8 @@ describe('Dashboard', () => {
     const { container } = render(<Dashboard sessions={[]} onBack={vi.fn()} />);
     expect(screen.getByRole('heading', { level: 1, name: 'Progress' })).toBeInTheDocument();
     expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument();
-    expect(container.querySelector('svg')).toBeNull();
+    expect(container.querySelector('.recharts-wrapper')).toBeNull(); // the empty state has an icon, so any svg is allowed
+    expect(container.querySelector('.empty svg')).not.toBeNull();
     expect(screen.queryByRole('table')).toBeNull();
   });
 
@@ -125,16 +126,22 @@ describe('Dashboard', () => {
 
 describe('dashboard.css', () => {
   const css = readFileSync('src/ui/dashboard.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const known = new Set([...readFileSync('src/ui/styles.css', 'utf8').matchAll(/(--[a-z-]+):/g)].map((m) => m[1]));
+  const known = new Set([...readFileSync('src/ui/styles.css', 'utf8').matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]));
 
   it('uses only custom properties that styles.css defines', () => {
-    const used = [...css.matchAll(/var\((--[a-z-]+)/g)].map((m) => m[1]);
+    const used = [...css.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1]);
     expect(used.length).toBeGreaterThan(3);
     for (const name of used) expect(known.has(name), name).toBe(true);
   });
 
-  it('holds no colour value, no animation and no keyframes', () => {
+  it('holds no colour value, no keyframes and no animation', () => {
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,6}\b|\b(rgb|hsl)a?\(|\b(red|green)\b/i);
-    expect(css).not.toMatch(/@keyframes|transition:|animation:/);
+    expect(css).not.toMatch(/@keyframes|animation:/);
+  });
+
+  it('moves only the erase dialog, and only after a person opens it', () => {
+    const blocks = [...css.matchAll(/([^{}]+)\{([^{}]*transition:[^{}]*)\}/g)];
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const [, selector] of blocks) expect(selector, selector).toMatch(/\.erase-dialog/);
   });
 });

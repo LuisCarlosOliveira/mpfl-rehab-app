@@ -3,6 +3,8 @@
 // The confirmation is a native dialog: showModal gives the focus trap and Escape (research/ui-decisions.md section 2).
 import { useEffect, useRef, useState } from 'react';
 import { MAX_IMPORT_BYTES, eraseAll, exportCsv, exportJson, getLastExport, importSessions, markExported, type MpflDb } from '../lib/storage';
+import { Icon } from './Icon';
+import { Notice } from './Notice';
 import './dashboard.css';
 
 const REVOKE_DELAY_MS = 1000;
@@ -110,67 +112,92 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
 
   return (
     <section aria-labelledby="data-title">
-      <h1 id="data-title" tabIndex={-1}>
-        My data
-      </h1>
-      <div className="actions">
+      <header className="page-head">
+        <h1 id="data-title" tabIndex={-1}>
+          My data
+        </h1>
         <button type="button" className="btn" onClick={onBack}>
+          <Icon name="arrow-left" size={18} />
           Back
         </button>
-      </div>
+      </header>
 
-      <p className="attention" role="note">
-        This file holds health data. Send it only by the secure channel of your clinic. Do not send it by normal email or chat.
-      </p>
+      <div className="stack">
+        <Notice role="note" icon="shield-check">
+          <p>
+            This file holds health data. Send it only by the secure channel of your clinic. Do not send it by normal email or chat.
+          </p>
+        </Notice>
 
-      <div className="block">
-        <h2>Export</h2>
-        <p>
-          {count === null ? 'Counting sessions.' : count === 0 ? 'No sessions are stored yet.' : `${count} ${count === 1 ? 'session' : 'sessions'} on this device.`}
-        </p>
-        <p>{lastExport ? `Last export: ${lastExport.slice(0, 10)}` : 'You have not exported yet.'}</p>
-        <div className="actions">
-          <button type="button" className="btn btn-primary" disabled={noSessions} onClick={() => void exportAs('json')}>
-            Export JSON file
-          </button>
-          <button type="button" className="btn" disabled={noSessions} onClick={() => void exportAs('csv')}>
-            Export CSV file
-          </button>
+        {notice && (
+          <p className="status-line" role={notice.kind}>
+            <Icon name={notice.kind === 'alert' ? 'triangle-alert' : 'check'} size={20} />
+            {notice.text}
+          </p>
+        )}
+
+        <div className="data-grid">
+          <section className="card stack-s" aria-labelledby="export-title">
+            <h2 id="export-title">Export</h2>
+            <ul className="chips">
+              <li className="chip chip-soft">
+                <Icon name="database" size={16} />
+                {count === null ? 'Counting sessions.' : count === 0 ? 'No sessions are stored yet.' : `${count} ${count === 1 ? 'session' : 'sessions'} on this device.`}
+              </li>
+              <li className="chip">
+                <Icon name="calendar-check" size={16} />
+                {lastExport ? `Last export: ${lastExport.slice(0, 10)}` : 'You have not exported yet.'}
+              </li>
+            </ul>
+            <div className="actions">
+              <button type="button" className="btn btn-primary" disabled={noSessions} onClick={() => void exportAs('json')}>
+                <Icon name="download" size={18} />
+                Export JSON file
+              </button>
+              <button type="button" className="btn" disabled={noSessions} onClick={() => void exportAs('csv')}>
+                <Icon name="download" size={18} />
+                Export CSV file
+              </button>
+            </div>
+            <p className="detail">The JSON file can be imported again. The CSV file is for reading in a spreadsheet.</p>
+          </section>
+
+          <section className="card stack-s" aria-labelledby="import-title">
+            <h2 id="import-title">Import</h2>
+            <p>Import adds the sessions of a file to this device. It stops and adds nothing if any session is already stored.</p>
+            <div className="dropzone field">
+              <span className="drop-icon">
+                <Icon name="upload" size={26} />
+              </span>
+              <label htmlFor="import-file">Import a session file (.json)</label>
+              <input id="import-file" type="file" accept=".json,application/json" onChange={(e) => void importFile(e.target)} />
+            </div>
+          </section>
+
+          {onOpenClinician && (
+            <section className="card stack-s" aria-labelledby="care-title">
+              <h2 id="care-title">Care team</h2>
+              <p>Care team members can read a session file here. The app keeps the file in memory only.</p>
+              <div className="actions">
+                <button type="button" className="btn" onClick={onOpenClinician}>
+                  <Icon name="stethoscope" size={18} />
+                  Open a session file (care team)
+                </button>
+              </div>
+            </section>
+          )}
+
+          <section className="card card-erase stack-s" aria-labelledby="erase-heading">
+            <h2 id="erase-heading">Erase</h2>
+            <p>Erase removes all data of this app from this device.</p>
+            <div className="actions">
+              <button type="button" className="btn btn-danger" ref={eraseButton} onClick={openDialog}>
+                <Icon name="trash-2" size={18} />
+                Erase all my data
+              </button>
+            </div>
+          </section>
         </div>
-        <p className="detail">The JSON file can be imported again. The CSV file is for reading in a spreadsheet.</p>
-      </div>
-
-      <div className="block">
-        <h2>Import</h2>
-        <p>Import adds the sessions of a file to this device. It stops and adds nothing if any session is already stored.</p>
-        <div className="field">
-          <label htmlFor="import-file">Import a session file (.json)</label>
-          <input id="import-file" type="file" accept=".json,application/json" onChange={(e) => void importFile(e.target)} />
-        </div>
-      </div>
-
-      {notice && (
-        <p className="status-line" role={notice.kind}>
-          {notice.text}
-        </p>
-      )}
-
-      {onOpenClinician && (
-        <div className="block">
-          <h2>Care team</h2>
-          <p>Care team members can read a session file here. The app keeps the file in memory only.</p>
-          <button type="button" className="btn" onClick={onOpenClinician}>
-            Open a session file (care team)
-          </button>
-        </div>
-      )}
-
-      <div className="block">
-        <h2>Erase</h2>
-        <p>Erase removes all data of this app from this device.</p>
-        <button type="button" className="btn btn-danger" ref={eraseButton} onClick={openDialog}>
-          Erase all my data
-        </button>
       </div>
 
       <dialog
@@ -183,7 +210,8 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
         <p>This removes your sessions, your protocol file and your settings from this device. You cannot undo it.</p>
         <p>If you want a copy, export the file first.</p>
         {eraseError && (
-          <p className="status-line" role="alert">
+          <p className="status-line mt-s" role="alert">
+            <Icon name="triangle-alert" size={20} />
             The app did not erase everything. Try again.
           </p>
         )}
@@ -191,7 +219,8 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
           <button type="button" className="btn btn-primary" ref={keepButton} onClick={() => dialog.current?.close()}>
             Keep my data
           </button>
-          <button type="button" className="btn btn-danger" disabled={erasing} onClick={() => void erase()}>
+          <button type="button" className="btn btn-danger btn-strong" disabled={erasing} onClick={() => void erase()}>
+            <Icon name="trash-2" size={18} />
             Erase my data
           </button>
         </div>

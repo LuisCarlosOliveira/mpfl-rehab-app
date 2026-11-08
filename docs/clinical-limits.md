@@ -10,7 +10,7 @@ The app monitors exercise and symptoms after an injury. Under EU MDR this is pro
 
 A 2D webcam angle is an estimate. It is not a medical measurement. The error and the margin are in [research/form-opus.md section 3](../research/form-opus.md). The margin is a start value. It is UNVERIFIED for the `lite` model. No study checks a webcam against a goniometer after MPFL surgery ([research/clinical-update.md section 6](../research/clinical-update.md), gap 10).
 
-The accuracy record (`docs/accuracy.md`) is planned (T13). It does not exist yet.
+The accuracy record ([docs/accuracy.md](accuracy.md)) exists. It holds no measured number, because no reference data and no real-video clip exist yet.
 
 ## No form rating and no verdict
 
@@ -71,4 +71,4 @@ Source: [plan section 11](../MPFL_APP_PLAN.md).
 - The limits for each exercise, and whether the app stops a set at "close to your limit" or only warns.
 - Whether the values hold for adolescents.
 - The model license question.
-- The import rule for a file with another pseudonymous id (open question).
+- The import rule for a file with another pseudonymous id. The code refuses such a file when the database already holds sessions (`app/src/lib/storage/export.ts`). The rule is a PROPOSAL until a clinician or the user confirms it.

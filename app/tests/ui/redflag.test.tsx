@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GENERAL_GUIDANCE_NOTE, MESSAGES, RED_FLAGS } from '../../src/lib/redflags';
 import { RedFlag } from '../../src/ui/RedFlag';
@@ -107,5 +107,32 @@ describe('RedFlag screen', () => {
     const props = setup();
     fireEvent.click(screen.getByRole('button', { name: /back to home/i }));
     expect(props.onCancel).toHaveBeenCalled();
+  });
+
+  it('shows the block as a strong notice inside the alert region, and scrolls it into view', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    setup();
+    fireEvent.click(screen.getByLabelText(RED_FLAGS[0]!.text));
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByText(MESSAGES[RED_FLAGS[0]!.group])).toHaveClass('notice-title');
+    expect(alert.querySelector('.notice-strong')).not.toBeNull();
+    expect(scroll).toHaveBeenCalledWith({ block: 'center' }); // no smooth scroll: nothing moves
+    delete (Element.prototype as Partial<Element>).scrollIntoView;
+  });
+
+  it('runs without scrollIntoView, as in jsdom', () => {
+    expect((Element.prototype as Partial<Element>).scrollIntoView).toBeUndefined();
+    setup();
+    expect(() => fireEvent.click(screen.getByLabelText(RED_FLAGS[0]!.text))).not.toThrow();
+  });
+
+  it('has an action bar with both buttons, and every group has an icon that assistive technology skips', () => {
+    setup();
+    const bar = screen.getByRole('button', { name: /none of these apply/i }).parentElement!;
+    expect(bar).toHaveClass('action-bar');
+    expect(within(bar).getByRole('button', { name: /back to home/i })).toBeInTheDocument();
+    for (const legend of document.querySelectorAll('legend')) expect(legend.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(document.querySelectorAll('[style]')).toHaveLength(0);
   });
 });

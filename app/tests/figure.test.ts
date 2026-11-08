@@ -1,5 +1,5 @@
 import { flexion, kneeAngle, type Side } from '../src/lib/angle';
-import { cameraPlan, figureFor, ILLUSTRATIVE_FLEXION, LABEL_PX, VIEW, viewHeight, type Box, type Point } from '../src/lib/figure';
+import { boxShapeGap, cameraPlan, figureFor, ILLUSTRATIVE_FLEXION, MIN_LABEL_PX, MIN_RENDER_W, obstaclesOf, planObstacles, unionBox, VIEW, type Box, type Figure, type Point } from '../src/lib/figure';
 import { SETUP_CONFIG } from '../src/lib/setupRules';
 import { EXERCISE_KINDS } from '../src/lib/protocol/schema';
 
@@ -7,7 +7,9 @@ const SIDES: Side[] = ['left', 'right'];
 const FRAMES = ['start', 'end'] as const;
 const BANNED = ['correct', 'incorrect', 'good', 'bad', 'perfect', 'wrong', 'mistake', 'safe', 'dangerous', 'score', 'grade', 'pass', 'fail', 'goal', 'milestone'];
 
-const inside = (p: Point, w: number = VIEW.w, h = 160) => p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
+const inView = (p: Point, v: Box) => p.x >= v.x && p.x <= v.x + v.w && p.y >= v.y && p.y <= v.y + v.h;
+const boxInView = (b: Box, v: Box) => b.x >= v.x - 0.01 && b.y >= v.y - 0.01 && b.x + b.w <= v.x + v.w + 0.01 && b.y + b.h <= v.y + v.h + 0.01;
+const GAP = 1.5; // the free space that a label keeps from a shape, in picture units
 const overlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 const drawnFlexion = (f: ReturnType<typeof figureFor>) => flexion(kneeAngle(f.points.hip, f.points.knee, f.points.ankle, 1)) as number;
 
@@ -92,7 +94,7 @@ describe('figureFor body', () => {
   it('left and right drawings mirror each other', () => {
     const l = figureFor('mini-squat', 'end', 'left');
     const r = figureFor('mini-squat', 'end', 'right');
-    expect(l.points.knee.x).toBeCloseTo(VIEW.w - r.points.knee.x, 6);
+    expect(l.points.knee.x).toBeCloseTo(150 - r.points.knee.x, 6); // the drawing mirrors about x = 75
     expect(l.points.knee.y).toBeCloseTo(r.points.knee.y, 6);
     expect(Math.sign(r.points.knee.x - r.points.ankle.x)).toBe(1);
     expect(Math.sign(l.points.knee.x - l.points.ankle.x)).toBe(-1);
@@ -107,16 +109,29 @@ describe('figureFor body', () => {
     EXERCISE_KINDS.forEach((k) => expect(figureFor(k, 'start', 'left').points).not.toEqual(figureFor(k, 'end', 'left').points));
   });
 
-  it.each(EXERCISE_KINDS)('%s: every point and every surface is inside the picture', (kind) => {
+  it.each(EXERCISE_KINDS)('%s: every point, every surface and the arrow are inside the view box', (kind) => {
     SIDES.forEach((side) =>
       FRAMES.forEach((frame) => {
         const fig = figureFor(kind, frame, side, 60);
-        expect(fig.height).toBe(viewHeight(kind));
-        [...Object.values(fig.points), fig.camera.at, fig.kneeArc.center, fig.arrow.from, fig.arrow.to, ...fig.arrow.head].forEach((p) =>
-          expect(inside(p, VIEW.w, fig.height)).toBe(true),
-        );
-        fig.surface.rects.forEach((r) => expect(inside({ x: r.x, y: r.y }, VIEW.w, fig.height) && inside({ x: r.x + r.w, y: r.y + r.h }, VIEW.w, fig.height)).toBe(true));
-        expect(fig.head.center.y - fig.head.r).toBeGreaterThanOrEqual(0);
+        [...Object.values(fig.points), fig.kneeArc.center, fig.arrow.from, fig.arrow.to, ...fig.arrow.head].forEach((p) => expect(inView(p, fig.view)).toBe(true));
+        fig.surface.rects.forEach((r) => expect(boxInView(r, fig.view)).toBe(true));
+        expect(fig.head.center.y - fig.head.r).toBeGreaterThanOrEqual(fig.view.y);
+      }),
+    );
+  });
+
+  it.each(EXERCISE_KINDS)('%s: the view box is cropped to the content and the person fills it', (kind) => {
+    SIDES.forEach((side) =>
+      FRAMES.forEach((frame) => {
+        const fig = figureFor(kind, frame, side, 60);
+        const xs = Object.values(fig.points).map((p) => p.x);
+        const ys = Object.values(fig.points).map((p) => p.y);
+        const spreadW = Math.max(...xs) - Math.min(...xs);
+        const spreadH = Math.max(...ys) - Math.min(...ys);
+        // The old drawing had a fixed 150 by 160 box. The new box is at most the person plus a margin and a label band.
+        expect(fig.view.w).toBeLessThanOrEqual(spreadW + 80);
+        expect(fig.view.h).toBeLessThanOrEqual(spreadH + 90);
+        expect(fig.view.w).toBeLessThan(150);
       }),
     );
   });
@@ -162,33 +177,86 @@ describe('figureFor ghost, arrow and surface', () => {
 });
 
 describe('figureFor labels', () => {
-  it.each(EXERCISE_KINDS)('%s: has the labels operated leg, camera and the frame name', (kind) => {
+  it.each(EXERCISE_KINDS)('%s: has the labels operated leg and the frame name', (kind) => {
     FRAMES.forEach((frame) => {
       const labels = figureFor(kind, frame, 'left').labels;
       expect(labels.find((l) => l.key === 'operatedLeg')?.text).toBe('Operated leg');
-      expect(labels.find((l) => l.key === 'camera')?.text).toBe('Camera');
       expect(labels.find((l) => l.key === 'frame')?.text).toBe(frame === 'start' ? 'Start' : 'End');
     });
   });
 
-  it('the label size is at least 14 pixels', () => {
-    expect(LABEL_PX).toBeGreaterThanOrEqual(14);
+  it('a label is at least 14 pixels high at the smallest rendered width', () => {
+    EXERCISE_KINDS.forEach((kind) =>
+      SIDES.forEach((side) =>
+        FRAMES.forEach((frame) => {
+          const fig = figureFor(kind, frame, side, 45);
+          expect((fig.labelSize * MIN_RENDER_W) / fig.view.w).toBeGreaterThanOrEqual(MIN_LABEL_PX);
+        }),
+      ),
+    );
   });
 
-  it.each(EXERCISE_KINDS)('%s: labels stay inside the picture and do not overlap each other', (kind) => {
+  it('a label is small next to the body: at most 60 percent of the thigh width', () => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const fig = figureFor(kind, 'end', 'left', 45);
+      const thigh = fig.limbs.find((l) => l.leg === 'near' && l.part === 'thigh')!.width;
+      expect(fig.labelSize).toBeLessThanOrEqual(0.6 * thigh);
+    });
+  });
+
+  it.each(EXERCISE_KINDS)('%s: labels stay inside the view box and do not overlap each other', (kind) => {
     SIDES.forEach((side) =>
       FRAMES.forEach((frame) => {
         const fig = figureFor(kind, frame, side, 60);
         const boxes = [...fig.labels.map((l) => l.box), ...(fig.kneeArc.label ? [fig.kneeArc.label.box] : [])];
-        boxes.forEach((b) => {
-          expect(b.x).toBeGreaterThanOrEqual(0);
-          expect(b.y).toBeGreaterThanOrEqual(0);
-          expect(b.x + b.w).toBeLessThanOrEqual(VIEW.w);
-          expect(b.y + b.h).toBeLessThanOrEqual(fig.height);
-        });
+        boxes.forEach((b) => expect(boxInView(b, fig.view)).toBe(true));
         boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => expect(overlap(a, b)).toBe(false)));
       }),
     );
+  });
+
+  const freeGap = (fig: Figure, key: string) => {
+    const label = [...fig.labels, ...(fig.kneeArc.label ? [fig.kneeArc.label] : [])].find((l) => l.key === key)!;
+    return Math.min(...obstaclesOf(fig).filter((s) => !(key === 'surface' && s.k === 'rect')).map((s) => boxShapeGap(label.box, s)));
+  };
+
+  it.each(EXERCISE_KINDS)('%s: no label touches the body, the ghost, the arrow, the arc or the surface', (kind) => {
+    SIDES.forEach((side) =>
+      FRAMES.forEach((frame) =>
+        [30, 60, 90].forEach((deg) => {
+          const fig = figureFor(kind, frame, side, deg);
+          ['frame', 'operatedLeg', 'angle'].forEach((key) => {
+            if (key === 'angle' && !fig.kneeArc.label) return;
+            // The frame word and the legend sit in empty space. The number must keep clear of every shape.
+            const gap = key === 'angle' ? freeGap(fig, key) : Math.min(freeGap(fig, key), ...fig.surface.rects.map((r) => boxShapeGap(fig.labels.find((l) => l.key === key)!.box, { k: 'rect', box: r })));
+            expect(gap, `${kind} ${side} ${frame} ${deg} ${key}`).toBeGreaterThanOrEqual(GAP);
+          });
+        }),
+      ),
+    );
+  });
+
+  it.each(EXERCISE_KINDS)('%s: the surface name sits inside the surface and keeps clear of the body and the arrow', (kind) => {
+    SIDES.forEach((side) =>
+      FRAMES.forEach((frame) => {
+        const fig = figureFor(kind, frame, side, 60);
+        const label = fig.labels.find((l) => l.key === 'surface')!;
+        expect(boxInView(label.box, unionBox(fig.surface.rects))).toBe(true); // the chair name sits between the legs of the chair
+        expect(freeGap(fig, 'surface'), `${kind} ${side} ${frame}`).toBeGreaterThanOrEqual(GAP);
+      }),
+    );
+  });
+
+  it('the bed or mat name does not touch the arrow', () => {
+    const fig = figureFor('heel-slide', 'start', 'right');
+    const label = fig.labels.find((l) => l.key === 'surface')!;
+    expect(boxShapeGap(label.box, { k: 'seg', a: fig.arrow.from, b: fig.arrow.to, r: 1.5 })).toBeGreaterThan(8);
+  });
+
+  it('a label that touches a shape is found by the gap function', () => {
+    expect(boxShapeGap({ x: 0, y: 0, w: 10, h: 10 }, { k: 'circle', c: { x: 12, y: 5 }, r: 4 })).toBeLessThan(0);
+    expect(boxShapeGap({ x: 0, y: 0, w: 10, h: 10 }, { k: 'seg', a: { x: -5, y: 5 }, b: { x: 15, y: 5 }, r: 1 })).toBeLessThan(0);
+    expect(boxShapeGap({ x: 0, y: 0, w: 10, h: 10 }, { k: 'rect', box: { x: 20, y: 0, w: 5, h: 5 } })).toBeCloseTo(10, 6);
   });
 
   it('no label has a verdict word', () => {
@@ -199,73 +267,93 @@ describe('figureFor labels', () => {
 
 describe('cameraPlan', () => {
   const views = ['side', 'front'] as const;
+  const bodyBounds = (p: ReturnType<typeof cameraPlan>) => unionBox(p.figure.limbs.map((l) => ({ x: Math.min(p.figure.points[l.from].x, p.figure.points[l.to].x) - l.width / 2, y: Math.min(p.figure.points[l.from].y, p.figure.points[l.to].y) - l.width / 2, w: Math.abs(p.figure.points[l.from].x - p.figure.points[l.to].x) + l.width, h: Math.abs(p.figure.points[l.from].y - p.figure.points[l.to].y) + l.width })));
 
-  it.each(views)('%s view: names the camera, the operated leg and the distance from the setup rules', (view) => {
-    const plan = cameraPlan(view, 'mini-squat', 'left');
-    const text = plan.labels.map((l) => l.text);
-    expect(text).toEqual(expect.arrayContaining(['Camera', 'Operated leg']));
+  it.each(views)('%s view: names the camera, the operated leg, the knee height and the distance from the setup rules', (view) => {
+    const plan = cameraPlan(view, 'mini-squat');
+    expect(plan.labels.map((l) => l.text)).toEqual(expect.arrayContaining(['Camera', 'Operated leg', 'At knee height', view === 'side' ? 'Side view' : 'Front view']));
     const { min, max } = SETUP_CONFIG.distanceAdviceM;
     expect(plan.distance.text).toBe(`${min} to ${max} m`);
-    expect(plan.labels.find((l) => l.key === 'height')?.text).toBe('At knee height');
+    expect(plan.labels.find((l) => l.key === 'distance')?.text).toBe(`${min} to ${max} m`);
   });
 
-  it('the side view puts the camera next to the operated leg for left and right', () => {
-    SIDES.forEach((side) =>
-      EXERCISE_KINDS.forEach((kind) => {
-        const plan = cameraPlan('side', kind, side);
-        const near = plan.legs.find((l) => l.leg === 'near')!;
-        const far = plan.legs.find((l) => l.leg === 'far')!;
-        // The camera is at the bottom, so the leg that faces it has the larger y.
-        expect(near.from.y).toBeGreaterThan(far.from.y);
-        expect(plan.camera.at.y).toBeGreaterThan(near.from.y);
-        expect(plan.facing).toBe(side === 'right' ? 1 : -1);
-      }),
-    );
+  it.each(views)('%s view: the lens of the phone is at the height of the operated knee and the phone stands on the floor', (view) => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const plan = cameraPlan(view, kind);
+      expect(plan.phone.lens.y).toBeCloseTo(plan.figure.points.knee.y, 1);
+      expect(plan.level.to).toEqual(plan.phone.lens);
+      expect(plan.phone.stem.to.y).toBeGreaterThan(plan.phone.body.y + plan.phone.body.h);
+    });
   });
 
-  it('the front view shows the operated leg on the camera left for the right leg and on the right for the left leg', () => {
-    const right = cameraPlan('front', 'mini-squat', 'right');
-    const left = cameraPlan('front', 'mini-squat', 'left');
-    expect(right.legs.find((l) => l.leg === 'near')!.from.x).toBeLessThan(right.legs.find((l) => l.leg === 'far')!.from.x);
-    expect(left.legs.find((l) => l.leg === 'near')!.from.x).toBeGreaterThan(left.legs.find((l) => l.leg === 'far')!.from.x);
+  it.each(views)('%s view: the phone stands to the right of the person with room for the distance line', (view) => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const plan = cameraPlan(view, kind);
+      const body = bodyBounds(plan);
+      expect(plan.phone.body.x).toBeGreaterThan(body.x + body.w + 20);
+      expect(plan.distance.from.x).toBeLessThan(plan.distance.to.x);
+      expect(plan.distance.head[0]).toEqual(plan.distance.to);
+      expect(plan.distance.tail[0]).toEqual(plan.distance.from);
+    });
+  });
+
+  it('the side view faces left and the front view faces the phone', () => {
+    EXERCISE_KINDS.forEach((kind) => {
+      expect(cameraPlan('side', kind).facing).toBe(-1);
+      expect(cameraPlan('front', kind).facing).toBe(1);
+      // The leg runs away from the head (lying) or the foot points forward (standing and seated).
+      [-1, 1].forEach((f) => {
+        const plan = cameraPlan(f === -1 ? 'side' : 'front', kind);
+        const p = plan.figure.points;
+        const forward = plan.posture === 'lying' ? p.ankle.x - p.head.x : p.toe.x - p.ankle.x;
+        expect(Math.sign(forward)).toBe(f);
+      });
+    });
   });
 
   it('a lying exercise lies along the picture and a standing one stands', () => {
-    const lying = cameraPlan('side', 'heel-slide', 'right');
-    const upright = cameraPlan('side', 'mini-squat', 'right');
-    expect(lying.posture).toBe('lying');
-    expect(upright.posture).toBe('upright');
+    expect(cameraPlan('side', 'heel-slide').posture).toBe('lying');
+    expect(cameraPlan('side', 'mini-squat').posture).toBe('upright');
+    const lying = bodyBounds(cameraPlan('side', 'heel-slide'));
+    const upright = bodyBounds(cameraPlan('side', 'mini-squat'));
+    expect(lying.w).toBeGreaterThan(lying.h);
+    expect(upright.h).toBeGreaterThan(upright.w);
   });
 
-  it.each(views)('%s view: the view cone covers the person and the picture is tall enough', (view) => {
-    EXERCISE_KINDS.forEach((kind) =>
-      SIDES.forEach((side) => {
-        const plan = cameraPlan(view, kind, side);
-        const [apex, a, b] = plan.cone;
-        expect(apex).toEqual(plan.camera.at);
-        const row = plan.legs.map((l) => l.from).concat(plan.head.center);
-        row.forEach((p) => {
-          // At the height of the person the cone spans the x range [a.x, b.x] when a and b share one y.
-          expect(p.x).toBeGreaterThan(Math.min(a.x, b.x));
-          expect(p.x).toBeLessThan(Math.max(a.x, b.x));
-        });
-        [apex, a, b, plan.camera.at, plan.head.center].forEach((p) => expect(inside(p, plan.size.w, plan.size.h)).toBe(true));
-      }),
-    );
+  it.each(views)('%s view: the view cone starts at the lens and covers the whole operated leg', (view) => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const plan = cameraPlan(view, kind);
+      const [apex, a, b] = plan.cone;
+      expect(apex).toEqual(plan.phone.lens);
+      expect(a.x).toBe(b.x);
+      const body = bodyBounds(plan);
+      expect(a.x).toBeLessThan(body.x);
+      const near = plan.figure.limbs.filter((l) => l.leg === 'near').flatMap((l) => [plan.figure.points[l.from], plan.figure.points[l.to]]);
+      near.forEach((p) => {
+        expect(p.y).toBeGreaterThan(Math.min(a.y, b.y));
+        expect(p.y).toBeLessThan(Math.max(a.y, b.y));
+      });
+    });
   });
 
-  it.each(views)('%s view: labels stay inside the picture and do not overlap each other', (view) => {
-    EXERCISE_KINDS.forEach((kind) =>
-      SIDES.forEach((side) => {
-        const plan = cameraPlan(view, kind, side);
-        const boxes = plan.labels.map((l) => l.box);
-        boxes.forEach((b) => {
-          expect(b.x).toBeGreaterThanOrEqual(0);
-          expect(b.x + b.w).toBeLessThanOrEqual(plan.size.w);
-          expect(b.y + b.h).toBeLessThanOrEqual(plan.size.h);
-        });
-        boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => expect(overlap(a, b)).toBe(false)));
-      }),
-    );
+  it.each(views)('%s view: labels stay inside the view box, do not overlap each other and do not touch a shape', (view) => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const plan = cameraPlan(view, kind);
+      const boxes = plan.labels.map((l) => l.box);
+      boxes.forEach((b) => expect(boxInView(b, plan.box)).toBe(true));
+      boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => expect(overlap(a, b), `${kind} ${a.x},${a.y}`).toBe(false)));
+      const shapes = planObstacles(plan);
+      plan.labels.forEach((l) => {
+        // The cone lines run through the picture on purpose. The labels of the legend and the title stay outside them.
+        shapes.filter((s) => !(l.key === 'camera' && s.k === 'seg' && s.r === 0.75)).forEach((s) => expect(boxShapeGap(l.box, s), `${kind} ${l.key}`).toBeGreaterThanOrEqual(GAP));
+      });
+    });
+  });
+
+  it('the label size keeps 14 pixels at the smallest rendered width', () => {
+    EXERCISE_KINDS.forEach((kind) => views.forEach((view) => {
+      const plan = cameraPlan(view, kind);
+      expect((plan.labelSize * MIN_RENDER_W) / plan.box.w).toBeGreaterThanOrEqual(MIN_LABEL_PX);
+    }));
   });
 });

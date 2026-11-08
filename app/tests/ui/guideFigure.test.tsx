@@ -4,7 +4,25 @@ import { CameraFigure, GuideFigure } from '../../src/ui/GuideFigure';
 import { EXERCISE_KINDS } from '../../src/lib/protocol/schema';
 
 const css = readFileSync('src/ui/figures.css', 'utf8');
+const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');
 const source = readFileSync('src/ui/GuideFigure.tsx', 'utf8');
+
+// The tokens of styles.css: the first :root block is light, the :root block in the dark media query is dark.
+const sheet = readFileSync('src/ui/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+const tokens = (block: string) => Object.fromEntries([...block.matchAll(/(--[a-z0-9-]+):\s*(#[0-9a-f]{6})/gi)].map((m) => [m[1]!, m[2]!])) as Record<string, string>;
+const lightTokens = tokens(/:root\s*\{([^}]*)\}/.exec(sheet)![1]!);
+const darkTokens = { ...lightTokens, ...tokens(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/.exec(sheet)![1]!) };
+const luminance = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  }) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+};
 
 describe('GuideFigure', () => {
   it.each(EXERCISE_KINDS)('%s: is one svg image with a title, a description and the text alternative', (kind) => {
@@ -21,7 +39,7 @@ describe('GuideFigure', () => {
   it('writes the labels as real text elements', () => {
     const { container } = render(<GuideFigure kind="heel-slide" frame="start" side="right" description="d" />);
     const texts = [...container.querySelectorAll('text')].map((t) => t.textContent);
-    expect(texts).toEqual(expect.arrayContaining(['Start', 'Operated leg', 'Camera', 'Bed or mat']));
+    expect(texts).toEqual(expect.arrayContaining(['Start', 'Operated leg', 'Bed or mat']));
   });
 
   it('shows the number from the exercise data on the end frame only', () => {
@@ -54,22 +72,29 @@ describe('GuideFigure', () => {
 
 describe('CameraFigure', () => {
   it.each(['side', 'front'] as const)('%s view: an image with the camera, the distance and the operated leg as text', (view) => {
-    const { container } = render(<CameraFigure view={view} kind="mini-squat" side="left" description="Camera guide." />);
+    const { container } = render(<CameraFigure view={view} kind="mini-squat" description="Camera guide." />);
     const svg = container.querySelector('svg')!;
     expect(svg.getAttribute('role')).toBe('img');
     expect(svg.getAttribute('aria-label')).toBe('Camera guide.');
     expect(container.querySelectorAll('[style]')).toHaveLength(0);
     const texts = [...container.querySelectorAll('text')].map((t) => t.textContent);
-    expect(texts).toEqual(expect.arrayContaining(['Camera', 'Operated leg', '2 to 2.5 m', 'At knee height']));
+    expect(texts).toEqual(expect.arrayContaining(['Camera', 'Operated leg', '2 to 2.5 m', 'At knee height', view === 'side' ? 'Side view' : 'Front view']));
     expect(container.querySelector('.fg-cone')).not.toBeNull();
   });
 });
 
 describe('figures.css', () => {
-  it('sets the text size to at least 14 pixels', () => {
-    const sizes = [...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].map((m) => Number(m[1]));
-    expect(sizes.length).toBeGreaterThan(0);
-    sizes.forEach((s) => expect(s).toBeGreaterThanOrEqual(14));
+  it('sets no font size, because the size comes from the svg and follows the view box', () => {
+    expect(rules).not.toMatch(/font-size/);
+  });
+
+  it.each(EXERCISE_KINDS)('%s: every label has a size that is at least 14 pixels at 288 pixels width', (kind) => {
+    const { container } = render(<GuideFigure kind={kind} frame="end" side="left" description="d" kneeDeg={45} />);
+    const svg = container.querySelector('svg')!;
+    const width = Number(svg.getAttribute('viewBox')!.split(' ')[2]);
+    const texts = [...container.querySelectorAll('text')];
+    expect(texts.length).toBeGreaterThan(2);
+    texts.forEach((t) => expect((Number(t.getAttribute('font-size')) * 288) / width).toBeGreaterThanOrEqual(14));
   });
 
   it('adds only custom properties with the fig prefix', () => {
@@ -78,13 +103,34 @@ describe('figures.css', () => {
     props.forEach((p) => expect(p).toMatch(/^--fig-/));
   });
 
+  it('takes its colours from the tokens of styles.css and has no colour of its own', () => {
+    expect(rules).not.toMatch(/#[0-9a-f]{3,8}\b/i);
+    const declared = new Set([...sheet.matchAll(/(--[a-z0-9-]+):/g)].map((m) => m[1]));
+    const used = [...rules.matchAll(/var\((--[a-z0-9-]+)\)/g)].map((m) => m[1]!).filter((n) => !n.startsWith('--fig-'));
+    expect(used.length).toBeGreaterThan(0);
+    used.forEach((n) => expect(declared.has(n), n).toBe(true));
+  });
+
+  it.each([
+    ['light', lightTokens],
+    ['dark', darkTokens],
+  ] as const)('keeps the contrast of text at 4.5 and of strokes at 3 on the card (%s theme)', (_theme, t) => {
+    const card = t['--raised']!;
+    expect(contrast(t['--muted']!, card), 'body and surface name').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t['--ink']!, card), 'operated leg and labels').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t['--chart']!, card), 'accent text').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t['--edge']!, card), 'other leg').toBeGreaterThanOrEqual(3);
+    expect(contrast(t['--chart']!, card), 'arrows and rings').toBeGreaterThanOrEqual(3);
+    expect(contrast(t['--muted']!, t['--sunken']!), 'surface name on the surface').toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t['--edge']!, t['--bg']!), 'surface outline').toBeGreaterThanOrEqual(3);
+  });
+
   it('has no green or red colour', () => {
     const hexes = [...css.matchAll(/#([0-9a-f]{6})\b/gi)].map((m) => m[1] as string);
     hexes.forEach((h) => {
       const [r = 0, g = 0, b = 0] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
-      const green = g > r + 30 && g > b + 30;
-      const red = r > g + 60 && r > b + 60;
-      expect(green || red, `#${h}`).toBe(false);
+      expect(g > r + 30 && g > b + 30, `#${h}`).toBe(false);
+      expect(r > g + 60 && r > b + 60, `#${h}`).toBe(false);
     });
   });
 

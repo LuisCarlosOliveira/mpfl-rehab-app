@@ -25,6 +25,8 @@ export const exerciseSchema = z
     maxFlexion: flexion.optional(), // ceiling set by the surgeon. Above it plus the margin: alert, no count.
     minRepSeconds: z.number().min(0.5).max(30).optional(), // a faster rep gets the cue "rep was fast"
     maxTopFlexion: flexion.optional(), // limit at the top of the straight leg raise
+    // PROPOSAL (T17): a rep ends when the knee is back within this many degrees of the resting angle. No default.
+    returnWithinDeg: z.number().min(1).max(90).optional(),
     source: text(200), // where each value comes from: an S-number or PROPOSAL
   })
   .refine((e) => e.maxFlexion === undefined || e.targetFlexion === undefined || e.maxFlexion >= e.targetFlexion, {
@@ -41,6 +43,10 @@ export const exerciseSchema = z
       path: ['maxFlexion'],
       message: `For ${e.kind}, maxFlexion (${e.maxFlexion}) must be more than targetFlexion (${e.targetFlexion}) plus the margin of ${MARGIN_DEG} degrees. Raise maxFlexion or lower targetFlexion. A closer limit gives a stop cue on every rep.`,
     });
+  })
+  .refine((e) => e.returnWithinDeg === undefined || e.kind === 'heel-slide' || e.kind === 'mini-squat', {
+    message: 'returnWithinDeg applies to heel-slide and mini-squat only, because only these exercises count reps. Remove it from this exercise.',
+    path: ['returnWithinDeg'],
   })
   .refine((e) => e.maxTopFlexion === undefined || e.maxTopFlexion >= MARGIN_DEG, {
     message: `maxTopFlexion must be at least ${MARGIN_DEG} degrees, the camera margin. A smaller limit cannot be measured.`,

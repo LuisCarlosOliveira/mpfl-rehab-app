@@ -1,4 +1,5 @@
 import { counterSetup, createPipeline, isLegRaised } from '../src/lib/exercises';
+import type { Side } from '../src/lib/angle';
 import type { Exercise } from '../src/lib/protocol';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { gauss, legLandmarks, rng } from './helpers/leg';
@@ -11,7 +12,6 @@ describe('counterSetup', () => {
     expect(r).toMatchObject({ ok: true, kind: 'reps', config: { target: 60, maxFlexion: 90, minStateMs: 300 } });
     if (r.ok && r.kind === 'reps') {
       expect(r.config.enter).toBeCloseTo(48);
-      expect(r.config.exit).toBeCloseTo(18);
     }
   });
 
@@ -67,8 +67,14 @@ function trace(reps: number, peak: number, period = 3000, dwellMs = 1000): numbe
   return out;
 }
 
-function run(exercise: Exercise, flexions: number[], opts: { noise?: number; lose?: [number, number] } = {}) {
-  const made = createPipeline(exercise, 'left', 1);
+function run(
+  exercise: Exercise,
+  flexions: number[],
+  opts: { noise?: number; lose?: [number, number]; baseline?: number | null; leg?: Side; cameraSide?: Side } = {},
+) {
+  const leg = opts.leg ?? 'left';
+  const baselineDeg = opts.baseline === undefined ? 0 : opts.baseline;
+  const made = createPipeline(exercise, leg, 1, { baselineDeg, cameraSide: opts.cameraSide });
   if (!made.ok) throw new Error('setup failed');
   const next = rng(11);
   const events: string[] = [];
@@ -76,7 +82,7 @@ function run(exercise: Exercise, flexions: number[], opts: { noise?: number; los
     const lost = opts.lose && i >= opts.lose[0] && i < opts.lose[1];
     const landmarks = lost
       ? null
-      : legLandmarks('left', f, { noise: opts.noise ? () => gauss(next, opts.noise as number) : undefined });
+      : legLandmarks(leg, f, { noise: opts.noise ? () => gauss(next, opts.noise as number) : undefined });
     const out = made.pipeline.step(landmarks, i * DT);
     if (out.event) events.push(out.event);
   });
@@ -84,7 +90,7 @@ function run(exercise: Exercise, flexions: number[], opts: { noise?: number; los
 }
 
 describe('replay: heel slide through the whole chain', () => {
-  const heel = ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90 });
+  const heel = ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 18 });
 
   it('counts 10 reps from 10 synthetic heel slides with landmark noise', () => {
     const { summary } = run(heel, trace(10, 70), { noise: 0.004 });
@@ -113,14 +119,14 @@ describe('replay: heel slide through the whole chain', () => {
 
 describe('replay: mini squat ceiling', () => {
   it('alerts when depth goes above the protocol limit', () => {
-    const squat = ex({ kind: 'mini-squat', targetFlexion: 30, maxFlexion: 50 });
+    const squat = ex({ kind: 'mini-squat', targetFlexion: 30, maxFlexion: 50, returnWithinDeg: 15 });
     const { summary, events } = run(squat, trace(3, 70));
     expect(events).toContain('over-limit');
     expect(summary.reps).toBe(0);
   });
 
   it('counts reps that stay inside the limit', () => {
-    const squat = ex({ kind: 'mini-squat', targetFlexion: 30, maxFlexion: 50 });
+    const squat = ex({ kind: 'mini-squat', targetFlexion: 30, maxFlexion: 50, returnWithinDeg: 15 });
     expect(run(squat, trace(5, 40)).summary.reps).toBe(5);
   });
 });
@@ -177,6 +183,66 @@ describe('replay: straight leg raise, angle at the top', () => {
   });
 });
 
+describe('pipeline: return to the resting angle (T17)', () => {
+  const heel = ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 18 });
+  const fromRest = (rest: number, peak: number, reps: number) => trace(reps, peak - rest).map((f) => rest + f);
+
+  it('counts the reps of a person who rests at 25 degrees', () => {
+    expect(run(heel, fromRest(25, 70, 4), { baseline: 25 }).summary.reps).toBe(4);
+  });
+
+  it('counts none for the same movement when the baseline is 0, because the knee never comes back that far', () => {
+    expect(run(heel, fromRest(25, 70, 4), { baseline: 0 }).summary.reps).toBe(0);
+  });
+
+  it('counts none and says why when no baseline was measured', () => {
+    const r = run(heel, fromRest(0, 70, 3), { baseline: null });
+    expect(r.summary.reps).toBe(0);
+    expect(r.summary.countBlock).toBe('no-baseline');
+    expect(r.summary.peakFlexion).toBeGreaterThan(65);
+  });
+
+  it('counts none and says why when the protocol has no return value, and still shows the peak', () => {
+    const noValue = ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90 });
+    const r = run(noValue, fromRest(0, 70, 3));
+    expect(r.summary.reps).toBe(0);
+    expect(r.summary.countBlock).toBe('no-return-value');
+    expect(r.summary.peakFlexion).toBeGreaterThan(65);
+  });
+
+  it('has no count block when both values are present', () => {
+    expect(run(heel, fromRest(0, 70, 2)).summary.countBlock).toBeNull();
+  });
+});
+
+describe('pipeline: the chosen leg and the leg role (T17)', () => {
+  const heel = ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 18 });
+
+  it('tracks the right leg when the right leg is chosen', () => {
+    expect(run(heel, trace(3, 70), { leg: 'right' }).summary.reps).toBe(3);
+  });
+
+  it('does not read the other leg: a left leg that moves gives no angle for a right pipeline', () => {
+    const made = createPipeline(heel, 'right', 1, { baselineDeg: 0 });
+    if (!made.ok) throw new Error('setup failed');
+    const out = made.pipeline.step(legLandmarks('left', 60), 0);
+    expect(out.flexion).toBeNull();
+  });
+
+  it('records the role near when the chosen leg is on the camera side', () => {
+    expect(run(heel, trace(1, 70), { leg: 'left', cameraSide: 'left' }).summary.legRole).toBe('near');
+  });
+
+  it('records the role far when the chosen leg is on the other side', () => {
+    expect(run(heel, trace(1, 70), { leg: 'left', cameraSide: 'right' }).summary.legRole).toBe('far');
+    expect(run(heel, trace(1, 70), { leg: 'right', cameraSide: 'left' }).summary.legRole).toBe('far');
+  });
+
+  it('records no role when the camera side is not known', () => {
+    expect(run(heel, trace(1, 70)).summary.legRole).toBeNull();
+  });
+});
+
 describe('createPipeline', () => {
   it('fails with ask-your-surgeon when a setting is missing', () => {
     expect(createPipeline(ex({ kind: 'heel-slide' }), 'left', 1)).toMatchObject({ ok: false, reason: 'ask-your-surgeon' });
@@ -184,7 +250,7 @@ describe('createPipeline', () => {
 });
 
 describe('pipeline: margin events and tallies', () => {
-  const heel = ex({ kind: 'heel-slide', targetFlexion: 45, maxFlexion: 50 });
+  const heel = ex({ kind: 'heel-slide', targetFlexion: 45, maxFlexion: 50, returnWithinDeg: 18 });
 
   it('gives near-limit and counts the rep when the peak is inside the margin of the limit', () => {
     const { summary, events } = run(heel, trace(3, 52));
@@ -202,10 +268,10 @@ describe('pipeline: margin events and tallies', () => {
   });
 
   it('gives too-fast only when the protocol sets minRepSeconds', () => {
-    const fast = run(ex({ kind: 'heel-slide', targetFlexion: 45, minRepSeconds: 4 }), trace(4, 70, 2000));
+    const fast = run(ex({ kind: 'heel-slide', targetFlexion: 45, minRepSeconds: 4, returnWithinDeg: 18 }), trace(4, 70, 2000));
     expect(fast.events).toContain('too-fast');
     expect(fast.summary.eventCounts.tooFast).toBeGreaterThanOrEqual(1);
-    const none = run(ex({ kind: 'heel-slide', targetFlexion: 45 }), trace(4, 70, 2000));
+    const none = run(ex({ kind: 'heel-slide', targetFlexion: 45, returnWithinDeg: 18 }), trace(4, 70, 2000));
     expect(none.events).not.toContain('too-fast');
   });
 });

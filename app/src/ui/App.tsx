@@ -10,11 +10,13 @@ import { Banners } from './Banners';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadProtocol } from './LoadProtocol';
+import { Notice } from './Notice';
 import { Privacy } from './Privacy';
 import { createSound, type Sound } from './sound';
 import { RedFlag } from './RedFlag';
 import { Session } from './Session';
 import { Setup } from './Setup';
+import { Brand, LoadingScreen } from './Shell';
 import { Summary } from './Summary';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
@@ -48,7 +50,7 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
     };
   }, [db]);
 
-  if (rows.state === 'loading') return <h1>Loading</h1>;
+  if (rows.state === 'loading') return <LoadingScreen />;
   if (rows.state === 'error') {
     return (
       <FocusHeading>
@@ -56,7 +58,9 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
           <h1 id="progress-error-title" tabIndex={-1}>
             Progress
           </h1>
-          <p role="alert">Your sessions could not be read. Go back and try again.</p>
+          <Notice role="alert" icon="triangle-alert">
+            <p>Your sessions could not be read. Go back and try again.</p>
+          </Notice>
           <div className="actions">
             <button type="button" className="btn" onClick={onBack}>
               Back
@@ -111,8 +115,9 @@ export function App({ db, mode, source, now = () => new Date(), sound }: AppProp
     return (
       <div className="app">
         <Banners texts={bannersFor(mode, false)} />
+        <Brand />
         <main>
-          <h1>Loading</h1>
+          <LoadingScreen />
         </main>
       </div>
     );
@@ -189,10 +194,12 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               kind={exercise.kind}
               side={protocol.side}
               exerciseName={EXERCISE_NAMES[exercise.kind]}
+              targetFlexion={exercise.targetFlexion}
               limit={exercise.maxFlexion}
+              returnWithinDeg={exercise.returnWithinDeg}
               source={source}
               sound={sound}
-              onReady={() => dispatch({ type: 'open', screen: 'session' })}
+              onReady={(done) => dispatch({ type: 'setup-done', ...done })}
               onCancel={() => dispatch({ type: 'open', screen: 'home' })}
             />
           );
@@ -203,7 +210,9 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
           return (
             <Session
               exercise={exercise}
-              side={protocol.side}
+              side={state.exerciseLeg ?? protocol.side}
+              cameraSide={state.cameraSide ?? undefined}
+              baselineDeg={state.baselineDeg}
               source={source}
               sound={sound}
               onEnd={(reason, summary) => dispatch({ type: 'session-end', reason, summary })}
@@ -220,6 +229,8 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
               protocol={protocol}
               activePhase={store.activePhase}
               redFlagBlocks={state.redFlagBlocks}
+              legTracked={state.exerciseLeg ?? undefined}
+              cameraSide={state.cameraSide ?? undefined}
               db={db}
               now={now}
               onDone={() => dispatch({ type: 'finish' })}
@@ -273,8 +284,9 @@ function Shell({ db, mode, source, now, sound, protocol: storedProtocol, bootErr
   return (
     <div className="app">
       <Banners texts={banners} />
+      <Brand />
       <main ref={main}>
-        <Suspense fallback={<h1>Loading</h1>}>{screen}</Suspense>
+        <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
       </main>
     </div>
   );

@@ -61,7 +61,7 @@ describe('Progress', () => {
     });
     click('Progress');
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not be read/i);
-    expect(document.querySelector('svg')).toBeNull();
+    expect(document.querySelector('.recharts-wrapper')).toBeNull(); // no chart, only the notice icon
     click('Back');
     await heading('Home');
     expect(await count()).toBe(2);

@@ -1,16 +1,21 @@
 // Summary (S7, S8). Pain 0 to 10 and swelling, then the safety floor of FR12, then the save (FR11).
 // Copy source: research/ux-flow.md section 8.3. No value is pre-selected.
 // "Knee gave way or hurts" shows the care-team message first.
-// The pause message (FR12) comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
+// Sets: when Session passes the set data, Save adds it to the record and the screen lists the reps of each set. No total, no verdict.
+// The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
+import type { Side } from '../lib/angle';
 import { topAngleText } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
 import { MARGIN_DEG, MARGIN_SOURCE } from '../lib/margin';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
+import { summarySets } from '../lib/sets';
 import { saveSession, type MpflDb, type SessionInput } from '../lib/storage';
 import type { RunResult } from './appState';
+import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
+import { Notice } from './Notice';
 
 const SWELLING: { value: SwellingAnswer; text: string }[] = [
   { value: 'none', text: 'No swelling' },
@@ -28,18 +33,22 @@ interface Props {
   protocol: Protocol;
   activePhase: number;
   redFlagBlocks: number;
+  /** T17: the leg that the pipeline tracked and the side of the person that the camera was on. Both go into the record. */
+  legTracked?: Side;
+  cameraSide?: Side;
   db: MpflDb;
   now: () => Date;
   onDone: () => void;
 }
 
-export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, db, now, onDone }: Props) {
+export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, legTracked, cameraSide, db, now, onDone }: Props) {
   const { summary, reason } = run;
   const [pain, setPain] = useState<number | null>(null);
   const [swelling, setSwelling] = useState<SwellingAnswer | null>(null);
   const [saved, setSaved] = useState(false);
   const [discarded, setDiscarded] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const sets = summary.sets ?? null;
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
 
@@ -76,9 +85,11 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
       swelling,
       protocolId: protocol.id,
       phase: activePhase,
+      ...(legTracked === undefined ? {} : { legTracked }),
+      ...(cameraSide === undefined ? {} : { cameraSide }),
     };
     try {
-      await saveSession(db, input);
+      await saveSession(db, sets === null ? input : { ...input, ...summarySets(sets) });
       setSaveError(false);
       setSaved(true);
     } catch {
@@ -94,109 +105,136 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
   }
 
   const top = topAngleText(summary.topFlexion);
+  const unit = summary.holds === null ? 'reps' : 'holds';
 
   return (
-    <section aria-labelledby="summary-title">
-      <h1 id="summary-title" tabIndex={-1}>
-        Summary
-      </h1>
-      <p className="detail">Exercise: {EXERCISE_NAMES[exercise.kind]}</p>
-
-      {reason === 'gave-way' && (
-        <div className="attention" role="alert">
-          <p>You pressed "Knee gave way or hurts".</p>
-          <p className="attention-title">{MESSAGES['care-team']}</p>
+    <section aria-labelledby="summary-title" className="narrow">
+      <header className="page-head">
+        <div className="stack-s">
+          <h1 id="summary-title" tabIndex={-1}>
+            Summary
+          </h1>
+          <p className="detail">Exercise: {EXERCISE_NAMES[exercise.kind]}</p>
         </div>
-      )}
+      </header>
 
-      <dl className="facts">
-        {summary.reps !== null && (
-          <>
-            <dt>Reps counted</dt>
-            <dd>
-              <span className="num">{summary.reps}</span> reps
-            </dd>
-          </>
+      <div className="stack">
+        {reason === 'gave-way' && (
+          <Notice tone="strong" role="alert" icon="heart-pulse" title={MESSAGES['care-team']}>
+            <p>You pressed "Knee gave way or hurts".</p>
+          </Notice>
         )}
-        {summary.holds !== null && (
-          <>
-            <dt>Holds counted</dt>
-            <dd>
-              <span className="num">{summary.holds}</span> holds
-            </dd>
-          </>
-        )}
-        {summary.peakFlexion !== null && (
-          <>
-            <dt>Highest knee bend</dt>
-            <dd>
-              <span className="num">{Math.round(summary.peakFlexion)}</span> degrees ({ANGLE_LABEL})
-            </dd>
-          </>
-        )}
-      </dl>
-      {top && <p>{top}</p>}
-      {summary.reps === 0 && <p>No repetitions were counted.</p>}
 
-      {!saved && !discarded ? (
-        <>
-          <fieldset className="choices">
-            <legend>How much pain do you have now? 0 is no pain. 10 is the worst pain.</legend>
-            <div className="scale">
-              {PAIN_VALUES.map((v) => (
-                <label key={v} className="scale-item">
-                  <input type="radio" name="pain" checked={pain === v} onChange={() => setPain(v)} />
-                  <span className="num">{v}</span>
-                </label>
-              ))}
+        <dl className="stats">
+          {summary.reps !== null && (
+            <div className="stat">
+              <dt>Reps counted</dt>
+              <dd>
+                <span className="num">{summary.reps}</span> reps
+              </dd>
             </div>
-          </fieldset>
-
-          <fieldset className="choices">
-            <legend>Is your knee swollen?</legend>
-            {SWELLING.map((s) => (
-              <label key={s.value} className="choice">
-                <input type="radio" name="swelling" checked={swelling === s.value} onChange={() => setSwelling(s.value)} />
-                <span>{s.text}</span>
-              </label>
-            ))}
-          </fieldset>
-
-          <PauseNotice verdict={verdict} pain={pain} />
-
-          {saveError && (
-            <p className="attention" role="alert">
-              The session could not be saved. Try again.
-            </p>
           )}
-          <div className="actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={pain === null || swelling === null}
-              onClick={() => void save()}
-            >
+          {summary.holds !== null && (
+            <div className="stat">
+              <dt>Holds counted</dt>
+              <dd>
+                <span className="num">{summary.holds}</span> holds
+              </dd>
+            </div>
+          )}
+          {summary.peakFlexion !== null && (
+            <div className="stat">
+              <dt>Highest knee bend</dt>
+              <dd>
+                <span className="num">{Math.round(summary.peakFlexion)}</span> degrees
+                <span className="detail">({ANGLE_LABEL})</span>
+              </dd>
+            </div>
+          )}
+        </dl>
+        {/* The pause message sits here, above both questions, so a phone shows it at once (FR12). */}
+        <PauseNotice verdict={verdict} pain={pain} />
+        {sets !== null && sets.prescription.reps !== undefined && (
+          <ul className="set-list" aria-label="Reps in each set">
+            {sets.repsPerSet.map((n, i) => (
+              <li key={i}>
+                Set {i + 1}: <span className="num">{n}</span> {unit}
+              </li>
+            ))}
+          </ul>
+        )}
+        {top && <p>{top}</p>}
+        {summary.reps === 0 && <p>No repetitions were counted.</p>}
+
+        {!saved && !discarded ? (
+          <>
+            <fieldset className="choices">
+              <legend>
+                <Icon name="activity" size={22} />
+                How much pain do you have now? 0 is no pain. 10 is the worst pain.
+              </legend>
+              <div className="scale">
+                {PAIN_VALUES.map((v) => (
+                  <label key={v} className="scale-item">
+                    <input type="radio" name="pain" checked={pain === v} onChange={() => setPain(v)} />
+                    <span className="num">{v}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="scale-ends" aria-hidden="true">
+                <span>No pain</span>
+                <span>Worst pain</span>
+              </p>
+            </fieldset>
+
+            <fieldset className="choices">
+              <legend>
+                <Icon name="stethoscope" size={22} />
+                Is your knee swollen?
+              </legend>
+              <div className="options">
+                {SWELLING.map((s) => (
+                  <label key={s.value} className="option">
+                    <input type="radio" name="swelling" checked={swelling === s.value} onChange={() => setSwelling(s.value)} />
+                    <span>{s.text}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            {saveError && (
+              <Notice role="alert" icon="triangle-alert">
+                <p>The session could not be saved. Try again.</p>
+              </Notice>
+            )}
+            {(pain === null || swelling === null) && <p className="detail">Answer both questions to save.</p>}
+          </>
+        ) : (
+          <>
+            <p role="status" tabIndex={-1} ref={savedNote} className="chip chip-soft">
+              <Icon name="check" size={16} />
+              {discarded ? 'Session not saved.' : 'Session saved.'}
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="action-bar">
+        {!saved && !discarded ? (
+          <>
+            <button type="button" className="btn btn-primary btn-lg" disabled={pain === null || swelling === null} onClick={() => void save()}>
               Save
             </button>
-            <button type="button" className="btn" onClick={doNotSave}>
+            <button type="button" className="btn btn-lg" onClick={doNotSave}>
               Do not save
             </button>
-          </div>
-          {(pain === null || swelling === null) && <p className="detail">Answer both questions to save.</p>}
-        </>
-      ) : (
-        <>
-          <PauseNotice verdict={verdict} pain={pain} />
-          <p role="status" tabIndex={-1} ref={savedNote}>
-            {discarded ? 'Session not saved.' : 'Session saved.'}
-          </p>
-          <div className="actions">
-            <button type="button" className="btn btn-primary" onClick={onDone}>
-              Done
-            </button>
-          </div>
-        </>
-      )}
+          </>
+        ) : (
+          <button type="button" className="btn btn-primary btn-lg" onClick={onDone}>
+            Done
+          </button>
+        )}
+      </div>
     </section>
   );
 }
@@ -204,8 +242,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, d
 function PauseNotice({ verdict, pain }: { verdict: ReturnType<typeof evaluateSession> | null; pain: number | null }) {
   if (!verdict?.pause) return null;
   return (
-    <div className="attention" role="alert">
-      <p className="attention-title">{verdict.message}</p>
+    <Notice tone="strong" role="alert" icon="heart-pulse" title={verdict.message ?? undefined}>
       {verdict.reasons.includes('pain') && (
         <p>
           You reported pain <span className="num">{pain}</span> out of 10.
@@ -213,6 +250,6 @@ function PauseNotice({ verdict, pain }: { verdict: ReturnType<typeof evaluateSes
       )}
       {verdict.reasons.includes('swelling') && <p>You reported swelling: more than before.</p>}
       <p>This is a rule of the app. It is not a diagnosis.</p>
-    </div>
+    </Notice>
   );
 }

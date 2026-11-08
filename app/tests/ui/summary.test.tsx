@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Summary as RunSummary } from '../../src/lib/exercises';
+import type { Summary as PlainSummary } from '../../src/lib/exercises';
 import { MARGIN_DEG } from '../../src/lib/margin';
 import { MESSAGES } from '../../src/lib/redflags';
 import { PAUSE_MESSAGE } from '../../src/lib/safety';
@@ -8,10 +8,11 @@ import { loadProtocol, type Protocol } from '../../src/lib/protocol';
 import type { RunResult } from '../../src/ui/appState';
 import { Summary } from '../../src/ui/Summary';
 import { HEEL_SLIDE, freshDb, protocolText } from './helpers';
+import { hasVerdictWord } from './verdict';
 
 afterEach(cleanup);
 
-const summary: RunSummary = {
+const summary: PlainSummary = {
   reps: 4,
   holds: null,
   peakFlexion: 62.34,
@@ -295,5 +296,118 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
     save();
     const saved = await screen.findByText('Session saved.');
     await waitFor(() => expect(saved).toHaveFocus());
+  });
+});
+
+describe('Summary sets (plan FR9)', () => {
+  const withSets = (prescription: { sets?: number; reps?: number }, repsPerSet: number[]): RunResult => ({
+    reason: 'stop',
+    summary: {
+      ...summary,
+      reps: repsPerSet.reduce((a, b) => a + b, 0),
+      sets: { prescription, setIndex: repsPerSet.length - 1, repsInSet: 0, completedSets: 0, repsPerSet, phase: 'active', ended: true },
+    },
+  });
+
+  it('lists the reps of each set as plain text, with no total and no verdict', () => {
+    setup({ run: withSets({ sets: 3, reps: 10 }, [10, 10, 4]) });
+    const list = screen.getByRole('list', { name: 'Reps in each set' });
+    expect(list).toHaveTextContent('Set 1: 10 reps');
+    expect(list).toHaveTextContent('Set 2: 10 reps');
+    expect(list).toHaveTextContent('Set 3: 4 reps');
+    expect(list.textContent).not.toMatch(/total/i);
+    expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
+  });
+
+  it('shows no list without a prescription', () => {
+    setup({ run: withSets({}, [5]) });
+    expect(screen.queryByRole('list', { name: 'Reps in each set' })).toBeNull();
+  });
+
+  it('shows no list when the run has no set data', () => {
+    setup();
+    expect(screen.queryByRole('list', { name: 'Reps in each set' })).toBeNull();
+  });
+
+  it('saves the set fields with the session, read back from the database', async () => {
+    const { db } = setup({ run: withSets({ sets: 3, reps: 10 }, [10, 10, 4]) });
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    const [row] = await db.sessions.toArray();
+    expect(row).toMatchObject({ setsPrescribed: 3, repsPrescribed: 10, repsPerSet: [10, 10, 4], reps: 24 });
+  });
+
+  it('saves repsPerSet and no prescription fields when the protocol sets no reps', async () => {
+    const { db } = setup({ run: withSets({}, [5]) });
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    const [row] = await db.sessions.toArray();
+    expect(row!.repsPerSet).toEqual([5]);
+    expect(row).not.toHaveProperty('setsPrescribed');
+    expect(row).not.toHaveProperty('repsPrescribed');
+  });
+
+  it('saves with no set fields when the run has no set data', async () => {
+    const { db } = setup();
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    const [row] = await db.sessions.toArray();
+    expect(row).not.toHaveProperty('repsPerSet');
+  });
+
+  it('shows the pause message as a strong notice from the answers, before any save', () => {
+    setup();
+    answer(7, /no swelling/i);
+    const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
+    expect(notice).toHaveClass('notice-strong');
+    expect(notice).toHaveAttribute('role', 'alert');
+  });
+});
+
+describe('Summary pause message position (FR12)', () => {
+  const painGroup = () => screen.getByRole('group', { name: /How much pain/ });
+  const isBefore = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  it('shows the pause message above the pain question after pain 7', () => {
+    setup();
+    answer(7, /no swelling/i);
+    const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
+    expect(isBefore(notice, painGroup())).toBe(true);
+  });
+
+  it('shows the pause message below the heading and the result cards', () => {
+    setup();
+    answer(7, /no swelling/i);
+    const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
+    expect(isBefore(screen.getByRole('heading', { name: 'Summary' }), notice)).toBe(true);
+    expect(isBefore(document.querySelector('dl.stats')!, notice)).toBe(true);
+  });
+
+  it('keeps the alert role and shows the message above the questions for swelling more than before', () => {
+    setup();
+    answer(0, /more than before/i);
+    const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(isBefore(notice, painGroup())).toBe(true);
+  });
+
+  it('does not move the focus when the message appears', () => {
+    setup();
+    const radio = screen.getByRole('radio', { name: '7' });
+    radio.focus();
+    fireEvent.click(radio);
+    fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /no swelling/i })).not.toHaveFocus();
+    expect(document.activeElement).not.toBe(screen.getByText(PAUSE_MESSAGE));
+  });
+
+  it('shows no pause message for pain 6 with no swelling', () => {
+    setup();
+    answer(6, /no swelling/i);
+    expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getLastExport, saveSession, type SessionInput } from '../../src/lib/storage';
 import { DataScreen } from '../../src/ui/DataScreen';
 import { freshDb, protocolText, sessionInput } from './helpers';
-import { bigFile, exportText, installDialogStub, pick, session, stubDownload } from './t11helpers';
+import { PSEUDONYM, bigFile, exportText, installDialogStub, pick, session, stubDownload } from './t11helpers';
 import { hasVerdictWord } from './verdict';
 
 let stub: ReturnType<typeof stubDownload>;
@@ -132,6 +132,7 @@ describe('DataScreen import check', () => {
 
   it('shows the duplicate error and keeps the stored sessions', async () => {
     const { db } = await setup([sessionInput()]);
+    localStorage.setItem('mpfl.pseudoId', PSEUDONYM); // the same person, so the id check passes
     pick(screen.getByLabelText(/import a session file/i), exportText([session({ date: sessionInput().date, exercise: 'heel-slide' })]));
     expect(await screen.findByRole('alert')).toHaveTextContent(/already stored/i);
     expect(await db.sessions.count()).toBe(1);

@@ -6,7 +6,11 @@ import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { exportReminderDue, getLastExport, type MpflDb } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
+import { guideFor } from '../lib/guides';
+import { GuideFigure } from './GuideFigure';
+import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
+import { Notice } from './Notice';
 import type { ExerciseKind } from './appState';
 
 const SURGEON_LABELS: Record<SurgeonField, string> = {
@@ -19,14 +23,21 @@ const SURGEON_LABELS: Record<SurgeonField, string> = {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** What the protocol sets for one exercise, as short plain lines. */
-function prescription(e: Exercise): string[] {
-  const lines: string[] = [];
-  if (e.sets !== undefined && e.reps !== undefined) lines.push(`${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`);
-  else if (e.sets !== undefined) lines.push(plural(e.sets, 'set'));
-  if (e.holdSeconds !== undefined) lines.push(`Hold ${plural(e.holdSeconds, 'second')}`);
-  if (e.targetFlexion !== undefined) lines.push(`Target knee bend ${e.targetFlexion} degrees`);
-  if (e.maxFlexion !== undefined) lines.push(`Limit ${e.maxFlexion} degrees`);
+const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
+  'heel-slide': 'footprints',
+  'straight-leg-raise': 'bed-single',
+  'mini-squat': 'dumbbell',
+  'seated-extension-hold': 'armchair',
+};
+
+/** What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon. */
+function prescription(e: Exercise): { text: string; icon: IconName }[] {
+  const lines: { text: string; icon: IconName }[] = [];
+  if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
+  else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
+  if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
+  if (e.targetFlexion !== undefined) lines.push({ text: `Target knee bend ${e.targetFlexion} degrees`, icon: 'circle-dot' });
+  if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   return lines;
 }
 
@@ -58,118 +69,170 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
   }, [db]);
   const reminder = exportReminderDue(lastExport, now(), hasSessions);
 
+  const exercises = phase?.exercises ?? [];
+  const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
+
   return (
     <section aria-labelledby="home-title">
-      <h1 id="home-title" tabIndex={-1}>
-        Home
-      </h1>
+      <header className="page-head">
+        <h1 id="home-title" tabIndex={-1}>
+          Home
+        </h1>
+      </header>
 
-      <div className="block">
-        <h2>Your protocol</h2>
-        <dl className="facts">
-          <dt>Operated side</dt>
-          <dd>{protocol.side === 'left' ? 'Left' : 'Right'}</dd>
-          <dt>Written by</dt>
-          <dd>{protocol.authoredBy ?? 'Not recorded'}</dd>
-          <dt>Approval</dt>
-          <dd>
-            {protocol.approvedOn ? (
-              <>
-                Approved on <span className="num">{protocol.approvedOn}</span>
-              </>
-            ) : (
-              'No clinician approval recorded'
-            )}
-          </dd>
-          <dt>Active phase</dt>
-          <dd>{phase ? `${phase.id}, ${phase.name}` : activePhase}</dd>
-        </dl>
-        <div className="actions">
-          <button type="button" className="btn" onClick={onLoadProtocol}>
-            Load a new protocol file
-          </button>
-        </div>
-      </div>
+      <div className="home-grid">
+        <section aria-labelledby="exercises-title" className="stack-s">
+          <h2 id="exercises-title">Your exercises</h2>
+          <ul className="exercise-list">
+            {exercises.map((e, i) => {
+              const ready = counterSetup(e).ok;
+              const name = EXERCISE_NAMES[e.kind];
+              const featured = i === 0 && ready;
+              return (
+                <li key={e.kind} className={featured ? 'exercise exercise-featured' : 'exercise'}>
+                  <span className="exercise-icon">
+                    <Icon name={EXERCISE_ICONS[e.kind]} size={featured ? 36 : 28} />
+                  </span>
+                  <div className="exercise-body">
+                    <h3 className="exercise-name">{name}</h3>
+                    <ul className="chips">
+                      {prescription(e).map((line) => (
+                        <li key={line.text} className="chip">
+                          <Icon name={line.icon} size={16} />
+                          {line.text}
+                        </li>
+                      ))}
+                    </ul>
+                    {!ready && (
+                      <p className="detail">
+                        Target missing. {ASK_SURGEON_TEXT}.
+                      </p>
+                    )}
+                  </div>
+                  {featured && (
+                    <figure className="exercise-figure">
+                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} description={`End position. ${guideFor(e.kind).range}`} />
+                    </figure>
+                  )}
+                  <div className="exercise-go">
+                    <button
+                      type="button"
+                      className={featured ? 'btn btn-primary btn-lg' : 'btn btn-primary'}
+                      disabled={!ready}
+                      aria-label={`Start ${name}`}
+                      onClick={() => onStart(e.kind)}
+                    >
+                      <Icon name="play" size={featured ? 22 : 18} />
+                      Start
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
-      <div className="block">
-        <h2>Your exercises</h2>
-        <ul className="exercise-list">
-          {(phase?.exercises ?? []).map((e) => {
-            const ready = counterSetup(e).ok;
-            const name = EXERCISE_NAMES[e.kind];
-            return (
-              <li key={e.kind} className="exercise">
-                <div>
-                  <p className="exercise-name">{name}</p>
-                  {prescription(e).map((line) => (
-                    <p key={line} className="detail">
-                      {line}
-                    </p>
-                  ))}
-                  {!ready && <p className="detail">Target missing. {ASK_SURGEON_TEXT}.</p>}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={!ready}
-                  aria-label={`Start ${name}`}
-                  onClick={() => onStart(e.kind)}
-                >
-                  Start
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className="block">
-        <h2>Decisions for your surgeon</h2>
-        <dl className="facts">
-          {SURGEON_FIELDS.map((key) => {
-            const v = surgeonField(protocol, key);
-            return (
-              <div key={key} className="fact-row">
-                <dt>{SURGEON_LABELS[key]}</dt>
-                <dd>{v.set ? v.value : v.text}</dd>
+        <div className="stack">
+          <section className="card" aria-labelledby="protocol-title">
+            <h2 id="protocol-title">Your protocol</h2>
+            <dl className="facts facts-split">
+              <div className="fact-row">
+                <dt>Operated side</dt>
+                <dd>{protocol.side === 'left' ? 'Left' : 'Right'}</dd>
               </div>
-            );
-          })}
-          {ASK_SURGEON_ITEMS.map((item) => (
-            <div key={item} className="fact-row">
-              <dt>{item}</dt>
-              <dd>{ASK_SURGEON_TEXT}</dd>
+              <div className="fact-row">
+                <dt>Written by</dt>
+                <dd>{protocol.authoredBy ?? 'Not recorded'}</dd>
+              </div>
+              <div className="fact-row">
+                <dt>Approval</dt>
+                <dd>
+                  {protocol.approvedOn ? (
+                    <>
+                      Approved on <span className="num">{protocol.approvedOn}</span>
+                    </>
+                  ) : (
+                    'No clinician approval recorded'
+                  )}
+                </dd>
+              </div>
+              <div className="fact-row">
+                <dt>Active phase</dt>
+                <dd>{phase ? `${phase.id}, ${phase.name}` : activePhase}</dd>
+              </div>
+            </dl>
+            <div className="actions">
+              <button type="button" className="btn" onClick={onLoadProtocol}>
+                <Icon name="file-up" size={18} />
+                Load a new protocol file
+              </button>
             </div>
-          ))}
-        </dl>
-      </div>
+          </section>
 
-      <div className="block">
-        <h2>Your data</h2>
-        <p>
-          Last export:{' '}
-          {lastExport ? <span className="num">{lastExport.slice(0, 10)}</span> : 'No export yet'}
-        </p>
-        {reminder && (
-          <p className="attention" role="status">
-            It is 7 days or more since your last export, or you have not exported yet. Export your sessions. Send the file
-            to your care team.
-          </p>
-        )}
-        <div className="actions">
-          {onOpenProgress && (
-            <button type="button" className="btn" onClick={onOpenProgress}>
-              Progress
-            </button>
-          )}
-          {onOpenData && (
-            <button type="button" className="btn" onClick={onOpenData}>
-              My data
-            </button>
-          )}
-          <button type="button" className="btn" onClick={onOpenPrivacy}>
-            Privacy notice
-          </button>
+          {/* One disclosure instead of a wall of text. The words stay the same. */}
+          <details className="card disclosure">
+            <summary>
+              <h2>Decisions for your surgeon</h2>
+              <span className="chip chip-accent">{surgeonCount} items</span>
+              <span className="chev">
+                <Icon name="chevron-down" />
+              </span>
+            </summary>
+            <div className="disclosure-body">
+              <dl className="facts">
+                {SURGEON_FIELDS.map((key) => {
+                  const v = surgeonField(protocol, key);
+                  return (
+                    <div key={key} className="fact-row">
+                      <dt>{SURGEON_LABELS[key]}</dt>
+                      <dd className={v.set ? undefined : 'ask'}>{v.set ? v.value : v.text}</dd>
+                    </div>
+                  );
+                })}
+                {ASK_SURGEON_ITEMS.map((item) => (
+                  <div key={item} className="fact-row">
+                    <dt>{item}</dt>
+                    <dd className="ask">{ASK_SURGEON_TEXT}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </details>
+
+          <section className="card" aria-labelledby="data-title-home">
+            <h2 id="data-title-home">Your data</h2>
+            <p>
+              Last export: {lastExport ? <span className="num">{lastExport.slice(0, 10)}</span> : 'No export yet'}
+            </p>
+            {reminder && (
+              <div className="stack-s">
+                <Notice role="status" icon="calendar-check">
+                  <p>
+                    It is 7 days or more since your last export, or you have not exported yet. Export your sessions. Send the
+                    file to your care team.
+                  </p>
+                </Notice>
+              </div>
+            )}
+            <div className="tiles actions">
+              {onOpenProgress && (
+                <button type="button" className="btn btn-tile" onClick={onOpenProgress}>
+                  <Icon name="chart-line" />
+                  Progress
+                </button>
+              )}
+              {onOpenData && (
+                <button type="button" className="btn btn-tile" onClick={onOpenData}>
+                  <Icon name="database" />
+                  My data
+                </button>
+              )}
+              <button type="button" className="btn btn-tile" onClick={onOpenPrivacy}>
+                <Icon name="lock" />
+                Privacy notice
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </section>

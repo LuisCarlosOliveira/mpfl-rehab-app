@@ -114,7 +114,7 @@ describe('OneEuroFilter: properties', () => {
 });
 
 describe('repsStep: properties', () => {
-  const cfg: RepsConfig = { enter: 36, exit: 15, target: 45, minStateMs: 300, maxFlexion: 50, margin: 9 };
+  const cfg: RepsConfig = { enter: 36, baseline: 0, returnWithin: 15, target: 45, minStateMs: 300, maxFlexion: 50, margin: 9 };
 
   it('never counts when flexion stays below the entry threshold', () => {
     const next = rng(5);
