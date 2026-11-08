@@ -33,7 +33,8 @@ const GUIDES: Record<GuideKind, Guide> = {
     startPosition: 'Lie on your back. Bend your other knee and put that foot flat. Keep your operated leg straight.',
     legFacingCamera: 'Your operated leg is the leg nearest the camera. Keep your other leg low and behind it.',
     handsAndSupport: 'Keep your hands at your sides or on the floor.',
-    range: 'Keep your knee straight. Lift your leg to about the height of your other knee. Hold. Then lower your leg with control.',
+    range:
+      'Keep your knee straight. Lift your leg to about the height of your other knee. Hold. Then lower your leg with control. If your knee bends when you lift your leg, lower the leg. Ask your care team how to do this exercise.',
     speed: SLOW,
     cameraMustSee: 'The camera must see your hip, knee and ankle during the whole lift. Keep your device level.',
   },
@@ -46,13 +47,15 @@ const GUIDES: Record<GuideKind, Guide> = {
     speed: SLOW,
     cameraMustSee: 'The camera must see your hip, knee, ankle and foot. Keep any chair or counter out of the line between the camera and your leg.',
   },
-  // ux-flow 7.4. The seat and the foot position are PROPOSAL. The hold time is set by the protocol (holdSeconds).
+  // ux-flow 7.4. The seat and the foot position are PROPOSAL. The hold time and the angle come from the protocol (holdSeconds, minFlexion, targetFlexion).
+  // T1, T2 (docs/design-reconciliation.md section 3): P1 and P2 rec 29 avoid open-chain knee extension to full extension early, so the text never asks for a straight knee.
   'seated-extension-hold': {
     startPosition: 'Sit on a chair with no arm rest on the camera side. Rest your thigh on the seat. Keep your foot off the floor or on a low stool.',
     legFacingCamera: 'Sit side-on to the camera. Your operated leg is the leg nearest the camera.',
     handsAndSupport: 'Put your hands on the seat beside your hips.',
-    range: 'Straighten your knee. Hold it for the time that your care team sets. Then lower your foot.',
-    speed: 'Move slowly up and down. The hold time starts when your leg is straight. It restarts if your knee bends.',
+    range:
+      'Lift your foot until your knee reaches the angle that your care team sets. Do not straighten your knee past that angle. Hold for the time that your care team sets. Then lower your foot.',
+    speed: 'Move slowly up and down. The hold time starts when your knee reaches the angle that your care team sets. It restarts if your knee bends more.',
     cameraMustSee: 'The camera must see your thigh, knee and foot.',
   },
 };

@@ -14,7 +14,8 @@ const overlap = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < 
 const drawnFlexion = (f: ReturnType<typeof figureFor>) => flexion(kneeAngle(f.points.hip, f.points.knee, f.points.ankle, 1)) as number;
 
 describe('figureFor knee angle', () => {
-  it.each(EXERCISE_KINDS)('%s: the drawn knee angle at the end frame matches the documented value', (kind) => {
+  // The seated hold has its own tests below: without an angle from the protocol it draws no end angle (T3).
+  it.each(EXERCISE_KINDS.filter((k) => k !== 'seated-extension-hold'))('%s: the drawn knee angle at the end frame matches the documented value', (kind) => {
     SIDES.forEach((side) => {
       const fig = figureFor(kind, 'end', side);
       expect(Math.abs(drawnFlexion(fig) - ILLUSTRATIVE_FLEXION[kind])).toBeLessThan(1);
@@ -105,8 +106,8 @@ describe('figureFor body', () => {
     expect(figureFor('heel-slide', 'end', 'right').points.ankle.y).toBeCloseTo(start, 6);
   });
 
-  it('start and end frames differ for each exercise', () => {
-    EXERCISE_KINDS.forEach((k) => expect(figureFor(k, 'start', 'left').points).not.toEqual(figureFor(k, 'end', 'left').points));
+  it('start and end frames differ for each exercise, when the protocol gives an angle', () => {
+    EXERCISE_KINDS.forEach((k) => expect(figureFor(k, 'start', 'left', 60).points).not.toEqual(figureFor(k, 'end', 'left', 60).points));
   });
 
   it.each(EXERCISE_KINDS)('%s: every point, every surface and the arrow are inside the view box', (kind) => {
@@ -355,5 +356,73 @@ describe('cameraPlan', () => {
       const plan = cameraPlan(view, kind);
       expect((plan.labelSize * MIN_RENDER_W) / plan.box.w).toBeGreaterThanOrEqual(MIN_LABEL_PX);
     }));
+  });
+});
+
+// T3 of docs/design-reconciliation.md: the seated hold drawing never shows a straight knee unless the protocol angle says so.
+describe('figureFor seated hold (T3)', () => {
+  const kind = 'seated-extension-hold';
+  const ANGLES = [0, 30, 40, 45, 60, 75, 90, 120];
+
+  it.each([30, 40, 60, 75, 90])('draws the end pose at the protocol hold angle %s and the start with the knee bent more', (deg) => {
+    SIDES.forEach((side) => {
+      const end = figureFor(kind, 'end', side, deg);
+      const start = figureFor(kind, 'start', side, deg);
+      expect(Math.abs(drawnFlexion(end) - deg)).toBeLessThan(1);
+      expect(end.kneeArc.flexionDeg).toBe(deg);
+      expect(end.kneeArc.label?.text).toBe(`${deg}°`);
+      expect(drawnFlexion(start)).toBeGreaterThan(drawnFlexion(end) + 5);
+      expect(start.kneeArc.label).toBeNull();
+    });
+  });
+
+  it('draws a straight end knee only when the protocol angle is 0', () => {
+    expect(drawnFlexion(figureFor(kind, 'end', 'left', 0))).toBeCloseTo(0, 3);
+  });
+
+  it('without an angle draws no end pose: both frames show the start, with no arc and no number', () => {
+    SIDES.forEach((side) => {
+      const start = figureFor(kind, 'start', side);
+      const end = figureFor(kind, 'end', side);
+      expect(end.points).toEqual(start.points);
+      expect(end.kneeArc.flexionDeg).toBe(0);
+      expect(end.kneeArc.label).toBeNull();
+      // The knee is bent in both frames. It is never straight.
+      expect(drawnFlexion(start)).toBeGreaterThanOrEqual(60);
+      expect(drawnFlexion(end)).toBeGreaterThanOrEqual(60);
+    });
+  });
+
+  it('keeps every label clear of the body, the ghost, the arrow, the arc and the chair at each angle', () => {
+    SIDES.forEach((side) =>
+      FRAMES.forEach((frame) =>
+        ANGLES.concat([undefined as unknown as number]).forEach((deg) => {
+          const fig = figureFor(kind, frame, side, deg);
+          const boxes = [...fig.labels.map((l) => l.box), ...(fig.kneeArc.label ? [fig.kneeArc.label.box] : [])];
+          boxes.forEach((b) => expect(boxInView(b, fig.view), `${side} ${frame} ${deg} view`).toBe(true));
+          boxes.forEach((a, i) => boxes.slice(i + 1).forEach((b) => expect(overlap(a, b), `${side} ${frame} ${deg} overlap`).toBe(false)));
+          if (fig.kneeArc.label) {
+            const gap = Math.min(...obstaclesOf(fig).map((sh) => boxShapeGap(fig.kneeArc.label!.box, sh)));
+            expect(gap, `${side} ${frame} ${deg} number`).toBeGreaterThanOrEqual(GAP);
+          }
+          ['frame', 'operatedLeg'].forEach((key) => {
+            const box = fig.labels.find((l) => l.key === key)!.box;
+            const gap = Math.min(...obstaclesOf(fig).map((sh) => boxShapeGap(box, sh)));
+            expect(gap, `${side} ${frame} ${deg} ${key}`).toBeGreaterThanOrEqual(GAP);
+          });
+        }),
+      ),
+    );
+  });
+
+  it('keeps every point and the arrow inside the view box at each angle', () => {
+    SIDES.forEach((side) =>
+      FRAMES.forEach((frame) =>
+        ANGLES.forEach((deg) => {
+          const fig = figureFor(kind, frame, side, deg);
+          [...Object.values(fig.points), fig.arrow.from, fig.arrow.to].forEach((p) => expect(inView(p, fig.view), `${side} ${frame} ${deg}`).toBe(true));
+        }),
+      ),
+    );
   });
 });

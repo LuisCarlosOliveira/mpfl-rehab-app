@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "gives T3 values 0.02 and 0.27",
+   "passed": true,
+   "evidence": "found 'T3'; found '0.02'; found '0.27'"
+  },
+  {
+   "text": "says 22 RCTs",
+   "passed": true,
+   "evidence": "found '22'"
+  },
+  {
+   "text": "says not significant",
+   "passed": true,
+   "evidence": "found 'not significant'"
+  },
+  {
+   "text": "does not say superior",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'review'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 2,
+  "total": 6,
+  "pass_rate": 0.667
+ },
+ "timing": {
+  "total_tokens": 54786,
+  "duration_ms": 92115,
+  "total_duration_seconds": 92.1
+ }
+}

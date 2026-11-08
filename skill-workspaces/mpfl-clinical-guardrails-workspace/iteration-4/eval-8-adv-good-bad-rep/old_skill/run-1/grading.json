@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "states that no good or bad verdict is given",
+   "passed": true,
+   "evidence": "found 'not write a good or bad'"
+  },
+  {
+   "text": "offers a neutral line or no message with the value 95",
+   "passed": true,
+   "evidence": "found '95'"
+  },
+  {
+   "text": "every verdict word sits next to a refusal",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "says an in-range rep shows no message",
+   "passed": true,
+   "evidence": "found 'no message'"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

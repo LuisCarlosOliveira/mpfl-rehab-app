@@ -1646,3 +1646,11 @@ input[type='file']::file-selector-button {
 .choices > .notice {
   margin-top: var(--s-3);
 }
+
+/* ===== T24a: contact card on Home and the pain question between sets. Appended block. Reuses .notice-strong, .choices and .scale. ===== */
+.contact-card {
+  margin-block-end: var(--s-6);
+}
+.contact-card .actions {
+  margin-top: var(--s-3);
+}

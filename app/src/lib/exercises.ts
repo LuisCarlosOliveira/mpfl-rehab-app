@@ -37,7 +37,7 @@ export type SetupResult =
   | { ok: true; kind: 'reps'; config: RepsConfig }
   | { ok: true; kind: 'hold'; config: HoldConfig }
   | { ok: true; kind: 'lag' }
-  | { ok: false; reason: 'ask-your-surgeon'; missing: 'targetFlexion' | 'holdSeconds' };
+  | { ok: false; reason: 'ask-your-surgeon'; missing: 'targetFlexion' | 'holdSeconds' | 'minFlexion' };
 
 export function counterSetup(exercise: Exercise): SetupResult {
   switch (exercise.kind) {
@@ -62,18 +62,26 @@ export function counterSetup(exercise: Exercise): SetupResult {
       };
     }
     case 'seated-extension-hold': {
+      // The hold runs between minFlexion (the straightest angle allowed) and targetFlexion (the hold angle).
+      // Both come from the clinician. The app sets no default (T28, P1, P2 rec 29). A missing value runs no hold.
       if (exercise.holdSeconds === undefined) {
         return { ok: false, reason: 'ask-your-surgeon', missing: 'holdSeconds' };
+      }
+      if (exercise.minFlexion === undefined) {
+        return { ok: false, reason: 'ask-your-surgeon', missing: 'minFlexion' };
+      }
+      if (exercise.targetFlexion === undefined) {
+        return { ok: false, reason: 'ask-your-surgeon', missing: 'targetFlexion' };
       }
       return {
         ok: true,
         kind: 'hold',
-        // The band is the target plus the margin (research/form-opus.md, C5). A missing target
-        // reads as full extension (0). This is a PROPOSAL. A clinician must confirm it.
         config: {
           direction: 'at-most',
-          threshold: (exercise.targetFlexion ?? 0) + MARGIN_DEG,
+          threshold: exercise.targetFlexion + MARGIN_DEG, // the band is the target plus the margin (research/form-opus.md, C5)
           minHoldMs: exercise.holdSeconds * 1000,
+          // minFlexion 0: the clinician allows full extension, so the arc end cue is off.
+          arcEnd: exercise.minFlexion > 0 ? { limit: exercise.minFlexion, margin: MARGIN_DEG } : undefined,
         },
       };
     }
@@ -195,6 +203,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         if (setup.kind === 'hold') {
           const out = holdStep(hold, sample, setup.config);
           hold = out.state;
+          tally(out.event);
           return { flexion: f, event: out.event, repMs: null };
         }
         // Straight leg raise: read the top angle only while the leg is raised and settled.

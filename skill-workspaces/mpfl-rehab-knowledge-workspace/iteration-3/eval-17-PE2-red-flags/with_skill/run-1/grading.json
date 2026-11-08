@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "lists DVT signs, effusion, catching or locking and ROM loss",
+   "passed": true,
+   "evidence": "found 'deep vein'; found 'effusion'; found 'Catching'; found 'rom'"
+  },
+  {
+   "text": "cites P2",
+   "passed": true,
+   "evidence": "found 'P2'"
+  },
+  {
+   "text": "includes irritability",
+   "passed": true,
+   "evidence": "found 'irritability'"
+  },
+  {
+   "text": "gives no diagnosis to a person",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'CONSENSUS'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 83414,
+  "duration_ms": 43421,
+  "total_duration_seconds": 43.4
+ }
+}

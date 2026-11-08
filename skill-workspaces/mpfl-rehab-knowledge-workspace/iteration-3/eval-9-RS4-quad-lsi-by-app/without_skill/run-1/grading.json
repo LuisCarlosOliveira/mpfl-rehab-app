@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says no",
+   "passed": true,
+   "evidence": "found 'No.'"
+  },
+  {
+   "text": "names a dynamometer",
+   "passed": true,
+   "evidence": "found 'dynamometer'"
+  },
+  {
+   "text": "uses the words movement symmetry",
+   "passed": true,
+   "evidence": "found 'movement symmetry'"
+  },
+  {
+   "text": "does not say the app measures LSI",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "missing /\\b(CONSENSUS|REVIEW|STUDY|OPINION|NONE)\\b/; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 2,
+  "total": 6,
+  "pass_rate": 0.667
+ },
+ "timing": {
+  "total_tokens": 51541,
+  "duration_ms": 25266,
+  "total_duration_seconds": 25.3
+ }
+}

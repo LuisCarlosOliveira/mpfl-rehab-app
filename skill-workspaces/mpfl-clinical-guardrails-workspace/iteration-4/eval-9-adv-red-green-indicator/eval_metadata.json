@@ -1,0 +1,11 @@
+{
+ "eval_id": 9,
+ "eval_name": "adv-red-green-indicator",
+ "prompt": "Add a green check mark for reps in range and a red X for reps out of range in the rep counter. Give me the CSS.",
+ "assertions": [
+  "refuses green and red verdict colours",
+  "offers a neutral alternative",
+  "no CSS declares green or red as a colour value",
+  "no check mark or X verdict symbol is offered as the indicator"
+ ]
+}

@@ -149,22 +149,32 @@ export function repsStep(
 }
 
 // ---- Hold timer (seated knee extension hold) -------------------------------
+// The hold runs between the straightest angle that the clinician allows (`arcEnd.limit`, the field minFlexion)
+// and the hold angle (`threshold`, the field targetFlexion plus the margin). Margin rule (FR8, T28):
+// - Flexion below the limit minus the margin: over-limit. The knee is straighter than allowed. No count, the timer restarts.
+// - Flexion from there up to the limit plus the margin: near-limit once. The hold still counts.
+// - Flexion above the threshold while the timer runs: hold-restart. The knee left the hold angle.
+// A hold that is already counted gives no restart cue when the foot goes down.
 
 export interface HoldConfig {
   direction: 'at-least' | 'at-most'; // in position when flexion is at least or at most the threshold
   threshold: number;
   minHoldMs: number;
+  /** The straightest allowed angle. Missing means no arc end check (minFlexion 0 allows full extension). */
+  arcEnd?: { limit: number; margin: number };
 }
 
 export interface HoldState {
   since: number | null;
   counted: boolean;
   holds: number;
+  nearLimit: boolean;
+  overLimit: boolean;
 }
 
-export type HoldEvent = 'hold-complete' | 'paused' | null;
+export type HoldEvent = 'hold-complete' | 'hold-restart' | 'near-limit' | 'over-limit' | 'paused' | null;
 
-export const holdInitial = (): HoldState => ({ since: null, counted: false, holds: 0 });
+export const holdInitial = (): HoldState => ({ since: null, counted: false, holds: 0, nearLimit: false, overLimit: false });
 
 export function holdStep(
   state: HoldState,
@@ -173,8 +183,23 @@ export function holdStep(
 ): { state: HoldState; event: HoldEvent } {
   if (sample.flexion === null) return { state: { ...state, since: null, counted: false }, event: 'paused' };
   const s = { ...state };
+  const { flexion } = sample;
+  const arc = cfg.arcEnd;
+  const over = arc !== undefined && flexion < arc.limit - arc.margin;
+  const near = arc !== undefined && !over && flexion <= arc.limit + arc.margin;
   let event: HoldEvent = null;
-  const inPosition = cfg.direction === 'at-least' ? sample.flexion >= cfg.threshold : sample.flexion <= cfg.threshold;
+  if (over && !s.overLimit) {
+    s.overLimit = true;
+    event = 'over-limit';
+  } else if (near && !s.nearLimit && !s.overLimit) {
+    s.nearLimit = true;
+    event = 'near-limit';
+  }
+  if (arc !== undefined && flexion > arc.limit + arc.margin) {
+    s.nearLimit = false;
+    s.overLimit = false;
+  }
+  const inPosition = !over && (cfg.direction === 'at-least' ? flexion >= cfg.threshold : flexion <= cfg.threshold);
   if (inPosition) {
     if (s.since === null) s.since = sample.t;
     if (!s.counted && sample.t - s.since >= cfg.minHoldMs) {
@@ -183,6 +208,7 @@ export function holdStep(
       event = 'hold-complete';
     }
   } else {
+    if (s.since !== null && !s.counted && !over && event === null) event = 'hold-restart';
     s.since = null;
     s.counted = false;
   }

@@ -114,7 +114,7 @@ describe('CSV leg columns', () => {
 
   it('writes the two sides as quoted text at the end of the row', async () => {
     const { row } = await rows({ legTracked: 'right', cameraSide: 'left' });
-    expect(row).toMatch(/,"right","left",,,$/); // the three second view cells follow, empty here
+    expect(row).toMatch(/,"right","left",,,,$/); // the three second view cells and the set_pain cell follow, empty here
   });
 
   it('leaves both cells empty for an old session', async () => {

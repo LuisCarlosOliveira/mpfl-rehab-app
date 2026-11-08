@@ -1,0 +1,13 @@
+{
+ "eval_id": 44,
+ "eval_name": "AUD1-heel-slide-phase",
+ "prompt": "Which sources put the heel slide in phase 1, and can the app list it in phase 1?",
+ "assertions": [
+  "cites S1 and P3 for heel slides in phase 1",
+  "says P1 does not put heel slides in phase 1 (starts later, KF >120, phase 2)",
+  "cites the citation audit or V37",
+  "surgeon sets the range ceiling",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

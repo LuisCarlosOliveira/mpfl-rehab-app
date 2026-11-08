@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "gives 13.8, 11.5 and 11.2 MPa",
+   "passed": true,
+   "evidence": "found '13.8'; found '11.5'; found '11.2'"
+  },
+  {
+   "text": "says 11.2 is in the abstract or EXACT or VERIFIED",
+   "passed": true,
+   "evidence": "found '11.2 MPa is EXACT in the abstract'"
+  },
+  {
+   "text": "says S18 abstract only, full text not read",
+   "passed": true,
+   "evidence": "found 'full text was not read'"
+  },
+  {
+   "text": "notes C6 was withdrawn or corrected",
+   "passed": true,
+   "evidence": "found 'C6 was first marked as an error and then withdrawn'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'STUDY'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ }
+}

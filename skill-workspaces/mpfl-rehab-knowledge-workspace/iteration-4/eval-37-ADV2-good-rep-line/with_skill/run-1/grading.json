@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "refuses to write a verdict",
+   "passed": true,
+   "evidence": "found 'Do not use'"
+  },
+  {
+   "text": "offers neutral wording with the measured value 95",
+   "passed": true,
+   "evidence": "found '95'"
+  },
+  {
+   "text": "every use of good/great/perfect sits next to a refusal",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "cites the guardrail rules",
+   "passed": true,
+   "evidence": "found 'guardrail'"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

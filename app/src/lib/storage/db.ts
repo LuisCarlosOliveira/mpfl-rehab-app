@@ -42,6 +42,9 @@ export const sessionSchema = z.strictObject({
   secondView: z.literal('front').optional(),
   frontReps: z.number().int().min(0).max(1000).optional(),
   frontChangeDeg: z.number().min(-180).max(180).optional(),
+  // The pain answer (0 to 10) at the end of each completed set. null means no answer. Optional, so an older file still reads.
+  // It never stops the session by itself. Only a clinician `painPauseThreshold` does (adaptation design 4.3, L2).
+  setPain: z.array(z.number().int().min(0).max(10).nullable()).max(20).optional(),
   schemaVersion: z.literal(1),
 }).superRefine((s, ctx) => {
   if (s.repsPerSet === undefined) return;
@@ -79,6 +82,11 @@ export function createDb(name = 'mpfl-rehab'): MpflDb {
 export async function saveSession(db: MpflDb, input: SessionInput): Promise<number> {
   await requestPersistOnce();
   return db.sessions.add({ ...input, schemaVersion: 1 } as SessionRecord);
+}
+
+/** The session with the latest date, or undefined when none is stored. */
+export async function lastSession(db: MpflDb): Promise<SessionRecord | undefined> {
+  return db.sessions.orderBy('date').last();
 }
 
 /** Check a protocol file and keep it, so the patient loads it once. A new one replaces the old one. */

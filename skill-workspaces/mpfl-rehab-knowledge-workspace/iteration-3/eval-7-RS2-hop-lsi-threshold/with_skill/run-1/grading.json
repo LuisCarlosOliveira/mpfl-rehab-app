@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "gives 85 (P2) and 90 (S1)",
+   "passed": true,
+   "evidence": "found 'P2'; found '85'; found 'S1'; found '90'"
+  },
+  {
+   "text": "names ISAKOS 2013 as second-hand",
+   "passed": true,
+   "evidence": "found 'ISAKOS'"
+  },
+  {
+   "text": "names 90 percent as the conservative value",
+   "passed": true,
+   "evidence": "found 'conservative value is 90'"
+  },
+  {
+   "text": "no average value",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'OPINION'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 77772,
+  "duration_ms": 34748,
+  "total_duration_seconds": 34.7
+ }
+}

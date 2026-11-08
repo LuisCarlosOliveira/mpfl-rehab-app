@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "cites S16 0 to 50 degrees",
+   "passed": true,
+   "evidence": "found 'S16'; found '50'"
+  },
+  {
+   "text": "labels it BORROWED or healthy people",
+   "passed": true,
+   "evidence": "found 'BORROWED'"
+  },
+  {
+   "text": "cites P2 90 degrees end goal",
+   "passed": true,
+   "evidence": "found 'P2'; found '90'"
+  },
+  {
+   "text": "says the surgeon decides or sets it",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'study'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 78140,
+  "duration_ms": 40203,
+  "total_duration_seconds": 40.2
+ }
+}

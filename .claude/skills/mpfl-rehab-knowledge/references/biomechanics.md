@@ -12,7 +12,7 @@ Job: answer questions on patellofemoral stress by knee angle and exercise, open-
 ## Traps
 
 - All stress-by-angle data come from healthy people or other groups (S14 to S18, N23). They are BORROWED. No study measures graft strain during exercise after MPFLR. Graft statements are OPINION. Say NONE for a graft strain number.
-- S18: the abstract gives 13.8 MPa (step-down) and 11.5 MPa (lateral step-up). The value 11.2 MPa for the forward step-up is UNVERIFIED (C6).
+- S18 abstract gives FSD 13.8 MPa, LSU 11.5 MPa and FSU 11.2 MPa (`FSU (11.2 ± 0.6 MPa; P = .002)`). All three are EXACT in the abstract (VERIFIED-ABSTRACT). Correction C6 is withdrawn. The full text was not read.
 - S15 and S17: the angle bands (45 to 90 degrees in descent, 10 to 40 degrees with a stride) are UNVERIFIED (C7, C8). Do not quote them as facts.
 - The P2 arc of 90 to 30 degrees sits in a Note (quote: `It may be helpful`), not in a recommendation (V46). The P1 arc of 90 to 40 degrees belongs to phase 2 (weeks 7 to 11), with "Follow surgeon preference and patient tolerance". "Do not perform AROM open chain KE" holds in phase 1 of P1 (V47).
 - The open-chain restriction is in 2 of 4 readable guidance sources. P3 allows open-chain quadriceps work from 2 weeks with no arc. N3 restricts it only after bone procedures.

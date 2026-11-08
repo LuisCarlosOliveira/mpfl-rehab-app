@@ -17,8 +17,17 @@ describe('cueFor', () => {
     expect(cueFor(event, {})).toBe(text);
   });
 
+  it('maps the hold restart to the text of the reconciliation (T5), which asks for no full extension', () => {
+    expect(cueFor('hold-restart', {})).toBe('The knee left the hold angle. The hold timer starts again.');
+    expect(cueFor('hold-restart', {})).not.toMatch(/straight/i);
+  });
+
+  it('gives no hold cue for a counted hold', () => {
+    expect(cueFor('hold-complete', {})).toBeNull();
+  });
+
   it('writes the rep time and the minimum for a fast rep', () => {
-    expect(cueFor('too-fast', { repMs: 1234, minRepMs: 2000 })).toBe('Rep time 1.2 s. Your care team set at least 2.0 s.');
+    expect(cueFor('too-fast', { repMs: 1234, minRepMs: 2000 })).toBe('Slow down. Rep time 1.2 s. Your care team set at least 2.0 s.');
   });
 
   it('gives no fast-rep cue when the numbers are missing', () => {
@@ -49,6 +58,10 @@ describe('cue texts follow the guardrails', () => {
 
   it('keeps each text short', () => {
     for (const t of allCueTexts()) expect(t.split(/\s+/).length).toBeLessThanOrEqual(25);
+  });
+
+  it('includes the hold restart text in the list the tests check', () => {
+    expect(allCueTexts()).toContain('The knee left the hold angle. The hold timer starts again.');
   });
 
   it('lists every fixed cue once', () => {

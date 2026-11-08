@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "gives 2 (0.3) of 617 from N11",
+   "passed": true,
+   "evidence": "found 'N11'; found '2 (0.3)'; found '617'"
+  },
+  {
+   "text": "names NSQIP",
+   "passed": true,
+   "evidence": "found 'NSQIP'"
+  },
+  {
+   "text": "notes adolescents are not covered",
+   "passed": true,
+   "evidence": "found 'adolescen'"
+  },
+  {
+   "text": "gives no prophylaxis recommendation",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'STUDY'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 71262,
+  "duration_ms": 39268,
+  "total_duration_seconds": 39.3
+ }
+}

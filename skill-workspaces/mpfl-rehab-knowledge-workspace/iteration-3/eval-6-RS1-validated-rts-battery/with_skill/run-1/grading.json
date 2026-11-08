@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says no validated battery",
+   "passed": true,
+   "evidence": "found 'no validated'"
+  },
+  {
+   "text": "cites S1 not well established",
+   "passed": true,
+   "evidence": "found 'S1'; found 'not been well established'"
+  },
+  {
+   "text": "cites S6 14 to 40 percent met all criteria",
+   "passed": true,
+   "evidence": "found 'S6'; found '14% to 40'"
+  },
+  {
+   "text": "does not call any battery validated",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'consensus'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 74128,
+  "duration_ms": 66366,
+  "total_duration_seconds": 66.4
+ }
+}

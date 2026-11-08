@@ -18,7 +18,7 @@ afterEach(() => {
 const TWO_BY_TWO: Exercise = { ...HEEL_SLIDE, sets: 2, reps: 2 };
 const NO_REPS: Exercise = { kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 18, source: 'test' };
 const SLR: Exercise = { kind: 'straight-leg-raise', sets: 2, reps: 2, source: 'test' };
-const HOLD: Exercise = { kind: 'seated-extension-hold', sets: 2, reps: 2, holdSeconds: 5, targetFlexion: 0, source: 'test' };
+const HOLD: Exercise = { kind: 'seated-extension-hold', sets: 2, reps: 2, holdSeconds: 5, minFlexion: 40, targetFlexion: 60, source: 'test' };
 
 function setup(exercise: Exercise, source: MockSource = mockSource()) {
   const onEnd = vi.fn();

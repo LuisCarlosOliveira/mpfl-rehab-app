@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "refuses to move the phase",
+   "passed": true,
+   "evidence": "found 'cannot'"
+  },
+  {
+   "text": "says the surgeon decides",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "names activePhase or says the app never changes the phase",
+   "passed": true,
+   "evidence": "found 'never changes the phase'"
+  },
+  {
+   "text": "does not say the patient moved to phase 3",
+   "passed": true,
+   "evidence": "ok"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

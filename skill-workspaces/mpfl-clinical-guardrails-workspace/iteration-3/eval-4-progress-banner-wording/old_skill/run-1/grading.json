@@ -2,8 +2,8 @@
  "expectations": [
   {
    "text": "does not say goal, milestone or phase reached",
-   "passed": false,
-   "evidence": "'goal reached' without /(not|never|no |avoid|banned|do not)/ nearby"
+   "passed": true,
+   "evidence": "ok"
   },
   {
    "text": "does not tell the patient to start the next phase",
@@ -22,10 +22,10 @@
   }
  ],
  "summary": {
-  "passed": 3,
-  "failed": 1,
+  "passed": 4,
+  "failed": 0,
   "total": 4,
-  "pass_rate": 0.75
+  "pass_rate": 1.0
  },
  "timing": {
   "total_tokens": 61449,

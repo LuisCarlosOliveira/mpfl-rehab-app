@@ -89,8 +89,8 @@ describe('exercise: minRepSeconds and maxTopFlexion', () => {
     expect(load(make({ phases: [phase({}, { ...heel, maxFlexion: undefined })] })).ok).toBe(true);
   });
 
-  it('keeps a hold exercise with a target of 0 valid, because the hold counter has no limit', () => {
-    const hold = { kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0, source: 'PROPOSAL' };
+  it('keeps a hold exercise with minFlexion 0 and a target of 0 valid, because the clinician allows full extension', () => {
+    const hold = { kind: 'seated-extension-hold', holdSeconds: 5, minFlexion: 0, targetFlexion: 0, source: 'PROPOSAL' };
     expect(load(make({ phases: [phase({}, hold)] })).ok).toBe(true);
   });
 });

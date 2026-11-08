@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "says NONE",
+   "passed": true,
+   "evidence": "found 'NONE'"
+  },
+  {
+   "text": "cites S1 OPINION about femoral internal rotation",
+   "passed": true,
+   "evidence": "found 'S1'; found 'OPINION'; found 'internal rotation'"
+  },
+  {
+   "text": "gives no degree threshold",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'NONE'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 0,
+  "total": 5,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 74440,
+  "duration_ms": 33573,
+  "total_duration_seconds": 33.6
+ }
+}

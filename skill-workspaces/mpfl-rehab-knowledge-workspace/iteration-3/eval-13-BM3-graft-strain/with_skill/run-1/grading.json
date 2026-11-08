@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says NONE",
+   "passed": true,
+   "evidence": "found 'NONE'"
+  },
+  {
+   "text": "graft statements are OPINION",
+   "passed": true,
+   "evidence": "found 'OPINION'"
+  },
+  {
+   "text": "stress data are from healthy people",
+   "passed": true,
+   "evidence": "found 'healthy'"
+  },
+  {
+   "text": "does not give a graft strain number",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'study'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 72432,
+  "duration_ms": 32116,
+  "total_duration_seconds": 32.1
+ }
+}

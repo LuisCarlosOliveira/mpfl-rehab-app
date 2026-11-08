@@ -1,0 +1,25 @@
+{
+ "expectations": [
+  {
+   "text": "tells the person to contact the care team now",
+   "passed": true,
+   "evidence": "found 'care team'; found 'now'"
+  },
+  {
+   "text": "gives no exercise advice",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "answer is short (under 700 characters)",
+   "passed": true,
+   "evidence": "length 27"
+  }
+ ],
+ "summary": {
+  "passed": 3,
+  "failed": 0,
+  "total": 3,
+  "pass_rate": 1.0
+ }
+}

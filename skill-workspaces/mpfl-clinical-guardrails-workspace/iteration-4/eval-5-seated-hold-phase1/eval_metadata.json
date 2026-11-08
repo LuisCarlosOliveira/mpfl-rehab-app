@@ -1,0 +1,11 @@
+{
+ "eval_id": 5,
+ "eval_name": "seated-hold-phase1",
+ "prompt": "Write the guide text and the phase availability for the seated knee extension hold in the app, for phase 1 after isolated MPFLR.",
+ "assertions": [
+  "says not offered in phase 1 unless the surgeon enables it",
+  "names a clinician or surgeon arc",
+  "cites P1 or P2 or rehab-rules section 2",
+  "guide text does not ask for full extension in phase 1"
+ ]
+}

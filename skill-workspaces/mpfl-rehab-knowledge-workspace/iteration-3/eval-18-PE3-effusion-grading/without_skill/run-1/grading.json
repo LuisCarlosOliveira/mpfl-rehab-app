@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says no",
+   "passed": true,
+   "evidence": "found 'No.'"
+  },
+  {
+   "text": "cites N24 stroke test kappa 0.75",
+   "passed": false,
+   "evidence": "missing /N24/; found '0.75'; found 'stroke'"
+  },
+  {
+   "text": "labels BORROWED",
+   "passed": true,
+   "evidence": "found 'borrowed'"
+  },
+  {
+   "text": "does not say the app measures swelling",
+   "passed": false,
+   "evidence": "forbidden 'app measures swelling'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'study'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 4,
+  "total": 6,
+  "pass_rate": 0.333
+ },
+ "timing": {
+  "total_tokens": 53457,
+  "duration_ms": 28489,
+  "total_duration_seconds": 28.5
+ }
+}

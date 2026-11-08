@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from '../../src/ui/askSurgeon';
+import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from '../../src/ui/askSurgeon';
 import { VERDICT_WORDS, hasVerdictWord } from './verdict';
 
 describe('askSurgeon list', () => {
@@ -13,6 +13,9 @@ describe('askSurgeon list', () => {
   });
   it('has no verdict word', () => {
     expect(VERDICT_WORDS.length).toBeGreaterThan(10);
-    for (const text of [...ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT]) expect(hasVerdictWord(text)).toBeNull();
+    for (const text of [...ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT, ASK_HOLD_ANGLE_TEXT]) expect(hasVerdictWord(text)).toBeNull();
+  });
+  it('asks how far the knee can straighten when a hold angle is missing (T4)', () => {
+    expect(ASK_HOLD_ANGLE_TEXT).toBe('Ask your surgeon how far you can straighten your knee in this exercise.');
   });
 });

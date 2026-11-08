@@ -4,7 +4,8 @@
 import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
-import { exportReminderDue, getLastExport, type MpflDb } from '../lib/storage';
+import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
+import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
@@ -12,6 +13,7 @@ import { CompanionEntry } from './CompanionEntry';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { notReadyText } from './notReady';
 import type { ExerciseKind } from './appState';
 
 const SURGEON_LABELS: Record<SurgeonField, string> = {
@@ -63,13 +65,24 @@ interface Props {
 export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
+  const [last, setLast] = useState<SessionRecord | undefined>(undefined);
+  const [dismissed, setDismissed] = useState(getContactDismissed);
   useEffect(() => {
     let alive = true;
-    void db.sessions.count().then((n) => alive && setHasSessions(n > 0));
+    // A failed read shows no reminder and no contact card. It must not become an unhandled rejection.
+    void db.sessions.count().then((n) => alive && setHasSessions(n > 0), () => undefined);
+    void lastSession(db).then((s) => alive && setLast(s), () => undefined);
     return () => {
       alive = false;
     };
   }, [db]);
+  // B1: the card reads the last saved session. Dismiss hides it until the next session has its own id.
+  const contact = last && last.id !== dismissed ? contactReason(last, protocol.painPauseThreshold) : null;
+  function dismiss() {
+    if (!last) return;
+    dismissContact(last.id);
+    setDismissed(last.id);
+  }
   const reminder = exportReminderDue(lastExport, now(), hasSessions);
 
   const exercises = phase?.exercises ?? [];
@@ -83,12 +96,26 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
         </h1>
       </header>
 
+      {contact && (
+        <div className="contact-card">
+          <Notice tone="strong" icon="heart-pulse" title={CONTACT_TITLE}>
+            <p>{contact.text}</p>
+            <div className="actions">
+              <button type="button" className="btn" onClick={dismiss}>
+                Dismiss
+              </button>
+            </div>
+          </Notice>
+        </div>
+      )}
+
       <div className="home-grid">
         <section aria-labelledby="exercises-title" className="stack-s">
           <h2 id="exercises-title">Your exercises</h2>
           <ul className="exercise-list">
             {exercises.map((e, i) => {
-              const ready = counterSetup(e).ok;
+              const setup = counterSetup(e);
+              const ready = setup.ok;
               const name = EXERCISE_NAMES[e.kind];
               const featured = i === 0 && ready;
               return (
@@ -106,15 +133,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                         </li>
                       ))}
                     </ul>
-                    {!ready && (
-                      <p className="detail">
-                        Target missing. {ASK_SURGEON_TEXT}.
-                      </p>
-                    )}
+                    {!setup.ok && <p className="detail">{notReadyText(e.kind, setup.missing)}</p>}
                   </div>
                   {featured && (
                     <figure className="exercise-figure">
-                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} description={`End position. ${guideFor(e.kind).range}`} />
+                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} kneeDeg={e.targetFlexion} description={`End position. ${guideFor(e.kind).range}`} />
                     </figure>
                   )}
                   <div className="exercise-go">

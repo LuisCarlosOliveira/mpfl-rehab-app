@@ -1,0 +1,50 @@
+{
+ "expectations": [
+  {
+   "text": "gives 90 to 30 degrees from P2",
+   "passed": true,
+   "evidence": "found 'P2'; found '90 to 30'"
+  },
+  {
+   "text": "gives 90 to 40 degrees from P1",
+   "passed": true,
+   "evidence": "found 'P1'; found '90 to 40'"
+  },
+  {
+   "text": "gives 90 to 45 degrees from AS1 as BORROWED",
+   "passed": true,
+   "evidence": "found 'AS1'; found '90 to 45'; found 'BORROWED'"
+  },
+  {
+   "text": "does not present one arc as consensus",
+   "passed": true,
+   "evidence": "found 'differ'"
+  },
+  {
+   "text": "notes the P2 arc is in a Note or the P1 arc belongs to phase 2",
+   "passed": true,
+   "evidence": "found 'Note'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'opinion'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 2,
+  "total": 7,
+  "pass_rate": 0.714
+ },
+ "timing": {
+  "total_tokens": 59170,
+  "duration_ms": 61158,
+  "total_duration_seconds": 61.2
+ }
+}

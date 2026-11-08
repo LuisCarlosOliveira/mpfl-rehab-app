@@ -1,0 +1,13 @@
+{
+ "eval_id": 47,
+ "eval_name": "AUD4-p2-strength",
+ "prompt": "Is P2 a strong consensus guideline that the app can use as fixed limits?",
+ "assertions": [
+  "says level 5",
+  "says OPINION in substance",
+  "names the date 2015",
+  "says clinician-set values and not fixed limits",
+  "format: has a PICO line",
+  "format: uses an evidence class and VERIFIED or UNVERIFIED"
+ ]
+}

@@ -22,6 +22,9 @@ export const exerciseSchema = z
     reps: z.number().int().min(1).max(100).optional(),
     holdSeconds: z.number().min(1).max(120).optional(),
     targetFlexion: flexion.optional(),
+    // Seated extension hold only. The straightest knee angle that the clinician allows (the end of the arc).
+    // The hold runs between minFlexion and targetFlexion. 0 allows full extension. No default (T28, P1, P2 rec 29).
+    minFlexion: flexion.optional(),
     maxFlexion: flexion.optional(), // ceiling set by the surgeon. Above it plus the margin: alert, no count.
     minRepSeconds: z.number().min(0.5).max(30).optional(), // a faster rep gets the cue "rep was fast"
     maxTopFlexion: flexion.optional(), // limit at the top of the straight leg raise
@@ -42,6 +45,19 @@ export const exerciseSchema = z
       code: 'custom',
       path: ['maxFlexion'],
       message: `For ${e.kind}, maxFlexion (${e.maxFlexion}) must be more than targetFlexion (${e.targetFlexion}) plus the margin of ${MARGIN_DEG} degrees. Raise maxFlexion or lower targetFlexion. A closer limit gives a stop cue on every rep.`,
+    });
+  })
+  .refine((e) => e.minFlexion === undefined || e.kind === 'seated-extension-hold', {
+    message: 'minFlexion applies to seated-extension-hold only, because only this exercise has a straightest allowed angle. Remove it from this exercise.',
+    path: ['minFlexion'],
+  })
+  .superRefine((e, ctx) => {
+    if (e.minFlexion === undefined || e.minFlexion === 0 || e.targetFlexion === undefined) return;
+    if (e.targetFlexion > e.minFlexion + MARGIN_DEG) return;
+    ctx.addIssue({
+      code: 'custom',
+      path: ['targetFlexion'],
+      message: `For seated-extension-hold, targetFlexion (${e.targetFlexion}) must be more than minFlexion (${e.minFlexion}) plus the margin of ${MARGIN_DEG} degrees. Raise targetFlexion or lower minFlexion. A closer hold angle gives a stop cue on every hold.`,
     });
   })
   .refine((e) => e.returnWithinDeg === undefined || e.kind === 'heel-slide' || e.kind === 'mini-squat', {
@@ -115,6 +131,13 @@ export const surgeonSchema = z.strictObject({
   concurrentProcedures: text(200).optional(),
 });
 
+// The mark of a plan that the app made. `on` is the date of the plan. `rules` names the version of the rule table.
+// It is optional and has no default. The app never removes it from a loaded file.
+export const generatedSchema = z.strictObject({
+  on: z.iso.date(),
+  rules: text(20),
+});
+
 export const protocolSchema = z.strictObject({
   schemaVersion: z.literal(1),
   id: protocolIdSchema,
@@ -122,11 +145,16 @@ export const protocolSchema = z.strictObject({
   side: z.enum(['left', 'right']),
   authoredBy: text(100).optional(),
   approvedOn: z.iso.date().optional(),
+  generated: generatedSchema.optional(),
   activePhase: z.number().int().min(1).max(10),
   painPauseThreshold: z.number().int().min(0).max(10).optional(),
   phases: z.array(phaseSchema).min(1).max(10),
   surgeon: surgeonSchema,
 })
+  .refine((p) => p.generated === undefined || !p.example, {
+    message: 'A generated plan cannot be the example. Remove one of the two fields.',
+    path: ['generated'],
+  })
   .refine((p) => new Set(p.phases.map((ph) => ph.id)).size === p.phases.length, {
     message: 'Two phases have the same id.',
     path: ['phases'],

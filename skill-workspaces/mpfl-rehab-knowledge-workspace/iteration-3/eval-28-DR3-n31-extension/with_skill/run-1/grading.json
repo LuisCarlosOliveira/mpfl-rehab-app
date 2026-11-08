@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says 9.64 degrees is active extension lag",
+   "passed": true,
+   "evidence": "found '9.64'; found 'active extension lag'"
+  },
+  {
+   "text": "says 3 trials",
+   "passed": true,
+   "evidence": "found '3 trials'"
+  },
+  {
+   "text": "cites C12 or says the source is inconsistent",
+   "passed": true,
+   "evidence": "found 'C12'"
+  },
+  {
+   "text": "does not claim better extension",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'study'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 85921,
+  "duration_ms": 109726,
+  "total_duration_seconds": 109.7
+ }
+}

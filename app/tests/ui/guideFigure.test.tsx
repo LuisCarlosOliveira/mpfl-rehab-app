@@ -70,6 +70,22 @@ describe('GuideFigure', () => {
   });
 });
 
+describe('GuideFigure seated hold (T3)', () => {
+  const texts = (c: HTMLElement) => [...c.querySelectorAll('text')].map((t) => t.textContent);
+
+  it('draws the arc and the number of the protocol hold angle on the end frame', () => {
+    const { container } = render(<GuideFigure kind="seated-extension-hold" frame="end" side="left" description="d" kneeDeg={60} />);
+    expect(texts(container)).toContain('60°');
+    expect(container.querySelectorAll('.fg-arc')).toHaveLength(1);
+  });
+
+  it('draws no arc and no number when the protocol gives no angle', () => {
+    const { container } = render(<GuideFigure kind="seated-extension-hold" frame="end" side="left" description="d" />);
+    expect(container.textContent).not.toMatch(/\d/);
+    expect(container.querySelectorAll('.fg-arc')).toHaveLength(0);
+  });
+});
+
 describe('CameraFigure', () => {
   it.each(['side', 'front'] as const)('%s view: an image with the camera, the distance and the operated leg as text', (view) => {
     const { container } = render(<CameraFigure view={view} kind="mini-squat" description="Camera guide." />);

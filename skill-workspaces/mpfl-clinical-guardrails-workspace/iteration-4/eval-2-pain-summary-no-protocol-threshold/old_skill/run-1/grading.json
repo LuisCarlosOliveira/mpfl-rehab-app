@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "text tells the patient to pause and contact the care team",
+   "passed": true,
+   "evidence": "found 'care team'; found 'Pause'"
+  },
+  {
+   "text": "no diagnosis or named condition",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "says the app records the session",
+   "passed": true,
+   "evidence": "found 'save'"
+  },
+  {
+   "text": "does not say the pain is normal or fine",
+   "passed": true,
+   "evidence": "ok"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

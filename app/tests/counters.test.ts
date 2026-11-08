@@ -6,6 +6,7 @@ import {
   lagStep,
   repsInitial,
   repsStep,
+  type HoldConfig,
   type RepsConfig,
 } from '../src/lib/counters';
 
@@ -238,6 +239,77 @@ describe('holdStep', () => {
   it('pauses on a null sample', () => {
     const out = holdStep(holdInitial(), { flexion: null, t: 0 }, hcfg);
     expect(out.event).toBe('paused');
+  });
+});
+
+// T28: the hold between the straightest allowed angle (arcEnd.limit) and the hold angle (threshold minus the margin).
+describe('holdStep: arc end of the seated hold', () => {
+  const MARGIN = 9;
+  const arc = { direction: 'at-most' as const, threshold: 60 + MARGIN, minHoldMs: 1000, arcEnd: { limit: 40, margin: MARGIN } };
+  const feed = (flexions: number[], config: HoldConfig = arc, step = 100) => {
+    let state = holdInitial();
+    const events: string[] = [];
+    flexions.forEach((flexion, i) => {
+      const out = holdStep(state, { flexion, t: i * step }, config);
+      state = out.state;
+      if (out.event) events.push(out.event);
+    });
+    return { state, events };
+  };
+  const at = (flexion: number, n: number) => Array.from({ length: n }, () => flexion);
+
+  it('counts a hold at the hold angle and gives no cue', () => {
+    const r = feed(at(55, 13));
+    expect(r.state.holds).toBe(1);
+    expect(r.events).toEqual(['hold-complete']);
+  });
+
+  it('does not count a knee that is straighter than the limit minus the margin, and gives the stop cue once', () => {
+    const r = feed(at(30, 30));
+    expect(r.state.holds).toBe(0);
+    expect(r.events).toEqual(['over-limit']);
+  });
+
+  it('counts at the limit minus the margin, because the counting side gives the benefit of the doubt', () => {
+    expect(feed(at(40 - MARGIN, 13)).state.holds).toBe(1);
+    expect(feed(at(40 - MARGIN - 1, 13)).state.holds).toBe(0);
+  });
+
+  it('warns once inside the margin of the limit and still counts the hold', () => {
+    const r = feed(at(45, 13));
+    expect(r.events).toEqual(['near-limit', 'hold-complete']);
+    expect(r.state.holds).toBe(1);
+  });
+
+  it('starts the timer again when the knee goes straighter than the limit', () => {
+    const r = feed([...at(55, 8), ...at(20, 2), ...at(55, 8)]);
+    expect(r.state.holds).toBe(0);
+    expect(r.events).toEqual(['over-limit']);
+  });
+
+  it('gives the restart cue when the knee bends more than the hold angle plus the margin before the hold ends', () => {
+    const r = feed([...at(55, 8), ...at(95, 2), ...at(55, 8)]);
+    expect(r.events).toEqual(['hold-restart']);
+    expect(r.state.holds).toBe(0);
+  });
+
+  it('gives no restart cue when the knee was never in the hold', () => {
+    expect(feed(at(95, 10)).events).toEqual([]);
+  });
+
+  it('gives no restart cue when the foot goes down after a counted hold', () => {
+    const r = feed([...at(55, 13), ...at(95, 3)]);
+    expect(r.events).toEqual(['hold-complete']);
+  });
+
+  it('warns again for a second excursion after the knee left the margin', () => {
+    const r = feed([...at(20, 2), ...at(70, 2), ...at(20, 2)]);
+    expect(r.events).toEqual(['over-limit', 'over-limit']);
+  });
+
+  it('works without an arc end, as before', () => {
+    const plain = { direction: 'at-most' as const, threshold: 10, minHoldMs: 1000 };
+    expect(feed(at(5, 13), plain).state.holds).toBe(1);
   });
 });
 

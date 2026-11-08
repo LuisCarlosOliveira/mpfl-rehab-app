@@ -110,8 +110,15 @@ export const ILLUSTRATIVE_FLEXION: Record<GuideKind, number> = {
   'heel-slide': 60, // PROPOSAL, same as the example target of example-protocol.json (PROPOSAL there)
   'straight-leg-raise': 0, // clinical.md section 4: knee at 0 degrees, SLR without lag (S1)
   'mini-squat': 30, // PROPOSAL, inside the borrowed range 0 to 50 degrees (clinical.md section 4, S16). Not a limit.
-  'seated-extension-hold': 0, // PROPOSAL, ux-flow 7.4: straighten the knee
+  // T3: the seated hold has no illustrative end angle. Without an angle from the protocol, the end frame shows the start pose
+  // (the knee bent at SEATED_REST) and no arc. P1 and P2 rec 29 avoid open-chain extension to full extension early.
+  'seated-extension-hold': 90,
 };
+
+// Drawing only, PROPOSAL. The shank of a seated person hangs at a right angle. The start pose of the hold is at least
+// SEATED_LIFT degrees more bent than the end pose, so the foot lifts toward the hold angle and never past it.
+const SEATED_REST = 90;
+const SEATED_LIFT = 10;
 
 // The knee angle in the exercise data replaces the illustrative value for these exercises only.
 const USES_DATA_ANGLE: Record<GuideKind, boolean> = {
@@ -178,7 +185,7 @@ interface Pose {
 // Isosceles pose with the heel on a surface: the thigh rises by half of the flexion.
 const slideThigh = (flexion: number) => -flexion / 2;
 
-function poseFor(kind: GuideKind, frame: FigureFrame, flex: number): Pose {
+function poseFor(kind: GuideKind, frame: FigureFrame, flex: number, hasAngle: boolean): Pose {
   const end = frame === 'end';
   switch (kind) {
     case 'heel-slide': {
@@ -206,7 +213,9 @@ function poseFor(kind: GuideKind, frame: FigureFrame, flex: number): Pose {
     }
     case 'seated-extension-hold':
       return {
-        hip: { x: 72, y: 89.5 }, trunkDir: -90, thighDir: 0, flexion: end ? flex : 90, footDir: end ? -90 : 0,
+        // The foot stays at a right angle to the shank (the default foot direction).
+        hip: { x: 72, y: 89.5 }, trunkDir: -90, thighDir: 0,
+        flexion: end ? flex : hasAngle ? clamp(Math.max(SEATED_REST, flex + SEATED_LIFT), 0, VIEW.maxFlexionDeg) : SEATED_REST,
         farThighDir: 0, farFlexion: 90, farOffset: { x: -4, y: 3 }, farFootDir: 0,
         hand: { x: 66, y: 93 },
       };
@@ -470,7 +479,10 @@ function aroundBoxes(text: string, size: number, centre: Point, bearingDeg: numb
  */
 export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeDeg?: number): Figure {
   const given = kneeDeg === undefined ? undefined : clamp(Math.round(kneeDeg), 0, VIEW.maxFlexionDeg);
-  const flex = USES_DATA_ANGLE[kind] && given !== undefined ? given : ILLUSTRATIVE_FLEXION[kind];
+  const hasAngle = USES_DATA_ANGLE[kind] && given !== undefined;
+  const flex = hasAngle ? given! : ILLUSTRATIVE_FLEXION[kind];
+  // The arc shows the angle of the protocol. The seated hold has no other angle to show.
+  const noArc = kind === 'seated-extension-hold' && !hasAngle;
   const facing: 1 | -1 = side === 'right' ? 1 : -1;
   const mp = (p: Point) => (facing === 1 ? p : mirrorPoint(p));
   const mb = (b: Box) => (facing === 1 ? b : mirrorBox(b));
@@ -489,15 +501,15 @@ export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeD
 
   /** Everything that one frame draws, in final picture coordinates. */
   const parts = (fr: FigureFrame) => {
-    const now = build(poseFor(kind, fr, flex));
+    const now = build(poseFor(kind, fr, flex, hasAngle));
     const body = mapBody(now);
-    const ghost = fr === 'end' ? mapBody(build(poseFor(kind, 'start', flex))) : null;
+    const ghost = fr === 'end' ? mapBody(build(poseFor(kind, 'start', flex, hasAngle))) : null;
     const arc = {
       center: body.points.knee,
       fromDeg: dir(now.thighDir),
       toDeg: dir(now.shankDir),
       radius: ARC_RADIUS,
-      flexionDeg: fr === 'end' ? flex : poseFor(kind, fr, flex).flexion,
+      flexionDeg: noArc ? 0 : fr === 'end' ? flex : poseFor(kind, fr, flex, hasAngle).flexion,
       reference: { from: body.points.knee, to: mp(add(now.points.knee, vec(now.thighDir, 30))) },
     };
     const kneeRing = { center: body.points.knee, r: RING_R };

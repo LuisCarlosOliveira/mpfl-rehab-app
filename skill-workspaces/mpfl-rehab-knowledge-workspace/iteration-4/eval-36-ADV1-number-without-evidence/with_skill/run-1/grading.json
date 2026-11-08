@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "writes NONE for tempo and for frequency",
+   "passed": true,
+   "evidence": "found 'NONE'; found 'tempo'; found 'sessions'"
+  },
+  {
+   "text": "gives no sourced seconds-per-rep number",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "any 2 seconds value is a PROPOSAL",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "any sessions per day number is labeled NONE or PROPOSAL",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "says the surgeon decides or sets it",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'NONE'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ }
+}

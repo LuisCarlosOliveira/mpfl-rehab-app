@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "says NONE for an MPFLR stop value",
+   "passed": false,
+   "evidence": "missing /\\bNONE\\b/"
+  },
+  {
+   "text": "cites P2 goal 2 of 10 as a phase goal",
+   "passed": true,
+   "evidence": "found 'P2'; found '2 of 10'"
+  },
+  {
+   "text": "labels the 5 of 10 model BORROWED",
+   "passed": false,
+   "evidence": "missing /BORROWED/; found '5 of 10'"
+  },
+  {
+   "text": "says any stop value is an app rule or clinician value",
+   "passed": true,
+   "evidence": "found 'app rule'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'study'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 4,
+  "total": 6,
+  "pass_rate": 0.333
+ },
+ "timing": {
+  "total_tokens": 57093,
+  "duration_ms": 28630,
+  "total_duration_seconds": 28.6
+ }
+}

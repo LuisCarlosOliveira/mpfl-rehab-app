@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "says NONE",
+   "passed": false,
+   "evidence": "missing /\\bNONE\\b/"
+  },
+  {
+   "text": "says no trial found",
+   "passed": true,
+   "evidence": "found 'no trial'"
+  },
+  {
+   "text": "writes no DOI",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'study'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 3,
+  "total": 5,
+  "pass_rate": 0.4
+ },
+ "timing": {
+  "total_tokens": 56660,
+  "duration_ms": 90206,
+  "total_duration_seconds": 90.2
+ }
+}

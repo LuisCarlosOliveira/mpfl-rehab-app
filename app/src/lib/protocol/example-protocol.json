@@ -33,20 +33,22 @@
       "exercises": [
         {
           "kind": "mini-squat",
-          "sets": 3,
+          "sets": 2,
           "reps": 10,
           "targetFlexion": 30,
           "maxFlexion": 50,
           "returnWithinDeg": 15,
-          "source": "maxFlexion 50: S16, BORROWED (healthy people, 0 to 50 degrees can limit patellofemoral load, graft link UNVERIFIED). returnWithinDeg and other values: PROPOSAL.",
+          "source": "maxFlexion 50: S16, BORROWED (healthy people). sets, reps: example values, P2 rec 26 reference (OPINION, ages 8 to 25). returnWithinDeg and other values: PROPOSAL.",
           "minRepSeconds": 2
         },
         {
           "kind": "seated-extension-hold",
-          "sets": 3,
+          "sets": 2,
+          "reps": 10,
           "holdSeconds": 5,
-          "targetFlexion": 0,
-          "source": "Isometric knee extension is named in S1 (phase 1 list). Phase 2 placement, targetFlexion, sets, holdSeconds: PROPOSAL."
+          "minFlexion": 40,
+          "targetFlexion": 60,
+          "source": "minFlexion 40: P1 phase 2 arc 90-40 under surgeon preference (OPINION). targetFlexion 60, holdSeconds, sets, reps: PROPOSAL example values. Phase 2 needs surgeon clearance (P1)."
         }
       ]
     }

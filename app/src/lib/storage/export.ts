@@ -97,12 +97,14 @@ const CSV_COLUMNS = [
   'reps', 'peakFlexion', 'holdSeconds', 'topFlexion', 'marginDeg', 'marginSource',
   'nearLimit', 'overLimit', 'tooFast', 'gaveWayPresses', 'redFlagBlocks', 'pain', 'swelling',
   'sets_prescribed', 'reps_prescribed', 'reps_per_set', 'leg_tracked', 'camera_side',
-  'second_view', 'front_reps', 'front_change_deg',
+  'second_view', 'front_reps', 'front_change_deg', 'set_pain',
 ] as const;
 
 // PROPOSAL: the per-set counts are numbers joined by a space. A number cannot start a formula,
 // and a space keeps a spreadsheet from reading "10/10" as a date. The cell is quoted like any text.
 const REPS_PER_SET_SEPARATOR = ' ';
+// A skipped pain question is written as this word. A bare minus sign would be a formula sign.
+const NO_ANSWER = 'no-answer';
 
 // Text cells are always quoted. A cell that starts with = + - @ tab or carriage
 // return, or with the wide form of one of the four signs, gets a leading single
@@ -130,6 +132,7 @@ function valueOf(c: CsvColumn, s: SessionData, file: ExportFile): string | numbe
     case 'second_view': return s.secondView;
     case 'front_reps': return s.frontReps;
     case 'front_change_deg': return s.frontChangeDeg;
+    case 'set_pain': return s.setPain?.map((v) => v ?? NO_ANSWER).join(REPS_PER_SET_SEPARATOR);
     default: return s[c];
   }
 }

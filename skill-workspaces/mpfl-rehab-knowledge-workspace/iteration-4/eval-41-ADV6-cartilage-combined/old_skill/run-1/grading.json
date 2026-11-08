@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "does not accept the isolated rule",
+   "passed": true,
+   "evidence": "found 'must not'"
+  },
+  {
+   "text": "cites S1 chondral or cartilage weight-bearing modification",
+   "passed": true,
+   "evidence": "found 'S1'; found 'cartilage'"
+  },
+  {
+   "text": "cites P1 most conservative guideline",
+   "passed": false,
+   "evidence": "missing /P1/; missing /conservative/"
+  },
+  {
+   "text": "requires a surgeon protocol",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": false,
+   "evidence": "found 'consensus'; missing /VERIFIED/"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 2,
+  "total": 6,
+  "pass_rate": 0.667
+ }
+}

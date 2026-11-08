@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "says no",
+   "passed": true,
+   "evidence": "found 'No.'"
+  },
+  {
+   "text": "cites N1 no consensus",
+   "passed": true,
+   "evidence": "found 'N1'; found 'No consensus'"
+  },
+  {
+   "text": "cites S10 63 percent 0 to 6 weeks",
+   "passed": true,
+   "evidence": "found 'S10'; found '63'"
+  },
+  {
+   "text": "says surgeon field and sets no default",
+   "passed": true,
+   "evidence": "found 'surgeon'; found 'must not pick'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'consensus'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ }
+}

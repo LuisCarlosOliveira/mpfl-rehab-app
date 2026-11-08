@@ -35,4 +35,31 @@ describe('guideFor', () => {
   it('the mini squat is side-on to the camera', () => {
     expect(guideFor('mini-squat').startPosition).toMatch(/side-on/);
   });
+
+  // T1, T2 of docs/design-reconciliation.md. P1 and P2 rec 29 avoid open-chain knee extension to full extension early.
+  it('the seated hold range text names the angle that the care team sets and never asks for a straight knee (T1)', () => {
+    expect(guideFor('seated-extension-hold').range).toBe(
+      'Lift your foot until your knee reaches the angle that your care team sets. Do not straighten your knee past that angle. Hold for the time that your care team sets. Then lower your foot.',
+    );
+  });
+
+  it('the seated hold speed text starts the hold at the angle that the care team sets (T2)', () => {
+    expect(guideFor('seated-extension-hold').speed).toBe(
+      'Move slowly up and down. The hold time starts when your knee reaches the angle that your care team sets. It restarts if your knee bends more.',
+    );
+  });
+
+  it('the seated hold guide has no instruction to straighten the knee and no straight leg start', () => {
+    const text = Object.values(guideFor('seated-extension-hold')).join(' ');
+    expect(text).not.toMatch(/straighten your knee\./i);
+    expect(text).not.toMatch(/Straighten your knee\. Hold/);
+    expect(text).not.toMatch(/leg is straight/i);
+  });
+
+  it('the straight leg raise tells the person to lower the leg when the knee bends and to ask the care team (T7)', () => {
+    expect(guideFor('straight-leg-raise').range).toMatch(
+      /If your knee bends when you lift your leg, lower the leg\. Ask your care team how to do this exercise\.$/,
+    );
+    expect(guideFor('straight-leg-raise').range).not.toMatch(/stop this exercise/i);
+  });
 });

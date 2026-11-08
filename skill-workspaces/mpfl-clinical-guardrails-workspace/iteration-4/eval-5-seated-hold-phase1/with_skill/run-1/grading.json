@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "says not offered in phase 1 unless the surgeon enables it",
+   "passed": true,
+   "evidence": "found 'unless the surgeon'"
+  },
+  {
+   "text": "names a clinician or surgeon arc",
+   "passed": true,
+   "evidence": "found 'surgeon'; found 'arc'"
+  },
+  {
+   "text": "cites P1 or P2 or rehab-rules section 2",
+   "passed": true,
+   "evidence": "found 'P1'"
+  },
+  {
+   "text": "guide text does not ask for full extension in phase 1",
+   "passed": true,
+   "evidence": "ok"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

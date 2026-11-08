@@ -25,13 +25,34 @@ describe('counterSetup', () => {
     expect(counterSetup(ex({ kind: 'mini-squat', targetFlexion: 5 }))).toMatchObject({ ok: false, missing: 'targetFlexion' });
   });
 
-  it('builds an extended hold from holdSeconds', () => {
-    const r = counterSetup(ex({ kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0 }));
-    expect(r).toMatchObject({ ok: true, kind: 'hold', config: { direction: 'at-most', threshold: MARGIN_DEG, minHoldMs: 5000 } });
+  it('builds the hold between minFlexion and targetFlexion from the protocol', () => {
+    const r = counterSetup(ex({ kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 60, minFlexion: 40 }));
+    expect(r).toMatchObject({
+      ok: true,
+      kind: 'hold',
+      config: { direction: 'at-most', threshold: 60 + MARGIN_DEG, minHoldMs: 5000, arcEnd: { limit: 40, margin: MARGIN_DEG } },
+    });
+  });
+
+  it('turns the arc end cue off when the clinician allows full extension with minFlexion 0', () => {
+    const r = counterSetup(ex({ kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0, minFlexion: 0 }));
+    expect(r).toMatchObject({ ok: true, kind: 'hold' });
+    if (r.ok && r.kind === 'hold') expect(r.config.arcEnd).toBeUndefined();
   });
 
   it('asks the surgeon when a hold has no duration', () => {
-    expect(counterSetup(ex({ kind: 'seated-extension-hold' }))).toMatchObject({ ok: false, missing: 'holdSeconds' });
+    expect(counterSetup(ex({ kind: 'seated-extension-hold', targetFlexion: 60, minFlexion: 40 }))).toMatchObject({ ok: false, missing: 'holdSeconds' });
+  });
+
+  it('runs no hold without both angles and names the missing one', () => {
+    const one = { kind: 'seated-extension-hold', holdSeconds: 5 } as const;
+    expect(counterSetup(ex({ ...one, targetFlexion: 60 }))).toEqual({ ok: false, reason: 'ask-your-surgeon', missing: 'minFlexion' });
+    expect(counterSetup(ex({ ...one, minFlexion: 40 }))).toEqual({ ok: false, reason: 'ask-your-surgeon', missing: 'targetFlexion' });
+    expect(counterSetup(ex(one))).toMatchObject({ ok: false, missing: 'minFlexion' });
+  });
+
+  it('gives no default angle: a hold with a hold angle of 0 and no minFlexion does not run', () => {
+    expect(counterSetup(ex({ kind: 'seated-extension-hold', holdSeconds: 5, targetFlexion: 0 }))).toMatchObject({ ok: false, missing: 'minFlexion' });
   });
 
   it('uses the lag counter for the straight leg raise', () => {
@@ -132,20 +153,38 @@ describe('replay: mini squat ceiling', () => {
 });
 
 describe('replay: seated extension hold', () => {
-  const hold = ex({ kind: 'seated-extension-hold', holdSeconds: 2, targetFlexion: 0 });
+  const hold = ex({ kind: 'seated-extension-hold', holdSeconds: 2, minFlexion: 40, targetFlexion: 60 });
+  const still = (deg: number, ms: number) => Array.from({ length: Math.round(ms / DT) }, () => deg);
 
-  it('completes one hold after 2 seconds in extension', () => {
-    const f = Array.from({ length: Math.round(2500 / DT) }, () => 3);
-    expect(run(hold, f).summary.holds).toBe(1);
+  it('completes one hold after 2 seconds at the hold angle', () => {
+    const r = run(hold, still(55, 2500));
+    expect(r.summary.holds).toBe(1);
+    expect(r.events).toEqual(['hold-complete']);
   });
 
-  it('resets when the knee bends', () => {
-    const f = [
-      ...Array.from({ length: Math.round(1500 / DT) }, () => 3),
-      ...Array.from({ length: 10 }, () => 40),
-      ...Array.from({ length: Math.round(1500 / DT) }, () => 3),
-    ];
-    expect(run(hold, f).summary.holds).toBe(0);
+  it('counts no hold at a straight knee and gives the stop cue once', () => {
+    const r = run(hold, still(3, 3000));
+    expect(r.summary.holds).toBe(0);
+    expect(r.events.filter((e) => e === 'over-limit')).toHaveLength(1);
+    expect(r.summary.eventCounts.overLimit).toBe(1);
+  });
+
+  it('counts a hold near the limit and counts the warning', () => {
+    const r = run(hold, still(45, 2500));
+    expect(r.summary.holds).toBe(1);
+    expect(r.summary.eventCounts.nearLimit).toBe(1);
+  });
+
+  it('starts again with the restart cue when the knee bends more', () => {
+    const r = run(hold, [...still(55, 1500), ...still(95, 300), ...still(55, 1500)]);
+    expect(r.summary.holds).toBe(0);
+    expect(r.events).toContain('hold-restart');
+  });
+
+  it('starts again when the knee goes straighter than the limit', () => {
+    const r = run(hold, [...still(55, 1500), ...still(10, 300), ...still(55, 1500)]);
+    expect(r.summary.holds).toBe(0);
+    expect(r.events).toContain('over-limit');
   });
 });
 

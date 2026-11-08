@@ -14,22 +14,23 @@
 // The front-view knee change goes into the end summary for the clinician only (FR24). No live cue, no number, no word for it.
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { cueFor, topAngleText, type CueEvent } from '../lib/cues';
+import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
 import { countBlock } from '../lib/counters';
 import { createIdentityWatcher } from '../lib/legIdentity';
 import { createFrontRecorder, type FrontRecorder } from '../lib/views';
-import { MARGIN_DEG } from '../lib/margin';
+import { PAUSE_MESSAGE } from '../lib/safety';
 import { SET_TEXT, countRep, finish, nextSet, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
 import type { Exercise } from '../lib/protocol';
 import type { PairingStatus } from '../pairing/pairing';
 import type { LandmarkSource } from '../pose/source';
 import type { EndReason, RunSummary } from './appState';
 import type { Sound } from './sound';
-import { ASK_SURGEON_TEXT } from './askSurgeon';
+import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_TEXT } from './askSurgeon';
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { PainScale } from './PainScale';
 import { LEG_TEXT, otherLeg } from './setupView';
 
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
@@ -45,6 +46,11 @@ const EMPTY_SUMMARY: Summary = {
   topState: null,
   eventCounts: { nearLimit: 0, overLimit: 0, tooFast: 0 },
 };
+
+/** What Session adds to the run summary: the pain answer at the end of each completed set that asked. null: no answer. */
+export interface SessionRunSummary extends RunSummary {
+  setPain?: (number | null)[];
+}
 
 interface LiveCue {
   text: string;
@@ -105,10 +111,12 @@ interface Props {
   /** Optional. Missing means one camera. */
   second?: SecondView;
   sound: Sound;
+  /** The pain value from the protocol (`painPauseThreshold`). Missing means that no answer stops the session. The app sets no default. */
+  painPauseThreshold?: number;
   onEnd: (reason: EndReason, summary: RunSummary) => void;
 }
 
-export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, onEnd }: Props) {
+export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, onEnd }: Props) {
   const setup = counterSetup(exercise);
   const ready = setup.ok;
   const needsHandCount = setup.ok && setup.kind === 'lag';
@@ -118,6 +126,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const [muted, setMuted] = useState(sound.isMuted());
   const [sets, setSetsState] = useState(() => startSets({ sets: exercise.sets, reps: exercise.reps }));
   const setsRef = useRef(sets);
+  const [painAnswers, setPainAnswers] = useState<number[]>([]); // the answer of each set that asked. A skipped set has no entry.
+  const painRef = useRef(painAnswers);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const live = useRef<Live>({ otherLegMoves: false, flexion: null, frameAt: null, cue: null });
@@ -137,6 +147,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   };
 
   // The pipeline needs the video aspect. It is made when the first frame arrives, or when the session ends with no frame.
+  const answerPain = (value: number) => {
+    const next = [...painRef.current];
+    next[setsRef.current.setIndex] = value;
+    painRef.current = next;
+    setPainAnswers(next);
+  };
+
   const getPipeline = () => {
     if (!pipeline.current) {
       const made = createPipeline(exercise, side, source.aspect(), { baselineDeg, cameraSide });
@@ -148,6 +165,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   useEffect(() => {
     if (!ready) return;
     let alive = true;
+    const gate = createCueGate(); // ENGINEERING rate limit and order of the cues. One gate for each run of the effect.
     const minRepMs = exercise.minRepSeconds === undefined ? null : exercise.minRepSeconds * 1000;
     live.current.frameAt = null; // a new start waits for a new frame
     watcher.current = null;
@@ -169,13 +187,16 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       sound.playFor(out.event as CueEvent);
       if (out.event !== null && COUNTED_EVENTS.has(out.event)) applySets(countRep(setsRef.current));
       const text = cueFor(out.event as CueEvent, { repMs: out.repMs, minRepMs });
-      if (text !== null) {
+      // A limit alert on screen blocks every other cue. A limit cue itself is never delayed (cue order, design 4.2).
+      const alertOn = state.cue !== null && state.cue.alert && now < state.cue.until;
+      if (text !== null && gate.allow(out.event as CueEvent, text, now, alertOn)) {
         state.cue = { text, alert: out.event === 'over-limit', paused: out.event === 'paused', until: now + CUE_SHOW_MS };
       } else if (state.cue?.paused && out.event !== 'paused') {
         state.cue = null; // the leg is back in view
       }
-      // The alert stays while the knee stays above the limit plus the margin. The timeout starts when it returns.
-      if (state.cue?.alert && exercise.maxFlexion !== undefined && out.flexion !== null && out.flexion > exercise.maxFlexion + MARGIN_DEG) {
+      // The alert stays while the knee stays past the limit plus the margin. The ceiling for a heel slide and a mini squat,
+      // the arc end (minFlexion) for the seated hold. The timeout starts when the knee returns.
+      if (state.cue?.alert && stillOverLimit(exercise, out.flexion)) {
         state.cue.until = now + CUE_SHOW_MS;
       }
     };
@@ -238,13 +259,18 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     const front = recorder.current?.finish() ?? null;
     const isHold = setup.ok && setup.kind === 'hold';
     const isHand = needsHandCount; // the hand count of a straight leg raise keeps the old null when nothing was counted
-    onEnd(reason, {
+    // The last set has no question, because the summary asks for the pain at the end.
+    const asked = done.completedSets - (done.phase === 'all-sets-complete' ? 1 : 0);
+    const setPain = Array.from({ length: asked }, (_, i) => painRef.current[i] ?? null);
+    const result: SessionRunSummary = {
       ...base,
       reps: isHold || isHand ? (isHold || counted === 0 ? null : counted) : counted,
       holds: isHold ? counted : null,
       sets: done,
       ...(front === null ? {} : { front }),
-    });
+      ...(asked > 0 ? { setPain } : {}),
+    };
+    onEnd(reason, result);
   }
 
   // PROPOSAL, no source: the straight leg raise has no automatic rep event, so the person counts each rep.
@@ -267,6 +293,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const block = setup.ok && setup.kind === 'reps' ? countBlock({ ...setup.config, baseline: baselineDeg ?? undefined }) : null;
   const farLeg = cameraSide !== undefined && legRoleOf(side, cameraSide) === 'far';
   const paused = sets.phase === 'set-complete' || sets.phase === 'all-sets-complete';
+  // L2: only the clinician threshold stops the session here. Without it the answer is logged and nothing stops.
+  const painAtStop = painPauseThreshold === undefined ? undefined : painAnswers.find((v) => v >= painPauseThreshold);
+  const painStop = painAtStop !== undefined;
   const countUnit = setup.ok && setup.kind === 'hold' ? 'holds' : 'reps';
   const label = setLabel(sets);
   const repsText = repsLabel(sets, countUnit);
@@ -298,7 +327,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
       {!setup.ok ? (
         <Notice icon="triangle-alert">
-          <p>The target for this exercise is missing. {ASK_SURGEON_TEXT}.</p>
+          {/* T4: a hold with no angle asks for the angle. Any other missing value keeps the generic notice. */}
+          <p>
+            {exercise.kind === 'seated-extension-hold' && (setup.missing === 'minFlexion' || setup.missing === 'targetFlexion')
+              ? ASK_HOLD_ANGLE_TEXT
+              : `The target for this exercise is missing. ${ASK_SURGEON_TEXT}.`}
+          </p>
         </Notice>
       ) : (
         <div className="session-grid">
@@ -308,7 +342,18 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 <Notice role="status" icon="check">
                   <p>{sets.phase === 'set-complete' ? SET_TEXT.setComplete : SET_TEXT.allComplete}</p>
                 </Notice>
-                {sets.phase === 'set-complete' ? (
+                {sets.phase === 'set-complete' && painStop && (
+                  <Notice tone="strong" role="alert" icon="heart-pulse" title={PAUSE_MESSAGE}>
+                    <p>
+                      You reported pain <span className="num">{painAtStop}</span> out of 10.
+                    </p>
+                    <p>This is a rule of the app. It is not a diagnosis.</p>
+                  </Notice>
+                )}
+                {sets.phase === 'set-complete' && !painStop && (
+                  <PainScale key={sets.setIndex} name="set-pain" value={painAnswers[sets.setIndex] ?? null} onChange={answerPain} />
+                )}
+                {sets.phase === 'set-complete' && !painStop ? (
                   <button type="button" className="btn btn-primary btn-lg" onClick={() => applySets(nextSet(setsRef.current))}>
                     <Icon name="play" size={22} fill="currentColor" />
                     Start next set

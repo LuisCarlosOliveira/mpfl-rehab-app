@@ -16,14 +16,14 @@ import type { RunResult } from './appState';
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { PainScale } from './PainScale';
+import type { SessionRunSummary } from './Session';
 
 const SWELLING: { value: SwellingAnswer; text: string }[] = [
   { value: 'none', text: 'No swelling' },
   { value: 'some', text: 'Some swelling' },
   { value: 'more', text: 'More than before' },
 ];
-
-const PAIN_VALUES = Array.from({ length: 11 }, (_, i) => i);
 
 const clampAngle = (v: number | null) => (v === null ? null : Math.min(180, Math.max(0, Math.round(v * 10) / 10)));
 
@@ -49,6 +49,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [discarded, setDiscarded] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const sets = summary.sets ?? null;
+  const painBetweenSets = (summary as SessionRunSummary).setPain; // the pain answers between sets (Session adds them)
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
 
@@ -83,6 +84,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       redFlagBlocks,
       pain,
       swelling,
+      ...(painBetweenSets === undefined ? {} : { setPain: painBetweenSets }),
       protocolId: protocol.id,
       phase: activePhase,
       ...(legTracked === undefined ? {} : { legTracked }),
@@ -176,24 +178,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
 
         {!saved && !discarded ? (
           <>
-            <fieldset className="choices">
-              <legend>
-                <Icon name="activity" size={22} />
-                How much pain do you have now? 0 is no pain. 10 is the worst pain.
-              </legend>
-              <div className="scale">
-                {PAIN_VALUES.map((v) => (
-                  <label key={v} className="scale-item">
-                    <input type="radio" name="pain" checked={pain === v} onChange={() => setPain(v)} />
-                    <span className="num">{v}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="scale-ends" aria-hidden="true">
-                <span>No pain</span>
-                <span>Worst pain</span>
-              </p>
-            </fieldset>
+            <PainScale name="pain" value={pain} onChange={setPain} />
 
             <fieldset className="choices">
               <legend>

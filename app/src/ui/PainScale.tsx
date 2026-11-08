@@ -1,0 +1,35 @@
+// The pain question, 0 to 10, as 11 radio buttons with 48 px targets. No answer is pre-selected.
+// Summary asks it at the end of a session. Session asks it between sets. One markup for both (ui-design.md section 4.3).
+import { Icon } from './Icon';
+
+const PAIN_VALUES = Array.from({ length: 11 }, (_, i) => i);
+
+interface Props {
+  /** The radio group name. It must be different for each question on one screen. */
+  name: string;
+  value: number | null;
+  onChange: (value: number) => void;
+}
+
+export function PainScale({ name, value, onChange }: Props) {
+  return (
+    <fieldset className="choices">
+      <legend>
+        <Icon name="activity" size={22} />
+        How much pain do you have now? 0 is no pain. 10 is the worst pain.
+      </legend>
+      <div className="scale">
+        {PAIN_VALUES.map((v) => (
+          <label key={v} className="scale-item">
+            <input type="radio" name={name} checked={value === v} onChange={() => onChange(v)} />
+            <span className="num">{v}</span>
+          </label>
+        ))}
+      </div>
+      <p className="scale-ends" aria-hidden="true">
+        <span>No pain</span>
+        <span>Worst pain</span>
+      </p>
+    </fieldset>
+  );
+}

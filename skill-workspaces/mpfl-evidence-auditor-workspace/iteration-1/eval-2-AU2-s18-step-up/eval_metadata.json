@@ -4,7 +4,7 @@
  "prompt": "Check the claim of the knowledge base that source S18 (Chinkulprasert 2011, J Orthop Sports Phys Ther 41(4):241-248, DOI 10.2519/jospt.2011.3408) gives 11.2 MPa for the forward step-up. Open the source if you can.",
  "assertions": [
   "gives 13.8 and 11.5 MPa",
-  "11.2 is UNVERIFIED, DIFFERS or not in the abstract",
+  "confirms 11.2 is in the abstract (VERIFIED-ABSTRACT or exact)",
   "names the access level (abstract only or full text)",
   "gives a row with an evidence class"
  ]

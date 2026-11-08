@@ -11,3 +11,7 @@ export const ASK_SURGEON_ITEMS: readonly string[] = [
   'Blood clot prevention', // item 12
   'Special cases (age under 18, both knees, repeat surgery, knee anatomy)', // item 13
 ];
+
+// Shown when the seated hold has no minFlexion or no targetFlexion (T4). The app sets no angle.
+// Source: docs/design-reconciliation.md section 3. P1 "unless cleared by surgeon", P2 rec 29.
+export const ASK_HOLD_ANGLE_TEXT = 'Ask your surgeon how far you can straighten your knee in this exercise.';

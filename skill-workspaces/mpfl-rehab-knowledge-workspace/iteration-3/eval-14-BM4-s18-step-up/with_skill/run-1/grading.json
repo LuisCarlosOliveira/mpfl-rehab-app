@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "gives 13.8 MPa and 11.5 MPa",
+   "passed": true,
+   "evidence": "found '13.8'; found '11.5'"
+  },
+  {
+   "text": "marks 11.2 UNVERIFIED",
+   "passed": true,
+   "evidence": "found '11.2'; found 'UNVERIFIED'"
+  },
+  {
+   "text": "every mention of 11.2 sits next to UNVERIFIED or not-in-abstract",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'study'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 0,
+  "total": 5,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 75697,
+  "duration_ms": 28331,
+  "total_duration_seconds": 28.3
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "says no MPFLR source gives a stop value",
+   "passed": true,
+   "evidence": "found 'No evidence'"
+  },
+  {
+   "text": "says it is an app rule, clinician value or PROPOSAL",
+   "passed": true,
+   "evidence": "found 'app rule'"
+  },
+  {
+   "text": "comment does not claim evidence for 4 of 10",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "suggests the care team or clinician sets the value",
+   "passed": true,
+   "evidence": "found 'care team'"
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

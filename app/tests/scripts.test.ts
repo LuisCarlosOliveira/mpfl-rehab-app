@@ -279,3 +279,159 @@ describe('claims-check.sh: pixel read only in the QR reader (T12b)', () => {
     expect(run(claims, file).status).toBe(0);
   });
 });
+
+// T23b: the patterns that keep the save path of a generated plan to one place (FR4, FR30, FR31).
+describe('phase-check.sh: patterns for the confirm-before-save path', () => {
+  describe('object key activePhase with a value', () => {
+    it('fails outside the protocol folder and the generator file', () => {
+      put('ui/a.ts', 'const p = { id: 1, activePhase: 2, name: "x" };');
+      const r = run(phase, dir);
+      expect(r.status).toBe(1);
+      expect(r.stdout).toMatch(/ui\/a\.ts/);
+    });
+
+    it('fails on a key at the end of the object', () => {
+      put('ui/b.ts', 'return { ...p, activePhase: n };');
+      expect(run(phase, dir).status).toBe(1);
+    });
+
+    it('fails in another file of the generator folder', () => {
+      put('lib/protocolGen/other.ts', 'const p = { activePhase: 2 };');
+      expect(run(phase, dir).status).toBe(1);
+    });
+
+    it('passes in the protocol folder and in the generator file', () => {
+      put('lib/protocol/x.ts', 'const p = { activePhase: 2 };');
+      put('lib/protocolGen/generate.ts', 'const p = { activePhase: phase2 ? 2 : 1, };');
+      expect(run(phase, dir).status).toBe(0);
+    });
+
+    it('passes on a type line and on a prop that passes the value', () => {
+      put('ui/Home.tsx', 'interface Props {\n  activePhase: number;\n}\nreturn <Home activePhase={s.activePhase} />;');
+      expect(run(phase, dir).status).toBe(0);
+    });
+  });
+
+  describe('the generator imports no storage', () => {
+    it.each([
+      ['an import of the storage folder', "import { saveProtocol } from '../storage';"],
+      ['an import of a storage file', "import { createDb } from '../storage/db';"],
+      ['an import of dexie', "import Dexie from 'dexie';"],
+      ['an import of the save module', "import { acceptProposal } from '../protocol/accept';"],
+      ['a dynamic import of storage', "const m = await import('../storage/db');"],
+      ['a use of localStorage', "const v = localStorage.getItem('k');"],
+      ['a use of indexedDB', 'const r = indexedDB.open("x");'],
+    ])('fails on %s', (_name, line) => {
+      put('lib/protocolGen/generate.ts', line);
+      const r = run(phase, dir);
+      expect(r.status).toBe(1);
+      expect(r.stdout).toMatch(/protocolGen/);
+    });
+
+    it('passes on imports of the schema and the rules', () => {
+      put('lib/protocolGen/generate.ts', "import { protocolSchema } from '../protocol/schema';\nimport { RULES } from './rules';");
+      expect(run(phase, dir).status).toBe(0);
+    });
+
+    it('does not flag storage imports outside the generator folder', () => {
+      put('ui/LoadProtocol.tsx', "import { createDb } from '../lib/storage';");
+      expect(run(phase, dir).status).toBe(0);
+    });
+  });
+
+  describe('callers of acceptProposal and confirmByPerson', () => {
+    it.each([
+      ['acceptProposal', 'ui/Home.tsx', 'await acceptProposal(db, p, c, mode);'],
+      ['acceptProposal', 'lib/protocolGen/save.ts', 'acceptProposal(db, p, c, mode);'],
+      ['acceptProposal', 'lib/protocol/other.ts', 'acceptProposal(db, p, c, mode);'],
+      ['confirmByPerson', 'ui/Home.tsx', 'const c = confirmByPerson(e);'],
+      ['confirmByPerson', 'lib/protocol/other.ts', 'confirmByPerson(e);'],
+    ])('fails on a call of %s in %s', (_name, rel, line) => {
+      put(rel, line);
+      const r = run(phase, dir);
+      expect(r.status).toBe(1);
+      expect(r.stdout).toContain(rel);
+    });
+
+    it('passes in the screen that confirms and in the accept file', () => {
+      put('ui/ConfirmPlan.tsx', 'const c = confirmByPerson(e);\nawait acceptProposal(db, p, c, mode);');
+      put('lib/protocol/accept.ts', 'export function confirmByPerson(e: Event) {}\nexport async function acceptProposal() {}');
+      expect(run(phase, dir).status).toBe(0);
+    });
+
+    it('passes on an import with no call', () => {
+      put('ui/Home.tsx', "import { acceptProposal, confirmByPerson } from '../lib/protocol/accept';");
+      expect(run(phase, dir).status).toBe(0);
+    });
+
+    it('skips a line with the allow marker', () => {
+      put('ui/Home.tsx', '// acceptProposal(db) is named here. claims-check:allow');
+      expect(run(phase, dir).status).toBe(0);
+    });
+  });
+
+  describe('saveProtocol and the protocol table', () => {
+    it('fails when a file other than the three allowed files calls saveProtocol', () => {
+      put('ui/Other.tsx', 'await saveProtocol(db, raw, mode);');
+      const r = run(phase, dir);
+      expect(r.status).toBe(1);
+      expect(r.stdout).toContain('ui/Other.tsx');
+    });
+
+    it('fails when a file that uses the generator calls saveProtocol', () => {
+      put('ui/LoadProtocol.tsx', "import { generateProtocol } from '../lib/protocolGen';\nawait saveProtocol(db, JSON.stringify(p), mode);");
+      const r = run(phase, dir);
+      expect(r.status).toBe(1);
+      expect(r.stdout).toContain('LoadProtocol.tsx');
+    });
+
+    it('fails when a file reads the generated field and calls saveProtocol', () => {
+      put('ui/LoadProtocol.tsx', 'if (p.generated) {}\nawait saveProtocol(db, raw, mode);');
+      expect(run(phase, dir).status).toBe(1);
+    });
+
+    it('passes when the load screen saves a file and the accept file saves a plan', () => {
+      put('ui/LoadProtocol.tsx', 'result = await saveProtocol(db, await file.text(), mode);');
+      put('lib/protocol/accept.ts', 'await saveProtocol(db, JSON.stringify(next), mode);');
+      put('lib/storage/db.ts', 'export async function saveProtocol(db: MpflDb, raw: string, mode: Mode) {}');
+      expect(run(phase, dir).status).toBe(0);
+    });
+
+    it('fails on a direct write to the protocol table outside the storage file', () => {
+      put('ui/Sneaky.tsx', 'await db.protocol.put({ key: "current", raw, savedAt });');
+      expect(run(phase, dir).status).toBe(1);
+    });
+
+    it('fails on a write to the protocol table in the protocol folder', () => {
+      put('lib/protocol/other.ts', 'await db.protocol.put({ key: "current", raw, savedAt });');
+      expect(run(phase, dir).status).toBe(1);
+    });
+
+    it('passes on a read of the protocol table and on a write in the storage file', () => {
+      put('ui/Reader.tsx', 'const s = await db.protocol.get("current");');
+      put('lib/storage/db.ts', "await db.protocol.put({ key: 'current', raw, savedAt });");
+      expect(run(phase, dir).status).toBe(0);
+    });
+  });
+
+  it('keeps the old patterns when a new violation is also present', () => {
+    put('ui/p.ts', 'store.activePhase = 2;');
+    expect(run(phase, dir).status).toBe(1);
+  });
+
+  it('exits 2 for a missing path and does not scan', () => {
+    const r = run(phase, join(dir, 'missing'));
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/not found/);
+  });
+
+  it('scans the folder that it is given and not the real source', () => {
+    put('lib/protocolGen/generate.ts', "import Dexie from 'dexie';");
+    expect(run(phase, dir).status).toBe(1);
+    expect(run(phase, realSrc).status).toBe(0);
+  });
+
+  it('passes on the real source', () => {
+    expect(run(phase, realSrc).status).toBe(0);
+  });
+});

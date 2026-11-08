@@ -8,6 +8,7 @@ const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
 const PERSIST_KEY = 'mpfl.persistAsked';
 const PRIVACY_KEY = 'mpfl.privacySeen';
+const CONTACT_KEY = 'mpfl.contactDismissed';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = 7;
@@ -93,4 +94,15 @@ export function hasSeenPrivacyNotice(): boolean {
 
 export function markPrivacyNoticeSeen(): void {
   write(PRIVACY_KEY, '1');
+}
+
+/** The id of the session whose "Contact your care team" card the person dismissed, or null. */
+export function getContactDismissed(): number | null {
+  const n = Number(read(CONTACT_KEY));
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/** Hides the card of this session. The next saved session has a new id, so its card can show again. */
+export function dismissContact(sessionId: number): void {
+  write(CONTACT_KEY, String(sessionId));
 }

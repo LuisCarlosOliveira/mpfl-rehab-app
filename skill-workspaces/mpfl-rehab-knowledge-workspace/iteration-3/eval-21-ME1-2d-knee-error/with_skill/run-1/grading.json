@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "gives F1 about 8.7 degrees on still photos",
+   "passed": true,
+   "evidence": "found 'F1'; found '8.7'"
+  },
+  {
+   "text": "gives F3 9.3 to 21.9 degrees in video",
+   "passed": true,
+   "evidence": "found 'F3'; found '9.3'; found '21.9'"
+  },
+  {
+   "text": "says no lite model study",
+   "passed": true,
+   "evidence": "found 'lite'"
+  },
+  {
+   "text": "does not call the angle accurate or validated",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'study'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ },
+ "timing": {
+  "total_tokens": 79802,
+  "duration_ms": 100326,
+  "total_duration_seconds": 100.3
+ }
+}

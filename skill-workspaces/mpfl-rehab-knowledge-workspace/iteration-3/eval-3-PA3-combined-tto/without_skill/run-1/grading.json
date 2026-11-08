@@ -1,0 +1,50 @@
+{
+ "expectations": [
+  {
+   "text": "says not to apply the isolated template",
+   "passed": true,
+   "evidence": "found 'Do not use'"
+  },
+  {
+   "text": "cites S10 with 56 percent delayed or non-weight bearing",
+   "passed": true,
+   "evidence": "found 'S10'; found '56%'"
+  },
+  {
+   "text": "says P2 excludes realignment",
+   "passed": true,
+   "evidence": "found 'P2'; found 'exclud'"
+  },
+  {
+   "text": "names N5 and the disagreement",
+   "passed": true,
+   "evidence": "found 'N5'; found 'disagree'"
+  },
+  {
+   "text": "requires a surgeon protocol",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": false,
+   "evidence": "missing /PICO/"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'review'; found 'verified'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 1,
+  "total": 7,
+  "pass_rate": 0.857
+ },
+ "timing": {
+  "total_tokens": 58850,
+  "duration_ms": 74463,
+  "total_duration_seconds": 74.5
+ }
+}

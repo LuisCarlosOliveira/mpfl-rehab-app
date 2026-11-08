@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "writes NONE for revision rules",
+   "passed": true,
+   "evidence": "found 'NONE'; found 'revision'"
+  },
+  {
+   "text": "cites P2 includes revision but gives no separate rule",
+   "passed": true,
+   "evidence": "found 'P2'"
+  },
+  {
+   "text": "says the surgeon decides or sets it",
+   "passed": true,
+   "evidence": "found 'surgeon'"
+  },
+  {
+   "text": "does not apply the primary protocol",
+   "passed": true,
+   "evidence": "ok"
+  },
+  {
+   "text": "format: has a PICO line",
+   "passed": true,
+   "evidence": "found 'PICO'"
+  },
+  {
+   "text": "format: uses an evidence class and VERIFIED or UNVERIFIED",
+   "passed": true,
+   "evidence": "found 'NONE'; found 'VERIFIED'"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 0,
+  "total": 6,
+  "pass_rate": 1.0
+ }
+}
