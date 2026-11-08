@@ -7,6 +7,9 @@ description: Safety and wording rules for the MPFL rehabilitation app. Use whene
 
 The app counts reps and estimates knee angle from a 2D webcam. The error is about 9 degrees or more. A surgeon sets the protocol. The app never decides treatment. These rules keep that true. The evidence is in `research/clinical.md` and the plan is `MPFL_APP_PLAN.md`.
 
+## Before you write
+Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical value, flow step or screen text, or mark it PROPOSAL or UNVERIFIED. Cover the user flow in each design: inputs, measuring, position guidance, camera setup. Keep it KISS and DRY.
+
 ## Wording
 - Next to every angle, write: "estimated angle, not a medical measurement".
 - Never write "clinically validated", "clinically proven" or "medically accurate".

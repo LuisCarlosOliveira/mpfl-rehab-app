@@ -207,6 +207,16 @@ All skills and agent types below were checked against the lists of this session.
 
 Routing: Sonnet runs the work. Haiku is not planned. Opus judges once at the end. Every brief says "clean up only what you created". Every delegated result gets one independent check (a test run or a diff read). Read-only agents write findings. The main session or the Frontend Developer applies fixes and re-runs the check.
 
+### 4.3 Rules for every agent (plan, design, build, review)
+
+User decision, 2026-11-08. These rules hold for each agent and each brief.
+- Read `research/INDEX.md` first. Cite a section of the knowledge base next to each clinical value, flow step or screen text. If no section supports it, mark it PROPOSAL or UNVERIFIED.
+- Plan, design and review agents must cover the whole flow of use and the UX. This means inputs and registration, measuring, position guidance for each exercise, camera setup guidance, the screens, and accessibility. The source is `research/ux-flow.md`.
+- A task that adds a screen or an input names the flow step that it serves. A step with no purpose is removed.
+- A brief names the guardrail skill (`.claude/skills/mpfl-clinical-guardrails/SKILL.md`) and the knowledge base index. Agents do not load project skills by themselves.
+- KISS and DRY: one home for each fact. Link to it and do not copy it.
+- No named agent for the knowledge base exists. A general agent with a brief that names the index does this job.
+
 ## 5. Test strategy
 
 | Level | Tool | Scope |
