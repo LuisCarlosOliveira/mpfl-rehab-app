@@ -17,7 +17,7 @@ Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical
 - Do not rate or label movement form. No validated threshold exists after MPFL surgery. A cue states what was measured against a limit that the care team set, for example "depth below your target".
 - Do not use these words in screen text: correct, incorrect, good, bad, perfect, wrong, mistake. Also banned: safe, dangerous, risk of injury, score, grade, pass, fail, goal, milestone. Do not use a green or red verdict colour.
 - An in-range rep shows no message. "Within range" reads as a pass.
-- Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin and its status are stated there. The safety side warns early and takes the safe side inside the margin. The counting side gives the benefit of the doubt.
+- Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin and its status are stated there. The safety side warns early. The counting side gives the benefit of the doubt.
 - Never call a webcam comparison "LSI". LSI needs strength tests. Write "movement symmetry".
 - Show every surgeon decision as "ask your surgeon" when the protocol does not set it. Set no default. The surgeon decisions are in `research/clinical.md` section 9.
 - Mark red-flag text with the note that `src/lib/redflags.ts` holds (`GENERAL_GUIDANCE_NOTE`).
@@ -27,7 +27,7 @@ Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical
 - The app never changes the active phase. Only the protocol field `activePhase` sets it.
 - Red flags come from `src/lib/redflags.ts` in two groups: care team and emergency services. Any "yes" blocks the session.
 - The safety floor of FR12 in `MPFL_APP_PLAN.md` applies when the protocol sets no pain threshold. It shows "pause and contact your care team". It is an app rule and not a clinical default. The pain value is stated in FR12 only.
-- A rep at or above `maxFlexion` shows an alert and does not count. The cue is "stop at your limit, do not push". The cue "close to your limit, stop" starts earlier (FR8).
+- A rep above `maxFlexion` plus the margin shows an alert and does not count. The cue is "stop at your limit, do not push". The cue "close to your limit, stop" starts at the limit minus the margin, and the rep still counts (FR8).
 - A session always has a visible Stop button and a "knee gave way or hurts" button.
 
 ## Camera and data
