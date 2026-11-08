@@ -219,7 +219,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Steps: run `npm view` for each package. Check peer dependencies and the license of Zod and TypeScript. Create `app/` with Vite React TS. Install with exact versions. Commit the lockfile. Add scripts `dev`, `build`, `test`, `lint`, `typecheck`, `e2e`, `precheck`. Write `scripts/allowed-deps.txt` and `scripts/deps-check.sh`. Check that `ffmpeg` exists. On 2026-11-08 it was not installed. T7 needs it. If it cannot be installed without a system change, record the blocker and use the fallback of T7.
 - Tests: `npm run typecheck`, `npm run build`, one smoke test, `deps-check.sh`.
 - Acceptance: all pass. Versions match section 1.3 or each difference has a recorded reason. Licenses are recorded.
-- Result: pending.
+- Result: DONE 2026-11-08. typecheck, lint, test (1 test), deps-check and build pass. One difference: TypeScript is pinned to 6.0.3, because typescript-eslint 8.72.1 needs TypeScript below 6.1.0 and 7.0.2 failed `npm install`. Other versions match section 1.3. `@types/react` and `@types/react-dom` are 19.3.0. Licenses: Zod MIT, TypeScript Apache-2.0, axe-core MPL-2.0 (dev only). `ffmpeg` is not installed (see T7).
 
 ### T1. Skill `mpfl-clinical-guardrails`
 - Agent: main session. Skills: `skill-creator:skill-creator`. Tech: SKILL.md, shell. Tools: `mcp__skillspector__scan_skill`. Depends on: none.

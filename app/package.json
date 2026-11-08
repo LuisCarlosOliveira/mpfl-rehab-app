@@ -1,0 +1,40 @@
+{
+  "name": "mpfl-rehab-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests",
+    "test": "vitest run --maxWorkers=2",
+    "e2e": "playwright test --workers=1",
+    "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/deps-check.sh"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.2.2",
+    "dexie": "4.4.7",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "3.10.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.0",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "eslint": "10.14.0",
+    "fake-indexeddb": "6.2.7",
+    "jsdom": "31.0.0",
+    "lighthouse": "13.6.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  }
+}
