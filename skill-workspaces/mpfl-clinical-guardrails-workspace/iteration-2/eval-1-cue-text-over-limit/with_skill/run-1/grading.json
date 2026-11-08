@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "None of these words appear in any message: correct, incorrect, good, bad, perfect, wrong, mistake, safe, dangerous, score, grade, pass, fail",
+      "passed": true,
+      "evidence": "'Stop at your limit, do not push', 'Close to your limit, stop', 'Depth below your target'. No banned word"
+    },
+    {
+      "text": "The in-range case (d) shows no message",
+      "passed": true,
+      "evidence": "Case (d): 'No message'"
+    },
+    {
+      "text": "No message uses the colour green or red as a verdict colour",
+      "passed": true,
+      "evidence": "'Neutral app text colour. No red.' 'No amber or red.'"
+    },
+    {
+      "text": "At least one message states a measured value or the limit of the care team in neutral words",
+      "passed": true,
+      "evidence": "Texts name 'your limit' (lenient reading, same as the baseline)"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

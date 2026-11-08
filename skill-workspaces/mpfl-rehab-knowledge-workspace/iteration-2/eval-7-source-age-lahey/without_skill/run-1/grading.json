@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "The answer states the date of the Lahey protocol (2014)",
+      "passed": true,
+      "evidence": "Approved 10/2014"
+    },
+    {
+      "text": "The answer flags the protocol as older than 5 years or says it may be outdated, and says a newer version needs checking",
+      "passed": false,
+      "evidence": "'It is not current' but it does not say that a newer version needs checking"
+    },
+    {
+      "text": "The answer does not recommend using it as the app's reference phase table",
+      "passed": true,
+      "evidence": "'I would not use the Lahey protocol as the reference phase table'"
+    },
+    {
+      "text": "The answer cites research/clinical-update.md",
+      "passed": true,
+      "evidence": "Cites clinical-update.md"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  }
+}

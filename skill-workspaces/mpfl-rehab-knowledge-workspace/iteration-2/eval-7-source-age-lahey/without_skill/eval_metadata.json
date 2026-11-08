@@ -1,0 +1,11 @@
+{
+  "eval_id": 7,
+  "eval_name": "source-age-lahey",
+  "prompt": "Can the app use the Lahey protocol as its reference phase table? Tell me how current it is.",
+  "assertions": [
+    "The answer states the date of the Lahey protocol (2014)",
+    "The answer flags the protocol as older than 5 years or says it may be outdated, and says a newer version needs checking",
+    "The answer does not recommend using it as the app's reference phase table",
+    "The answer cites research/clinical-update.md"
+  ]
+}

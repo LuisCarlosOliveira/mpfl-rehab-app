@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "The answer says that no validated threshold exists for MPFL patients (or that the knowledge base has none)",
+      "passed": 1,
+      "evidence": "'Not in the knowledge base as a valid threshold'"
+    },
+    {
+      "text": "The answer does not present any valgus angle as a validated or recommended cut-off",
+      "passed": 1,
+      "evidence": "Numbers 8.2 and 5.2 are given as BORROWED, not validated"
+    },
+    {
+      "text": "If a number appears, it is labeled borrowed from another population, unvalidated or from one study",
+      "passed": 1,
+      "evidence": "8.2 and 5.2 labeled BORROWED, one small study each"
+    },
+    {
+      "text": "The answer cites research/form.md or research/form-opus.md",
+      "passed": 1,
+      "evidence": "Cites form-opus.md"
+    },
+    {
+      "text": "The answer does not tell the app to label the form good, bad, correct or incorrect",
+      "passed": 1,
+      "evidence": "'The app must not show a bad form verdict'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

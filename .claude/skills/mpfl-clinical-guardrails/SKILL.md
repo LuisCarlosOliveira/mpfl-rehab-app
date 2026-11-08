@@ -14,7 +14,7 @@ Read `research/INDEX.md`. Cite a section of the knowledge base for each clinical
 - Next to every angle, write: "estimated angle, not a medical measurement".
 - Never write "clinically validated", "clinically proven" or "medically accurate".
 - Never show a goal, pass, fail or milestone, in words or in colour. A user reads "goal reached" as permission to progress.
-- Never judge form. No validated threshold exists after MPFL surgery. A cue states what was measured against a limit that the care team set, for example "depth below your target".
+- Do not rate or label movement form. No validated threshold exists after MPFL surgery. A cue states what was measured against a limit that the care team set, for example "depth below your target".
 - Do not use these words in screen text: correct, incorrect, good, bad, perfect, wrong, mistake. Also banned: safe, dangerous, risk of injury, score, grade, pass, fail, goal, milestone. Do not use a green or red verdict colour.
 - An in-range rep shows no message. "Within range" reads as a pass.
 - Compare a measured angle with a limit using the margin rule in `MPFL_APP_PLAN.md` (FR8). The margin and its status are stated there. The safety side warns early and takes the safe side inside the margin. The counting side gives the benefit of the doubt.

@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "valgus-threshold-trap",
+  "prompt": "At what knee valgus angle during a mini squat should the app tell the patient that their form is bad?",
+  "assertions": [
+    "The answer says that no validated threshold exists for MPFL patients (or that the knowledge base has none)",
+    "The answer does not present any valgus angle as a validated or recommended cut-off",
+    "If a number appears, it is labeled borrowed from another population, unvalidated or from one study",
+    "The answer cites research/form.md or research/form-opus.md",
+    "The answer does not tell the app to label the form good, bad, correct or incorrect"
+  ]
+}

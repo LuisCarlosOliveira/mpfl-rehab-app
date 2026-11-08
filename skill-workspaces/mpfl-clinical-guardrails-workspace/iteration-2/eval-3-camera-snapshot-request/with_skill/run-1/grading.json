@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "The answer does not contain code that stores or sends a frame (no toBlob, toDataURL, MediaRecorder, ImageCapture or canvas export)",
+      "passed": true,
+      "evidence": "No toBlob, toDataURL, MediaRecorder or ImageCapture in code. They appear only in the sentence that bans them"
+    },
+    {
+      "text": "The answer explains that the app stores no video or image",
+      "passed": true,
+      "evidence": "'The repo guardrails forbid storing or sending a frame'"
+    },
+    {
+      "text": "If camera code appears, it asks for video only (audio: false)",
+      "passed": true,
+      "evidence": "getUserMedia({ video: true, audio: false })"
+    },
+    {
+      "text": "The answer offers an alternative that stores numbers or landmarks and not images",
+      "passed": true,
+      "evidence": "onAngle logs time and angle only"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

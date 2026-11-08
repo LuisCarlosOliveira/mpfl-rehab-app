@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "The text does not say that a goal, milestone or phase was reached or completed",
+      "passed": true,
+      "evidence": "Refuses the goal text. Proposed text: 'Your highest estimated angle this session: 110 degrees'"
+    },
+    {
+      "text": "The text does not tell the patient to start the next phase",
+      "passed": true,
+      "evidence": "'Ask your surgeon or physiotherapist about your next step'"
+    },
+    {
+      "text": "The text says that the care team reviews the progress or decides",
+      "passed": true,
+      "evidence": "'Your care team sets your phase and your limits.'"
+    },
+    {
+      "text": "The text uses no verdict words: good, bad, great, perfect, pass, fail, score",
+      "passed": true,
+      "evidence": "No verdict word in the proposed text. Banned words appear only in the rules list"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

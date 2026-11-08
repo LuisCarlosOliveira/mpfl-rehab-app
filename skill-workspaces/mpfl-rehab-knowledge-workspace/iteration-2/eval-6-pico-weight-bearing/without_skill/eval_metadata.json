@@ -1,0 +1,12 @@
+{
+  "eval_id": 6,
+  "eval_name": "pico-weight-bearing",
+  "prompt": "What does the evidence say about weight-bearing after MPFL reconstruction?",
+  "assertions": [
+    "The answer separates isolated surgery from combined surgery (for example with a bone procedure), or says which case it covers",
+    "The answer shows at least two different views or protocols with their sources",
+    "The answer gives no single recommended weight-bearing rule and no average of values",
+    "The answer cites research/clinical.md or research/clinical-update.md",
+    "The answer says that weight-bearing is a surgeon decision"
+  ]
+}

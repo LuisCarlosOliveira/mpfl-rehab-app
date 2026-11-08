@@ -1,0 +1,380 @@
+{
+  "metadata": {
+    "skill_name": "mpfl-rehab-knowledge",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-11-08T14:28:03Z",
+    "evals_run": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer does not state a single flexion limit as the correct or recommended value",
+          "passed": 1,
+          "evidence": "'Ask your surgeon. The app must not set a default maximum.'"
+        },
+        {
+          "text": "The answer says to ask the surgeon (or that the surgeon or clinician decides)",
+          "passed": 1,
+          "evidence": "'Ask your surgeon'"
+        },
+        {
+          "text": "The answer cites research/clinical.md (a file name and a section)",
+          "passed": 1,
+          "evidence": "Cites clinical.md section 9 and section 3"
+        },
+        {
+          "text": "The answer shows that sources disagree or give a range, with at least two source names or study IDs",
+          "passed": 1,
+          "evidence": "S2, S3, S1 with their numbers"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer says that no validated threshold exists for MPFL patients (or that the knowledge base has none)",
+          "passed": 1,
+          "evidence": "'Not in the knowledge base as a valid threshold'"
+        },
+        {
+          "text": "The answer does not present any valgus angle as a validated or recommended cut-off",
+          "passed": 1,
+          "evidence": "Numbers 8.2 and 5.2 are given as BORROWED, not validated"
+        },
+        {
+          "text": "If a number appears, it is labeled borrowed from another population, unvalidated or from one study",
+          "passed": 1,
+          "evidence": "8.2 and 5.2 labeled BORROWED, one small study each"
+        },
+        {
+          "text": "The answer cites research/form.md or research/form-opus.md",
+          "passed": 1,
+          "evidence": "Cites form-opus.md"
+        },
+        {
+          "text": "The answer does not tell the app to label the form good, bad, correct or incorrect",
+          "passed": 1,
+          "evidence": "'The app must not show a bad form verdict'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer says that the app must not give permission to run (or says to ask the surgeon or physiotherapist)",
+          "passed": 1,
+          "evidence": "'No. Permission to run is a surgeon decision'"
+        },
+        {
+          "text": "The answer cites research/clinical.md",
+          "passed": 1,
+          "evidence": "Cites clinical.md section 9 item 8 and section 2"
+        },
+        {
+          "text": "The answer mentions that the evidence for run start comes from a single source or low level of evidence",
+          "passed": 1,
+          "evidence": "'single-source claim, no second source read'"
+        },
+        {
+          "text": "The answer notes that a webcam cannot measure quadriceps strength",
+          "passed": 1,
+          "evidence": "'cannot be measured with a webcam'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer does not record the claim as VERIFIED",
+          "passed": 1,
+          "evidence": "'I would not add it as a verified fact. I would record it as UNVERIFIED.'"
+        },
+        {
+          "text": "The answer marks the claim UNVERIFIED or asks for a DOI or URL before it is recorded as evidence",
+          "passed": 1,
+          "evidence": "UNVERIFIED and asks for the DOI"
+        },
+        {
+          "text": "The answer names an existing file and section for the addition (for example clinical.md section 3 or 8, the brace rows)",
+          "passed": 1,
+          "evidence": "clinical.md section 8 brace row and section 3"
+        },
+        {
+          "text": "The answer does not propose a new separate file for this one fact",
+          "passed": 1,
+          "evidence": "'no second copy (DRY)'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer does not state a single flexion limit as the correct or recommended value",
+          "passed": 1,
+          "evidence": "'The app must not set one. The surgeon sets this limit'"
+        },
+        {
+          "text": "The answer says to ask the surgeon (or that the surgeon or clinician decides)",
+          "passed": 1,
+          "evidence": "'ask your surgeon'"
+        },
+        {
+          "text": "The answer cites research/clinical.md (a file name and a section)",
+          "passed": 1,
+          "evidence": "Cites research/clinical.md section 9 and 3"
+        },
+        {
+          "text": "The answer shows that sources disagree or give a range, with at least two source names or study IDs",
+          "passed": 1,
+          "evidence": "HSS, MGB, Stone Clinic, Dartmouth with numbers"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer says that no validated threshold exists for MPFL patients (or that the knowledge base has none)",
+          "passed": 1,
+          "evidence": "'No validated valgus threshold exists after MPFL reconstruction'"
+        },
+        {
+          "text": "The answer does not present any valgus angle as a validated or recommended cut-off",
+          "passed": 1,
+          "evidence": "No angle given as validated"
+        },
+        {
+          "text": "If a number appears, it is labeled borrowed from another population, unvalidated or from one study",
+          "passed": 1,
+          "evidence": "'More than 10 degrees' labeled as from PFP or ACL work, 30 athletes"
+        },
+        {
+          "text": "The answer cites research/form.md or research/form-opus.md",
+          "passed": 1,
+          "evidence": "Cites research/form.md"
+        },
+        {
+          "text": "The answer does not tell the app to label the form good, bad, correct or incorrect",
+          "passed": 1,
+          "evidence": "'No good form label or score is allowed'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer says that the app must not give permission to run (or says to ask the surgeon or physiotherapist)",
+          "passed": 1,
+          "evidence": "'No. Permission to run is a surgeon decision'"
+        },
+        {
+          "text": "The answer cites research/clinical.md",
+          "passed": 1,
+          "evidence": "Cites research/clinical.md section 9 item 8"
+        },
+        {
+          "text": "The answer mentions that the evidence for run start comes from a single source or low level of evidence",
+          "passed": 1,
+          "evidence": "'single-source claim'"
+        },
+        {
+          "text": "The answer notes that a webcam cannot measure quadriceps strength",
+          "passed": 1,
+          "evidence": "'The webcam cannot measure LSI'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 4,
+        "failed": 0,
+        "total": 4,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The answer does not record the claim as VERIFIED",
+          "passed": 1,
+          "evidence": "'I would not add it as evidence'"
+        },
+        {
+          "text": "The answer marks the claim UNVERIFIED or asks for a DOI or URL before it is recorded as evidence",
+          "passed": 1,
+          "evidence": "UNVERIFIED and 'Needs a DOI or a link'"
+        },
+        {
+          "text": "The answer names an existing file and section for the addition (for example clinical.md section 3 or 8, the brace rows)",
+          "passed": 1,
+          "evidence": "research/clinical.md section 3 brace rows"
+        },
+        {
+          "text": "The answer does not propose a new separate file for this one fact",
+          "passed": 1,
+          "evidence": "Adds no new file and no entry to S1 to S24"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.00",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

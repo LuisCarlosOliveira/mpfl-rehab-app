@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "The answer separates isolated surgery from combined surgery (for example with a bone procedure), or says which case it covers",
+      "passed": true,
+      "evidence": "Mentions combined surgery as different"
+    },
+    {
+      "text": "The answer shows at least two different views or protocols with their sources",
+      "passed": true,
+      "evidence": "S1, S7, S10, S3, S2, Delphi N1, N5"
+    },
+    {
+      "text": "The answer gives no single recommended weight-bearing rule and no average of values",
+      "passed": true,
+      "evidence": "'do not pick a side'. It also says WBAT is acceptable with low confidence (judged leniently)"
+    },
+    {
+      "text": "The answer cites research/clinical.md or research/clinical-update.md",
+      "passed": true,
+      "evidence": "Cites clinical-update.md and clinical.md"
+    },
+    {
+      "text": "The answer says that weight-bearing is a surgeon decision",
+      "passed": true,
+      "evidence": "'defer to the surgeon'"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "The text does not say that a goal, milestone or phase was reached or completed",
+      "passed": 0,
+      "evidence": "'You reached 110 degrees... the end goal of Phase 1'"
+    },
+    {
+      "text": "The text does not tell the patient to start the next phase",
+      "passed": 1,
+      "evidence": "Does not tell the patient to start phase 2 (says 'ready for Phase 2 soon', judged literally)"
+    },
+    {
+      "text": "The text says that the care team reviews the progress or decides",
+      "passed": 0,
+      "evidence": "The patient text does not say the care team decides. The developer note does"
+    },
+    {
+      "text": "The text uses no verdict words: good, bad, great, perfect, pass, fail, score",
+      "passed": 0,
+      "evidence": "'Great progress!', 'right on track'. Also a green progress bar"
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 3,
+    "total": 4,
+    "pass_rate": 0.25
+  }
+}

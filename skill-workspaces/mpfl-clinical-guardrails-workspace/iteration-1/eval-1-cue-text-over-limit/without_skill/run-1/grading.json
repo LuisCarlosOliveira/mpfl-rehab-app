@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "None of these words appear in any message: correct, incorrect, good, bad, perfect, wrong, mistake, safe, dangerous, score, grade, pass, fail",
+      "passed": false,
+      "evidence": "'Good try' and 'Great rep!' are in message text"
+    },
+    {
+      "text": "The in-range case (d) shows no message",
+      "passed": false,
+      "evidence": "Case (d): 'Great rep! Right on target.'"
+    },
+    {
+      "text": "No message uses the colour green or red as a verdict colour",
+      "passed": false,
+      "evidence": "Red, Amber, Blue and Green are used. Green marks in-range, red marks over-limit"
+    },
+    {
+      "text": "At least one message states a measured value or the limit of the care team in neutral words",
+      "passed": true,
+      "evidence": "'Careful, you are near your limit.' names the limit (lenient reading, regraded on 2026-11-08 to match iteration 2)"
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 3,
+    "total": 4,
+    "pass_rate": 0.25
+  }
+}

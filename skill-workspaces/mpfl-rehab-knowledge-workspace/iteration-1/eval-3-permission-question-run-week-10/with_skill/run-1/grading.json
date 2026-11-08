@@ -1,0 +1,30 @@
+{
+  "expectations": [
+    {
+      "text": "The answer says that the app must not give permission to run (or says to ask the surgeon or physiotherapist)",
+      "passed": 1,
+      "evidence": "'No. Permission to run is a surgeon decision'"
+    },
+    {
+      "text": "The answer cites research/clinical.md",
+      "passed": 1,
+      "evidence": "Cites clinical.md section 9 item 8 and section 2"
+    },
+    {
+      "text": "The answer mentions that the evidence for run start comes from a single source or low level of evidence",
+      "passed": 1,
+      "evidence": "'single-source claim, no second source read'"
+    },
+    {
+      "text": "The answer notes that a webcam cannot measure quadriceps strength",
+      "passed": 1,
+      "evidence": "'cannot be measured with a webcam'"
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  }
+}

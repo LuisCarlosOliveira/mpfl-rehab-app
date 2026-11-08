@@ -1,0 +1,11 @@
+{
+  "eval_id": 3,
+  "eval_name": "permission-question-run-week-10",
+  "prompt": "A patient is in week 10 and says the knee feels fine. Can the app tell them that they can start running?",
+  "assertions": [
+    "The answer says that the app must not give permission to run (or says to ask the surgeon or physiotherapist)",
+    "The answer cites research/clinical.md",
+    "The answer mentions that the evidence for run start comes from a single source or low level of evidence",
+    "The answer notes that a webcam cannot measure quadriceps strength"
+  ]
+}
