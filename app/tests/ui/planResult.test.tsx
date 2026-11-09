@@ -43,6 +43,23 @@ describe('PlanResult', () => {
     expect(within(list).getByText('Limit 60 degrees')).toBeInTheDocument();
   });
 
+  it('says why there is no heel slide when the limit is below the minimum (R3 heel note)', () => {
+    setup({ surgeonLimit: { kind: 'degrees', degrees: 20 } });
+    const list = screen.getByRole('list', { name: 'Exercises in your plan' });
+    expect(within(list).queryByText('Heel slide')).toBeNull();
+    const note = screen.getByText(/^Heel slide:/);
+    expect(note.closest('[role="note"]')).not.toBeNull();
+    expect(note).toHaveTextContent(`below ${RULES.ENG_TARGET.values.minLimit} degrees`);
+    expect(note).not.toHaveTextContent('ask your surgeon for a knee-bend limit');
+  });
+
+  it('shows the heel slide note as a visible note when the person gave no limit', () => {
+    setup({ surgeonLimit: { kind: 'unknown' } });
+    const note = screen.getByText(/^Heel slide:/);
+    expect(note.closest('[role="note"]')).not.toBeNull();
+    expect(note).toHaveTextContent('ask your surgeon for a knee-bend limit');
+  });
+
   it('shows no heel slide and says ask your surgeon when the person gave no limit', () => {
     setup({ surgeonLimit: { kind: 'unknown' } });
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });

@@ -3,7 +3,7 @@
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
 import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
-import { ASK_SURGEON } from '../lib/protocolGen';
+import { ASK_SURGEON, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -91,6 +91,11 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
   const made = why.filter((e) => e.outcome === 'generated');
   const left = why.filter((e) => e.outcome === 'refused');
   const hasHeel = exercises.some((e) => e.kind === 'heel-slide');
+  const minLimit = RULES.ENG_TARGET.values.minLimit;
+  const heelNote =
+    inputs.surgeonLimit.kind === 'degrees'
+      ? `Heel slide: the limit that you entered is below ${minLimit} degrees. The app adds the heel slide only from ${minLimit} degrees. Ask your care team.`
+      : 'Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.';
 
   return (
     <section aria-labelledby="plan-title" className="narrow">
@@ -122,7 +127,11 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
               </li>
             ))}
           </ul>
-          {!hasHeel && <p className="detail">Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.</p>}
+          {!hasHeel && (
+            <Notice role="note" icon="info">
+              <p>{heelNote}</p>
+            </Notice>
+          )}
           <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
         </section>
 
