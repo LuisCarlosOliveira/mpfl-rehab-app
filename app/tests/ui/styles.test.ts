@@ -174,7 +174,11 @@ describe('styles.css, the F3 block', () => {
     expect(narrow).toMatch(/\.session-head\s*\{[^}]*flex-wrap:\s*wrap/);
   });
 
-  it('keeps the picture low enough at 640 px height for the unit under the angle', () => {
-    expect(block).toMatch(/\.session-grid \.preview\s*\{[^}]*100svh - 33rem/);
+  it('keeps the picture low enough at 640 px height for the unit under the angle and the button of the starting angle (R3-02)', () => {
+    expect(block).toMatch(/\.session-grid \.preview\s*\{[^}]*100svh - 37rem/);
+  });
+
+  it('puts the camera under the rest panel during a rest (R3-03)', () => {
+    expect(block).toMatch(/\.session-paused \.frame\s*\{[^}]*order:\s*0/);
   });
 });

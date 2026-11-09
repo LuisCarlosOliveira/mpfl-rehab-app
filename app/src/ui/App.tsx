@@ -167,6 +167,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   // The Session registers its Stop here, so a Back press ends the session and the camera.
   const stateNow = useRef(state);
   const stopSession = useRef<(() => void) | null>(null);
+  const questionBack = useRef<(() => boolean) | null>(null); // the questions of "Create my plan" step back inside the screen (R3-04)
   useEffect(() => {
     stateNow.current = state;
   });
@@ -183,6 +184,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
       return { landed: 'summary', root: false };
     }
     if (step === 'stay') return { landed: now.screen, root: false };
+    if (now.screen === 'onboarding' && questionBack.current?.()) return { landed: 'onboarding', root: false };
     if (step === null) return { landed: now.screen, root: true };
     dispatch(step);
     const next = appReducer(now, step);
@@ -324,6 +326,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
           <Onboarding
             today={localIsoDate(now())}
             initial={state.draft?.origin === 'create' ? state.draft.inputs : null}
+            backRef={questionBack}
             onDone={(draft) => dispatch({ type: 'draft', draft })}
             onCancel={() => dispatch({ type: 'open', screen: protocol ? 'home' : 'load' })}
           />

@@ -1,7 +1,7 @@
 // "Create my plan": the questions of the protocol generator (docs/protocol-generator-design.md section 2).
 // One question for each screen. The referral questions come first. The answers stay in this component.
 // Nothing is saved here. The generator runs only when the person presses "Make my plan", and it saves nothing.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import {
   answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, surgeryDateProblem, toInputs,
   type Answers, type StepId,
@@ -17,6 +17,8 @@ interface Props {
   today: string;
   /** Earlier answers. The screen then opens on the summary, so the person can change one. */
   initial?: GeneratorInputs | null;
+  /** The shell calls this when the Back button of the browser is pressed. It does what the Back button of the screen does and returns true. On the first question it returns false, and the shell leaves the questions. */
+  backRef?: MutableRefObject<(() => boolean) | null>;
   onDone: (draft: PlanDraft) => void;
   onCancel: () => void;
 }
@@ -103,7 +105,7 @@ function valueText(step: Exclude<StepId, 'summary'>, a: Answers): string {
   }
 }
 
-export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
+export function Onboarding({ today, initial = null, backRef, onDone, onCancel }: Props) {
   const [answers, setAnswers] = useState<Answers>(() => (initial ? fromInputs(initial) : emptyAnswers()));
   const [step, setStep] = useState<StepId>(initial ? 'summary' : 'writtenPlan');
   // After Change on the summary, Next goes back to the summary. A new question that the change opens comes first.
@@ -146,6 +148,19 @@ export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
     } else if (index === 0) onCancel();
     else setStep(steps[index - 1] as StepId);
   }
+
+  // The Back button of the browser goes one question back, with the answers kept. The ref clears when the screen goes.
+  useEffect(() => {
+    if (!backRef) return;
+    backRef.current = () => {
+      if (index === 0 && !fromSummary) return false;
+      goBack();
+      return true;
+    };
+    return () => {
+      backRef.current = null;
+    };
+  });
 
   function makePlan() {
     const inputs = toInputs(answers, today);

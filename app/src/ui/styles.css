@@ -2255,10 +2255,28 @@ main h3 {
   max-width: none;
   height: 0.5rem;
 }
-/* R2-04 at 360 x 640: the picture is 1 rem lower, so the unit under the angle clears the fixed bar. */
+/* R2-04 at 360 x 640: the picture is 1 rem lower, so the unit under the angle clears the fixed bar.
+   R3-02: it is 4 rem lower again, so the button of the starting angle fits under the numbers in the first view. */
 @media (max-width: 61.99rem) {
   .session-grid .preview {
-    max-height: min(42svh, max(7rem, 100svh - 33rem));
+    max-height: min(42svh, max(5rem, 100svh - 37rem));
+  }
+  /* R3-03: during a rest the panel comes first. The pause message, the pain scale and the next step need no scroll. The camera is not in use. */
+  .session-paused .frame {
+    order: 0;
+  }
+}
+/* R3-02 on a short phone (360 x 640): the chrome and the fixed bar leave little room. Tighter gaps and a thinner picture keep the button, the count and the angle in the first view. */
+@media (max-width: 61.99rem) and (max-height: 41rem) {
+  .session-head {
+    margin-block-end: var(--s-3);
+  }
+  .session-grid,
+  .session-grid > .stack {
+    gap: var(--s-3);
+  }
+  .session-grid .preview {
+    max-height: min(42svh, max(4rem, 100svh - 37rem));
   }
 }
 /* L2-06 and L2-11 at 195 px (WCAG 1.4.10 asks 320 px, 195 px is the stretch goal). A grid or flex item shrinks to its box. */

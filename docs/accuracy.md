@@ -83,6 +83,12 @@ The result can change `MARGIN_DEG` and its source text in `src/lib/margin.ts`.
 
 Rule: the margin changes only when a recorded data file is in the repository. The new source text must name that file, the number of pairs and the camera setup. Without such a file, the 9 degree start value stays.
 
+## Study kit
+
+NOT RUN. No volunteer data exists. The 9 degrees stays a start value.
+
+The kit is ready for a physiotherapist: the [study protocol](accuracy-study-protocol.md), the [blank sheet](accuracy-study-sheet.csv) and the tool `app/scripts/accuracy-analyze.mjs`. The tool has tests with SYNTHETIC rows only (`app/tests/accuracyAnalyze.test.ts`). The tests prove the maths and the input checks. They prove nothing about the real camera error.
+
 ## Frame rate (NFR4)
 
 The target is a median of at least 15 frames per second. Measure it over 60 seconds in headed Chromium, with the `lite` model, on the development machine. Record the median in the table. Phone speed is UNVERIFIED until a phone test.

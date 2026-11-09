@@ -88,6 +88,15 @@ describe('Session with no baseline: the finding state', () => {
     expect(screen.getByText(CAPTURE_TEXT.chooseShort)).toBeInTheDocument();
   });
 
+  // R3-02: under the numbers the button was 310 px below the bar on a phone. Before the numbers it stays in the first view.
+  it('puts the lowest-angle button before the numbers in the page, and not inside the card', () => {
+    const { source } = open();
+    moveAll(source, 0, 16000);
+    const button = lowestButton()!;
+    expect(button.compareDocumentPosition(document.querySelector('.counters')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(document.querySelector('.capture')!).not.toContainElement(button);
+  });
+
   it('shows the progress while the leg holds still', () => {
     const { source } = open();
     holdStill(source, 12, 0, 1000);

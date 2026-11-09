@@ -354,3 +354,59 @@ describe('Pain stop between sets, with the threshold of the protocol (T24a wirin
     expect(screen.getByRole('button', { name: 'Start next set' })).toBeInTheDocument();
   });
 });
+
+// R3-04: the Back button of the browser inside the questions goes one question back and keeps the answers.
+// It still never reaches Setup or Session (tests/ui/appBack.test.tsx holds that guarantee).
+describe('Back of the browser inside the questions', () => {
+  const browserBack = () =>
+    act(async () => {
+      window.history.back();
+      await new Promise((r) => setTimeout(r, 30));
+    });
+
+  it('goes one question back with the answers kept, and from the first question to the Load screen', async () => {
+    await openLoad();
+    click('Create my plan');
+    await heading('Did your care team give you a written rehab plan?');
+    choose('No'); next();
+    await heading('Which operation did you have?');
+    choose('MPFL reconstruction only'); next();
+    await heading('How old are you?');
+    await browserBack();
+    await heading('Which operation did you have?');
+    expect(screen.getByRole('radio', { name: 'MPFL reconstruction only' })).toBeChecked();
+    await browserBack();
+    await heading('Did your care team give you a written rehab plan?');
+    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
+    await browserBack();
+    await heading('Load protocol file');
+  });
+
+  it('goes from "Check your answers" to the last question, and the answers stay', async () => {
+    await openLoad();
+    click('Create my plan');
+    await heading('Did your care team give you a written rehab plan?');
+    answerAll();
+    await heading('Check your answers');
+    await browserBack();
+    await heading('How is your knee today?');
+    expect(screen.getByRole('radio', { name: '2' })).toBeChecked();
+    next();
+    await heading('Check your answers');
+    expect(screen.getByText('Pain 2 out of 10, no swelling')).toBeInTheDocument();
+  });
+
+  it('goes Home from the first question when a plan is stored', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    render(<App db={db} mode="demo" source={mockSource()} now={NOW} />);
+    await heading('Home');
+    click('Load a new protocol file');
+    await heading('Load protocol file');
+    click('Create my plan');
+    await heading('Did your care team give you a written rehab plan?');
+    await browserBack();
+    await heading('Home');
+  });
+});

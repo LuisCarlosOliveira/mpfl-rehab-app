@@ -532,7 +532,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               )}
             </div>
           )}
-          <div className="session-grid">
+          <div className={paused ? 'session-grid session-paused' : 'session-grid'}>
             <div className="stack">
               {paused && (
                 <div className={resting ? 'stack-s rest-panel' : 'stack-s'}>
@@ -567,6 +567,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 </div>
               )}
 
+              {/* R3-02: the button sits right under the camera, before the numbers, so it stays in the first view with the camera, the count and the angle. */}
+              {captureOn && view.capture?.phase === 'choose' && (
+                <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
+                  {CAPTURE_TEXT.lowestButton}
+                </button>
+              )}
               {!resting && (
                 <div className="card counters">
                   {(label !== null || repsText !== null) && (
@@ -618,14 +624,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 <section className="card capture stack-s" aria-labelledby="capture-title">
                   <h2 id="capture-title">{CAPTURE_TEXT.title}</h2>
                   <p>{view.capture.tooBent ? CAPTURE_TEXT.bent : CAPTURE_TEXT.stuck}</p>
-                  {view.capture.phase === 'choose' && (
-                    <div className="stack-s">
-                      <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
-                        {CAPTURE_TEXT.lowestButton}
-                      </button>
-                      {!view.capture.canUseLowest && <p className="detail">{CAPTURE_TEXT.lowestNeedsLeg}</p>}
-                    </div>
-                  )}
                 </section>
               )}
               {block !== null && (
@@ -666,7 +664,15 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               {/* R2-04: while the app looks for the starting angle, one line and the progress sit on the picture. They take no room. */}
               {captureOn && view.capture && (
                 <div className="capture-line">
-                  <p role="status">{view.capture.tooBent ? CAPTURE_TEXT.bentShort : view.capture.phase === 'choose' ? CAPTURE_TEXT.chooseShort : CAPTURE_TEXT.hold}</p>
+                  <p role="status">
+                    {view.capture.tooBent
+                      ? CAPTURE_TEXT.bentShort
+                      : view.capture.phase === 'choose'
+                        ? view.capture.canUseLowest
+                          ? CAPTURE_TEXT.chooseShort
+                          : CAPTURE_TEXT.lowestNeedsLeg
+                        : CAPTURE_TEXT.hold}
+                  </p>
                   <progress className="capture-progress" max={100} value={view.capture.progress} aria-label={CAPTURE_TEXT.progress} />
                 </div>
               )}

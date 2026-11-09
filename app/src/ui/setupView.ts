@@ -96,7 +96,7 @@ export const CAPTURE_TEXT = {
   bent: 'Your knee stays bent. Straighten your leg as far as your care team allows, then hold still.',
   // One line each, for the camera picture (R2-04). The full texts above sit in the card under the numbers.
   bentShort: 'Your knee stays bent. Straighten it, then hold still.',
-  chooseShort: 'No still moment yet. See the button under the numbers.',
+  chooseShort: 'No still moment yet. Use the button under this picture.',
   lowestButton: 'Use my lowest steady angle as the start',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
   startingAngle: (deg: number) => `Starting angle: ${deg} ${plural(deg, 'degree')} (estimated)`,
