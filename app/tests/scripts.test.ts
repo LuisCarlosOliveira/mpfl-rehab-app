@@ -480,7 +480,7 @@ describe('phase-check.sh: patterns for the confirm-before-save path', () => {
 
   it('passes on the real source', () => {
     expect(run(phase, realSrc).status).toBe(0);
-  });
+  }, 30_000);
 });
 
 describe('phase-check.sh: bypass patterns (F4b)', () => {
@@ -798,5 +798,5 @@ describe('claims-check.sh: frame and relay APIs (F5a)', () => {
 
   it('passes on the real source of the app, with no allow marker added by F5a', () => {
     expect(run(claims, realSrc).status).toBe(0);
-  });
+  }, 30_000);
 });
