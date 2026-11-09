@@ -9,7 +9,7 @@
   padding: var(--s-5);
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-1);
 }
 .dash-chart h2 {
@@ -93,7 +93,7 @@
   max-height: 18rem;
   overflow: auto;
   border: 1px solid var(--line);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--raised);
 }
 .data-table {
@@ -145,7 +145,7 @@
   align-items: center;
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--primary-soft);
   font-weight: 650;
 }
@@ -172,7 +172,7 @@
   color: var(--ink);
   background: var(--raised);
   border: 0;
-  border-radius: var(--r-xl);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-3);
   opacity: 1;
   transform: scale(1);

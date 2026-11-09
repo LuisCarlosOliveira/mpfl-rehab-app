@@ -1,6 +1,7 @@
 /* MPFL Rehab design system, approach B: hand-written CSS on design tokens. No framework.
-   Palette: Sanzo Wada combination 125 (Cerulian Blue, Violet Blue, Fawn), certified by wada-ui-palettes: 79 of 79 pairs pass in both themes.
-   Guardrails: no green or red verdict colour anywhere. Attention is a strong indigo block with an icon and text.
+   Palette: cool Plaster page, ink blue-black, goniometer blue for the main action, night indigo for attention (pale lavender in the dark theme).
+   Contrast of every text and edge pair is computed by script. Fixed in pass 1: the control edge on a sunken surface is 3.27:1 in the light theme.
+   Guardrails: no green or red verdict colour anywhere. Attention is a strong indigo block with an icon and text. One series per chart, so no second chart colour.
    Nothing moves unless the person acts. Every colour is a hex token. Alpha uses 8-digit hex.
    Font: Figtree variable, self-hosted (SIL OFL 1.1, 20 kB). No network request. */
 
@@ -16,43 +17,46 @@
   color-scheme: light dark;
 
   /* Colour. Light theme. */
-  --bg: #fcf3ef;
-  --surface: #fff9f6;
+  --bg: #eceff0; /* Plaster, the page */
+  --surface: #f6f8f8;
   --raised: #ffffff;
-  --sunken: #f4e6e1;
-  --ink: #231714; /* 15.9:1 on the page */
-  --muted: #574946; /* 8.2:1 on the page */
-  --subtle: #746561; /* 5.3:1 on the page, large text and hints only */
-  --line: #e4d3cf; /* quiet divider, not a control edge */
-  --edge: #91817d; /* control edge, 3.2:1 on the page */
-  --primary: #007e8f;
-  --primary-hover: #006f80;
-  --primary-press: #006171;
-  --on-primary: #fff7f3;
-  --primary-soft: #d8eff2;
-  --accent: #40456a; /* strong neutral accent: pause, emergency and notices */
-  --accent-hover: #33385c;
-  --on-accent: #fff7f3;
-  --accent-soft: #e3e9ff;
-  --accent-ink: #40456a; /* accent as text or icon on a neutral surface */
-  --link: #007284;
-  --focus: #006171; /* 6.3:1 on the page, ring */
-  --disabled-bg: #f1e0dc;
-  --disabled-ink: #6f605c;
-  --scrim: #231714a6;
-  --chart: #006271;
+  --sunken: #dde3e6;
+  --ink: #101c26; /* 14.9:1 on the page */
+  --muted: #42505c; /* 7.2:1 on the page */
+  --subtle: #566570; /* 5.2:1 on the page, large text and hints only */
+  --line: #c9d1d6; /* quiet divider, not a control edge */
+  --edge: #6f7d87; /* control edge, 3.7:1 on the page and 3.3:1 on a sunken surface */
+  --primary: #0872a0;
+  --primary-hover: #06648e;
+  --primary-press: #055577;
+  --on-primary: #ffffff;
+  --primary-soft: #d3e8f2;
+  --accent: #2e3260; /* strong neutral accent: pause, emergency and notices */
+  --accent-hover: #232750;
+  --on-accent: #ffffff;
+  --accent-soft: #e2e5f6;
+  --accent-ink: #2e3260; /* accent as text or icon on a neutral surface */
+  --banner-bg: #2e3260; /* the prototype banner strip. It stays quiet in the dark theme. */
+  --banner-ink: #ffffff;
+  --banner-edge: #2e3260;
+  --link: #075e86;
+  --focus: #054e6e; /* 7.8:1 on the page, ring */
+  --disabled-bg: #dde3e6;
+  --disabled-ink: #566570;
+  --scrim: #0e151ba6;
+  --chart: #0b72a8;
 
-  /* Shadow: two soft layers, tinted with the ink colour. */
-  --shadow-1: 0 1px 2px #23171410, 0 2px 8px #2317140a;
-  --shadow-2: 0 2px 4px #23171410, 0 12px 32px #23171418;
-  --shadow-3: 0 8px 16px #23171414, 0 32px 64px #23171426;
+  /* Shadow: one level for the dialog and one for the sticky bar. Cards have none. */
+  --shadow-1: none;
+  --shadow-2: none;
+  --shadow-3: 0 8px 16px #101c2614, 0 32px 64px #101c2626;
 
-  /* Radius */
-  --r-s: 0.5rem;
-  --r-m: 0.875rem;
-  --r-l: 1.25rem;
-  --r-xl: 1.75rem;
-  --radius: var(--r-m); /* alias: figures.css, pair.css and qr.css use it */
+  /* Radius, four ranks. --radius is an alias for figures.css, pair.css and qr.css. */
+  --r-xs: 0.375rem;
+  --r-s: 0.75rem;
+  --r-m: 1.25rem;
+  --r-full: 999px;
+  --radius: var(--r-s);
 
   /* Type. Fluid steps: 360 px to 1280 px, ratio 1.2 to 1.25 (utopia.fyi scale). */
   --font-text: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -75,37 +79,39 @@
   --s-7: clamp(2rem, 1.5rem + 1.8vw, 3rem);
   --gutter: clamp(1rem, 0.5rem + 2.6vw, 2rem);
   --touch: 3rem; /* 48 px */
+  --row: 3.5rem; /* 56 px: tick rows and the bottom bar */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #191210;
-    --surface: #211a18;
-    --raised: #2b2321;
-    --sunken: #120b0a;
-    --ink: #f3e9e6;
-    --muted: #b8afac;
-    --subtle: #99908d;
-    --line: #39312f;
-    --edge: #786f6d;
-    --primary: #0093a5;
-    --primary-hover: #27a3b5;
-    --primary-press: #3db2c5;
-    --on-primary: #120b0a;
-    --primary-soft: #022c32;
-    --accent: #7178a0;
-    --accent-hover: #8087b0;
-    --on-accent: #120b0a;
-    --accent-soft: #21243c;
-    --accent-ink: #b3bbe6;
-    --link: #1499ab;
-    --focus: #3db2c5;
-    --disabled-bg: #251d1b;
-    --disabled-ink: #9d9390;
-    --scrim: #060302cc;
-    --chart: #5fc1d2;
-    --shadow-1: 0 1px 2px #00000040;
-    --shadow-2: 0 2px 4px #00000040, 0 12px 32px #00000050;
+    --bg: #0e151b;
+    --surface: #151e26;
+    --raised: #1c2731;
+    --sunken: #091016;
+    --ink: #eaf0f3;
+    --muted: #a9b6bf;
+    --subtle: #93a1ab;
+    --line: #2a3742;
+    --edge: #6e7d89;
+    --primary: #4db6e6;
+    --primary-hover: #6ac4ee;
+    --primary-press: #86d0f2;
+    --on-primary: #06141c;
+    --primary-soft: #0b2a3a;
+    --accent: #c3c8f2; /* the attention block is pale on the dark page */
+    --accent-hover: #d3d7f7;
+    --on-accent: #14183a;
+    --accent-soft: #1a1e3c;
+    --accent-ink: #c3c8f2;
+    --banner-bg: #1a1e3c;
+    --banner-ink: #c3c8f2;
+    --banner-edge: #2a3742;
+    --link: #8ccbef;
+    --focus: #8ccbef;
+    --disabled-bg: #1c2731;
+    --disabled-ink: #93a1ab;
+    --scrim: #060a0dcc;
+    --chart: #3a9ad0;
     --shadow-3: 0 8px 16px #00000050, 0 32px 64px #00000066;
   }
 }
@@ -128,7 +134,9 @@ body {
   color: var(--ink);
   font-family: var(--font-text);
   font-size: var(--step-0);
+  font-weight: 500;
   line-height: 1.5;
+  letter-spacing: 0;
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
 }
@@ -142,21 +150,21 @@ h2,
 h3 {
   margin: 0;
   line-height: 1.15;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 h1 {
   font-size: var(--step-4);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: -0.025em;
 }
 h2 {
   font-size: var(--step-2);
-  font-weight: 700;
+  font-weight: 650;
 }
 h3 {
   font-size: var(--step-1);
-  font-weight: 700;
+  font-weight: 650;
 }
 h1:focus {
   outline: none; /* the heading takes focus on a screen change. It is not a control. */
@@ -183,6 +191,7 @@ a {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.03em;
 }
 .unit {
   font-size: var(--step-1);
@@ -205,7 +214,7 @@ a {
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
-  border-radius: var(--r-s);
+  border-radius: var(--r-xs);
 }
 
 /* ---------- Shell ---------- */
@@ -254,8 +263,9 @@ main {
 
 /* Banners: fixed text on every screen. A slim strip, neutral accent, with an icon. */
 .banners {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--banner-bg);
+  color: var(--banner-ink);
+  border-bottom: 1px solid var(--banner-edge);
 }
 .banners-inner {
   max-width: 72rem;
@@ -308,7 +318,7 @@ main {
 .card {
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   padding: var(--s-5);
   box-shadow: var(--shadow-1);
 }
@@ -452,7 +462,7 @@ main {
   color: var(--ink);
   background: var(--raised);
   border: 1.5px solid var(--edge);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   cursor: pointer;
   text-decoration: none;
   transition:
@@ -491,7 +501,7 @@ main {
   min-height: 56px;
   padding-inline: 1.75rem;
   font-size: var(--step-1);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .btn-block {
   width: 100%;
@@ -558,7 +568,7 @@ main {
   align-items: flex-start;
   padding: var(--s-4) var(--s-5);
   border: 1.5px solid var(--accent);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--accent-soft);
   color: var(--ink);
 }
@@ -602,7 +612,7 @@ select {
   color: var(--ink);
   background: var(--raised);
   border: 1.5px solid var(--edge);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
 }
 
 /* File picker as a drop area */
@@ -615,7 +625,7 @@ select {
   text-align: center;
   background: var(--surface);
   border: 2px dashed var(--edge);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .dropzone .drop-icon {
   display: grid;
@@ -644,7 +654,7 @@ input[type='file']::file-selector-button {
   color: var(--on-primary);
   background: var(--primary);
   border: 0;
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   cursor: pointer;
 }
 
@@ -653,7 +663,7 @@ input[type='file']::file-selector-button {
   margin: 0;
   padding: var(--s-4) var(--s-5) var(--s-3);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--raised);
   box-shadow: var(--shadow-1);
   min-inline-size: 0;
@@ -689,7 +699,7 @@ input[type='file']::file-selector-button {
   min-height: 3.5rem;
   padding: var(--s-2) var(--s-3);
   margin-inline: calc(var(--s-3) * -1);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -751,7 +761,7 @@ input[type='file']::file-selector-button {
   padding: var(--s-3) var(--s-4);
   background: var(--surface);
   border: 1.5px solid var(--line);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   font-weight: 650;
   cursor: pointer;
 }
@@ -800,7 +810,7 @@ input[type='file']::file-selector-button {
   min-width: 48px;
   background: var(--surface);
   border: 1.5px solid var(--line);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   font-size: var(--step-1);
   font-weight: 700;
   cursor: pointer;
@@ -843,7 +853,7 @@ input[type='file']::file-selector-button {
   padding: var(--s-4);
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-1);
 }
 .exercise-icon {
@@ -851,7 +861,7 @@ input[type='file']::file-selector-button {
   place-items: center;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--primary-soft);
   color: var(--primary-press);
 }
@@ -895,7 +905,7 @@ input[type='file']::file-selector-button {
   height: 4.5rem;
   background: var(--primary);
   color: var(--on-primary);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .exercise-featured .exercise-name {
   font-size: var(--step-3);
@@ -958,7 +968,7 @@ input[type='file']::file-selector-button {
   overflow: hidden;
   background: var(--sunken);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-2);
 }
 .preview {
@@ -1119,7 +1129,7 @@ input[type='file']::file-selector-button {
   padding: var(--s-4);
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .guide-note dt {
   display: flex;
@@ -1143,7 +1153,7 @@ input[type='file']::file-selector-button {
   height: auto;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .fig-floor {
   stroke: var(--edge);
@@ -1324,7 +1334,7 @@ input[type='file']::file-selector-button {
   align-items: center;
   gap: var(--s-3);
   padding: var(--s-4) var(--s-5);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--accent);
   color: var(--on-accent);
 }
@@ -1365,7 +1375,7 @@ input[type='file']::file-selector-button {
 .session-bar .btn {
   min-height: 4.5rem;
   font-size: var(--step-1);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .btn-stop {
   background: var(--ink);
@@ -1397,7 +1407,7 @@ input[type='file']::file-selector-button {
 .skeleton > span {
   display: block;
   height: 5rem;
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--sunken);
 }
 .skeleton > span:first-child {
@@ -1415,7 +1425,7 @@ input[type='file']::file-selector-button {
   text-align: center;
   background: var(--surface);
   border: 2px dashed var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-m);
 }
 .empty svg {
   color: var(--subtle);
@@ -1435,7 +1445,7 @@ input[type='file']::file-selector-button {
   padding: var(--s-4) var(--s-5);
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-1);
 }
 .stat dt {
@@ -1480,7 +1490,7 @@ input[type='file']::file-selector-button {
   padding: var(--s-4) var(--s-5);
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .point-icon {
   flex: none;
@@ -1488,7 +1498,7 @@ input[type='file']::file-selector-button {
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--primary-soft);
   color: var(--primary-press);
 }
@@ -1555,7 +1565,7 @@ input[type='file']::file-selector-button {
   list-style: none;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
 }
 
 /* ===== Setup, wave 2a. Appended block. The figure sizes and the camera guide card. ===== */
@@ -1663,7 +1673,7 @@ input[type='file']::file-selector-button {
 .limit-field {
   padding: var(--s-2) var(--s-4) var(--s-3);
   background: var(--primary-soft);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
 }
 .text-input {
   min-height: var(--touch);
@@ -1674,7 +1684,7 @@ input[type='file']::file-selector-button {
   color: var(--ink);
   background: var(--raised);
   border: 1.5px solid var(--edge);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
 }
 .text-input:focus-visible {
   outline: 3px solid var(--focus);
@@ -1695,7 +1705,7 @@ input[type='file']::file-selector-button {
   padding: 0;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   box-shadow: var(--shadow-1);
 }
 .answer-row {
@@ -1908,7 +1918,7 @@ main h3 {
   height: 0.75rem;
   appearance: none;
   border: 1px solid var(--edge);
-  border-radius: var(--r-s);
+  border-radius: var(--r-xs);
   background: var(--sunken);
   overflow: hidden;
 }
@@ -1998,7 +2008,7 @@ main h3 {
   bottom: var(--s-3);
   max-width: none;
   padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--ink);
   color: var(--bg);
   font-size: var(--step-m1);
@@ -2024,7 +2034,7 @@ main h3 {
   height: 0.5rem;
   appearance: none;
   border: 0;
-  border-radius: var(--r-s);
+  border-radius: var(--r-xs);
   background: var(--sunken);
   overflow: hidden;
 }
@@ -2074,7 +2084,7 @@ main h3 {
   height: 0.75rem;
   appearance: none;
   border: 1px solid var(--edge);
-  border-radius: var(--r-s);
+  border-radius: var(--r-xs);
   background: var(--sunken);
   overflow: hidden;
 }
@@ -2255,7 +2265,7 @@ main h3 {
   display: grid;
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
   background: var(--ink);
   color: var(--bg);
 }
