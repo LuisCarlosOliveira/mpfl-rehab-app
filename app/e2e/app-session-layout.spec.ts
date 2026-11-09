@@ -1,5 +1,6 @@
 // R3-02 and R3-03: the buttons that the person needs sit in the first view of the Session, with real geometry.
 // "First view" means: the top of the page, no scroll, and above the top of the fixed bar.
+// V2: the status slot under the camera, the ruler and the angle caption must also be inside the viewport (D1 passed the old checks).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, expectScreen, startCamera } from "./helpers/app";
@@ -74,8 +75,90 @@ for (const size of SIZES) {
           `${k} must end above the bar (gap in px: ${JSON.stringify(room)})`,
         ).toBeGreaterThanOrEqual(0);
     });
+
+    test("V2: the status slot is under the camera, not on it, and ends above the bar and inside the viewport", async ({
+      page,
+    }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.locator(".status-slot")).toBeVisible({
+        timeout: 40_000,
+      });
+      const bar = await box(page, "bar", page.locator(".session-bar"));
+      const video = await box(page, "video", page.locator("video.preview"));
+      const slot = await box(page, "slot", page.locator(".status-slot"));
+      const caption = await box(
+        page,
+        "caption",
+        page.locator(".readout-caption"),
+      );
+      expect(slot.y, "the slot starts under the camera").toBeGreaterThanOrEqual(
+        video.y + video.height - 1,
+      );
+      expect(slot.y + slot.height, "the slot ends above the bar").toBeLessThanOrEqual(bar.y);
+      expect(slot.y + slot.height, "the slot is inside the viewport").toBeLessThanOrEqual(
+        size.height,
+      );
+      expect(caption.x, "the angle caption starts inside the viewport").toBeGreaterThanOrEqual(0);
+      expect(caption.x + caption.width, "the angle caption ends inside the viewport").toBeLessThanOrEqual(size.width);
+      expect(caption.y + caption.height, "the angle caption ends above the bar").toBeLessThanOrEqual(bar.y);
+      expect(
+        await page.evaluate(() => {
+          const el = document.querySelector(".readout-caption") as HTMLElement;
+          return el.scrollWidth <= el.clientWidth + 1;
+        }),
+        "the caption is not clipped",
+      ).toBe(true);
+    });
+
+    test("V2: an over-limit alert in the slot is inside the viewport and above the bar", async ({
+      page,
+    }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.locator(".status-slot")).toBeVisible({
+        timeout: 40_000,
+      });
+      // The fake camera sees no leg, so no real alert can show. The text is the real cue text. The geometry is what counts here.
+      await page.evaluate(() => {
+        const alert = document.querySelector(".cue-alert") as HTMLElement;
+        alert.textContent = "Stop at your limit, do not push.";
+      });
+      const alert = await box(page, "alert", page.locator(".cue-alert"));
+      const bar = await box(page, "bar", page.locator(".session-bar"));
+      expect(alert.y + alert.height, "inside the viewport").toBeLessThanOrEqual(size.height);
+      expect(alert.y + alert.height, "above the bar").toBeLessThanOrEqual(bar.y);
+      expect(alert.x + alert.width).toBeLessThanOrEqual(size.width);
+    });
   });
 }
+
+test.describe("V2: the camera is big enough on a short phone", () => {
+  test.use({ viewport: SIZES[1] });
+  test("360 x 640: the camera is 150 px high or more", async ({ page }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({
+      timeout: 40_000,
+    });
+    const video = await box(page, "video", page.locator("video.preview"));
+    expect(video.height).toBeGreaterThanOrEqual(150);
+  });
+});
+
+test.describe("V2: the ruler at 390 x 844", () => {
+  test.use({ viewport: SIZES[0] });
+  test("the whole ruler is inside the viewport, above the bar", async ({
+    page,
+  }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({
+      timeout: 40_000,
+    });
+    const bar = await box(page, "bar", page.locator(".session-bar"));
+    const ruler = await box(page, "ruler", page.locator(".readout-gauge"));
+    expect(ruler.y).toBeGreaterThanOrEqual(0);
+    expect(ruler.y + ruler.height, "the ruler ends above the bar").toBeLessThanOrEqual(bar.y);
+    expect(ruler.y + ruler.height).toBeLessThanOrEqual(844);
+  });
+});
 
 // R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {

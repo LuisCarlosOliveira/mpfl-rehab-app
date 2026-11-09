@@ -159,7 +159,7 @@ describe('Setup, camera step', () => {
     const { container } = setup();
     toCamera();
     expect(container.querySelector('.frame video')).not.toBeNull();
-    expect(screen.getByText(/your camera view shows here/i)).toBeInTheDocument();
+    expect(screen.getByText('Camera is off')).toBeInTheDocument(); // the step card of V2 (A3)
     expect(screen.getAllByRole('img')).toHaveLength(1);
     expect(screen.getByRole('img')).toHaveAccessibleName(/2 to 2\.5 m/);
   });

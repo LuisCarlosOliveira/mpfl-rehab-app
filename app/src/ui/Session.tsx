@@ -20,6 +20,9 @@
 // of the current hold as a plain timer (U6). A status line names the camera start step (U10). Notices that need
 // attention sit above the camera, so the fixed bar never covers them (L3-06). A hidden tab ends the camera: the screen says so
 // and the person restarts it with a press (L3-07).
+// V2 (docs/ui-redesign-v2-spec.md): the camera and a status slot under it come first (A1). The slot holds the alert, the capture
+// line, the start step and the cue, so nothing sits on the picture and nothing hides under the fixed bar. The slot keeps its height.
+// A camera problem shows in the frame (A6). The unit sits on the baseline of the number (A2). The styles are in sessionV2.css.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
 import { createCueGate, cueFor, stillOverLimit, topAngleNote, topAngleText, type CueEvent } from '../lib/cues';
@@ -42,7 +45,9 @@ import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
-import { CAPTURE_TEXT, LEG_TEXT, otherLeg } from './setupView';
+import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
+import { StatusLine } from './StatusLine';
+import './sessionV2.css';
 
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
 const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
@@ -134,6 +139,7 @@ const START_TEXT = {
   starting: 'Asking for the camera and loading the pose model.',
   ready: 'Ready. Step into the view.',
 } as const;
+const NO_IMAGE_TEXT = 'No camera image for 2 seconds. Check that the camera is on.';
 const BACKGROUND_TEXT = 'The camera stopped when this page went to the background. Press the button to start it again.';
 
 interface Props {
@@ -475,6 +481,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const captureOn = needsCapture && found === null; // the app looks for the starting angle
   const startText = view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
   const cameraTrouble = view.stale || cameraError !== null || backgrounded;
+  const trouble = firstSentence(cameraError ?? (backgrounded ? BACKGROUND_TEXT : NO_IMAGE_TEXT));
 
   // The gauge shows the live angle on a track from 0 to the scale end. The limit is a quiet marker, not a target to reach.
   const limit = exercise.maxFlexion;
@@ -484,7 +491,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const ticks = Number.isFinite(scaleEnd) ? Array.from({ length: Math.min(Math.floor(scaleEnd / 5), 60) + 1 }, (_, i) => i * 5) : [];
 
   return (
-    <section aria-labelledby="session-title" className="session">
+    <section aria-labelledby="session-title" className="session v2-session">
       <header className="page-head session-head">
         <h1 id="session-title" tabIndex={-1} ref={titleRef}>
           {EXERCISE_NAMES[exercise.kind]}
@@ -514,20 +521,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         </Notice>
       ) : (
         <>
-          {/* Notices that need attention come before the camera, so the fixed bar never covers them (L3-06). */}
-          {(cameraTrouble || second?.status === 'failed' || second?.status === 'closed') && (
+          {/* Notices of the second camera come before the camera, so the fixed bar never covers them (L3-06). A camera problem shows in the frame (A6). */}
+          {(second?.status === 'failed' || second?.status === 'closed') && (
             <div className="stack-s session-notices">
-              {cameraTrouble && (
-                <Notice role="alert" icon="triangle-alert">
-                  <p>{cameraError ?? (backgrounded ? BACKGROUND_TEXT : 'No camera image for 2 seconds. Check that the camera is on.')}</p>
-                  <div className="actions">
-                    <button type="button" className="btn" onClick={retryCamera}>
-                      <Icon name="refresh-cw" size={18} />
-                      Try the camera again
-                    </button>
-                  </div>
-                </Notice>
-              )}
               {second?.status === 'failed' && second.message && (
                 <Notice role="status" icon="info">
                   <p>{second.message}</p>
@@ -541,6 +537,61 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
             </div>
           )}
           <div className={paused ? 'session-grid session-paused' : 'session-grid'}>
+            <div className="viewfinder">
+              <div className="frame">
+                <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
+                <BodyMap ref={map} leg={side} mirrored={PREVIEW_MIRRORED} />
+                <BodyMapSwitch />
+                {cameraTrouble && (
+                  <Notice role="alert" icon="video-off" title={trouble.title}>
+                    {trouble.rest !== '' && <p> {trouble.rest}</p>}
+                    <div className="actions">
+                      <button type="button" className="btn" onClick={retryCamera}>
+                        <Icon name="refresh-cw" size={18} />
+                        Try the camera again
+                      </button>
+                    </div>
+                  </Notice>
+                )}
+              </div>
+              {/* The status slot: right under the camera, never on it. Its height is reserved, so nothing moves when it fills (spec section 5).
+                  Priority: the alert, then the capture line, then the start step, then the cue. The CSS shows the first one. */}
+              <div className="status-slot">
+                <p role="alert" className="cue cue-alert">
+                  {view.alert}
+                </p>
+                {captureOn && view.capture && (
+                  <div className="capture-status">
+                    <StatusLine
+                      icon="activity"
+                      text={
+                        view.capture.tooBent
+                          ? CAPTURE_TEXT.bentShort
+                          : view.capture.phase === 'choose'
+                            ? view.capture.canUseLowest
+                              ? CAPTURE_TEXT.chooseShort
+                              : CAPTURE_TEXT.lowestNeedsLeg
+                            : CAPTURE_TEXT.hold
+                      }
+                    />
+                    {/* The progress shows while the app waits for a still leg. When the person must choose, the button is the next step. */}
+                    {view.capture.phase !== 'choose' && !view.capture.tooBent && (
+                      <progress className="capture-progress" max={100} value={view.capture.progress} aria-label={CAPTURE_TEXT.progress} />
+                    )}
+                  </div>
+                )}
+                <StatusLine icon="camera" text={startText} className="session-start" />
+                <p role="status" aria-live="polite" className="cue">
+                  {view.cue}
+                </p>
+                {/* R3-02: the button sits in the slot, right under the camera and before the numbers, so it stays in the first view. */}
+                {captureOn && view.capture?.phase === 'choose' && (
+                  <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
+                    {CAPTURE_TEXT.lowestButton}
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="stack">
               {paused && (
                 <div className={resting ? 'stack-s rest-panel' : 'stack-s'}>
@@ -575,12 +626,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 </div>
               )}
 
-              {/* R3-02: the button sits right under the camera, before the numbers, so it stays in the first view with the camera, the count and the angle. */}
-              {captureOn && view.capture?.phase === 'choose' && (
-                <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
-                  {CAPTURE_TEXT.lowestButton}
-                </button>
-              )}
               {!resting && (
                 <div className="card counters">
                   {(label !== null || repsText !== null) && (
@@ -590,11 +635,10 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     </div>
                   )}
                   <div className="readout">
-                    <p className="readout-label">Angle</p>
+                    <p className="readout-label">Knee bend</p>
                     <p className="readout-line">
                       <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree')}</span>
                     </p>
-                    <p className="detail">Knee bend: {ANGLE_LABEL}</p>
                   </div>
                   <div className="readout readout-reps">
                     <p className="readout-label">{isHold ? 'Holds' : 'Reps'}</p>
@@ -602,21 +646,28 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       <span className="num readout-number">{sets.repsInSet}</span>{' '}
                       <span className="unit">{plural(sets.repsInSet, isHold ? 'hold' : 'rep')}</span>
                     </p>
-                    {holdTotal !== null && (
-                      <div className="hold-meter">
-                        <p className="hold-text">
-                          <span className="num">{view.holdSec}</span> of <span className="num">{holdTotal}</span> {plural(holdTotal, 'second')}
-                        </p>
-                        <progress className="hold-bar" max={holdTotal} value={view.holdSec} aria-hidden="true" />
+                  </div>
+                  {/* The caption of the angle spans the row under both numbers, so it wraps in two lines on a phone (A2, A8). */}
+                  <p className="detail readout-caption">Knee bend: {ANGLE_LABEL}</p>
+                  {/* Notes of the count (the hold timer, the leg raise texts) take the full row, so the two numbers keep their width. */}
+                  {(holdTotal !== null || exercise.kind === 'straight-leg-raise') && (
+                    <div className="readout-notes">
+                      {holdTotal !== null && (
+                        <div className="hold-meter">
+                          <p className="hold-text">
+                            <span className="num">{view.holdSec}</span> of <span className="num">{holdTotal}</span> {plural(holdTotal, 'second')}
+                          </p>
+                          <progress className="hold-bar" max={holdTotal} value={view.holdSec} aria-hidden="true" />
                       </div>
                     )}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
                     {exercise.kind === 'straight-leg-raise' && view.topNote && <p className="detail">{view.topNote}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
-                  </div>
+                    </div>
+                  )}
                   {limit !== undefined && (
                     <div className="readout-gauge">
-                      <svg className="gauge" viewBox="0 0 100 16" aria-hidden="true" focusable="false">
+                      <svg className="gauge" viewBox="0 0 100 16" preserveAspectRatio="none" aria-hidden="true" focusable="false">
                         <line className="gauge-base" x1="3" x2="97" y1="13" y2="13" />
                         {ticks.map((deg) => (
                           <line key={deg} className={deg % 10 === 0 ? 'gauge-tick gauge-tick-long' : 'gauge-tick'} x1={at(deg)} x2={at(deg)} y1="13" y2={deg % 10 === 0 ? 7 : 9.5} />
@@ -660,58 +711,29 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   <p>{LEG_TEXT.identity}</p>
                 </Notice>
               )}
-
-              <div className="cue-area">
-                <p role="status" aria-live="polite" className="cue">
-                  {view.cue}
-                </p>
-                <p role="alert" className="cue cue-alert">
-                  {view.alert}
-                </p>
-              </div>
             </div>
 
-            <div className="frame">
-              <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
-              <BodyMap ref={map} leg={side} mirrored={PREVIEW_MIRRORED} />
-              <BodyMapSwitch />
-              {/* R2-04: while the app looks for the starting angle, one line and the progress sit on the picture. They take no room. */}
-              {captureOn && view.capture && (
-                <div className="capture-line">
-                  <p role="status">
-                    {view.capture.tooBent
-                      ? CAPTURE_TEXT.bentShort
-                      : view.capture.phase === 'choose'
-                        ? view.capture.canUseLowest
-                          ? CAPTURE_TEXT.chooseShort
-                          : CAPTURE_TEXT.lowestNeedsLeg
-                        : CAPTURE_TEXT.hold}
-                  </p>
-                  <progress className="capture-progress" max={100} value={view.capture.progress} aria-label={CAPTURE_TEXT.progress} />
-                </div>
-              )}
-              <p role="status" className="session-start">
-                {startText}
-              </p>
-            </div>
           </div>
         </>
       )}
 
       <div className="session-bar">
         <div className="session-bar-inner">
-          <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
-            <Icon name="square" size={22} fill="currentColor" />
-            Stop
-          </button>
-          {needsHandCount && (
-            <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
-              Count this rep
+          <div className="bar-actions">
+            <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
+              <Icon name="square" size={22} fill="currentColor" />
+              Stop
             </button>
-          )}
-          <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
-            Knee gave way or hurts
-          </button>
+            {needsHandCount && (
+              <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
+                Count this rep
+              </button>
+            )}
+            <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
+              <Icon name="triangle-alert" size={22} />
+              Knee gave way or hurts
+            </button>
+          </div>
         </div>
       </div>
     </section>

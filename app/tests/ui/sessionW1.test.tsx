@@ -99,10 +99,10 @@ describe('U3: the camera is first on a phone, the angle is left of the count', (
     expect(w1Rules).toMatch(/\.session-grid \.preview\s*\{[^}]*max-height:\s*min\(42svh,/);
   });
 
-  it('labels each number: Angle with the estimate text under it, and Reps', () => {
+  it('labels each number: Knee bend with the estimate text under it, and Reps (A2)', () => {
     setup();
     const labels = [...document.querySelectorAll('.readout-label')].map((n) => n.textContent);
-    expect(labels).toEqual(['Angle', 'Reps']);
+    expect(labels).toEqual(['Knee bend', 'Reps']);
     expect(screen.getByText(/estimated angle, not a medical measurement/)).toBeInTheDocument();
   });
 });

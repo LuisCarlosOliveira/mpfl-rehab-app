@@ -10,6 +10,7 @@
 // T17: the person first says which leg will exercise and which side of them the camera is on. The protocol side is
 // preselected. The answers last for this session only. They never change the protocol or the active phase.
 // The camera guide drawing shows the side view. After a phone is connected it also shows the front view.
+// V2: the frame holds a step card before the camera runs, a status chip while it runs (A4), the joint labels (A3) and a camera error (A6).
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { countsReps, doneLying } from '../lib/exercises';
@@ -25,7 +26,10 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAPTURE_TEXT, LEG_TEXT, MODEL_BYTES, countdownSeconds, orderedRuleRows, startText } from './setupView';
+import { CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, chipFor, countdownSeconds, firstSentence, orderedRuleRows, startText } from './setupView';
+import { SetupStateCard } from './SetupStateCard';
+import { StatusLine } from './StatusLine';
+import './sessionV2.css';
 import type { Sound } from './sound';
 
 type Camera = { kind: 'idle' } | { kind: 'starting'; progress: StartProgress; slow: boolean } | { kind: 'running' } | { kind: 'error'; message: string };
@@ -173,6 +177,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const cameraViews = connected ? SIDE_AND_FRONT : SIDE_ONLY;
 
   const running = camera.kind === 'running';
+  const chip = chipFor(live?.rule ?? 'no-pose');
+  const fixLine = firstSentence(camera.kind === 'error' ? camera.message : '');
   const needsReturnValue = countsReps(kind) && returnWithinDeg === undefined;
   const chooseLeg = (value: Side) => {
     setLeg(value);
@@ -238,7 +244,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   }
 
   return (
-    <section aria-labelledby="setup-title">
+    <section aria-labelledby="setup-title" className="v2-setup">
       <header className="page-head">
         <div className="stack-s">
           <h1 id="setup-title" tabIndex={-1}>
@@ -277,20 +283,40 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       ) : (
         <div className="setup-grid">
           <div className="stack">
+            {/* The live region carries only the text that the setup check announces. It changes at most every 3 seconds. */}
+            <p role="status" aria-live="polite" className="visually-hidden">
+              {live?.announced}
+            </p>
+
             <div className="frame">
               <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
-              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} />}
-              {!running && (
-                <div className="frame-empty">
-                  <Icon name="camera" size={44} />
-                  <p>Your camera view shows here.</p>
-                </div>
+              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
+              {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
+              {camera.kind === 'idle' && <SetupStateCard icon="camera" line={IDLE_TEXT.line} help={IDLE_TEXT.help} />}
+              {camera.kind === 'starting' && (
+                <SetupStateCard
+                  className="start-status"
+                  role="status"
+                  icon="camera"
+                  line={camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}
+                  help={camera.progress.step === 'model' ? startText.cameraOn : undefined}
+                >
+                  {camera.progress.step === 'model' && camera.progress.loadedBytes > 0 && (
+                    <progress className="load-progress" max={MODEL_BYTES} value={camera.progress.loadedBytes} aria-label={startText.progress} />
+                  )}
+                  {camera.slow && <p className="detail">{startText.slow}</p>}
+                </SetupStateCard>
+              )}
+              {camera.kind === 'error' && (
+                <Notice role="alert" icon="video-off" title={fixLine.title}>
+                  {fixLine.rest !== '' && <p> {fixLine.rest}</p>}
+                </Notice>
               )}
             </div>
             {running && <BodyMapSwitch />}
 
             {running && (
-              <div className="stack-s">
+              <div className="stack-s setup-live">
                 <p data-testid="instruction" className="instruction-large">
                   {live ? live.text : 'Waiting for the camera.'}
                 </p>
@@ -331,35 +357,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               </div>
             )}
 
-            {/* The live region carries only the text that the setup check announces. It changes at most every 3 seconds. */}
-            <p role="status" aria-live="polite" className="visually-hidden">
-              {live?.announced}
-            </p>
-
-            {camera.kind === 'starting' && (
-              <div className="start-status" role="status">
-                <p>{camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}</p>
-                {camera.progress.step === 'model' && (
-                  <>
-                    <p className="detail">{startText.cameraOn}</p>
-                    {camera.progress.loadedBytes > 0 && (
-                      <progress className="load-progress" max={MODEL_BYTES} value={camera.progress.loadedBytes} aria-label={startText.progress} />
-                    )}
-                  </>
-                )}
-                {camera.slow && <p className="detail">{startText.slow}</p>}
-              </div>
-            )}
             {running && (
-              <p className="start-status" role="status">
+              <p className="start-status visually-hidden" role="status">
                 {startText.ready}
               </p>
-            )}
-
-            {camera.kind === 'error' && (
-              <Notice role="alert" icon="triangle-alert">
-                <p>{camera.message}</p>
-              </Notice>
             )}
           </div>
 

@@ -1,0 +1,443 @@
+/* UI redesign v2, package A: Session and the Setup camera (docs/ui-redesign-v2-spec.md, items A1 to A8).
+   Every rule sits under .v2-session or .v2-setup, so it wins over styles.css without !important.
+   The body :has() rule hides the brand bar on Session only (spec section 5, rule 1).
+   Limits: no verdict word, no green or red, an in-range rep shows nothing, 48 px targets, the word swap is opacity (and a 2 px blur). */
+
+.v2-session,
+.v2-setup {
+  --t-swap: 180ms; /* the swap of a status word. No bounce. */
+}
+
+/* Session: the brand bar goes. The title row and the mute button share one 48 px row. */
+body:has(.v2-session) .topbar {
+  display: none;
+}
+body:has(.v2-session) main {
+  padding-top: var(--s-1);
+}
+.v2-session .session-head {
+  margin-block: var(--s-1) var(--s-2);
+}
+
+/* ---------- A4: the status chip. One shape and one word. ---------- */
+.v2-session .status-line,
+.v2-setup .status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  max-width: none;
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 650;
+  line-height: 1.2;
+}
+.v2-session .status-line:empty,
+.v2-setup .status-line:empty {
+  display: none;
+}
+.v2-session .status-line svg,
+.v2-setup .status-line svg {
+  flex: none;
+}
+.v2-session .status-word,
+.v2-setup .status-word {
+  animation: status-swap var(--t-swap) var(--ease-out) both;
+}
+@keyframes status-swap {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes status-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v2-session .status-word,
+  .v2-setup .status-word {
+    animation-name: status-fade;
+  }
+}
+
+/* ---------- A1: the viewfinder. The camera, then the status slot. Nothing sits on the picture. ---------- */
+.v2-session .session-grid {
+  gap: var(--s-3);
+}
+.v2-session .session-grid > .viewfinder {
+  order: -1;
+  /* Full width: the picture runs to the screen edge. */
+  margin-inline: calc(-1 * var(--gutter));
+  min-width: 0;
+}
+.v2-session .session-paused > .viewfinder {
+  order: 1; /* during a rest the panel comes first (R3-03) */
+}
+.v2-session .viewfinder .frame {
+  margin-inline: 0;
+  width: 100%;
+  border-radius: 0;
+}
+/* The camera is at most 300 px and at most 75 percent of the width. On a short phone it takes what is left above the bar:
+   the page without the camera is about 30 rem tall at 360 x 640, so 640 px gives 160 px. It never goes under 9.4 rem (150 px). */
+.v2-session .viewfinder .preview {
+  max-height: max(9.4rem, min(75vw, 300px, 100svh - 30rem));
+}
+
+/* The slot holds its height, so nothing moves when it fills. It shows the first one of: the alert, the capture line, the start step, the cue. */
+.v2-session .status-slot {
+  display: grid;
+  align-content: center;
+  gap: var(--s-2);
+  min-height: 5rem;
+  padding: var(--s-2) var(--gutter);
+}
+.v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert),
+.v2-session .status-slot:has(.capture-status) > .cue {
+  display: none;
+}
+.v2-session .status-slot > .cue {
+  font-size: var(--step-1);
+  line-height: 1.2;
+}
+.v2-session .status-slot > .cue-alert:not(:empty) {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-s);
+}
+.v2-session .status-slot > .cue-alert:not(:empty)::before {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.v2-session .status-slot .session-start {
+  position: static;
+  inset: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--step-0);
+  text-align: start;
+}
+.v2-session .capture-status {
+  display: grid;
+  gap: var(--s-2);
+}
+.v2-session .capture-status .status-line {
+  font-size: var(--step-m1);
+}
+.v2-session .capture-status .capture-progress {
+  max-width: none;
+  height: 0.375rem; /* thin: the text carries the meaning (spec section 8, condition 5) */
+}
+.v2-session .status-slot > .btn {
+  justify-self: stretch;
+}
+
+/* ---------- A2: the numbers row. The unit sits on the baseline of the number. ---------- */
+.v2-session .counters {
+  border-top: 1px solid var(--line);
+}
+.v2-session .counters-head {
+  justify-content: space-between;
+  padding: 0 0 var(--s-1);
+}
+.v2-session .readout-line {
+  flex-wrap: wrap; /* a long number puts its unit on the next line, never over the next cell */
+  align-items: baseline;
+  column-gap: var(--s-2);
+}
+/* The count has one or two digits. The angle has up to three. Each keeps its own width, so the digits and the unit do not move. */
+.v2-session .readout-reps .readout-number {
+  min-width: 2ch;
+}
+.v2-session .readout-number {
+  font-weight: 800;
+  line-height: 1;
+}
+.v2-session .readout .unit {
+  font-size: var(--step-m1);
+  font-weight: 650;
+  color: var(--muted);
+  white-space: nowrap;
+}
+/* The caption of the angle sits under both numbers. */
+.v2-session .readout-caption {
+  grid-column: 1 / -1;
+  max-width: none;
+  padding-bottom: var(--s-1);
+  font-size: var(--step-m1);
+  line-height: 1.3;
+}
+.v2-session .readout-notes {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--s-1);
+  padding-bottom: var(--s-2);
+}
+.v2-session .readout-notes .detail {
+  max-width: none;
+  font-size: var(--step-m1);
+}
+/* The ruler is a thin strip: 2 rem of ticks and one caption line. */
+.v2-session .gauge {
+  height: 1.5rem;
+  margin-top: 0;
+}
+.v2-session .counters > .readout-gauge {
+  padding-block: var(--s-1) var(--s-2);
+}
+.v2-session .gauge-caption {
+  line-height: 1.2;
+}
+@media (max-width: 39.99rem) {
+  .v2-session .counters {
+    grid-template-columns: minmax(0, 1fr) 9rem; /* the count has a fixed column, so a long text never squeezes the angle */
+  }
+  .v2-session .counters > .readout {
+    padding: var(--s-1) 0;
+    gap: 0;
+  }
+  .v2-session .counters > .readout + .readout {
+    padding-left: var(--s-3);
+  }
+}
+@media (max-width: 319px) {
+  .v2-session .counters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .v2-session .readout-line {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------- A5: the recording bar. Stop is a wide dark pill. The other button has an indigo outline and an icon. ---------- */
+.v2-session .bar-actions {
+  display: contents;
+}
+.v2-session .session-bar .btn {
+  border-radius: var(--r-full);
+}
+.v2-session .session-bar .btn-gave-way {
+  padding-inline: var(--s-2);
+  gap: var(--s-1);
+  font-size: var(--step-m1);
+  background: transparent;
+  border: 2px solid var(--accent-ink);
+  color: var(--accent-ink);
+}
+@media (max-height: 41rem) {
+  .v2-session .session-bar .btn {
+    min-height: 3.5rem;
+  }
+}
+
+/* ---------- A6: a camera problem shows in the frame, in one column. ---------- */
+.v2-session .frame > .notice {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--gutter);
+  border: 0;
+  border-radius: 0;
+  background: var(--sunken);
+  text-align: center;
+  overflow: auto;
+}
+.v2-session .frame > .notice > svg {
+  margin: 0;
+}
+.v2-session .frame > .notice .notice-title {
+  font-size: var(--step-1);
+}
+.v2-session .frame > .notice p + p {
+  margin-top: 0;
+}
+.v2-session .frame > .notice .actions {
+  margin-top: var(--s-1);
+}
+
+/* ---------- A7: Session on a laptop. The camera is on the left, the readings are on the right. ---------- */
+@media (min-width: 62rem) {
+  .v2-session .session-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(18rem, 5fr);
+    gap: var(--s-5);
+  }
+  .v2-session .session-grid > .viewfinder,
+  .v2-session .session-paused > .viewfinder {
+    order: 0;
+    grid-column: 1;
+    grid-row: 1;
+    margin-inline: 0;
+  }
+  .v2-session .session-grid > .stack {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .v2-session .viewfinder .frame {
+    border-radius: var(--r-s);
+  }
+  .v2-session .viewfinder .preview {
+    max-height: 62svh;
+  }
+  .v2-session .status-slot {
+    padding-inline: 0;
+  }
+  .v2-session .counters {
+    grid-template-columns: minmax(0, 1fr);
+    border-top: 0;
+  }
+  .v2-session .counters > .readout + .readout {
+    border-left: 0;
+    padding-left: var(--s-5);
+    border-top: 1px solid var(--line);
+  }
+  /* The caption stays right under the angle, before the count. */
+  .v2-session .counters > .readout:not(.readout-reps) {
+    order: 0;
+  }
+  .v2-session .counters > .readout-caption {
+    order: 1;
+    padding-inline: var(--s-5);
+  }
+  .v2-session .counters > .readout-gauge {
+    order: 2;
+  }
+  .v2-session .counters > .readout-notes {
+    order: 4;
+  }
+  .v2-session .counters > .readout-reps {
+    order: 3;
+  }
+  .v2-session .session-bar-inner {
+    grid-template-columns: minmax(0, 7fr) minmax(18rem, 5fr);
+    column-gap: var(--s-5);
+  }
+  .v2-session .bar-actions {
+    display: grid;
+    grid-column: 2;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+  }
+}
+
+/* ---------- A3: the Setup camera. A step card before the start, a chip on the picture, grouped rows under it. ---------- */
+.v2-setup .setup-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--s-2);
+  min-height: 12rem;
+  padding: var(--s-5) var(--s-4);
+  text-align: center;
+}
+.v2-setup .setup-state > svg {
+  box-sizing: content-box;
+  padding: var(--s-3);
+  border-radius: var(--r-full);
+  background: var(--primary-soft);
+  color: var(--primary-press);
+}
+.v2-setup .setup-line {
+  max-width: none;
+  font-size: var(--step-2);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.v2-setup .setup-help {
+  max-width: 24rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.v2-setup .setup-state .load-progress {
+  max-width: 20rem;
+}
+.v2-setup .frame > .notice {
+  min-height: 12rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--sunken);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.v2-setup .frame > .notice > svg {
+  margin: 0;
+}
+.v2-setup .frame > .status-line {
+  position: absolute;
+  inset-inline-start: var(--s-3);
+  bottom: var(--s-3);
+  z-index: 1;
+  max-width: calc(100% - 2 * var(--s-3));
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-full);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--step-m1);
+}
+@media (max-width: 61.99rem) {
+  .v2-setup .setup-grid .frame .preview {
+    max-height: min(75vw, 300px);
+  }
+}
+/* Rows that are not seen come first and take the full width. Rows that are seen are small. */
+.v2-setup .rule-list {
+  gap: var(--s-2);
+}
+.v2-setup .rule-missing {
+  flex: 1 1 100%;
+  min-height: 3rem;
+  padding: var(--s-2) var(--s-4);
+  border: 1.5px solid var(--accent-ink);
+  border-radius: var(--r-s);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: var(--step-0);
+  font-weight: 700;
+}
+.v2-setup .rule-missing .rule-word {
+  margin-inline-start: auto;
+}
+.v2-setup .rule-seen {
+  min-height: 2.25rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+
+/* A3: joint labels on the picture. White lines with a dark halo, like the leg trace. The chip is dark, the text is white. */
+.v2-setup .body-map .bm-leader {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 1px #120b0a);
+}
+.v2-setup .body-map .bm-chip {
+  fill: #120b0ae6;
+  stroke: #ffffff;
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+.v2-setup .body-map .bm-ghost {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.5px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 1px #120b0a);
+}
