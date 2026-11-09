@@ -4,8 +4,8 @@
 // The reference is the mean of goniometer reader A and reader B. The difference is app minus reference.
 // Dependency-free. It is not part of the product bundle.
 import { readFileSync } from 'node:fs';
+import { limitsOfAgreement, mean, sampleSd } from './agreement.mjs';
 
-const Z_95 = 1.96; // usual factor for 95 percent limits of agreement (Bland and Altman)
 const REQUIRED = ['volunteer', 'target_deg', 'goniometer_a_deg', 'goniometer_b_deg', 'app_deg'];
 const ANGLE_COLUMNS = ['target_deg', 'goniometer_a_deg', 'goniometer_b_deg', 'app_deg'];
 // Bands of the reference angle, in degrees. PROPOSAL, a clinician may change them.
@@ -54,12 +54,7 @@ function parseSheet(text) {
   });
 }
 
-const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
-const sd = (v) => {
-  if (v.length < 2) return null;
-  const m = mean(v);
-  return Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / (v.length - 1));
-};
+const sd = (v) => (v.length < 2 ? null : sampleSd(v));
 const r2 = (x) => (x === null ? null : Math.round(x * 100) / 100);
 const abs = (v) => v.map(Math.abs);
 
@@ -79,8 +74,7 @@ function analyze(rows) {
     return { volunteer: r.volunteer, target_deg: r.target_deg, reference_deg: reference, app_deg: r.app_deg, difference: r.app_deg - reference };
   });
   const diffs = points.map((p) => p.difference);
-  const bias = mean(diffs);
-  const spread = sd(diffs);
+  const { bias, sd: spread, lower, upper } = limitsOfAgreement(diffs);
   const readerDiffs = rows.map((r) => r.goniometer_a_deg - r.goniometer_b_deg);
   const bands = Object.fromEntries(
     BANDS.map(([name, lo, hi]) => {
@@ -92,8 +86,8 @@ function analyze(rows) {
     n: points.length,
     bias: r2(bias),
     sd: r2(spread),
-    loaLower: r2(bias - Z_95 * spread),
-    loaUpper: r2(bias + Z_95 * spread),
+    loaLower: r2(lower),
+    loaUpper: r2(upper),
     meanAbsoluteError: r2(mean(abs(diffs))),
     readers: { bias: r2(mean(readerDiffs)), sd: r2(sd(readerDiffs)), meanAbsolute: r2(mean(abs(readerDiffs))) },
     bands,

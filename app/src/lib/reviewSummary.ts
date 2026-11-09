@@ -155,8 +155,9 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
   if (c.measure === 'painMax') {
     // Pain is a self-report. The highest value of the window is the right measure for a pain limit. PROPOSAL.
     const window = phaseSessions.slice(-c.lastSessions);
-    const highest = window.length ? Math.max(...window.map((s) => s.pain)) : null;
-    const enough = window.length >= c.lastSessions;
+    const answered = window.flatMap((s) => (s.pain === undefined ? [] : [s.pain])); // a run with no answer has no pain value
+    const highest = answered.length ? Math.max(...answered) : null;
+    const enough = window.length >= c.lastSessions && highest !== null;
     return {
       ...base, measured: enough ? highest : null, measuredText: enough ? `${highest} (0 to 10)` : 'No value',
       marginDeg: null, marginText: null, marginSource: null,
@@ -188,7 +189,7 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
 function swellingRow(c: Extract<ReviewCriterion, { kind: 'swelling' }>, phaseSessions: SessionRecord[]): ReviewRow {
   const window = phaseSessions.slice(-c.lastSessions);
   const answers = { none: 0, some: 0, more: 0 };
-  for (const s of window) answers[s.swelling] += 1;
+  for (const s of window) if (s.swelling !== undefined) answers[s.swelling] += 1;
   const enough = window.length >= c.lastSessions;
   return {
     kind: 'swelling',
@@ -243,13 +244,13 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
     events: {
       redFlagBlocks: since.reduce((n, s) => n + s.redFlagBlocks, 0),
       gaveWayPresses: since.reduce((n, s) => n + s.gaveWayPresses, 0),
-      painAtPause: since.filter((s) => s.pain >= painThreshold).length,
+      painAtPause: since.filter((s) => s.pain !== undefined && s.pain >= painThreshold).length,
       swellingMore: since.filter((s) => s.swelling === 'more').length,
     },
     rows,
     clinicianChecks: CLINICIAN_CHECKS.map((key) => ({ key, text: CHECK_TEXT[key], evidenceLabel: evidenceOf(key), answer: null })),
     painSwellingTable: phaseSessions.map((s) => ({
-      sessionId: s.id, date: s.date, exercise: EXERCISE_LABEL[s.exercise], painText: `${s.pain} (0 to 10)`, swelling: s.swelling,
+      sessionId: s.id, date: s.date, exercise: EXERCISE_LABEL[s.exercise], painText: s.pain === undefined ? 'Not answered' : `${s.pain} (0 to 10)`, swelling: s.swelling,
     })),
   };
 }

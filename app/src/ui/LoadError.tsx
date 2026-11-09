@@ -1,27 +1,18 @@
-// A screen that cannot load (a lazy chunk that fails, for example offline) must not blank the app (L2-02).
-// LoadError catches the failure and shows a heading, a plain text and two ways on. retryableLazy makes a lazy screen
-// that asks for its chunk again after a failure, because React.lazy keeps a failed import for ever.
-import { Component, Fragment, lazy, useEffect, useRef, type ComponentProps, type ComponentType, type ReactNode } from 'react';
+// A screen that cannot load (a lazy chunk that fails) must not blank the app (L2-02).
+// LoadError catches the failure and shows a heading, a plain text and two ways on. A tab that stays open while the app
+// is rebuilt asks for old chunk names that answer 404, and a new request for them cannot work. So "Try again" reloads
+// the page, which loads the new index and the new chunk names. The data is in IndexedDB. Answers that are not saved are lost.
+import { Component, lazy, useEffect, useRef, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 
-export const LOAD_ERROR_TEXT = 'This screen could not load. Check your connection and try again.';
+export const LOAD_ERROR_TEXT =
+  'This screen could not load. The app may have been updated. Try again reloads the page. Saved sessions stay on this device. Unsaved answers are lost.';
 
-// The screens whose import failed. "Try again" gives each one a new lazy component.
-const failed = new Set<() => void>();
-
-/** Like `lazy`. After a failed import, "Try again" in LoadError makes the next render ask for the chunk again. */
+/** Like `lazy`. The name marks a screen whose chunk can be missing. LoadError handles that case. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the props type comes from the screen that the caller loads
 export function retryableLazy<C extends ComponentType<any>>(load: () => Promise<{ default: C }>) {
-  let Inner = lazy(request);
-  function request() {
-    return load().catch((error: unknown) => {
-      failed.add(() => {
-        Inner = lazy(request);
-      });
-      throw error;
-    });
-  }
+  const Inner = lazy(load);
   return function Screen(props: ComponentProps<C>) {
     return <Inner {...props} />;
   };
@@ -61,24 +52,17 @@ interface Props {
   children: ReactNode;
 }
 
-export class LoadError extends Component<Props, { failed: boolean; attempt: number }> {
-  state = { failed: false, attempt: 0 };
+export class LoadError extends Component<Props, { failed: boolean }> {
+  state = { failed: false };
 
   static getDerivedStateFromError() {
     return { failed: true };
   }
 
-  retry() {
-    failed.forEach((reset) => reset());
-    failed.clear();
-    this.setState((s) => ({ failed: false, attempt: s.attempt + 1 }));
-  }
-
   render() {
     if (this.state.failed) {
-      return <Failed onRetry={() => this.retry()} onBack={this.props.onBack} />;
+      return <Failed onRetry={() => window.location.reload()} onBack={this.props.onBack} />;
     }
-    // A new key mounts the children again, so the lazy screen asks for its chunk again.
-    return <Fragment key={this.state.attempt}>{this.props.children}</Fragment>;
+    return this.props.children;
   }
 }

@@ -39,6 +39,14 @@ const JOINT_NAMES = ['Hip', 'Knee', 'Ankle'] as const;
 const LOST_HOLD_MS = 500; // a joint must stay below the gate this long before the map shows it as not seen: no blink
 const H = 1000; // view box height. The width is the aspect times H.
 const DEFAULT_ASPECT = 16 / 9;
+// ENGINEERING, not clinical. Measured on 7 real clips in the real app (docs/live-test/skeleton-validation.md): a point leaves its place for one
+// update and comes back (11 times in 200 s at 6 updates each second, 22 times at 17 updates each second, 3 to 15 percent of the picture width). A point that is further than this fraction of
+// the width from where a steady move would put it waits, up to MAX_HOLD updates. If the later updates agree, it is drawn. If not, it was a spike.
+const SPIKE_FRACTION = 0.02;
+const MAX_HOLD = 2; // ENGINEERING. Some spikes last two updates (a point on the other leg for 170 ms). A real jump, such as a cut, waits at most this many updates.
+// ENGINEERING. A text sits on the inner side of the picture. It changes side only when the point is this far past the middle, so it does not hop.
+const SIDE_BAND = 0.06;
+const POINT_IDS: readonly number[] = [...new Set([...SOFT.flat(), ...LEG_IDS.left, ...LEG_IDS.right])];
 
 const seen = (p: Landmark | undefined): p is Landmark => p !== undefined && (p.visibility ?? 1) >= MIN_VISIBILITY;
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -76,6 +84,8 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const unit = useRef(1 / 0.4); // view box units for one screen pixel. The observer sets the real value.
   const aspect = useRef(DEFAULT_ASPECT);
   const lowSince = useRef<(number | null)[]>([null, null, null]);
+  const track = useRef(new Map<number, { last: Landmark; prev: Landmark; held: number }>());
+  const sides = useRef({ arc: 1, chosen: 1 });
 
   const layout = () => {
     const root = svg.current;
@@ -105,7 +115,8 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   useImperativeHandle(
     ref,
     () => ({
-      update(landmarks, timeMs, aspectNow = DEFAULT_ASPECT) {
+      update(input, timeMs, aspectNow = DEFAULT_ASPECT) {
+        let landmarks = input;
         const e = els.current;
         const root = svg.current;
         if (!root) return;
@@ -131,6 +142,12 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           e[k]?.setAttribute('cx', String(p.x));
           e[k]?.setAttribute('cy', String(p.y));
         };
+        const innerSide = (key: 'arc' | 'chosen', x: number) => {
+          const s = sides.current;
+          if (s[key] === 1 && x > W * (0.5 + SIDE_BAND)) s[key] = -1;
+          else if (s[key] === -1 && x < W * (0.5 - SIDE_BAND)) s[key] = 1;
+          return s[key];
+        };
         const text = (k: string, x: number, y: number, anchor: 'start' | 'end', size = 14) => {
           const el = e[k];
           if (!el) return;
@@ -140,12 +157,39 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           el.setAttribute('font-size', String(r1(size * px)));
         };
 
+        // One spike filter for every point. It writes the steady place and leaves the visibility as it is.
+        const steady = (id: number, p: Landmark): Landmark => {
+          const t = track.current.get(id);
+          if (!seen(p)) {
+            track.current.delete(id);
+            return p;
+          }
+          if (!t) {
+            track.current.set(id, { last: p, prev: p, held: 0 });
+            return p;
+          }
+          const from = (a: Landmark, b: Landmark) => Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
+          const expected = { x: 2 * t.last.x - t.prev.x, y: 2 * t.last.y - t.prev.y };
+          const spike = Math.min(from(p, expected), from(p, t.last)) > SPIKE_FRACTION * W;
+          if (spike && t.held < MAX_HOLD) {
+            t.held += 1;
+            return t.last;
+          }
+          t.held = 0;
+          t.prev = t.last;
+          t.last = p;
+          return p;
+        };
+
         if (!landmarks || landmarks.length < 33) {
           // Hide the groups only. The lines inside a bone group keep no display value of their own.
           Object.keys(e).forEach((k) => !/-[hc]$/.test(k) && e[k]!.setAttribute('display', 'none'));
           lowSince.current = [null, null, null];
+          track.current.clear();
           return;
         }
+        landmarks = landmarks.slice();
+        for (const id of POINT_IDS) landmarks[id] = steady(id, landmarks[id]!);
 
         for (const [a, b] of SOFT) show(`soft-${a}-${b}`, seen(landmarks[a]) && seen(landmarks[b]));
         for (const [a, b] of SOFT) if (seen(landmarks[a]) && seen(landmarks[b])) line(`soft-${a}-${b}`, landmarks[a]!, landmarks[b]!);
@@ -188,15 +232,10 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           text(`lost-${j}`, 14 * px, (26 + 22 * row++) * px, 'start');
         }
 
-        // The label of the chosen leg, at the middle of the thigh.
+        // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
         const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
         const thighOn = !lost[0] && !lost[1];
         show('chosen-label', thighOn);
-        if (thighOn) {
-          const m = at({ x: (hip.x + knee.x) / 2, y: (hip.y + knee.y) / 2 });
-          const inward = m.x < W / 2 ? 1 : -1;
-          text('chosen-label', m.x + inward * 16 * px, m.y, inward === 1 ? 'start' : 'end');
-        }
 
         // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
         const angle = kneeAngle(hip, knee, ankle, aspect.current);
@@ -214,10 +253,28 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           const d = `M ${r1(k.x + r * Math.cos(thigh))} ${r1(k.y + r * Math.sin(thigh))} A ${r1(r)} ${r1(r)} 0 0 ${delta > 0 ? 1 : 0} ${r1(k.x + r * Math.cos(shank))} ${r1(k.y + r * Math.sin(shank))}`;
           e['arc-core']!.setAttribute('d', d);
           e['arc-halo']!.setAttribute('d', d);
-          const mid = thigh + delta / 2;
-          const inward = k.x < W / 2 ? 1 : -1;
-          text('arc-text', k.x + inward * (r + 10 * px) * Math.max(0.2, Math.abs(Math.cos(mid))) + inward * 8 * px, k.y + (r + 4 * px) * Math.sin(mid), inward === 1 ? 'start' : 'end');
+          const inward = innerSide('arc', k.x);
+          text('arc-text', k.x + inward * (r + 12 * px), k.y + 4 * px, inward === 1 ? 'start' : 'end');
           e['arc-text']!.textContent = `${Math.round(bend)}° estimated angle`;
+        }
+
+        if (thighOn) {
+          const m = at({ x: (hip.x + knee.x) / 2, y: (hip.y + knee.y) / 2 });
+          const inward = innerSide('chosen', m.x);
+          const size = 14 * px;
+          const box = (el: SVGElement) => {
+            const w = (el.textContent ?? '').length * 0.6 * size; // a letter is about 0.6 of the font size wide
+            const x = Number(el.getAttribute('x'));
+            const left = el.getAttribute('text-anchor') === 'end' ? x - w : x;
+            return { left, right: left + w, top: Number(el.getAttribute('y')) - size, bottom: Number(el.getAttribute('y')) };
+          };
+          text('chosen-label', m.x + inward * 16 * px, m.y - 20 * px, inward === 1 ? 'start' : 'end');
+          if (arcOn) {
+            const a = box(e['chosen-label']!);
+            const b = box(e['arc-text']!);
+            // The two texts must not lie on each other. The leg label moves above the angle text.
+            if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) e['chosen-label']!.setAttribute('y', String(r1(b.top - 4 * px)));
+          }
         }
       },
     }),

@@ -13,8 +13,8 @@ Date: 2026-11-09. These results come from the tree of the commit that holds this
 | `bash scripts/claims-check.sh src` | Exit 0. No line matches the banned words, praise words, frame APIs, canvas code or inline colours. It is a pattern match. It cannot prove that no other banned text exists. |
 | `bash scripts/phase-check.sh src` | Exit 0. No line of the source matches the patterns of the script. The check is a pattern match. Runtime tests and `tests/importGraph.test.ts` cover the real save path. |
 | `npm audit --omit=dev` | Exit 0. 0 vulnerabilities in the runtime dependencies. |
-| `npm run build` then `npm run e2e` | Exit 0. This command has 159 tests across all its projects: 135 in the `app` project (Chromium with a fake webcam, the real built app), 14 in WebKit and 10 in older harness projects. The WebKit tests are part of the 154. CORRECTED 2026-11-09 (the final audit counted with `npx playwright test --list`). The older text said "154 browser tests passed in the `app` project", which was wrong. |
-| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). These 14 tests are already inside the 159 of `npm run e2e`. |
+| `npm run build` then `npm run e2e` | Exit 0. This command has 162 tests across all its projects: 138 in the `app` project (Chromium with a fake webcam, the real built app), 14 in WebKit and 10 in older harness projects. The WebKit tests are part of the 154. CORRECTED 2026-11-09 (the final audit counted with `npx playwright test --list`). The older text said "154 browser tests passed in the `app` project", which was wrong. |
+| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). These 14 tests are already inside the 162 of `npm run e2e`. |
 | `PAIR_PORT=4196 npm run e2e:pairing` | Exit 0 in 3 runs out of 3. 18 tests passed in each run (two Chromium pages with real WebRTC). |
 
 No preview server and no fake-camera browser was left running after these commands.
@@ -49,3 +49,9 @@ No preview server and no fake-camera browser was left running after these comman
 The figures above come from the run after the fixes of the Opus final audit (the commit that holds this file). The plan, the README and TASKS.md quote the earlier run of commit `903d2c9`: 147 test files and 2,978 tests. The fixes that followed added 105 tests. The browser figures did not change. `npm run e2e` has 154 tests across all its projects: 130 in `app`, 14 in WebKit and 10 in older harness projects. The 18 pairing tests passed three times in a row.
 
 Update after the fixes R3-02 to R3-04: the precheck passed with 148 files and 3,103 tests. `npm run e2e` passed 159 of 159 (5 new tests in `app`). The pairing suite passed 18 of 18 in 2 runs. The text above that says 154 describes the earlier run.
+
+This update follows four changes. They are the leg raise counter, the body map in the Session, the automatic save of every run and the reload of a failed screen. The unit run had 155 test files and 3,179 tests passed.
+
+That run used a 90 second timeout on the command line. Another project loaded the machine with CPU burners (load average 35).
+
+The full browser run had one real failure: the 44 px "Hide body map" switch. After the fix, `app-a11y` and `app-session-layout` passed 57 of 57. The full `npm run e2e` has 162 tests. It had 161 passed and 1 failed before the fix. The full run was not repeated after the one-line style fix. Pairing passed 18 of 18 in 2 runs.

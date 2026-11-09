@@ -32,8 +32,10 @@ export const sessionSchema = z.strictObject({
   tooFast: counter,
   gaveWayPresses: counter,
   redFlagBlocks: counter,
-  pain: z.number().int().min(0).max(10),
-  swelling: z.enum(['none', 'some', 'more']),
+  // The two answers of the Summary. Both are absent until the person answers: the record is written when the run ends.
+  // Optional, so no version bump. An older file has both.
+  pain: z.number().int().min(0).max(10).optional(),
+  swelling: z.enum(['none', 'some', 'more']).optional(),
   protocolId: protocolIdSchema,
   phase: z.number().int().min(1).max(10),
   // Set data. All three fields are optional, so a session from an older file still reads (T16).
@@ -112,6 +114,12 @@ export function createDb(name = 'mpfl-rehab'): MpflDb {
 export async function saveSession(db: MpflDb, input: SessionInput): Promise<number> {
   await requestPersistOnce();
   return db.sessions.add({ ...input, schemaVersion: 1 } as SessionRecord);
+}
+
+/** Add the two Summary answers to the record of a run. No other field changes. */
+export async function updateSessionAnswers(db: MpflDb, id: number, answers: Pick<SessionData, 'pain' | 'swelling'>): Promise<void> {
+  const { pain, swelling } = answers;
+  if ((await db.sessions.update(id, { pain, swelling })) === 0) throw new Error(`No session record ${id}.`);
 }
 
 /** The session with the latest date, or undefined when none is stored. */

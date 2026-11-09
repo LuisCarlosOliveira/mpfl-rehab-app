@@ -71,7 +71,8 @@ describe('BodyMap drawing', () => {
     expect(Number(knee.getAttribute('cx'))).toBeCloseTo(lm[25]!.x * ASPECT * 1000, 0);
     expect(Number(knee.getAttribute('cy'))).toBeCloseTo(lm[25]!.y * 1000, 0);
     expect(m.svg().getAttribute('viewBox')).toBe(`0 0 ${Math.round(ASPECT * 10000) / 10} 1000`);
-    m.push(person({ moved: { 25: { x: 0.3, y: 0.6 } } }), 100);
+    // A jump waits two updates (the spike filter). A move that holds is drawn at the third update.
+    for (const t of [100, 200, 300]) m.push(person({ moved: { 25: { x: 0.3, y: 0.6 } } }), t);
     expect(Number(knee.getAttribute('cx'))).toBeCloseTo(0.3 * ASPECT * 1000, 0);
   });
 
@@ -122,6 +123,8 @@ describe('BodyMap drawing', () => {
     expect(bent).toBeGreaterThan(40);
     expect(bent).toBeLessThan(70);
     m.push(person({ flex: 0 }), 100);
+    m.push(person({ flex: 0 }), 200); // the jump of the ankle holds, so the third update draws it
+    m.push(person({ flex: 0 }), 300);
     expect(m.shown('arc-core')).toBe(false);
   });
 

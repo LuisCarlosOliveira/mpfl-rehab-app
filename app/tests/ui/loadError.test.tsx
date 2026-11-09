@@ -1,4 +1,4 @@
-// L2-02: a screen that cannot load shows a heading, a text and two buttons. Retry loads it again.
+// L2-02: a screen that cannot load shows a heading, a text and two buttons. Try again reloads the page.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Suspense, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,7 +10,14 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
-const TEXT = 'This screen could not load. Check your connection and try again.';
+const TEXT = 'This screen could not load. The app may have been updated. Try again reloads the page. Saved sessions stay on this device. Unsaved answers are lost.';
+
+const reload = vi.fn();
+beforeEach(() => {
+  reload.mockClear();
+  vi.stubGlobal('location', { ...window.location, reload });
+});
+afterEach(() => vi.unstubAllGlobals());
 
 function mount(load: () => Promise<{ default: () => ReactElement }>) {
   const Screen = retryableLazy(load);
@@ -37,24 +44,13 @@ describe('LoadError and retryableLazy', () => {
     expect(document.querySelector('[style]')).toBeNull();
   });
 
-  it('loads the screen on Try again when the import works the second time', async () => {
+  it('reloads the page on Try again when the chunk failed, because a new build has new chunk names', async () => {
     let calls = 0;
-    mount(() => (++calls === 1 ? Promise.reject(new Error('offline')) : Promise.resolve({ default: () => <h1>My data</h1> })));
+    mount(() => (++calls, Promise.reject(new Error('Failed to fetch dynamically imported module'))));
     await screen.findByText(TEXT);
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'My data' })).toBeInTheDocument();
-    expect(screen.queryByText(TEXT)).toBeNull();
-    expect(calls).toBe(2);
-  });
-
-  it('stays on the message when the import fails again, and asks again each time', async () => {
-    let calls = 0;
-    mount(() => (++calls, Promise.reject(new Error('offline'))));
-    await screen.findByText(TEXT);
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    await screen.findByText(TEXT);
-    expect(calls).toBe(2);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(calls).toBe(1);
   });
 
   it('calls onBack from Back to Home', async () => {

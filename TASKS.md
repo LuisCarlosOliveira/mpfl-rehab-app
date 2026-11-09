@@ -107,3 +107,21 @@ Report: `docs/live-test/retest3.md`. 16 changes checked in the real build: 14 ve
 - [ ] L2-05 A generated file with a hand-added `approvedOn` loads in the patient build. Stays open (regulatory item).
 - Unproven: the real Redmi A3, a real Wake Lock, speed on a phone, accuracy against a goniometer. The over-limit repeat beep is proven only at a fixture limit of 45.
 
+
+## Fix round: stale chunk and shared maths
+- [x] "Try again" on a screen that did not load reloads the page, because old chunk names answer 404 after a rebuild (`app/src/ui/LoadError.tsx`). Tests: `tests/ui/loadError.test.tsx`, `tests/ui/appLoadError.test.tsx`, new `tests/ui/appChunkReload.test.tsx`. After the reload the app starts at Home and the red-flag check still comes before Setup. A real stale tab in a browser is NOT RUN.
+- [x] `accuracy-analyze.mjs` uses bias, SD and limits of agreement from `agreement.mjs` (`limitsOfAgreement`, `mean`, `sampleSd`). The two scripts keep their own rounding and their own error classes. Their jobs differ. Output numbers are unchanged.
+
+
+## T39: leg raise camera count and body map in Session (2026-11-09)
+- [x] The camera counts the straight leg raise as an estimate. The button "Count this rep" stays as the fallback. Code: `app/src/lib/exercises.ts`, `app/src/ui/Session.tsx`. Tests: `app/tests/legRaiseCounter.test.ts` (8 of 12 failed first), `app/tests/ui/sessionF4a.test.tsx`. Proof and eye counts: `docs/live-test/leg-raise-count.md`. NOT RELIABLE on the oblique clip 08 (0 reps for 2 to 3 lifts).
+- [x] The body map shows in Session for every exercise, with the same switch in the header row. Tests: `app/tests/ui/sessionBodyMap.test.tsx` (8 of 10 failed first).
+- [x] Body map validation loop with the real built app and a clip as fake webcam: `docs/live-test/skeleton-validation.md`. Repairs: a one-update spike filter, texts that do not hop, texts that do not lie on each other. Tests: `app/tests/ui/bodyMapStable.test.tsx`.
+- [ ] A live test with the real camera of the user is PENDING.
+- Note: `bash app/scripts/claims-check.sh src` fails on a line of `app/src/ui/LoadError.tsx` ("can fail" in a comment). This is from another change in the working tree and not from T39.
+
+## T40: every session is saved (2026-11-09)
+- [x] App saves the run when it ends (Stop, Back, knee gave way, last set). Save adds pain and swelling to the same record. Code: `app/src/ui/sessionRecord.ts`, `app/src/ui/App.tsx`, `app/src/ui/Summary.tsx`, `app/src/lib/storage/db.ts`. Tests: `app/tests/sessionPersist.test.ts`, `app/tests/ui/summaryPersist.test.tsx` and `app/tests/ui/appPersist.test.tsx` (4 of 5 failed first), `app/e2e/app-persist.spec.ts` (3 passed, own build, port 4374).
+- [x] Dashboard, review summary, care team view and contact card handle a record with no answer.
+- [ ] Checkpoint at the end of each set. A crash during a run still loses that run.
+- [ ] The full e2e suite and the pairing suite did not run on this change.

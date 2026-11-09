@@ -59,19 +59,27 @@ describe.each([['01'], ['05'], ['06']])('clip %s on the saved landmarks', (clip)
     expect(held).toBeGreaterThan(0); // every one of these clips has a leg that the gate does not see for a while
   });
 
-  it('follows the person: the knee is within 2 percent of the frame of the landmark number in every frame', () => {
+  // The map holds a point for one update when it jumps (a spike filter, BodyMap.tsx). So the knee must be within 2 percent of the
+  // landmark of this frame or of one of the two frames before. A hold never lasts longer than two updates.
+  it('follows the person: the knee is within 2 percent of the landmark number of this frame or one of the two frames before', () => {
     for (const leg of ['left', 'right'] as const) {
       const p = play(clip, leg);
       const id = leg === 'left' ? 25 : 26;
       let checked = 0;
+      let before: ({ x: number; y: number } | null)[] = [];
       p.rows.forEach((row, i) => {
         const f = rowFrame(row, i);
         act(() => p.handle.current!.update(f.landmarks, f.tMs, p.aspect));
-        if (!f.landmarks || !p.shown(`${leg}-j1`)) return;
+        const now = f.landmarks ? f.landmarks[id]! : null;
+        const prev = before;
+        before = [now, prev[0] ?? null];
+        if (!now || !p.shown(`${leg}-j1`)) return;
         const knee = p.q(`${leg}-j1`);
         const W = p.aspect * 1000;
-        expect(Math.abs(Number(knee.getAttribute('cx')) / W - f.landmarks[id]!.x)).toBeLessThan(0.02);
-        expect(Math.abs(Number(knee.getAttribute('cy')) / 1000 - f.landmarks[id]!.y)).toBeLessThan(0.02);
+        const x = Number(knee.getAttribute('cx')) / W;
+        const y = Number(knee.getAttribute('cy')) / 1000;
+        const near = (o: { x: number; y: number }) => Math.abs(x - o.x) < 0.02 && Math.abs(y - o.y) < 0.02;
+        expect(near(now) || prev.some((o) => o !== null && near(o)), `row ${i}`).toBe(true);
         checked++;
       });
       expect(checked).toBeGreaterThan(20);

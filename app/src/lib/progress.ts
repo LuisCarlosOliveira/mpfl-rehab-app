@@ -82,7 +82,7 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
   return {
     peakFlexion: [...byExercise].map(([exercise, points]) => ({ exercise, title: SERIES_TITLE.peakFlexion(exercise), points })),
     repsPerDay: { title: SERIES_TITLE.repsPerDay, points: [...reps].map(([day, count]) => ({ day, reps: count })) },
-    pain: { title: SERIES_TITLE.pain, points: sorted.map((s) => ({ sessionId: s.id, date: s.date, pain: s.pain })) },
+    pain: { title: SERIES_TITLE.pain, points: sorted.flatMap((s) => (s.pain === undefined ? [] : [{ sessionId: s.id, date: s.date, pain: s.pain }])) },
   };
 }
 

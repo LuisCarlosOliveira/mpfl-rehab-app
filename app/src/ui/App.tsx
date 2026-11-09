@@ -5,7 +5,7 @@ import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
 import { selfProgressionOn } from '../lib/protocol/accept';
-import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb, type SessionRecord } from '../lib/storage';
+import { hasSeenPrivacyNotice, loadStoredProtocol, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
@@ -19,6 +19,7 @@ import { LoadProtocol } from './LoadProtocol';
 import { Notice } from './Notice';
 import { Privacy } from './Privacy';
 import { createSound, type Sound } from './sound';
+import { runToSessionInput } from './sessionRecord';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
@@ -270,7 +271,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         }
         break;
       case 'session':
-        if (exercise && protocol) {
+        if (exercise && protocol && store) {
           return (
             <Session
               exercise={exercise}
@@ -282,7 +283,16 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               sound={sound}
               painPauseThreshold={protocol.painPauseThreshold}
               stopRef={stopSession}
-              onEnd={(reason, summary) => dispatch({ type: 'session-end', reason, summary })}
+              onEnd={(reason, summary) => {
+                // The run is saved now, before any question. A closed tab or a crash after this point keeps the run.
+                const run = { reason, summary };
+                const record = saveSession(
+                  db,
+                  runToSessionInput({ run, exercise, protocol, phase: store.activePhase, redFlagBlocks: state.redFlagBlocks, legTracked: state.exerciseLeg ?? undefined, cameraSide: state.cameraSide ?? undefined, now }),
+                );
+                record.catch(() => undefined); // the Summary reads the failure from the same promise
+                dispatch({ type: 'session-end', ...run, record });
+              }}
             />
           );
         }

@@ -17,7 +17,7 @@ export function contactReason(session: SessionData, painPauseThreshold: number |
   const day = session.date.slice(0, 10);
   if (session.gaveWayPresses > 0) return { kind: 'gave-way', text: `On ${day} you pressed "Knee gave way or hurts".` };
 
-  const end = evaluateSession({ pain: session.pain, swelling: 'none', painPauseThreshold });
+  const end = evaluateSession({ pain: session.pain ?? 0, swelling: 'none', painPauseThreshold });
   // An answer between sets counts only against a threshold that the clinician set (design 4.3, L2).
   const between = painPauseThreshold !== undefined && (session.setPain ?? []).some((v) => v !== null && v >= painPauseThreshold);
   if (end.reasons.includes('pain') || between) {

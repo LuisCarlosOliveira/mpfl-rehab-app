@@ -21,6 +21,7 @@ const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your 
 const FRONT_NOT_ENOUGH = 'Not enough front-view data';
 const COUNTED_BY_HAND = 'counted by hand'; // M3: the reps came from the "Count this rep" button, not from the camera
 
+const NOT_ANSWERED = 'Not answered';
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
 /** The text of a file, or the reason that it was not read. The size check runs before the read. */
@@ -218,8 +219,8 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
                   <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNone(s.topFlexion)}</td>
-                  <td className="num-cell">{s.pain}</td>
-                  <td>{SWELLING_TEXT[s.swelling]}</td>
+                  <td className="num-cell">{s.pain === undefined ? NOT_ANSWERED : s.pain}</td>
+                  <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}
                 </tr>
               ))}
@@ -318,7 +319,7 @@ function ReviewSummaryBlock({
             <td>{r.date.slice(0, 16).replace('T', ' ')}</td>
             <td>{r.exercise}</td>
             <td className="num-cell">{r.painText}</td>
-            <td>{SWELLING_TEXT[r.swelling]}</td>
+            <td>{r.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[r.swelling]}</td>
           </tr>
         ))}
       </Table>

@@ -47,7 +47,7 @@ The generator in `src/lib/protocolGen/` is pure and never saves. A plan reaches 
 
 ## Screen flow
 
-Navigation is by state in `app/src/ui/appState.ts`. The app has no URL routes. A request for a screen goes through `resolve()`. A start without a cleared red-flag check goes to the check. A start without a protocol goes to Load protocol. Screens with the note "lazy" load their code when the person opens them. A chunk that does not load shows the screen of `LoadError.tsx` with "Try again" and "Back to Home".
+Navigation is by state in `app/src/ui/appState.ts`. The app has no URL routes. A request for a screen goes through `resolve()`. A start without a cleared red-flag check goes to the check. A start without a protocol goes to Load protocol. Screens with the note "lazy" load their code when the person opens them. A chunk that does not load shows the screen of `LoadError.tsx` with "Try again" and "Back to Home". "Try again" reloads the page, because a tab that stays open after a rebuild asks for old chunk names that answer 404. Saved data stays in IndexedDB. Unsaved answers are lost.
 
 Back handling (commit ab171d3). The hook `ui/useBackButton.ts` keeps one history entry. A press of Back runs `backStep` in `ui/appState.ts`, and the app moves inside itself. `backStep` never returns an `open` action for Setup, Session or the red-flag screen. The Summary stays. A Back press in Session stops the camera. At a root screen, Back can still leave the app (recorded limit, audit 3 L12). Audit 3 read the code and found no path from the history that skips the red-flag check. The live check of round 2 failed before this change and has no re-run.
 
@@ -75,7 +75,7 @@ flowchart TD
   redflag -->|"any yes: blocked"| home
   redflag -->|"all no"| setup["Setup: guide, optional second camera, camera (lazy)"]
   setup --> session["Session: body map, in-place baseline capture (lazy)"]
-  session -->|"Stop or knee gave way"| summary["Summary: pain and swelling (lazy)"]
+  session -->|"Stop, Back, knee gave way: App saves the run"| summary["Summary: pain and swelling update the record (lazy)"]
   summary --> home
   home --> dashboard["Dashboard (lazy)"]
   home --> data["My data (lazy)"]
@@ -134,6 +134,12 @@ Paths are under `app/src`.
 The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` because the pose model can need it. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
 
 Live test 3 ran two Chromium browsers (`docs/live-test/pairing.md`, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
+
+## Saving a session
+
+App writes the record of a run when Session ends it. The ends are Stop, Back of the browser, "Knee gave way or hurts" and the last set. `ui/sessionRecord.ts` builds the record from the run. The record holds numbers only. A run with 0 reps is saved too.
+
+The record has no `pain` and no `swelling` at first. The Summary adds both with `updateSessionAnswers` when the person presses Save. The Summary never makes a second record. If the first write failed, the Summary shows a plain message and Save writes the whole run once. A run that is still going when the tab closes is lost. No checkpoint exists.
 
 ## Privacy boundary
 

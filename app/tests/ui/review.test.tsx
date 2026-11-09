@@ -122,7 +122,7 @@ describe('Summary save', () => {
 
   it('shows the pause message even when the save fails', async () => {
     const db = await toSummary();
-    vi.spyOn(db.sessions, 'add').mockRejectedValueOnce(new Error('disk'));
+    vi.spyOn(db.sessions, 'update').mockRejectedValueOnce(new Error('disk')); // the run was saved at its end, so Save updates
     fireEvent.click(screen.getByRole('radio', { name: '8' }));
     fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
     click('Save');

@@ -131,7 +131,7 @@ This section is a plausibility check of the clip tool. It is not validation. The
 | 07 | mini squat | front, whole body | right | 100 percent | 0 to 55 | 1 | unclear |
 | 08 | straight leg raise | oblique, supine, therapist in frame | right | 94.1 percent | 92 to 134 | none by design | not recorded |
 
-The straight leg raise has no rep counter. The counter kind is `lag`. It reports the estimated angle at the top ([plan FR9](../MPFL_APP_PLAN.md)).
+The straight leg raise has a camera count since 2026-11-09. It counts a lifted leg as an estimate, with the height of the ankle above the hip and not with the knee angle. The counter kind is `lag`. It also reports the estimated angle at the top ([plan FR9](../MPFL_APP_PLAN.md)). The columns "none by design" and "no rep counter" in the tables below are from before this change. The counts on the clips are in [leg-raise-count.md](live-test/leg-raise-count.md). The check did not fire on the oblique clip 08.
 
 ### Root cause of 0 reps in clip 01
 

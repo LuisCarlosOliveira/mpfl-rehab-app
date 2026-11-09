@@ -37,6 +37,7 @@ import type { LandmarkSource } from '../pose/source';
 import type { EndReason, RunSummary } from './appState';
 import type { Sound } from './sound';
 import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_TEXT } from './askSurgeon';
+import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -172,6 +173,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const restRef = useRef<HTMLHeadingElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const map = useRef<BodyMapHandle>(null);
   const live = useRef<Live>({
     otherLegMoves: false,
     flexion: null,
@@ -253,6 +255,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
     // Runs at frame rate. It writes to refs only. It does not set state.
     const onFrame = (landmarks: Parameters<Pipeline['step']>[0], timeMs: number) => {
+      map.current?.update(landmarks, timeMs, source.aspect()); // svg attributes only, no React state, no frame read
       const p = getPipeline();
       if (!p) return;
       const out = p.step(landmarks, timeMs);
@@ -419,7 +422,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     onEnd(reason, result);
   }
 
-  // PROPOSAL, no source: the straight leg raise has no automatic rep event, so the person counts each rep.
+  // PROPOSAL, no source: the camera counts a lifted leg as an estimate (exercises.ts). This button is the fallback for a missed lift.
   // A clinician or the user must confirm this button. It shows only for a counter of kind 'lag'.
   function countByHand() {
     addRep('hand');
@@ -616,7 +619,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       </div>
                     )}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
-                    {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera does not count leg raises. Press Count this rep after each lift.</p>}
+                    {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
                   </div>
                 </div>
               )}
@@ -661,7 +664,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
             </div>
 
             <div className="frame">
-              <video ref={videoRef} className="preview" muted playsInline aria-label="Camera view" />
+              <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
+              <BodyMap ref={map} leg={side} mirrored={PREVIEW_MIRRORED} />
+              <BodyMapSwitch />
               {/* R2-04: while the app looks for the starting angle, one line and the progress sit on the picture. They take no room. */}
               {captureOn && view.capture && (
                 <div className="capture-line">

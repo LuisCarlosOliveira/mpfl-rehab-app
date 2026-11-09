@@ -13,6 +13,7 @@ Rules:
 |---|---|---|
 | `rehab-rules.md` | Rules that the app can encode: phases, ROM, weight-bearing, brace, the four exercises, dose, pain and swelling, progression, return to sport, red flags, special groups, 2D error. Each rule has a quote, a source, a population and a mark (CONSENSUS, REVIEW, STUDY, OPINION, NONE) | Complete for this pass. Most CONSENSUS items are evidence level 5 |
 | `form-evidence.md` | Verdict for each live check: CUE, LOG or NO BUILD. The 2D error budget | Complete for this pass |
+| `technique-sources.md` | How patient handouts, therapy pages and protocols describe the technique of the four exercises: 34 points with exact quotes, source, population, grade and a camera verdict. Text guide lines that the app can show without judging. Decision for the user | Complete for this pass. All sources are level 5. Several PDFs and pages are listed as NOT READ |
 | `source-audit.md` | Check of S1 to S24 and of N, F and P sources against the real records. Corrections C1 to C18 at the top | Complete for this pass. Paywalled full texts are listed |
 | `search-log.md` | Every query: database, query, hits, kept or dropped, contradicting evidence, paywalls | Complete for this pass |
 | `specialists-brief.md` | Roles, files, output format, refusal rules and 35 test questions for the skill-creator loop | Complete. No skill changed |
@@ -42,4 +43,5 @@ Rules:
 
 - Protocol generator: no validated protocol and no consensus on weight-bearing or brace (N1). Readable guideline rules: P2 (2015, level 5), P1 (2024), P3 (2022). Combined surgery needs a surgeon protocol. `rehab-rules.md` sections 1 to 3 and 8.
 - Live form: only side-view knee angle against a clinician limit, rep time and leg visibility can be patient cues. `form-evidence.md`.
+- Protocol generator, version 2 (2026-11-09): what the generator can add without the surgeon, week by week, with a verdict for each value. `../docs/generator-v2-design.md`.
 - Plan adjustment: no trial shows that algorithmic adjustment helps. Progression criteria that the app can see are few. `rehab-rules.md` section 5, `progression.md` section 2.2.

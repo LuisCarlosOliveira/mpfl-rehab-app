@@ -39,7 +39,7 @@ describe('lazy screens that fail to load', () => {
   ])('%s: shows the message with a heading and a way back to Home', async (button) => {
     await openHome();
     fireEvent.click(screen.getByRole('button', { name: button }));
-    expect(await screen.findByText('This screen could not load. Check your connection and try again.')).toBeInTheDocument();
+    expect(await screen.findByText('This screen could not load. The app may have been updated. Try again reloads the page. Saved sessions stay on this device. Unsaved answers are lost.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
@@ -52,7 +52,7 @@ describe('the plan questions screen that fails to load', () => {
     markPrivacyNoticeSeen();
     render(<App db={freshDb()} mode="demo" source={mockSource()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Create my plan' }));
-    expect(await screen.findByText('This screen could not load. Check your connection and try again.')).toBeInTheDocument();
+    expect(await screen.findByText('This screen could not load. The app may have been updated. Try again reloads the page. Saved sessions stay on this device. Unsaved answers are lost.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back to Home' })).toBeInTheDocument();

@@ -117,7 +117,7 @@ describe('Back of the browser stays in the app', () => {
     await heading('Summary');
     await back();
     expect(currentHeading()).toBe('Summary');
-    click('Do not save');
+    click('Skip the questions');
     await heading('Home');
   });
 

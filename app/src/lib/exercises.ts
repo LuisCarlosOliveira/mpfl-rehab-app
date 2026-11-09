@@ -28,7 +28,12 @@ const MIN_STATE_MS = 300; // start value. research/tech.md 3.3 says "for example
 const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent of the target
 const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
 const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
+const LIFT_END_MS = 300; // ENGINEERING, not clinical. In clip 03 the shortest real return to rest lasted about 0.4 s, and a one-frame dip lasts 0.1 s or less.
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
+// The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
+// spike counts none. A lift ends when the leg stays below the start height for LIFT_END_MS, so a short dip in a hold counts no
+// second rep. No resting height is used: Setup measures none, and a first try with the lowest height seen was thrown off by a
+// close-up cut of clip 04 (-0.24 at the start). The end rule has no new number.
 
 /** The exercises that count reps. Only these need a return value and a resting angle. */
 export const countsReps = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'mini-squat';
@@ -171,13 +176,18 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
 
   // Straight leg raise state. `top` is the angle at the top of the current lift.
   let top = lagInitial();
-  let raisedSince: number | null = null;
   let highestTop: number | null = null;
+  let lift: { settleSince: number | null; counted: boolean; belowSince: number | null } | null = null;
+  let lifts = 0;
 
   const closeLift = () => {
     if (top.lag !== null) highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
     top = lagInitial();
-    raisedSince = null;
+    lift = null;
+  };
+  // The leg left the view: a lift that is not settled starts its settle time again. A counted lift stays counted.
+  const pauseLift = () => {
+    if (lift !== null) lift.settleSince = null;
   };
 
   return {
@@ -189,12 +199,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
       step(landmarks, t) {
         if (landmarks === null) {
           filter.reset();
+          pauseLift();
           return { flexion: null, event: 'paused', repMs: null };
         }
         const [hip, knee, ankle] = selectLeg(landmarks, side);
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) {
           filter.reset();
+          pauseLift();
           return { flexion: null, event: 'paused', repMs: null };
         }
         const f = filter.filter(raw, t);
@@ -214,12 +226,25 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           tally(out.event);
           return { flexion: f, event: out.event, repMs: null };
         }
-        // Straight leg raise: read the top angle only while the leg is raised and settled.
-        if (isLegRaised(hip, ankle)) {
-          if (raisedSince === null) raisedSince = t;
-          if (t - raisedSince >= RAISE_SETTLE_MS) top = lagStep(top, sample).state;
-        } else if (raisedSince !== null) {
-          closeLift();
+        // Straight leg raise: a rep counts once when the leg holds the settle time. The top angle is read only while settled.
+        if (!visible(hip) || !visible(ankle)) pauseLift();
+        else if (lift === null) {
+          if (isLegRaised(hip, ankle)) lift = { settleSince: t, counted: false, belowSince: null };
+        } else if (!isLegRaised(hip, ankle)) {
+          lift.belowSince ??= t;
+          if (!lift.counted) lift.settleSince = null; // the settle time must run without a dip
+          if (t - lift.belowSince >= LIFT_END_MS) closeLift();
+        } else {
+          lift.belowSince = null;
+          lift.settleSince ??= t;
+          if (t - lift.settleSince >= RAISE_SETTLE_MS) {
+            top = lagStep(top, sample).state;
+            if (!lift.counted) {
+              lift.counted = true;
+              lifts += 1;
+              return { flexion: f, event: 'rep', repMs: null };
+            }
+          }
         }
         return { flexion: f, event: null, repMs: null };
       },
@@ -233,7 +258,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
             exercise.maxTopFlexion === undefined ? 'no-limit' : classifyAgainstLimit(topFlexion, exercise.maxTopFlexion, MARGIN_DEG);
         }
         return {
-          reps: setup.kind === 'reps' ? reps.reps : null,
+          reps: setup.kind === 'reps' ? reps.reps : setup.kind === 'lag' ? lifts : null,
           holds: setup.kind === 'hold' ? hold.holds : null,
           peakFlexion: peak,
           topFlexion,

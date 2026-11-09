@@ -1,22 +1,23 @@
 // Summary (S7, S8). Pain 0 to 10 and swelling, then the safety floor of FR12, then the save (FR11).
 // Copy source: research/ux-flow.md section 8.3. No value is pre-selected.
 // "Knee gave way or hurts" shows the care-team message first.
-// Sets: when Session passes the set data, Save adds it to the record and the screen lists the reps of each set. No total, no verdict.
+// Persistence: App writes the record when the run ends (src/ui/sessionRecord.ts). Save adds pain and swelling to that record. Skip leaves them out.
+// Sets: when Session passes the set data, the record holds it and the screen lists the reps of each set. No total, no verdict.
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
-import { MARGIN_DEG, MARGIN_SOURCE } from '../lib/margin';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
-import { plural, summarySets } from '../lib/sets';
-import { saveSession, type MpflDb, type SessionInput } from '../lib/storage';
+import { plural } from '../lib/sets';
+import { saveSession, updateSessionAnswers, type MpflDb } from '../lib/storage';
 import type { RunResult } from './appState';
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
+import { runToSessionInput } from './sessionRecord';
 import type { SessionRunSummary } from './Session';
 
 const SWELLING: { value: SwellingAnswer; text: string }[] = [
@@ -24,8 +25,6 @@ const SWELLING: { value: SwellingAnswer; text: string }[] = [
   { value: 'some', text: 'Some swelling' },
   { value: 'more', text: 'More than before' },
 ];
-
-const clampAngle = (v: number | null) => (v === null ? null : Math.min(180, Math.max(0, Math.round(v * 10) / 10)));
 
 interface Props {
   run: RunResult;
@@ -48,9 +47,9 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [saved, setSaved] = useState(false);
   const [discarded, setDiscarded] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [recordFailed, setRecordFailed] = useState(false); // the write at the end of the run did not work
   const sets = summary.sets ?? null;
   const painBetweenSets = (summary as SessionRunSummary).setPain; // the pain answers between sets (Session adds them)
-  const repsBy = (summary as SessionRunSummary).repsBy; // who counted the reps (Session adds it)
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
 
@@ -64,6 +63,14 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       ? null
       : evaluateSession({ pain: highestPain, swelling: swelling ?? 'none', painPauseThreshold: protocol.painPauseThreshold });
 
+  useEffect(() => {
+    let alive = true;
+    run.record?.catch(() => alive && setRecordFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [run.record]);
+
   // After Save, focus moves to the saved message. The screen reader reads it, and the button that was pressed is gone.
   useEffect(() => {
     if (saved) savedNote.current?.focus();
@@ -72,43 +79,11 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   async function save() {
     if (pain === null || swelling === null || saving.current) return;
     saving.current = true;
-    const holdSeconds = summary.holds === null ? null : summary.holds * (exercise.holdSeconds ?? 0);
-    const input: SessionInput = {
-      date: now().toISOString(),
-      exercise: exercise.kind,
-      side: protocol.side,
-      reps: summary.reps,
-      peakFlexion: clampAngle(summary.peakFlexion),
-      holdSeconds,
-      topFlexion: clampAngle(summary.topFlexion),
-      marginDeg: MARGIN_DEG,
-      marginSource: MARGIN_SOURCE,
-      view: 'side',
-      nearLimit: summary.eventCounts.nearLimit,
-      overLimit: summary.eventCounts.overLimit,
-      tooFast: summary.eventCounts.tooFast,
-      gaveWayPresses: reason === 'gave-way' ? 1 : 0,
-      redFlagBlocks,
-      pain,
-      swelling,
-      ...(painBetweenSets === undefined ? {} : { setPain: painBetweenSets }),
-      ...(repsBy === undefined ? {} : { repsBy }),
-      protocolId: protocol.id,
-      phase: activePhase,
-      ...(legTracked === undefined ? {} : { legTracked }),
-      ...(cameraSide === undefined ? {} : { cameraSide }),
-      ...(summary.baselineSource === undefined ? {} : { baselineSource: summary.baselineSource }),
-      // T12b: the front-view record is for the clinician. This screen never shows it.
-      ...(summary.front === undefined
-        ? {}
-        : {
-            secondView: 'front' as const,
-            frontReps: summary.front.reps,
-            ...(summary.front.changeDeg === undefined ? {} : { frontChangeDeg: Math.round(summary.front.changeDeg * 10) / 10 }),
-          }),
-    };
     try {
-      await saveSession(db, sets === null ? input : { ...input, ...summarySets(sets) });
+      // The run was saved when it ended: add the answers to that record. With no record, write the whole run once.
+      const id = await run.record?.catch(() => undefined);
+      if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), pain, swelling });
+      else await updateSessionAnswers(db, id, { pain, swelling });
       setSaveError(false);
       setSaved(true);
     } catch {
@@ -117,8 +92,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     }
   }
 
-  // No write. The pause message stays when the answers trigger it (FR12), so Done shows after it.
-  function doNotSave() {
+  // No write. The run is already saved, without the answers. The pause message stays when the answers trigger it (FR12), so Done shows after it.
+  function skipQuestions() {
     if (verdict?.pause) setDiscarded(true);
     else onDone();
   }
@@ -209,6 +184,11 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               </div>
             </fieldset>
 
+            {recordFailed && (
+              <Notice role="alert" icon="triangle-alert">
+                <p>This session could not be stored on this device. Storage can be blocked in a private window or when the device is full.</p>
+              </Notice>
+            )}
             {saveError && (
               <Notice role="alert" icon="triangle-alert">
                 <p>The session could not be saved. Try again.</p>
@@ -220,7 +200,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <>
             <p role="status" tabIndex={-1} ref={savedNote} className="chip chip-soft">
               <Icon name="check" size={16} />
-              {discarded ? 'Session not saved.' : 'Session saved.'}
+              {discarded ? 'Session saved without answers.' : 'Session saved.'}
             </p>
           </>
         )}
@@ -232,8 +212,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <button type="button" className="btn btn-primary btn-lg" disabled={pain === null || swelling === null} onClick={() => void save()}>
               Save
             </button>
-            <button type="button" className="btn btn-lg" onClick={doNotSave}>
-              Do not save
+            <button type="button" className="btn btn-lg" onClick={skipQuestions}>
+              Skip the questions
             </button>
           </>
         ) : (

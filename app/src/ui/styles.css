@@ -2231,6 +2231,20 @@ main h3 {
 }
 /* ===== W3 END ===== */
 
+/* The switch of the body map in Session sits on the corner of the camera picture and takes no room. A row in the header made the title 0 px wide
+   at 390 px, and a row under the picture pushed the angle under the fixed bar (measured in the real app, docs/live-test/skeleton-validation.md). */
+.session-grid .frame .body-map-switch {
+  position: absolute;
+  inset-block-start: var(--s-1);
+  inset-inline-end: var(--s-1);
+  z-index: 1;
+  min-height: 48px;
+  padding: 0 var(--s-2);
+  gap: var(--s-2);
+  font-size: var(--step-m1);
+  box-shadow: var(--shadow-1);
+}
+
 /* ===== F3 START: fixes of the live test round 2. Appended block. Keep this block together at the end of the file. ===== */
 /* R2-04: while the app looks for the starting angle, one line and the progress sit on the camera picture, like .session-start.
    They take no room, so the count and the angle stay above the fixed bar. */

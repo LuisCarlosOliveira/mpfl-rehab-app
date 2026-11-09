@@ -28,6 +28,8 @@ export interface RunSummary extends Summary {
 export interface RunResult {
   reason: EndReason;
   summary: RunSummary;
+  /** The write of the record at the end of the run. It gives the id of the record, or rejects when the write fails. Absent: no write was tried. */
+  record?: Promise<number>;
 }
 
 export interface AppState {
@@ -53,7 +55,7 @@ export type Action =
   | { type: 'red-flags-clear' }
   | { type: 'red-flags-blocked' }
   | { type: 'setup-done'; exerciseLeg: Side; cameraSide: Side; baselineDeg: number | null }
-  | { type: 'session-end'; reason: EndReason; summary: RunSummary }
+  | { type: 'session-end'; reason: EndReason; summary: RunSummary; record?: Promise<number> }
   | { type: 'draft'; draft: PlanDraft }
   | { type: 'plan-accepted' }
   | { type: 'plan-kept' }
@@ -154,7 +156,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...state,
         screen: 'summary',
         redFlagCleared: false, // the next session needs a new check
-        run: { reason: action.reason, summary: action.summary },
+        run: { reason: action.reason, summary: action.summary, record: action.record },
       };
     case 'draft': {
       if (state.mode === 'patient') return state;

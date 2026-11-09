@@ -124,23 +124,23 @@ describe('Summary screen', () => {
     expect(await screen.findByText(PAUSE_MESSAGE)).toBeInTheDocument();
   });
 
-  it('Do not save goes to Home and writes nothing', async () => {
+  it('Skip the questions goes to Home and writes nothing when no record exists', async () => {
     const { db, onDone } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(await db.sessions.count()).toBe(0);
   });
 
-  it('Do not save works with no answers and keeps Save as it was', () => {
+  it('Skip the questions works with no answers and keeps Save as it was', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Do not save' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Skip the questions' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
-  it('Do not save still shows the pause message when the answers trigger it, then Done goes Home', async () => {
+  it('Skip the questions still shows the pause message when the answers trigger it, then Done goes Home', async () => {
     const { db, onDone } = setup();
     answer(8, /no swelling/i);
-    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
@@ -149,12 +149,12 @@ describe('Summary screen', () => {
     expect(await db.sessions.count()).toBe(0);
   });
 
-  it('has no Do not save button after the save', async () => {
+  it('has no Skip the questions button after the save', async () => {
     setup();
     answer(2, /no swelling/i);
     save();
     await screen.findByText('Session saved.');
-    expect(screen.queryByRole('button', { name: 'Do not save' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Skip the questions' })).toBeNull();
   });
 
   it('says that no repetitions were counted for an empty session, and Save stays available', () => {
@@ -274,10 +274,10 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
     expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
   });
 
-  it('Do not save with pain 7 and no swelling answer still shows the pause message', () => {
+  it('Skip the questions with pain 7 and no swelling answer still shows the pause message', () => {
     const { onDone } = setup();
     pick(7);
-    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
   });

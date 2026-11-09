@@ -1,5 +1,5 @@
 // The maths for the camera error margin. Plain functions, no file access.
-// Used by scripts/bland-altman.mjs and by tests/blandAltman.test.ts.
+// Used by scripts/bland-altman.mjs, scripts/accuracy-analyze.mjs and tests/blandAltman.test.ts.
 
 // PROPOSAL, not a source: below this number of pairs no margin is printed.
 // A clinician or a statistician must review the value before the margin is used.
@@ -62,12 +62,21 @@ function groupBy(rows, key) {
   return groups;
 }
 
-const mean = (values) => values.reduce((a, b) => a + b, 0) / values.length;
+export const mean = (values) => values.reduce((a, b) => a + b, 0) / values.length;
 const sumSquares = (values) => {
   const m = mean(values);
   return values.reduce((s, v) => s + (v - m) ** 2, 0);
 };
+/** Sample standard deviation (n minus 1). */
+export const sampleSd = (values) => Math.sqrt(sumSquares(values) / (values.length - 1));
 const round = (x) => Math.round(x * 1e4) / 1e4;
+
+/** Bias, SD and 95 percent limits of agreement of a list of differences. Needs at least 2 values. */
+export function limitsOfAgreement(diffs) {
+  const bias = mean(diffs);
+  const sd = sampleSd(diffs);
+  return { bias, sd, lower: bias - Z_95 * sd, upper: bias + Z_95 * sd };
+}
 
 /**
  * Bland-Altman agreement for each view. Rows come from parseCsv with repeat false.
@@ -80,10 +89,7 @@ export function agreementByView(rows) {
     if (diffs.length < 2) {
       throw new InputError(`View "${view}" has ${diffs.length} pair. At least 2 pairs are needed.`);
     }
-    const bias = mean(diffs);
-    const sd = Math.sqrt(sumSquares(diffs) / (diffs.length - 1));
-    const lower = bias - Z_95 * sd;
-    const upper = bias + Z_95 * sd;
+    const { bias, sd, lower, upper } = limitsOfAgreement(diffs);
     const enoughData = diffs.length >= MIN_PAIRS;
     const margin = Math.ceil(Math.max(Math.abs(lower), Math.abs(upper)));
     views[view] = {
