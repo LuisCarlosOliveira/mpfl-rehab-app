@@ -48,14 +48,14 @@ describe('no verdict word on any screen', () => {
   it('Load protocol, with and without an error', async () => {
     render(<LoadProtocol db={freshDb()} mode="patient" onLoaded={vi.fn()} />);
     expectNoVerdict('Load');
-    fireEvent.change(screen.getByLabelText('Protocol file (.json)'), {
+    fireEvent.change(screen.getByLabelText('Choose a file from your care team'), {
       target: { files: [new File([exampleText()], 'p.json')] },
     });
     await screen.findByRole('alert');
     expectNoVerdict('Load with error');
     cleanup();
     render(<LoadProtocol db={freshDb()} mode="patient" onLoaded={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText('Protocol file (.json)'), {
+    fireEvent.change(screen.getByLabelText('Choose a file from your care team'), {
       target: { files: [new File([protocolText({ approvedOn: undefined })], 'p.json')] },
     });
     await screen.findByRole('alert');
@@ -131,7 +131,7 @@ describe('no verdict word on any screen', () => {
     expectNoVerdict('App privacy');
     fireEvent.click(screen.getByRole('button', { name: 'I understand' }));
     await screen.findByRole('heading', { name: 'Load protocol file' });
-    fireEvent.change(screen.getByLabelText('Protocol file (.json)'), { target: { files: [new File([exampleText()], 'p.json')] } });
+    fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [new File([exampleText()], 'p.json')] } });
     await screen.findByRole('heading', { name: 'Home' });
     expectNoVerdict('App home');
   });

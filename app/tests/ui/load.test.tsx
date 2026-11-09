@@ -10,7 +10,7 @@ async function pick(text: string, mode: 'demo' | 'patient') {
   const db = freshDb();
   const onLoaded = vi.fn();
   render(<LoadProtocol db={db} mode={mode} onLoaded={onLoaded} />);
-  fireEvent.change(screen.getByLabelText('Protocol file (.json)'), { target: { files: [fileOf(text)] } });
+  fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [fileOf(text)] } });
   return { db, onLoaded };
 }
 
@@ -59,7 +59,7 @@ describe('Load protocol screen', () => {
     const big = fileOf('{}');
     Object.defineProperty(big, 'size', { value: 6 * 1024 * 1024 });
     const text = vi.spyOn(big, 'text');
-    fireEvent.change(screen.getByLabelText('Protocol file (.json)'), { target: { files: [big] } });
+    fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [big] } });
     expect(await screen.findByRole('alert')).toHaveTextContent('The file is larger than 5 MB.');
     expect(text).not.toHaveBeenCalled();
   });
@@ -85,9 +85,9 @@ describe('Load protocol screen', () => {
 });
 
 describe('Load protocol screen, design', () => {
-  it('shows the picker in a drop area with a hidden icon, and no inline style', () => {
+  it('shows the picker as an action row with a hidden icon, and no inline style', () => {
     const { container } = render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} />);
-    const zone = screen.getByLabelText('Protocol file (.json)').closest('.dropzone')!;
+    const zone = screen.getByLabelText('Choose a file from your care team').closest('.action-row')!;
     expect(zone.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
     expect(container.querySelector('[style]')).toBeNull();
   });
@@ -125,7 +125,7 @@ describe('Load protocol screen, Create my plan', () => {
 
   it('keeps the file picker next to it, with the same label', () => {
     render(<LoadProtocol db={freshDb()} mode="demo" onLoaded={vi.fn()} onCreatePlan={vi.fn()} />);
-    expect(screen.getByLabelText('Protocol file (.json)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Choose a file from your care team')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Load protocol file' })).toBeInTheDocument();
   });
 

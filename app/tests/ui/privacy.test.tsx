@@ -55,7 +55,7 @@ describe('Privacy screen, the notices link target (L3-05)', () => {
 describe('Privacy screen, the plan answers (design: protocol generator, privacy rows)', () => {
   it('says that a plan made by the app keeps the date of surgery and the answers on this device, in the export, until erase', () => {
     render(<Privacy onDone={vi.fn()} />);
-    const point = screen.getByText(/If you ask the app to make a plan/);
+    const point = screen.getByText(/If you ask the app to make a plan/).closest('li')!;
     expect(point).toHaveTextContent('date of your surgery');
     expect(point).toHaveTextContent('on this device');
     expect(point).toHaveTextContent('export file');

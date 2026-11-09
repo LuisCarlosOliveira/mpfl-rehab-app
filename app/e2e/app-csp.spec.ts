@@ -25,11 +25,11 @@ test('every screen of the real app has no violation, no console error and no for
   await seen.expectClean('Load protocol');
 
   // The error state of the Load screen.
-  await page.getByLabel('Protocol file (.json)').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
+  await page.getByLabel('Choose a file from your care team').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
   await expect(page.getByRole('alert')).toContainText('File not readable');
   await seen.expectClean('Load protocol with an error');
 
-  await page.getByLabel('Protocol file (.json)').setInputFiles(EXAMPLE);
+  await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
   await expectScreen(page, 'Home');
   await seen.expectClean('Home');
 

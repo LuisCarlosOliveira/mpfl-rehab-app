@@ -6,6 +6,7 @@ import { MAX_IMPORT_BYTES, eraseAll, exportCsv, exportJson, getLastExport, impor
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import './dashboard.css';
+import './screensV2.css';
 
 const REVOKE_DELAY_MS = 1000;
 const DONE_LABEL_MS = 2500; // how long an export button shows "Done" before it shows its first label again
@@ -92,7 +93,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
     setExporting(null);
     setExported(kind);
     doneTimer.current = setTimeout(() => setExported(null), DONE_LABEL_MS);
-    setNotice({ kind: 'status', text: `The file is ready: ${filename}. Look in your downloads folder.` });
+    setNotice({ kind: 'status', text: `File saved: ${filename}. Look in your downloads folder.` });
   }
 
   async function importFrom(file: File) {
@@ -149,10 +150,11 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
 
   const noSessions = count === null || count === 0;
   const busy = exporting !== null || exported !== null;
-  const exportLabel = (kind: 'json' | 'csv') => (exporting === kind ? 'Exporting' : exported === kind ? 'Done' : `Export ${kind.toUpperCase()} file`);
+  const countText = count === null || count === 0 ? '' : ` ${count} ${count === 1 ? 'session' : 'sessions'}`;
+  const exportLabel = (kind: 'json' | 'csv') => (exporting === kind ? 'Exporting' : exported === kind ? 'Done' : `Export${countText} as ${kind.toUpperCase()}`);
 
   return (
-    <section aria-labelledby="data-title">
+    <section aria-labelledby="data-title" className="v2-screens v2-data">
       <header className="page-head">
         <h1 id="data-title" tabIndex={-1}>
           My data
@@ -177,8 +179,8 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
           </p>
         )}
 
-        <div className="data-grid">
-          <section className="card stack-s" aria-labelledby="export-title">
+        <div className="data-sections">
+          <section className="data-section stack-s" aria-labelledby="export-title">
             <h2 id="export-title">Export</h2>
             <ul className="chips">
               <li className="chip chip-soft">
@@ -203,7 +205,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
             <p className="detail">The JSON file can be imported again. The CSV file is for reading in a spreadsheet.</p>
           </section>
 
-          <section className="card stack-s" aria-labelledby="import-title">
+          <section className="data-section stack-s" aria-labelledby="import-title">
             <h2 id="import-title">Import</h2>
             <p>Import adds the sessions of a file to this device. It stops and adds nothing if any session is already stored.</p>
             <div
@@ -245,32 +247,37 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
             </div>
           </section>
 
-          {onOpenPrivacy && (
-            <section className="card stack-s" aria-labelledby="privacy-link-title">
-              <h2 id="privacy-link-title">Privacy</h2>
-              <div className="actions">
-                <button type="button" className="btn" onClick={onOpenPrivacy}>
-                  <Icon name="lock" size={18} />
-                  Privacy notice
-                </button>
-              </div>
-            </section>
-          )}
+          <section className="data-section stack-s" aria-label="More">
+            <ul className="action-rows">
+              {onOpenPrivacy && (
+                <li>
+                  <button type="button" className="action-row" onClick={onOpenPrivacy} aria-labelledby="privacy-row-name">
+                    <Icon name="lock" size={22} />
+                    <span className="row-title" id="privacy-row-name">
+                      Privacy notice
+                    </span>
+                    <Icon name="chevron-right" size={20} />
+                  </button>
+                </li>
+              )}
+              {onOpenClinician && (
+                <li>
+                  <button type="button" className="action-row" onClick={onOpenClinician} aria-labelledby="care-row-name" aria-describedby="care-row-detail">
+                    <Icon name="stethoscope" size={22} />
+                    <span className="row-text">
+                      <span className="row-title" id="care-row-name">
+                        Open a session file (care team)
+                      </span>
+                      <span className="row-detail" id="care-row-detail">The app keeps the file in memory only.</span>
+                    </span>
+                    <Icon name="chevron-right" size={20} />
+                  </button>
+                </li>
+              )}
+            </ul>
+          </section>
 
-          {onOpenClinician && (
-            <section className="card stack-s" aria-labelledby="care-title">
-              <h2 id="care-title">Care team</h2>
-              <p>Care team members can read a session file here. The app keeps the file in memory only.</p>
-              <div className="actions">
-                <button type="button" className="btn" onClick={onOpenClinician}>
-                  <Icon name="stethoscope" size={18} />
-                  Open a session file (care team)
-                </button>
-              </div>
-            </section>
-          )}
-
-          <section className="card card-erase stack-s" aria-labelledby="erase-heading">
+          <section className="data-section card-erase stack-s" aria-labelledby="erase-heading">
             <h2 id="erase-heading">Erase</h2>
             <p>Erase removes all data of this app from this device. Files that you already exported stay where you saved them.</p>
             <div className="actions">

@@ -11,6 +11,8 @@ import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { ChoiceGroup, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
 import { Icon } from './Icon';
 import { PainScale } from './PainScale';
+import { StepTrack } from './StepTrack';
+import './screensV2.css';
 
 interface Props {
   /** The calendar date of today, as year-month-day. The app gives it from the clock. */
@@ -296,10 +298,15 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
 
   const summary = step === 'summary';
   return (
-    <section aria-labelledby="question-title" className="narrow">
+    <section aria-labelledby="question-title" className="narrow v2-screens v2-questions">
       <header className="page-head">
         <div className="stack-s">
-          {!summary && <p className="detail">{`Question ${index + 1} of ${steps.length - 1}`}</p>}
+          {!summary && (
+            <>
+              <p className="detail question-count">{`Question ${index + 1} of ${steps.length - 1}`}</p>
+              <StepTrack total={steps.length - 1} current={index} label="Questions" />
+            </>
+          )}
           <h1 id="question-title" tabIndex={-1} ref={heading}>
             {TITLES[step]}
           </h1>
@@ -307,6 +314,10 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
       </header>
       <div className="stack">{body}</div>
       <div className="action-bar">
+        <button type="button" className="btn btn-lg btn-back" onClick={goBack}>
+          <Icon name="arrow-left" size={18} />
+          Back
+        </button>
         {summary ? (
           <button type="button" className="btn btn-primary btn-lg" onClick={makePlan}>
             Make my plan
@@ -317,10 +328,6 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
             <Icon name="chevron-right" size={20} />
           </button>
         )}
-        <button type="button" className="btn btn-lg" onClick={goBack}>
-          <Icon name="arrow-left" size={18} />
-          Back
-        </button>
       </div>
     </section>
   );

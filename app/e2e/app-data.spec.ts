@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await installProbes(page);
 });
 
-async function downloadOf(page: Page, buttonName: string) {
+async function downloadOf(page: Page, buttonName: string | RegExp) {
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: buttonName }).click()]);
   const path = await download.path();
   return { name: download.suggestedFilename(), text: readFileSync(path, 'utf8') };
@@ -42,7 +42,7 @@ test('My data exports JSON with the method of the angle, and CSV', async ({ page
   await openMyData(page);
   await expect(page.getByText('1 session on this device.')).toBeVisible();
 
-  const json = await downloadOf(page, 'Export JSON file');
+  const json = await downloadOf(page, /^Export .*as JSON$/);
   expect(json.name).toMatch(/^mpfl-sessions-\d{4}-\d{2}-\d{2}\.json$/);
   const parsed = JSON.parse(json.text);
   expect(parsed.angleMethod).toEqual(expect.any(String));
@@ -52,7 +52,7 @@ test('My data exports JSON with the method of the angle, and CSV', async ({ page
   expect(JSON.stringify(parsed)).not.toMatch(/data:image|blob:/);
   await expect(page.getByRole('status')).toContainText(/The file is ready: mpfl-sessions-\d{4}-\d{2}-\d{2}\.json\./);
 
-  const csv = await downloadOf(page, 'Export CSV file');
+  const csv = await downloadOf(page, /^Export .*as CSV$/);
   expect(csv.name).toMatch(/^mpfl-sessions-\d{4}-\d{2}-\d{2}\.csv$/);
   const lines = csv.text.trim().split(/\r?\n/);
   expect(lines.length).toBeGreaterThanOrEqual(2);
@@ -140,7 +140,7 @@ test('erase clears IndexedDB, mpfl. keys, Cache storage and service workers, and
 test('the care team view reads an exported file in memory only', async ({ page }) => {
   await saveOneSession(page, '4', 'No swelling');
   await openMyData(page);
-  const json = await downloadOf(page, 'Export JSON file');
+  const json = await downloadOf(page, /^Export .*as JSON$/);
   const sessionsBefore = await readStore(page, 'sessions');
 
   await page.getByRole('button', { name: 'Open a session file (care team)' }).click();

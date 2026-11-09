@@ -13,7 +13,7 @@ const heading = (name: string) => screen.findByRole('heading', { level: 1, name 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 
 function pickFile(text: string) {
-  fireEvent.change(screen.getByLabelText('Protocol file (.json)'), { target: { files: [fileOf(text)] } });
+  fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [fileOf(text)] } });
 }
 
 describe('App flow', () => {

@@ -24,9 +24,9 @@ async function toSessionOf(page: Page, startName: string, protocol?: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "I understand" }).click();
   if (protocol === undefined)
-    await page.getByLabel("Protocol file (.json)").setInputFiles(EXAMPLE);
+    await page.getByLabel("Choose a file from your care team").setInputFiles(EXAMPLE);
   else
-    await page.getByLabel("Protocol file (.json)").setInputFiles({
+    await page.getByLabel("Choose a file from your care team").setInputFiles({
       name: "p.json",
       mimeType: "application/json",
       buffer: Buffer.from(protocol),

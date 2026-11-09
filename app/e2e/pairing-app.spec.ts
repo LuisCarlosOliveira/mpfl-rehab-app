@@ -322,7 +322,7 @@ test('Home has the phone button as a secondary action, and the phone screen open
   await installProbes(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'I understand' }).click();
-  await page.getByLabel('Protocol file (.json)').setInputFiles('src/lib/protocol/example-protocol.json');
+  await page.getByLabel('Choose a file from your care team').setInputFiles('src/lib/protocol/example-protocol.json');
   await expectScreen(page, 'Home');
   await expect(page.getByRole('button', { name: PHONE_BUTTON })).toBeVisible();
   await page.getByRole('button', { name: PHONE_BUTTON }).click();

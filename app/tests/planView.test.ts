@@ -69,7 +69,7 @@ describe('describeChanges', () => {
     expect(lines[0]).toContain('60 degrees');
     expect(lines[0]).toContain('50 degrees');
     expect(lines[0]).toContain('Reason');
-    expect(lines[0]).toContain('RANGE_SURGEON');
+    expect(lines[0]).not.toMatch(/[A-Z]{3,}_[A-Z]{3,}/); // D5: no internal code in patient text
   });
 
   it('names a removed heel slide and the rule that gives the reason', () => {
