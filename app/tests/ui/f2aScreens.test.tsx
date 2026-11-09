@@ -29,7 +29,7 @@ const START_TEXT = `The app starts counting a rep at ${RULES.ENG_TARGET.values.t
 
 function renderHome(p: Protocol) {
   const phase = p.phases.find((x) => x.id === p.activePhase);
-  return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-11-08T10:00:00Z')} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} />);
+  return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-11-08T10:00:00Z')} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
 }
 
 describe('L2-01: the engineering count value is not a target', () => {

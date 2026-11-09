@@ -124,7 +124,7 @@ describe('Home, a plan with home exercises', () => {
   };
   const show = (p: Protocol) => {
     const phase = p.phases.find((x) => x.id === p.activePhase);
-    return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} />);
+    return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
   };
 
   it('shows the home exercises as a list with no Start button, and the lines of the plan', () => {

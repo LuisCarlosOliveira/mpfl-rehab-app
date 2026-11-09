@@ -16,7 +16,7 @@ const protocol = (over: Record<string, unknown> = {}): Protocol => {
 };
 
 function setup(p: Protocol = protocol(), now = new Date('2026-03-20T10:00:00Z'), db = freshDb()) {
-  const props = { onStart: vi.fn(), onOpenPrivacy: vi.fn(), onLoadProtocol: vi.fn(), onOpenProgress: vi.fn(), onOpenData: vi.fn() };
+  const props = { onStart: vi.fn(), onLoadProtocol: vi.fn(), onOpenData: vi.fn() };
   const phase = p.phases.find((x) => x.id === p.activePhase);
   render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={db} now={() => now} {...props} />);
   return { db, ...props };
@@ -108,10 +108,9 @@ describe('Home screen', () => {
     expect(screen.queryByText(/7 days or more/i)).toBeNull();
   });
 
-  it('links to the privacy notice', () => {
-    const { onOpenPrivacy } = setup();
-    fireEvent.click(within(document.body).getByRole('button', { name: 'Privacy notice' }));
-    expect(onOpenPrivacy).toHaveBeenCalled();
+  it('has no Privacy notice button: it moved into My data (redesign)', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'Privacy notice' })).toBeNull();
   });
 
   it('has a button that goes to the Load screen, with no call that erases sessions (U6)', () => {
@@ -120,12 +119,10 @@ describe('Home screen', () => {
     expect(onLoadProtocol).toHaveBeenCalledTimes(1);
   });
 
-  it('has a Your sessions button and a My data button', () => {
-    const { onOpenProgress, onOpenData } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Your sessions' }));
-    expect(onOpenProgress).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'My data' }));
-    expect(onOpenData).toHaveBeenCalledTimes(1);
+  it('has no Your sessions or My data tile: the bottom bar of the app holds them (redesign)', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'Your sessions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'My data' })).toBeNull();
   });
 
   it('has no button or word of progress (ux-flow 3.4)', () => {
@@ -138,8 +135,6 @@ describe('Home screen', () => {
     setup();
     const block = screen.getByRole('heading', { level: 2, name: 'Your data' }).parentElement!;
     expect(within(block).getByText(/last export/i)).toBeInTheDocument();
-    expect(within(block).getByRole('button', { name: 'Your sessions' })).toHaveClass('btn');
-    expect(within(block).getByRole('button', { name: 'My data' })).toHaveClass('btn');
     expect(screen.getByRole('heading', { level: 2, name: 'Decisions for your surgeon' })).toBeInTheDocument();
   });
 
@@ -181,7 +176,7 @@ describe('Home, second camera entry (T12b)', () => {
     const p = protocol();
     const phase = p.phases.find((x) => x.id === p.activePhase);
     const onOpenCompanion = vi.fn();
-    render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-03-20T10:00:00Z')} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} onOpenCompanion={onOpenCompanion} />);
+    render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-03-20T10:00:00Z')} onStart={vi.fn()} onLoadProtocol={vi.fn()} onOpenCompanion={onOpenCompanion} />);
     expect(screen.getByText(/records nothing and counts nothing/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Use this phone as the second camera' }));
     expect(onOpenCompanion).toHaveBeenCalledTimes(1);

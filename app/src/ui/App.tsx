@@ -23,6 +23,7 @@ import { runToSessionInput } from './sessionRecord';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
+import { BottomNav, isNavScreen, type NavScreen } from './BottomNav';
 import { useBackButton } from './useBackButton';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
@@ -232,9 +233,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               db={db}
               now={now}
               onStart={(kind) => dispatch({ type: 'choose-exercise', exercise: kind })}
-              onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
-              onOpenProgress={() => dispatch({ type: 'open', screen: 'dashboard' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
               onUpdatePlan={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'update' }) : undefined}
@@ -322,6 +321,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
           <DataScreen
             db={db}
             onBack={() => dispatch({ type: 'open', screen: 'home' })}
+            onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
             onErased={() => {
               // Nothing of the old protocol stays in memory.
               setProtocol(null);
@@ -422,17 +422,21 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     );
   })();
 
+  // The bottom bar shows on Home, Your sessions and My data only, and only when a protocol is stored. Flow screens never show it.
+  const showNav = isNavScreen(state.screen) && protocol !== null && store !== null;
+
   return (
     <div className="app">
       <Banners texts={banners} />
       <Brand />
-      <main ref={main}>
+      <main ref={main} className={showNav ? 'has-nav' : undefined}>
         <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
           <Suspense fallback={<LoadingScreen />}>
             {LAZY_SCREENS.has(state.screen) ? <FocusHeading key={state.screen}>{screen}</FocusHeading> : screen}
           </Suspense>
         </LoadError>
       </main>
+      {showNav && <BottomNav current={state.screen as NavScreen} onOpen={(next) => dispatch({ type: 'open', screen: next })} />}
     </div>
   );
 }

@@ -59,11 +59,9 @@ interface Props {
   db: MpflDb;
   now: () => Date;
   onStart: (kind: ExerciseKind) => void;
-  onOpenPrivacy: () => void;
   /** Goes to the Load screen. It erases nothing. Old sessions stay (ux-flow U6). */
   onLoadProtocol: () => void;
   /** The two buttons show only when the handler is given, as in the data screen. */
-  onOpenProgress?: () => void;
   onOpenData?: () => void;
   /** T12b: opens the phone screen. It shows only when the handler is given. */
   onOpenCompanion?: () => void;
@@ -73,7 +71,7 @@ interface Props {
 
 export const REVIEW_TITLE = 'Review your plan with your care team';
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -293,24 +291,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                 </Notice>
               </div>
             )}
-            <div className="tiles actions">
-              {onOpenProgress && (
-                <button type="button" className="btn btn-tile" onClick={onOpenProgress}>
-                  <Icon name="chart-line" />
-                  Your sessions
-                </button>
-              )}
-              {onOpenData && (
-                <button type="button" className="btn btn-tile" onClick={onOpenData}>
-                  <Icon name="database" />
-                  My data
-                </button>
-              )}
-              <button type="button" className="btn btn-tile" onClick={onOpenPrivacy}>
-                <Icon name="lock" />
-                Privacy notice
-              </button>
-            </div>
           </section>
 
           {onOpenCompanion && <CompanionEntry onOpen={onOpenCompanion} />}

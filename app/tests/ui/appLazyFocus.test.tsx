@@ -20,13 +20,15 @@ describe('focus on lazy screens', () => {
     expect(document.body).toHaveFocus();
   });
 
-  it('puts the focus on the heading of Privacy when Home opens it again', async () => {
+  it('puts the focus on the heading of Privacy when My data opens it again', async () => {
     const db = freshDb();
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
     await screen.findByRole('heading', { level: 1, name: 'Home' });
-    fireEvent.click(screen.getByRole('button', { name: /privacy/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'My data' }));
+    await screen.findByRole('heading', { level: 1, name: 'My data' });
+    fireEvent.click(screen.getByRole('button', { name: 'Privacy notice' }));
     const h1 = await screen.findByRole('heading', { level: 1, name: 'Privacy' });
     await waitFor(() => expect(h1).toHaveFocus());
   });

@@ -111,12 +111,14 @@ describe('App flow', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('The example protocol cannot be used in patient mode.');
   });
 
-  it('opens Home from the Privacy link and returns to Home', async () => {
+  it('opens Privacy from My data and returns to Home', async () => {
     const db = freshDb();
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
     await heading('Home');
+    click('My data');
+    await heading('My data');
     click('Privacy notice');
     await heading('Privacy');
     click('I understand');
@@ -237,9 +239,9 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
     await heading('Home');
-    click('My data');
+    click('Your sessions');
     expect(screen.getByRole('heading', { level: 1, name: 'Loading' })).toBeInTheDocument();
-    const h1 = await heading('My data');
+    const h1 = await heading('Your sessions');
     await waitFor(() => expect(h1).toHaveFocus());
     expect(screen.queryByRole('heading', { name: 'Loading' })).toBeNull();
   });

@@ -13,6 +13,7 @@ const DONE_LABEL_MS = 2500; // how long an export button shows "Done" before it 
 interface Props {
   db: MpflDb;
   onBack: () => void;
+  onOpenPrivacy?: () => void;
   onErased: () => void;
   /** Shows the button that opens the care team view. */
   onOpenClinician?: () => void;
@@ -44,7 +45,7 @@ const fileText = (file: File) => `${file.name} (${sizeText(file.size)})`;
 const isJsonFile = (file: File) => /\.json$/i.test(file.name) || file.type === 'application/json';
 const DROP_TEXT = { idle: 'Drop the session file here, or choose a file', over: 'Drop to open' } as const;
 
-export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
+export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivacy }: Props) {
   const [count, setCount] = useState<number | null>(null);
   const [lastExport, setLastExport] = useState(getLastExport());
   const [notice, setNotice] = useState<Notice>(null);
@@ -243,6 +244,19 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
               )}
             </div>
           </section>
+
+          {onOpenPrivacy && (
+            <section className="card stack-s" aria-labelledby="privacy-link-title">
+              <h2 id="privacy-link-title">Privacy</h2>
+              <p>Read what the app stores and what it never sends.</p>
+              <div className="actions">
+                <button type="button" className="btn" onClick={onOpenPrivacy}>
+                  <Icon name="lock" size={18} />
+                  Privacy notice
+                </button>
+              </div>
+            </section>
+          )}
 
           {onOpenClinician && (
             <section className="card stack-s" aria-labelledby="care-title">

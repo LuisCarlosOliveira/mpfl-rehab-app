@@ -22,7 +22,7 @@ const holdPhase = (exercise: Record<string, unknown>) => ({
 
 function setup(p: Protocol = protocol(), db = freshDb()) {
   const phase = p.phases.find((x) => x.id === p.activePhase);
-  const props = { onStart: vi.fn(), onOpenPrivacy: vi.fn(), onLoadProtocol: vi.fn() };
+  const props = { onStart: vi.fn(), onLoadProtocol: vi.fn() };
   const view = render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={db} now={() => new Date('2026-03-20T10:00:00Z')} {...props} />);
   return { db, view, p, phase };
 }

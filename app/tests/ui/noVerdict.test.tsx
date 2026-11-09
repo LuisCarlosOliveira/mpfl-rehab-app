@@ -63,7 +63,7 @@ describe('no verdict word on any screen', () => {
   });
 
   it('Home', () => {
-    render(<Home protocol={protocol} phase={protocol.phases[0]} activePhase={1} db={freshDb()} now={() => new Date()} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} />);
+    render(<Home protocol={protocol} phase={protocol.phases[0]} activePhase={1} db={freshDb()} now={() => new Date()} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
     expectNoVerdict('Home');
   });
 
