@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { decodeOffer, FALLBACK_TEXT, makeHello } from '../../src/lib/pairing';
+import { decodeOffer, FALLBACK_TEXT, HELLO_TTL_MS, makeHello } from '../../src/lib/pairing';
 import { createPairing, INVALID_CODE_TEXT } from '../../src/pairing/pairing';
 import { PairHost, type HostDeps } from '../../src/ui/PairHost';
 import { hasVerdictWord } from '../ui/verdict';
@@ -130,6 +130,28 @@ describe('PairHost', () => {
     expect(screen.queryByRole('img', { name: 'Pairing code of this laptop' })).toBeNull();
     expect(deps.stopCamera).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Continue with one camera' })).toBeInTheDocument();
+  });
+
+  // Engineering limit, not a clinical value: 15 s from the answer to the first channel message (HELLO_TTL_MS).
+  it('never waits for ever after the answer: after the hello limit it shows the fixed text, Try again and one camera', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
+    try {
+      const { pairing } = setup();
+      press('Start pairing');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10);
+      });
+      await act(async () => onScanText(answerText(secretOfOffer(pairing)))); // a good answer, and no channel message follows
+      expect(screen.getByRole('status')).toHaveTextContent('Connecting to the phone');
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(HELLO_TTL_MS + 1000);
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent(FALLBACK_TEXT);
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Continue with one camera' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('starts again from the beginning on Try again', async () => {

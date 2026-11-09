@@ -23,7 +23,8 @@ export interface SetupConfig {
 export const SETUP_CONFIG: SetupConfig = {
   // PROPOSAL, to be tuned in T13: a leg landmark within 5 percent of a frame edge fails (ux-flow 6.2 rule 4).
   edgeFraction: 0.05,
-  // PROPOSAL, to be tuned in T13: leg length (hip to knee plus knee to ankle) below 30 percent of the long frame side fails (rule 5).
+  // PROPOSAL, to be tuned in T13: leg length (hip to knee plus knee to ankle) below 30 percent of the frame extent along the leg fails (rule 5).
+  // The extent is the width for a leg that lies and the height for a leg that stands. The old base, the long frame side, could never pass for a standing person in a wide frame.
   minLegFraction: 0.3,
   // PROPOSAL, to be tuned in T13: gap between the two hips, as a fraction of leg length. Side-on needs a small gap (rule 6).
   maxHipGap: 0.25,
@@ -87,9 +88,28 @@ export interface SetupResult {
 const HIP: Record<Side, number> = { left: 23, right: 24 };
 const FOOT: Record<Side, number[]> = { left: [29, 31], right: [30, 32] };
 const otherSide = (side: Side): Side => (side === 'left' ? 'right' : 'left');
+// Below this share of the leg length, hip to ankle is too short to give the direction of the leg.
+const MIN_CHORD_FRACTION = 0.25;
 
 const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
 const meanVisibility = (leg: Landmark[]) => leg.reduce((sum, p) => sum + (p.visibility ?? 1), 0) / leg.length;
+
+/**
+ * The longest straight line that fits the frame along the direction of the leg, in frame heights.
+ * The direction is hip to ankle. A deeply bent knee puts the ankle near the hip, so the thigh gives the direction then.
+ * A standing leg is measured against the frame height and a lying leg against the frame width.
+ */
+function frameExtentAlong([hip, knee, ankle]: [Landmark, Landmark, Landmark], aspect: number, legLength: number): number {
+  let dx = (ankle.x - hip.x) * aspect;
+  let dy = ankle.y - hip.y;
+  if (Math.hypot(dx, dy) < MIN_CHORD_FRACTION * legLength) {
+    dx = (knee.x - hip.x) * aspect;
+    dy = knee.y - hip.y;
+  }
+  const norm = Math.hypot(dx, dy);
+  if (norm === 0) return 1;
+  return Math.min(aspect * (norm / Math.abs(dx)), norm / Math.abs(dy));
+}
 
 /**
  * Returns the first failed rule in priority order, or ready.
@@ -121,8 +141,9 @@ export function evaluateSetup(
   if ([...leg, ...foot].some((p) => p.x < e || p.x > 1 - e || p.y < e || p.y > 1 - e)) return out('whole-leg');
 
   const [hip, knee, ankle] = leg;
-  const legLength = Math.hypot((hip.x - knee.x) * aspect, hip.y - knee.y) + Math.hypot((knee.x - ankle.x) * aspect, knee.y - ankle.y);
-  if (legLength / Math.max(aspect, 1) < config.minLegFraction) return out('closer');
+  const thigh = Math.hypot((hip.x - knee.x) * aspect, hip.y - knee.y);
+  const legLength = thigh + Math.hypot((knee.x - ankle.x) * aspect, knee.y - ankle.y);
+  if (legLength / frameExtentAlong(leg, aspect, legLength) < config.minLegFraction) return out('closer');
 
   // The far hip is often hidden when the view is side-on. A hidden hip does not fail the rule.
   // The near hip is the hip on the camera side. It is the hip of the chosen leg when that leg is near.

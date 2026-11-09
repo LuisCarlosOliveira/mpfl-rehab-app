@@ -293,11 +293,9 @@ test.describe('the screens with real WebRTC', () => {
     await p.page.getByRole('button', { name: 'Scan the laptop code' }).click();
     await p.page.getByLabel('Or paste the laptop code').fill(offer);
     await p.page.getByRole('button', { name: 'Use this code' }).click();
-    const answer = await textOf(p.page, 'Code as text');
-    // The clock moves 121 s with no timer firing, so only the check at the moment of the answer can refuse it.
-    await h.page.clock.setSystemTime(new Date('2026-11-08T10:02:01Z'));
-    await h.page.getByLabel('Or paste the phone code').fill(answer);
-    await h.page.getByRole('button', { name: 'Use this code' }).click();
+    // The time limits use the monotonic clock (performance.now), so the test moves that clock. A step of the wall clock alone changes nothing.
+    // The tick ends the offer, and the paste field goes away. The unit tests cover an answer that arrives after the limit.
+    await h.page.clock.fastForward(121_000);
     await expect(h.page.getByRole('alert')).toHaveText('Could not pair. The app continues with one camera.');
     await expect.poll(() => h.page.evaluate(() => window.__probes.pcs.map((x) => x.pc.connectionState))).toEqual(['closed']);
     await h.page.context().close();

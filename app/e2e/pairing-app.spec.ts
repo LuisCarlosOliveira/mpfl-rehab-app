@@ -179,7 +179,7 @@ test('the phone is the second camera of the laptop in the real app, and everythi
     expect(probes.transceivers.every((n) => n === 0), 'no media line on the connection').toBe(true);
     for (const text of probes.sends) {
       const message = JSON.parse(text) as { type: string; landmarks?: unknown[] };
-      expect(['hello', 'landmarks', 'bye']).toContain(message.type);
+      expect(['hello', 'ready', 'landmarks', 'bye']).toContain(message.type);
       expect(text).not.toMatch(/data:|blob:|image|frame|video/i);
       expect(text.length).toBeLessThanOrEqual(4096);
       if (message.landmarks) expect(message.landmarks).toHaveLength(33);

@@ -33,7 +33,10 @@ export const landmarksSchema = z.strictObject({
 });
 export const byeSchema = z.strictObject({ type: z.literal('bye') });
 
-export const messageSchema = z.discriminatedUnion('type', [helloSchema, landmarksSchema, byeSchema]);
+// The laptop sends `ready` once its own end of the channel is open. The phone sends its hello only after that.
+export const readySchema = z.strictObject({ type: z.literal('ready') });
+
+export const messageSchema = z.discriminatedUnion('type', [helloSchema, landmarksSchema, byeSchema, readySchema]);
 
 export type HelloMessage = z.infer<typeof helloSchema>;
 export type LandmarksMessage = z.infer<typeof landmarksSchema>;

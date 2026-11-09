@@ -149,7 +149,7 @@ describe('host: answer', () => {
 
   it('refuses an answer that arrives after the offer limit and closes the peer', async () => {
     const { link, peer, secret } = await offered();
-    vi.setSystemTime(1_000_000 + OFFER_TTL_MS);
+    await vi.advanceTimersByTimeAsync(OFFER_TTL_MS);
     expect(await link.acceptAnswer(answerText(secret))).toEqual({ ok: false, code: 'not-ready' });
     expect(failedText(link.state())).toBe(FALLBACK_TEXT);
     expect(peer.remote).toBeNull();
@@ -158,7 +158,7 @@ describe('host: answer', () => {
 
   it('accepts an answer just before the offer limit', async () => {
     const { link, secret } = await offered();
-    vi.setSystemTime(1_000_000 + OFFER_TTL_MS - 1);
+    await vi.advanceTimersByTimeAsync(OFFER_TTL_MS - 1);
     expect((await link.acceptAnswer(answerText(secret))).ok).toBe(true);
   });
 
@@ -218,6 +218,50 @@ describe('host: time limits and the hello', () => {
     const { link, peer } = await paired();
     peer.channels[0]!.drop();
     expect(failedText(link.state())).toBe(FALLBACK_TEXT);
+  });
+});
+
+// The wall clock can step back or forward (a time sync does it). The time limits must not follow such a step.
+// Measured on the test machine: Date.now() went back by 9.09 s about every 5.5 s while performance.now() did not.
+describe('the clock of the time limits', () => {
+  it('host: a step back of the wall clock does not end the offer', async () => {
+    const { link } = await offered();
+    vi.setSystemTime(1_000_000 - 9_000);
+    await vi.advanceTimersByTimeAsync(1000); // one tick
+    expect(link.state().kind).toBe('offer-issued');
+  });
+
+  it('host: a step back of the wall clock does not refuse the answer', async () => {
+    const { link, secret } = await offered();
+    vi.setSystemTime(1_000_000 - 9_000);
+    expect((await link.acceptAnswer(answerText(secret))).ok).toBe(true);
+    expect(link.state().kind).toBe('waiting-hello');
+  });
+
+  it('host: a step forward of the wall clock does not end the wait for the hello', async () => {
+    const { link, peer, secret } = await waitingHello();
+    vi.setSystemTime(1_000_000 + HELLO_TTL_MS + 5000);
+    peer.channels[0]!.receive(JSON.stringify(makeHello(secret)));
+    expect(link.state().kind).toBe('paired');
+  });
+
+  it('phone: a step forward of the wall clock does not end the wait for the channel', async () => {
+    const host = await offered();
+    const link = createCompanionLink({ createPeer: makePeer });
+    expect((await link.acceptOffer(host.text)).ok).toBe(true);
+    vi.setSystemTime(1_000_000 + OFFER_TTL_MS + 5000);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(link.state().kind).toBe('answered');
+  });
+});
+
+describe('host: ready message', () => {
+  it('sends ready when its own channel opens', async () => {
+    const { peer } = await offered();
+    const channel = peer.channels[0]!;
+    expect(channel.sent).toEqual([]);
+    channel.open();
+    expect(channel.sent).toEqual([JSON.stringify({ type: 'ready' })]);
   });
 });
 
@@ -365,10 +409,36 @@ describe('companion', () => {
     const { host, link } = await answeredLink();
     const channel = open(lastPeer());
     channel.open();
+    expect(channel.sent).toEqual([]); // the laptop end is not known to be open yet
+    expect(link.state().kind).toBe('answered');
+    channel.receive(JSON.stringify({ type: 'ready' }));
     expect(channel.sent).toEqual([JSON.stringify(makeHello(host.secret))]);
     expect(link.state().kind).toBe('connected');
     host.link.close(); // the host has its own timer
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('sends no hello when the channel opens, and sends it only after the laptop says ready', async () => {
+    const { link, peer } = await answeredLink();
+    const channel = open(peer);
+    channel.open();
+    expect(channel.sent).toEqual([]);
+    expect(link.state().kind).toBe('answered');
+    channel.receive(JSON.stringify(frontLandmarks())); // not a ready message
+    expect(channel.sent).toEqual([]);
+    expect(link.state().kind).toBe('answered');
+    channel.receive(JSON.stringify({ type: 'ready' }));
+    expect(channel.sent).toHaveLength(1);
+    expect(link.state().kind).toBe('connected');
+  });
+
+  it('a second ready does not send a second hello', async () => {
+    const { peer } = await answeredLink();
+    const channel = open(peer);
+    channel.open();
+    channel.receive(JSON.stringify({ type: 'ready' }));
+    channel.receive(JSON.stringify({ type: 'ready' }));
+    expect(channel.sent).toHaveLength(1);
   });
 
   it('sends a landmarks message only when connected', async () => {
@@ -376,6 +446,7 @@ describe('companion', () => {
     expect(link.send(frontLandmarks())).toBe(false);
     const channel = open(peer);
     channel.open();
+    channel.receive(JSON.stringify({ type: 'ready' }));
     expect(link.send(frontLandmarks(3))).toBe(true);
     expect(JSON.parse(channel.sent[1]!)).toMatchObject({ type: 'landmarks', tMs: 3, view: 'front' });
   });
@@ -388,6 +459,7 @@ describe('companion', () => {
     const { link, peer } = await answeredLink();
     const channel = open(peer);
     channel.open();
+    channel.receive(JSON.stringify({ type: 'ready' }));
     channel.bufferedAmount = SEND_BUFFER_LIMIT + 1;
     expect(link.send(frontLandmarks())).toBe(false);
     channel.bufferedAmount = SEND_BUFFER_LIMIT;
@@ -398,6 +470,7 @@ describe('companion', () => {
     const { link, peer } = await answeredLink();
     const channel = open(peer);
     channel.open();
+    channel.receive(JSON.stringify({ type: 'ready' }));
     const sentBefore = channel.sent.length;
     expect(link.send({ ...frontLandmarks(), frame: 'AAAA' } as never)).toBe(false);
     expect(link.send({ ...frontLandmarks(), landmarks: [] } as never)).toBe(false);

@@ -30,6 +30,14 @@ describe('kneeAngle', () => {
     expect(kneeAngle(hip, knee, ankle, 2)).toBeCloseTo(116.565, 2);
   });
 
+  it('scales x of the thigh too when the thigh is diagonal', () => {
+    const hip = lm(0.4, 0.2);
+    const knee = lm(0.5, 0.5);
+    const ankle = lm(0.65, 0.65);
+    expect(kneeAngle(hip, knee, ankle, 1)).toBeCloseTo(153.435, 2);
+    expect(kneeAngle(hip, knee, ankle, 2)).toBeCloseTo(150.255, 2);
+  });
+
   it('returns null for a zero-length vector', () => {
     expect(kneeAngle(lm(0.5, 0.5), lm(0.5, 0.5), lm(0.5, 0.8), 1)).toBeNull();
   });

@@ -23,6 +23,10 @@ export interface LinkDeps {
 
 export type LinkError = DecodeError | SdpError | 'not-ready' | 'peer-error';
 
+// The time limits use a clock that never steps. Date.now() can step back or forward when the device syncs its time,
+// and the state machine then ends a good pairing (a negative age is not fresh).
+const monotonicNow = () => performance.now();
+
 const defaultPeer = () => new RTCPeerConnection({ iceServers: [] });
 
 /** Resolves when ICE gathering is complete, or after the timeout. The description then holds the host candidates. */
@@ -88,7 +92,7 @@ export interface HostLink {
 }
 
 export function createHostLink(deps: LinkDeps = {}): HostLink {
-  const { createPeer = defaultPeer, now = Date.now, gatherTimeoutMs = GATHER_TIMEOUT_MS } = deps;
+  const { createPeer = defaultPeer, now = monotonicNow, gatherTimeoutMs = GATHER_TIMEOUT_MS } = deps;
   let state: PairingState = { kind: 'idle' };
   let pc: RTCPeerConnection | null = null;
   let channel: RTCDataChannel | null = null;
@@ -140,6 +144,9 @@ export function createHostLink(deps: LinkDeps = {}): HostLink {
         channel = dc;
         dc.onmessage = (e) => apply({ type: 'message-received', result: parseMessage(e.data) });
         dc.onclose = dc.onerror = () => apply({ type: 'connection-error' });
+        // The phone can open its end of the channel before this end is open. A message that it sends then can be lost.
+        // So the phone waits for this message. The loss was seen in 6 of 100 runs with a busy CPU.
+        dc.onopen = () => dc.send(JSON.stringify({ type: 'ready' }));
         mine.onconnectionstatechange = () => {
           if (mine.connectionState === 'failed') apply({ type: 'connection-error' });
         };
@@ -205,7 +212,7 @@ export interface CompanionLink {
 }
 
 export function createCompanionLink(deps: LinkDeps = {}): CompanionLink {
-  const { createPeer = defaultPeer, now = Date.now, gatherTimeoutMs = GATHER_TIMEOUT_MS } = deps;
+  const { createPeer = defaultPeer, now = monotonicNow, gatherTimeoutMs = GATHER_TIMEOUT_MS } = deps;
   let state: CompanionState = { kind: 'idle' };
   let pc: RTCPeerConnection | null = null;
   let channel: RTCDataChannel | null = null;
@@ -233,17 +240,15 @@ export function createCompanionLink(deps: LinkDeps = {}): CompanionLink {
   function adopt(dc: RTCDataChannel) {
     if (channel || dc.label !== CHANNEL_LABEL) return dc.close(); // one channel only, with the agreed name
     channel = dc;
-    dc.onopen = () => {
-      if (!secret) return;
-      dc.send(JSON.stringify(makeHello(secret)));
-      state = { kind: 'connected' };
-      clearInterval(ticker); // no time limit after pairing
-      listeners.forEach((l) => l(state));
-    };
     dc.onmessage = (e) => {
       const message = parseMessage(e.data);
       if (!message.ok) return fail();
-      if (message.value.type === 'bye') finish({ kind: 'closed' });
+      if (message.value.type === 'bye') return finish({ kind: 'closed' });
+      if (message.value.type !== 'ready' || !secret || state.kind !== 'answered') return;
+      dc.send(JSON.stringify(makeHello(secret))); // the laptop end is open now, so the hello arrives
+      state = { kind: 'connected' };
+      clearInterval(ticker); // no time limit after pairing
+      listeners.forEach((l) => l(state));
     };
     dc.onclose = dc.onerror = fail;
   }

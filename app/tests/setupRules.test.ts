@@ -81,10 +81,13 @@ describe('evaluateSetup, details', () => {
     expect(evaluateSetup(lm, 'left', 1, SETUP_CONFIG, steady(lm)).id).toBe('turn-leg');
   });
 
-  it('measures leg size against the long side of a wide frame', () => {
-    // Leg length 0.4 of the height. In a 16:9 frame the long side is 1.78 high units: 0.22, too small.
+  it('measures leg size against the frame extent along the leg', () => {
+    // Leg length 0.4 of the height. A leg that stands fills 0.4 of the height, so the size rule passes.
     const lm = good();
-    expect(evaluateSetup(lm, 'left', 16 / 9, SETUP_CONFIG, steady(lm)).id).toBe('closer');
+    expect(evaluateSetup(lm, 'left', 16 / 9, SETUP_CONFIG, steady(lm)).id).toBe('ready');
+    // The same leg length along the width of a 16:9 frame is 0.22 of the width, too small.
+    const lying = legLandmarks('left', 20, { hip: { x: 0.2, y: 0.5 }, thighAngle: 0, length: 0.4 / 16 * 9 / 2 });
+    expect(evaluateSetup(lying, 'left', 16 / 9, SETUP_CONFIG, steady(lying)).id).toBe('closer');
   });
 
   it('keeps every number in one config and states the distance advice', () => {

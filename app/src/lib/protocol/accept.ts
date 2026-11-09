@@ -15,6 +15,8 @@ declare const confirmationBrand: unique symbol;
 /** Proof of one click. Only `confirmByPerson` makes it, and `acceptProposal` accepts it once. */
 export type PersonConfirmation = { readonly [confirmationBrand]: true };
 
+// The age of a confirmation comes from performance.now(). The wall clock can step back or forward when a device
+// syncs its time, and a step back would make an old confirmation look new.
 // The values that this file made. A copy, a literal or a forged object is not in the map.
 const issued = new WeakMap<object, { at: number; used: boolean }>();
 
@@ -22,7 +24,7 @@ const issued = new WeakMap<object, { at: number; used: boolean }>();
 export function confirmByPerson(event: Event): PersonConfirmation | null {
   if (!isTrustedClick(event)) return null;
   const confirmation = Object.freeze({}) as PersonConfirmation;
-  issued.set(confirmation, { at: Date.now(), used: false });
+  issued.set(confirmation, { at: performance.now(), used: false });
   return confirmation;
 }
 
@@ -81,7 +83,7 @@ export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmatio
   if (record === undefined) return refuse('no-confirmation', 'The plan needs a confirmation from a person.');
   if (record.used) return refuse('reused', 'This confirmation was used before. Press Confirm again.');
   record.used = true;
-  if (Date.now() - record.at > CONFIRMATION_MAX_AGE_MS) return refuse('stale', 'The confirmation is too old. Press Confirm again.');
+  if (performance.now() - record.at > CONFIRMATION_MAX_AGE_MS) return refuse('stale', 'The confirmation is too old. Press Confirm again.');
 
   const parsed = protocolSchema.safeParse(proposal?.protocol);
   if (!parsed.success) return refuse('invalid', 'The plan is not valid. Nothing was saved.');

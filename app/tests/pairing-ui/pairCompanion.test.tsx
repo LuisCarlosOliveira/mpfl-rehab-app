@@ -81,7 +81,10 @@ const companionChannel = () => {
 async function toRun() {
   const s = await toAnswer();
   const channel = companionChannel();
-  await act(async () => channel.open());
+  await act(async () => {
+    channel.open();
+    channel.receive(JSON.stringify({ type: 'ready' })); // the laptop says that its end is open
+  });
   return { ...s, channel };
 }
 const sentMessages = (channel: FakeChannel) => channel.sent.map((t) => parseMessage(t)).flatMap((r) => (r.ok ? [r.value] : []));

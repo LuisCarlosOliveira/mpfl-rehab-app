@@ -111,18 +111,29 @@ describe('acceptProposal: the confirmation', () => {
   });
 
   it('refuses a stale confirmation', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
     const c = confirmed();
-    vi.setSystemTime(Date.now() + CONFIRMATION_MAX_AGE_MS + 1);
+    vi.advanceTimersByTime(CONFIRMATION_MAX_AGE_MS + 1);
     expect(await acceptProposal(db, proposalOf(plan(4)), c, 'demo')).toMatchObject({ ok: false, code: 'stale' });
     expect(await storedRaw()).toBeUndefined();
   });
 
   it('accepts a confirmation at the edge of the time limit', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
     const c = confirmed();
-    vi.setSystemTime(Date.now() + CONFIRMATION_MAX_AGE_MS);
+    vi.advanceTimersByTime(CONFIRMATION_MAX_AGE_MS);
     expect(await acceptProposal(db, proposalOf(plan(4)), c, 'demo')).toMatchObject({ ok: true });
+  });
+
+  // Live test: the wall clock can step back (a device that syncs its time). The age of a confirmation must come from a
+  // clock that never steps, or a stale confirmation looks fresh.
+  it('refuses a stale confirmation even when the wall clock steps back', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'performance'] });
+    const c = confirmed();
+    vi.advanceTimersByTime(CONFIRMATION_MAX_AGE_MS + 1); // real elapsed time passes the limit
+    vi.setSystemTime(Date.now() - 9_090); // then the wall clock steps back by 9 seconds
+    expect(await acceptProposal(db, proposalOf(plan(4)), c, 'demo')).toMatchObject({ ok: false, code: 'stale' });
+    expect(await storedRaw()).toBeUndefined();
   });
 
   it('refuses a confirmation that was used before', async () => {
