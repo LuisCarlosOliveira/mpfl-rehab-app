@@ -14,18 +14,17 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
-import { guideFor, type GuideKind } from '../lib/guides';
-import { SOURCE_NAMES, TECHNIQUE_NOTE, techniqueFor } from '../lib/technique';
+import type { GuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
 import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import type { FrameHandler, LandmarkSource, StartProgress } from '../pose/source';
-import { ASK_SURGEON_TEXT } from './askSurgeon';
 import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
-import { CameraFigure, GuideFigure, type Mark } from './GuideFigure';
-import { Icon, type IconName } from './Icon';
+import { CameraFigure, type Mark } from './GuideFigure';
+import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
+import { SetupGuide } from './SetupGuide';
 import { CAPTURE_TEXT, LEG_TEXT, MODEL_BYTES, countdownSeconds, orderedRuleRows, startText } from './setupView';
 import type { Sound } from './sound';
 
@@ -54,19 +53,13 @@ export interface SetupDone {
 /** The camera views that the guide drawing shows. The front view joins the side view when a phone is connected. */
 const SIDE_ONLY: CameraView[] = ['side'];
 const SIDE_AND_FRONT: CameraView[] = ['side', 'front'];
-const SECOND_CAMERA_BUTTON = 'Add a second camera (optional)';
-const SECOND_CAMERA_TEXT = 'A phone can be a second camera in front of you. It sends body points only, no video.';
 const CAMERA_CAPTION: Record<CameraView, string> = {
   side: `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`,
   front: `Camera in front of you, at knee height, ${distanceText()} away.`,
 };
 const SLOW_START_MS = 8000;
-// The numbers in the drawings match the six notes of the guide: 1 start position, 2 leg and camera, 3 hands, 4 range, 5 speed, 6 what the camera must see.
-const START_MARKS: Mark[] = [{ n: 1, at: 'hip', dx: 1, dy: -2.6 }, { n: 2, at: 'knee', dx: -0.5, dy: -2.8 }, { n: 3, at: 'hand', dx: 0, dy: -2.6 }];
-const END_MARKS: Mark[] = [{ n: 4, at: 'knee', dx: 3, dy: -3 }, { n: 5, at: 'arrow', dx: 0, dy: -2.6 }];
+// The number 6 in the camera drawing matches the sixth note of the guide (see SetupGuide.tsx).
 const CAMERA_MARKS: Mark[] = [{ n: 6, at: 'lens', dx: -2.4, dy: 2.4 }];
-const SIDES: Side[] = ['left', 'right'];
-const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
 
 interface Props {
   kind: GuideKind;
@@ -180,7 +173,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const cameraViews = connected ? SIDE_AND_FRONT : SIDE_ONLY;
 
   const running = camera.kind === 'running';
-  const otherLegChosen = leg !== side;
   const needsReturnValue = countsReps(kind) && returnWithinDeg === undefined;
   const chooseLeg = (value: Side) => {
     setLeg(value);
@@ -194,15 +186,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     </Notice>
   );
   const legend = legLegend(leg, side);
-  const guide = guideFor(kind, legend);
-  const notes: { icon: IconName; label: string; text: string }[] = [
-    { icon: 'bed-single', label: 'Start position', text: guide.startPosition },
-    { icon: 'camera', label: 'Leg and camera', text: guide.legFacingCamera },
-    { icon: 'hand', label: 'Hands and support', text: guide.handsAndSupport },
-    { icon: 'move-horizontal', label: 'Range', text: guide.range },
-    { icon: 'clock', label: 'Speed', text: guide.speed },
-    { icon: 'video-off', label: 'What the camera must see', text: guide.cameraMustSee },
-  ];
   const cameraGuide = cameraViews.map((view) => (
     <figure key={view} className="figure-card camera-guide">
       <CameraFigure view={view} kind={kind} legend={legend} marks={step === 'guide' ? CAMERA_MARKS : undefined} description={CAMERA_CAPTION[view]} />
@@ -271,131 +254,26 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       {stepList}
 
       {step === 'guide' ? (
-        <div className="stack">
-          <fieldset className="choices">
-            <legend>{LEG_TEXT.legQuestion}</legend>
-            <div className="options">
-              {SIDES.map((value) => (
-                <label key={value} className="option">
-                  <input type="radio" name="exercise-leg" value={value} checked={leg === value} onChange={() => chooseLeg(value)} />
-                  <span>
-                    {SIDE_WORD[value]}
-                    {value === side && <span className="option-hint">{LEG_TEXT.planLeg}</span>}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {otherLegChosen && (
-              <div className="stack-s leg-note" id="other-leg-note">
-                <Notice icon="info">
-                  <p>{confirmedOther ? 'The app follows the leg that you chose. It does not change your plan.' : LEG_TEXT.otherLegConfirm}</p>
-                </Notice>
-                {!confirmedOther && (
-                  <button type="button" className="btn" onClick={() => setConfirmedOther(true)}>
-                    {LEG_TEXT.continueButton}
-                  </button>
-                )}
-              </div>
-            )}
-          </fieldset>
-          <fieldset className="choices">
-            <legend>{LEG_TEXT.cameraQuestion}</legend>
-            <div className="options">
-              {SIDES.map((value) => (
-                <label key={value} className="option">
-                  <input
-                    type="radio"
-                    name="camera-side"
-                    value={value}
-                    checked={cameraSide === value}
-                    onChange={() => {
-                      cameraChosen.current = true;
-                      setCameraSide(value);
-                    }}
-                  />
-                  <span>{SIDE_WORD[value]}</span>
-                </label>
-              ))}
-            </div>
-            <p className="detail">{LEG_TEXT.cameraHint}</p>
-            {cameraSide !== leg && (
-              <Notice icon="info">
-                <p>{LEG_TEXT.farLeg}</p>
-              </Notice>
-            )}
-          </fieldset>
-          <h2>Position guide</h2>
-          <div className="guide-figures">
-            <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} marks={START_MARKS} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
-            <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />
-            {cameraGuide}
-          </div>
-          <div className="stack-s">
-            <p className="detail">The drawing shows the movement. It is not your limit.</p>
-            <Notice icon="ruler">
-              <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
-            </Notice>
-          </div>
-          {returnNotice}
-          <dl className="guide-notes">
-            {notes.map((n, i) => (
-              <div key={n.label} className="guide-note">
-                <dt>
-                  <span className="guide-num">{i + 1}</span>
-                  <Icon name={n.icon} size={22} />
-                  {n.label}
-                </dt>
-                <dd>{n.text}</dd>
-              </div>
-            ))}
-          </dl>
-          <details className="card disclosure technique">
-            <summary>
-              <h2>How the sources describe this exercise</h2>
-              <span className="chev">
-                <Icon name="chevron-down" />
-              </span>
-            </summary>
-            <div className="disclosure-body stack-s">
-              <p className="detail">{TECHNIQUE_NOTE}</p>
-              <ul className="stack-s">
-                {techniqueFor(kind).map((l) => (
-                  <li key={l.text}>
-                    <p>{l.text}</p>
-                    <p className="detail">
-                      Source: {l.sources.map((id) => SOURCE_NAMES[id]).join(', ')}.
-                      {l.borrowed && ' Borrowed: none of these sources is about MPFL surgery.'}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </details>
-          {pair && (
-            <div className="card card-flat stack-s">
-              <h2>Second camera</h2>
-              <p>{SECOND_CAMERA_TEXT}</p>
-              <div className="actions">
-                <button type="button" className="btn" disabled={otherLegChosen && !confirmedOther} onClick={openPair}>
-                  <Icon name="phone" size={18} />
-                  {SECOND_CAMERA_BUTTON}
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="action-bar">
-            <button
-              type="button"
-              className="btn btn-primary btn-lg"
-              disabled={otherLegChosen && !confirmedOther}
-              aria-describedby={otherLegChosen && !confirmedOther ? 'other-leg-note' : undefined}
-              onClick={() => setStep('camera')}
-            >
-              Next: set up the camera
-              <Icon name="chevron-right" size={20} />
-            </button>
-          </div>
-        </div>
+        <SetupGuide
+          kind={kind}
+          side={side}
+          leg={leg}
+          cameraSide={cameraSide}
+          legend={legend}
+          targetFlexion={targetFlexion}
+          limit={limit}
+          confirmedOther={confirmedOther}
+          cameraGuide={cameraGuide}
+          returnNotice={returnNotice}
+          onLegChange={chooseLeg}
+          onCameraSideChange={(value) => {
+            cameraChosen.current = true;
+            setCameraSide(value);
+          }}
+          onConfirmOther={() => setConfirmedOther(true)}
+          onOpenPair={pair ? openPair : undefined}
+          onNext={() => setStep('camera')}
+        />
       ) : (
         <div className="setup-grid">
           <div className="stack">
