@@ -843,7 +843,7 @@ input[type='file']::file-selector-button {
 }
 .exercise {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: var(--s-3) var(--s-4);
   align-items: center;
   padding: var(--s-4) 0;
@@ -878,7 +878,7 @@ input[type='file']::file-selector-button {
 }
 @media (min-width: 40rem) {
   .exercise {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
   .exercise-go {
     grid-column: auto;
@@ -889,7 +889,7 @@ input[type='file']::file-selector-button {
 }
 /* The first exercise is the hero of Home: larger, with the main action. */
 .exercise-featured {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--s-6);
   gap: var(--s-4);
   background: var(--primary-soft);
