@@ -17,7 +17,7 @@ export function CompanionEntry({ onOpen }: { onOpen: () => void }) {
           <span className="row-title" id="companion-button-name">
             {COMPANION_BUTTON}
           </span>
-          <span className="row-detail" id="companion-button-detail">It sends body points only. It records nothing and counts nothing.</span>
+          <span className="row-detail" id="companion-button-detail" aria-hidden="true">It sends body points only. It records nothing and counts nothing.</span>
         </span>
         <Icon name="chevron-right" size={20} />
       </button>

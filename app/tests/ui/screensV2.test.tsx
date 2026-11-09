@@ -140,6 +140,18 @@ describe('C3 Your sessions', () => {
   });
 });
 
+describe('C3 hostile stored sessions', () => {
+  it('shows a hostile exercise name as plain text and does not crash', () => {
+    const rows = ['__proto__', 'constructor', 'W'.repeat(3000), '<img src=x onerror=1>'].map((exercise, i) =>
+      session({ exercise: exercise as never, peakFlexion: i % 2 ? 1e308 : 100, reps: i === 0 ? 1e308 : 5 }),
+    );
+    const { container } = render(<Dashboard sessions={rows} onBack={vi.fn()} />);
+    expect(container.querySelector('.legend-list')?.textContent).toContain('<img src=x onerror=1>');
+    expect(container.querySelector('.legend-list img')).toBeNull();
+    expect(container.textContent).not.toMatch(/Infinity|NaN/);
+  });
+});
+
 describe('C4 My data', () => {
   it('names the count on the export buttons and has plain sections', async () => {
     const db = freshDb();

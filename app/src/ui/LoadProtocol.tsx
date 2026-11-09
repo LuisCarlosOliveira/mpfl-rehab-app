@@ -78,7 +78,7 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
               <span className="row-title" id="protocol-file-name">
                 Choose a file from your care team
               </span>
-              <span className="row-detail">A .json file. You can also drop it on this page.</span>
+              <span className="row-detail" id="protocol-file-detail" aria-hidden="true">A .json file. You can also drop it on this page.</span>
             </span>
             <Icon name="chevron-right" size={20} />
             <input
@@ -87,6 +87,7 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
               type="file"
               accept=".json,application/json"
               aria-labelledby="protocol-file-name"
+              aria-describedby="protocol-file-detail"
               onChange={(e) => {
                 const input = e.target;
                 void onPick(input.files?.[0]).finally(() => {
@@ -104,7 +105,7 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
                 <span className="row-title" id="create-plan-name">
                   Create my plan
                 </span>
-                <span className="row-detail" id="create-plan-detail">The app uses published protocols. No clinician checks this plan.</span>
+                <span className="row-detail" id="create-plan-detail" aria-hidden="true">The app uses published protocols. No clinician checks this plan.</span>
               </span>
               <Icon name="chevron-right" size={20} />
             </button>

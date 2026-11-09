@@ -3,7 +3,7 @@
 // Every chart has a data table with the same numbers, built by toTableRows. A chart has no
 // line for a limit and no colour that carries a meaning. Nothing moves.
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
 import { peakUnreadable } from '../lib/cues';
 import { buildProgressSeries, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
@@ -96,7 +96,7 @@ const dayText = (iso: string, year = false) => {
 };
 
 /** A number for display with one decimal at most, so a raw value like 126.199999 shows as 126.2. A value that is not a number gives an empty text. */
-export const roundTo1 = (n: number): string => (Number.isFinite(n) ? String(Math.round(n * 10) / 10) : '');
+export const roundTo1 = (n: number): string => (Number.isFinite(n * 10) ? String(Math.round(n * 10) / 10) : '');
 
 /** The text of a table row for display. The numbers inside it get one decimal at most. */
 const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d{2,}/g, (m) => roundTo1(Number(m)));
@@ -144,11 +144,25 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   const lastIndex = rows.reduce((at, r, i) => (r.value !== null ? i : at), -1);
   const pickedRow = picked !== null && rows[picked]?.value != null ? picked : lastIndex;
   const lastKnown = pickedRow >= 0 ? rows[pickedRow] : undefined;
-  const onPick = (state: { activeTooltipIndex?: number | string | null } | undefined) => {
-    const at = Number(state?.activeTooltipIndex);
-    if (Number.isInteger(at) && at >= 0 && at < rows.length) setPicked(at);
+  // The chart is scaled by CSS, so Recharts cannot map a tap to a point. The tap goes to the nearest drawn mark instead.
+  // Marks are drawn for the values that exist, in order, so the Nth mark is the Nth row with a value.
+  const withValue = rows.flatMap((r, i) => (r.value !== null ? [i] : []));
+  const onPick = (event: MouseEvent<HTMLDivElement>) => {
+    const marks = [...event.currentTarget.querySelectorAll('.recharts-line-dots .recharts-dot, .recharts-bar-rectangle')];
+    let best = -1;
+    let gap = Infinity;
+    marks.forEach((m, j) => {
+      const box = m.getBoundingClientRect();
+      const far = Math.abs(box.left + box.width / 2 - event.clientX);
+      if (far < gap) {
+        gap = far;
+        best = j;
+      }
+    });
+    const row = withValue[best];
+    if (row !== undefined) setPicked(row);
   };
-  const common = { width: CHART_WIDTH, height: CHART_HEIGHT, data: chart.data, margin: MARGIN, accessibilityLayer: false, onClick: onPick };
+  const common = { width: CHART_WIDTH, height: CHART_HEIGHT, data: chart.data, margin: MARGIN, accessibilityLayer: false };
   // One point makes no area, and Recharts then draws a stray dot. The caption still names the error.
   const bandDrawn = chart.data.filter((d) => d.band).length >= 2;
   const noun = rows.length === 1 ? chart.noun.one : chart.noun.many;
@@ -173,7 +187,8 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
       <p id={summaryId} className="dash-note">
         {summaryText(rows)}
       </p>
-      <div className="dash-chart-box" role="img" aria-labelledby={titleId} aria-describedby={summaryId}>
+      {/* The tap is an extra way to read one value. The table below the chart holds every value for a keyboard or a screen reader. */}
+      <div className="dash-chart-box" role="img" aria-labelledby={titleId} aria-describedby={summaryId} onClick={onPick}>
         {chart.kind === 'line' ? (
           <ComposedChart {...common}>
             <CartesianGrid vertical={false} />
@@ -218,7 +233,7 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
                 <tr key={i}>
                   <td>{whenText(r.when)}</td>
                   <td className="num-cell">{shown(r.valueText)}</td>
-                  {chart.angle && <td className="num-cell">{band && Number.isFinite(band[0]) && Number.isFinite(band[1]) ? `${roundTo1(band[0])} to ${roundTo1(band[1])} degrees` : 'no value'}</td>}
+                  {chart.angle && <td className="num-cell">{band && roundTo1(band[0]) !== '' && roundTo1(band[1]) !== '' ? `${roundTo1(band[0])} to ${roundTo1(band[1])} degrees` : 'no value'}</td>}
                 </tr>
               );
             })}
@@ -242,18 +257,20 @@ export function DashboardCharts({ sessions }: { sessions: readonly SessionRecord
   );
 }
 
+/** The plain name of an exercise. A stored name that is not one of the known names shows as text, and never reads a property of the name table. */
+const exerciseName = (kind: string) => (Object.hasOwn(EXERCISE_NAMES, kind) ? EXERCISE_NAMES[kind as keyof typeof EXERCISE_NAMES] : kind);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 
 /** The numbers above the charts. Every value comes from the stored sessions. No total and no word about a trend. */
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
-  const lastPeak = [...ordered].reverse().find((x) => typeof x.peakFlexion === 'number' && Number.isFinite(x.peakFlexion) && !peakUnreadable(x.exercise, x.peakFlexion));
+  const lastPeak = [...ordered].reverse().find((x) => typeof x.peakFlexion === 'number' && roundTo1(x.peakFlexion) !== '' && !peakUnreadable(x.exercise, x.peakFlexion));
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
   const last = days[days.length - 1];
   const range = first === undefined || last === undefined ? '' : first === last ? `, ${dayText(first, true)}` : `, ${dayText(first, true)} to ${dayText(last, true)}`;
-  const kinds = [...new Set(ordered.map((x) => x.exercise as string))];
+  const kinds = [...new Set(ordered.map((x) => String(x.exercise)))];
   const known = Object.keys(EXERCISE_NAMES);
   kinds.sort((a, b) => (known.indexOf(a) + 1 || 99) - (known.indexOf(b) + 1 || 99));
   return (
@@ -280,15 +297,15 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
       </div>
       <ul className="legend-list" aria-label="Exercises in your sessions">
         {kinds.map((kind) => {
-          const mine = ordered.filter((x) => x.exercise === kind);
+          const mine = ordered.filter((x) => String(x.exercise) === kind);
           const withReps = mine.filter((x) => typeof x.reps === 'number' && Number.isFinite(x.reps));
           const reps = withReps.reduce((sum, x) => sum + (x.reps as number), 0);
           return (
             <li key={kind} className="legend-row">
-              <span className="legend-name">{EXERCISE_NAMES[kind as keyof typeof EXERCISE_NAMES] ?? kind}</span>
+              <span className="legend-name">{exerciseName(kind)}</span>
               <span className="legend-count">
                 {plural(mine.length, 'session')}
-                {withReps.length > 0 ? `, ${plural(reps, 'rep')}` : ''}
+                {withReps.length > 0 && Number.isFinite(reps) ? `, ${plural(reps, 'rep')}` : ''}
               </span>
             </li>
           );

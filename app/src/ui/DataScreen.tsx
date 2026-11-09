@@ -268,7 +268,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
                       <span className="row-title" id="care-row-name">
                         Open a session file (care team)
                       </span>
-                      <span className="row-detail" id="care-row-detail">The app keeps the file in memory only.</span>
+                      <span className="row-detail" id="care-row-detail" aria-hidden="true">The app keeps the file in memory only.</span>
                     </span>
                     <Icon name="chevron-right" size={20} />
                   </button>
