@@ -55,8 +55,23 @@ export const LEG_TEXT = {
   // PROPOSAL (T17): the app has no default return value. The notice shows in Setup and in Session.
   noReturnValue: 'Your protocol has no return value. Ask your surgeon.',
   noReturnValueDetail: 'The app counts no rep. The angle and the peak still show.',
-  noBaseline: 'The app has no resting angle. Stop, then start again and hold still in Setup.',
-  noBaselineDetail: 'The app counts no rep until it has one. The angle and the peak still show.',
+} as const;
+
+// Texts of the in-place capture of the starting angle (F1). Plain, neutral, no verdict word.
+// The person can follow every instruction in place. No text asks to stop and start again.
+export const CAPTURE_TEXT = {
+  title: 'Find your starting angle',
+  hold: 'Hold your leg still for a moment.',
+  progress: 'Hold still progress',
+  // After the time limit (an engineering value, 15 s, not clinical).
+  stuck: 'The app has not found a still moment. Hold your leg still a little longer. Or let the app use your lowest steady angle as the start.',
+  // The knee is as bent as the start of a rep, held still or at its lowest. The person can follow this in place.
+  bent: 'Your knee stays bent. Straighten your leg as far as your care team allows, then hold still.',
+  lowestButton: 'Use my lowest steady angle as the start',
+  lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
+  startingAngle: (deg: number) => `Starting angle: ${deg} degrees (estimated)`,
+  setupNoRest: 'The app has no resting angle yet.',
+  setupNoRestDetail: 'Hold your leg still. If you start now, the next screen finds your starting angle.',
 } as const;
 
 /** The side that the person did not choose. */

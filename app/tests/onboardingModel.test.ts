@@ -128,3 +128,17 @@ describe('earlyReferral', () => {
     expect(earlyReferral(full({ redFlags: { calf: true } }), TODAY)).toBeNull();
   });
 });
+
+describe('the surgery date question with a date of today (L2-07)', () => {
+  it('is not answered for a future date and is answered for today and the past', () => {
+    expect(answered('surgeryDate', full({ surgeryDate: '2026-12-01' }), TODAY)).toBe(false);
+    expect(answered('surgeryDate', full({ surgeryDate: TODAY }), TODAY)).toBe(true);
+    expect(answered('surgeryDate', full({ surgeryDate: '2025-01-01' }), TODAY)).toBe(true);
+    expect(answered('surgeryDate', full({ surgeryDate: '2026-02-31' }), TODAY)).toBe(false);
+  });
+
+  it('keeps the final guard: toInputs still passes a future date to the generator, which refers', () => {
+    const i = toInputs(full({ surgeryDate: '2026-12-01' }), TODAY);
+    expect(i?.surgeryDate).toBe('2026-12-01');
+  });
+});

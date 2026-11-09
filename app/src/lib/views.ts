@@ -142,11 +142,26 @@ export function frontKneeInward(
 /** PROPOSAL: how long the buffer holds front frames. A rep that lasts longer than this gives no value. */
 export const FRONT_BUFFER_MS = 60_000;
 
+// ENGINEERING minimum, not a clinical number: the median of fewer reps than this is too thin to log.
+// Three is the smallest count where one odd rep cannot set the median. No source sets this number.
+export const MIN_FRONT_REPS = 3;
+
 export interface FrontRecord {
   /** Reps that gave a change value. A rep with too few usable frames is not counted here. */
   reps: number;
-  /** The largest change over those reps, inward positive. Absent when no rep gave a value. */
+  /**
+   * The median of the signed change of those reps, inward positive. UNVERIFIED sign convention.
+   * Absent when fewer than MIN_FRONT_REPS reps gave a value. A front-view 2D angle is a logged change for the care team
+   * and not a measure of valgus (research/form-evidence.md: 2D and 3D frontal angle do not correlate, r = 0.127).
+   */
   changeDeg?: number;
+}
+
+/** Median of a list of numbers. An even count gives the mean of the two middle values. */
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
 export interface FrontRecorder {
@@ -197,8 +212,7 @@ export function createFrontRecorder(side: Side, aspect: () => number, limitDeg?:
     finish() {
       pending.splice(0).forEach(settle);
       if (!seen) return null;
-      const changeDeg = values.reduce<number | undefined>((best, v) => (best === undefined || Math.abs(v) > Math.abs(best) ? v : best), undefined);
-      return changeDeg === undefined ? { reps: 0 } : { reps: values.length, changeDeg };
+      return values.length < MIN_FRONT_REPS ? { reps: values.length } : { reps: values.length, changeDeg: median(values) };
     },
     buffered: () => frames.length,
   };

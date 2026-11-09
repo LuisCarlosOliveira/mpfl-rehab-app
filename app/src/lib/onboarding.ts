@@ -55,7 +55,19 @@ export function limitNumber(text: string): number | null {
   return Number.isFinite(n) && n >= 0 && n <= 180 ? n : null;
 }
 
-export function answered(step: StepId, a: Answers): boolean {
+/**
+ * A plain message for a surgery date that the app cannot use, or null. Only a date that is not real and a date in the future
+ * are refused here. The window of weeks is a rule of the generator. An empty field has no message.
+ */
+export function surgeryDateProblem(text: string, today: string): string | null {
+  if (text === '') return null;
+  const weeks = weeksSince(text, '9999-12-31');
+  if (weeks === null) return 'Enter a real date for your surgery.';
+  return weeksSince(text, today) === null ? 'The date of your surgery cannot be in the future. Enter the date of your surgery.' : null;
+}
+
+/** `today` is the calendar date of the device. It lets the date question refuse a date in the future. */
+export function answered(step: StepId, a: Answers, today?: string): boolean {
   switch (step) {
     case 'writtenPlan': return a.writtenPlan !== null;
     case 'procedure': return a.procedure !== null;
@@ -63,7 +75,7 @@ export function answered(step: StepId, a: Answers): boolean {
     case 'bothKnees': return a.bothKnees !== null;
     case 'firstSurgery': return a.firstSurgery !== null;
     case 'specialRules': return a.specialRules !== null;
-    case 'surgeryDate': return weeksSince(a.surgeryDate, '9999-12-31') !== null;
+    case 'surgeryDate': return weeksSince(a.surgeryDate, today ?? '9999-12-31') !== null;
     case 'side': return a.side !== null;
     case 'limit': return a.limitKind === 'degrees' ? limitNumber(a.limitDegrees) !== null : a.limitKind !== null;
     case 'redFlags': return true; // no tick is a valid answer

@@ -54,8 +54,12 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const savedNote = useRef<HTMLParagraphElement>(null);
 
   // The pause rule runs on the current answers, in each render. A changed answer changes the message at once.
+  // FR12 says pain 7 or more OR swelling more than before. One answer is enough, so an unanswered question
+  // counts as no reason to pause. It is never read as a high value. Live test L1-01 found the old wait for both.
   const verdict =
-    pain === null || swelling === null ? null : evaluateSession({ pain, swelling, painPauseThreshold: protocol.painPauseThreshold });
+    pain === null && swelling === null
+      ? null
+      : evaluateSession({ pain: pain ?? 0, swelling: swelling ?? 'none', painPauseThreshold: protocol.painPauseThreshold });
 
   // After Save, focus moves to the saved message. The screen reader reads it, and the button that was pressed is gone.
   useEffect(() => {
@@ -89,6 +93,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       phase: activePhase,
       ...(legTracked === undefined ? {} : { legTracked }),
       ...(cameraSide === undefined ? {} : { cameraSide }),
+      ...(summary.baselineSource === undefined ? {} : { baselineSource: summary.baselineSource }),
       // T12b: the front-view record is for the clinician. This screen never shows it.
       ...(summary.front === undefined
         ? {}

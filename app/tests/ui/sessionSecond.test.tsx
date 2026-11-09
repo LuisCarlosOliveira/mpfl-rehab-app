@@ -55,9 +55,15 @@ function frontFrame(side: Side, deg: number): Landmark[] {
   return out;
 }
 
-/** Front frames every 100 ms. The knee alignment stays at 0 until 3 s, then rises to 10 degrees. */
+/** Front frames every 100 ms. In each 8 s cycle the knee alignment stays at 0 until 3 s, then rises to 10 degrees. */
 function frontFrames(second: MockSecond, side: Side, to = 7000) {
-  for (let t = 0; t <= to; t += 100) act(() => second.emit(frontFrame(side, t < 3000 ? 0 : Math.min(10, (t - 3000) / 200)), t));
+  for (let t = 0; t <= to; t += 100) act(() => second.emit(frontFrame(side, t % 8000 < 3000 ? 0 : Math.min(10, ((t % 8000) - 3000) / 200)), t));
+}
+
+/** Three reps of the side view, one after the other. This is the engineering minimum of reps for a front-view value. */
+function playThreeReps(source: MockSource, side: Side) {
+  let t = 0;
+  for (let i = 0; i < 3; i++) t = playRep(source, side, 60, t);
 }
 
 function setup(over: { status?: PairingStatus; message?: string | null; side?: Side; withSecond?: boolean } = {}) {
@@ -146,13 +152,13 @@ describe('Session with a second camera', () => {
 });
 
 describe('the front-view change goes to the record, for the clinician only', () => {
-  it('adds the reps with a value and the largest change to the end summary', () => {
+  it('adds the reps with a value and the median change to the end summary', () => {
     const { source, second, onEnd } = setup();
-    frontFrames(second, 'left');
-    playRep(source, 'left', 60);
+    frontFrames(second, 'left', 24_500);
+    playThreeReps(source, 'left');
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     const front = endRecord(onEnd).front;
-    expect(front?.reps).toBe(1);
+    expect(front?.reps).toBe(3);
     expect(front?.changeDeg).toBeGreaterThan(5);
     expect(front?.changeDeg).toBeLessThan(11);
   });

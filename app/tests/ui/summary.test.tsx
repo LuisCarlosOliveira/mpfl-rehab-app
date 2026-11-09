@@ -51,6 +51,23 @@ const answer = (pain: number, swelling: RegExp) => {
 };
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
+describe('Summary, where the starting angle came from (live test F1)', () => {
+  it('saves baselineSource when the run carries it, and none when it does not', async () => {
+    const withSource = setup({ run: { reason: 'stop', summary: { ...summary, baselineSource: 'lowest' } } });
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    expect((await withSource.db.sessions.toArray())[0]?.baselineSource).toBe('lowest');
+    cleanup();
+    const without = setup();
+    answer(2, /no swelling/i);
+    save();
+    await screen.findByText('Session saved.');
+    const row = (await without.db.sessions.toArray())[0];
+    expect(row && 'baselineSource' in row).toBe(false);
+  });
+});
+
 describe('Summary screen', () => {
   it('pre-selects nothing and keeps Save off until both questions are answered', () => {
     setup();
@@ -232,6 +249,36 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
   it('swelling "more than before" shows the pause message at once, with no press of Save', () => {
     setup();
     answer(0, /more than before/i);
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+  });
+
+  // Live test L1-01: the rule says pain 7 OR swelling more than before. One answer is enough.
+  it('pain 7 shows the pause message while swelling is still unanswered', () => {
+    setup();
+    pick(7);
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(reported(7)).not.toBeNull();
+  });
+
+  it('swelling "more than before" shows the pause message while pain is still unanswered', () => {
+    setup();
+    swell(/more than before/i);
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('pain 6 alone, or "some swelling" alone, shows no pause message', () => {
+    setup();
+    pick(6);
+    expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
+    swell(/some swelling/i);
+    expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
+  });
+
+  it('Do not save with pain 7 and no swelling answer still shows the pause message', () => {
+    const { onDone } = setup();
+    pick(7);
+    fireEvent.click(screen.getByRole('button', { name: 'Do not save' }));
+    expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
   });
 

@@ -63,3 +63,25 @@ describe('guideFor', () => {
     expect(guideFor('straight-leg-raise').range).not.toMatch(/stop this exercise/i);
   });
 });
+
+describe('the guide names the chosen leg (L1-06)', () => {
+  it('keeps "operated" by default', () => {
+    EXERCISE_KINDS.forEach((k) => expect(JSON.stringify(guideFor(k))).toBe(JSON.stringify(guideFor(k, 'operated'))));
+  });
+
+  it.each(EXERCISE_KINDS)('%s: says "chosen" and never "operated" when the other leg is chosen', (kind) => {
+    const text = Object.values(guideFor(kind, 'chosen')).join(' ');
+    expect(text).not.toMatch(/operated/i);
+    expect(text).toMatch(/chosen (leg|side)/);
+  });
+
+  it('says that the chosen leg is the leg nearest the camera', () => {
+    expect(guideFor('heel-slide', 'chosen').legFacingCamera).toBe('Your chosen leg is the leg nearest the camera. Put the camera at the side of that leg.');
+  });
+
+  it.each(EXERCISE_KINDS)('%s: keeps the 25 word limit and the number rules for the chosen leg', (kind) => {
+    const g = guideFor(kind, 'chosen');
+    Object.values(g).forEach((t) => t.split(/(?<=[.!?])\s+/).forEach((s: string) => expect(s.split(/\s+/).length).toBeLessThanOrEqual(25)));
+    expect(Object.values(g).join(' ')).not.toMatch(/\d/);
+  });
+});

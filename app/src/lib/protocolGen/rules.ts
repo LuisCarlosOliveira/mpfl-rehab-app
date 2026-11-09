@@ -166,7 +166,7 @@ const defs = {
   },
   // Engineering values
   ENG_TARGET: {
-    title: 'Count target of the heel slide',
+    title: 'Where the heel slide count starts',
     kind: 'engineering',
     values: { targetFlexion: 2 * MARGIN_DEG, minLimit: 3 * MARGIN_DEG + 1 },
     sourceIds: ['F1', 'F3'],
@@ -175,7 +175,7 @@ const defs = {
     reason:
       'Twice the camera margin is the smallest knee bend that the camera tells from rest. It is not a range target. The schema needs a limit of at least 3 margins plus 1 degree.',
     flag: 'clinical-review-needed',
-    text: 'The count target of the heel slide is 2 times the camera margin. It is an engineering value and not a range target.',
+    text: 'The app starts counting a heel slide rep at 2 times the camera margin. It is an engineering value. It is not a range for your knee.',
   },
   ENG_RETURN: {
     title: 'Return tolerance of the heel slide',

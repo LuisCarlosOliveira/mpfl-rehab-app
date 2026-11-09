@@ -2,7 +2,7 @@
 // Every number comes from the generator output. "Why this plan" lists each rule with its sources, its evidence level
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
-import { answerLines, whyView, type PlanDraft } from '../lib/planView';
+import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
 import { ASK_SURGEON } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
@@ -111,13 +111,14 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
               <li key={e.kind} className="card plan-exercise">
                 <p className="exercise-name">{EXERCISE_NAMES[e.kind]}</p>
                 <ul className="chips">
-                  {prescription(e).map((line) => (
+                  {prescription(e, true).map((line) => (
                     <li key={line.text} className="chip">
                       <Icon name={line.icon} size={16} />
                       {line.text}
                     </li>
                   ))}
                 </ul>
+                {e.targetFlexion !== undefined && <p className="detail">{countStartText(e.targetFlexion)}.</p>}
               </li>
             ))}
           </ul>

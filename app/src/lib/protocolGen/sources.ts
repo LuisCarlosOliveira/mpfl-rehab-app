@@ -30,6 +30,11 @@ export interface Source {
   auditRows: readonly string[];
   checked: string;
   verified: boolean;
+  /**
+   * Set only for a project file that is not a published source. The screen shows this label instead of the authors and year.
+   * A rule that carries a number must list at least one source without this label.
+   */
+  notPublished?: string;
 }
 
 type Draft<I extends string> = Omit<Source, 'checked' | 'verified' | 'id'> & { id: I };
@@ -280,6 +285,7 @@ const list = [
   }),
   entry({
     id: 'RR',
+    notPublished: 'Project knowledge base summary (not a published source)',
     authors: 'Project knowledge base',
     year: 2026,
     title: 'Rehab rules for the app, with sources (rows marked NONE)',
@@ -302,6 +308,7 @@ const list = [
   }),
   entry({
     id: 'DESIGN',
+    notPublished: 'Project design note (not a published source)',
     authors: 'Project design',
     year: 2026,
     title: 'Protocol generator: design, section 4 (referral cases and fail closed)',
@@ -316,6 +323,9 @@ const list = [
     auditRows: [],
   }),
 ];
+
+/** True for a published source. False for a project file such as the knowledge base summary. */
+export const isPublished = (s: Source): boolean => s.notPublished === undefined;
 
 export type SourceId = (typeof list)[number]['id'];
 

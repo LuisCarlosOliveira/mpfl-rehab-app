@@ -93,6 +93,51 @@ describe('importSessions with a different pseudonymous id', () => {
   });
 });
 
+describe('importSessions on a device with no sessions takes the id of the file (L1-02)', () => {
+  it('keeps the id of file A, so a second import of A is a duplicate and not another person', async () => {
+    const db = freshDb();
+    const text = exportText([session({ date: NEW_DATE })]);
+    expect(await importSessions(db, text)).toEqual({ ok: true, imported: 1 });
+    expect(getPseudonymId()).toBe(PSEUDONYM);
+
+    const again = await importSessions(db, text);
+    expect(again).toMatchObject({ ok: false, error: { code: 'duplicate' } });
+    if (!again.ok) expect(again.error.message).not.toMatch(OTHER_REFUSAL);
+    expect(await db.sessions.count()).toBe(1);
+  });
+
+  it('carries the id of file A in a re-export', async () => {
+    const db = freshDb();
+    await importSessions(db, exportText([session({ date: NEW_DATE })]));
+    expect(JSON.parse(await exportJson(db)).pseudonymId).toBe(PSEUDONYM);
+  });
+
+  it('takes the id of the file when the device exported first and has a stored id but no sessions', async () => {
+    // The device id comes from an export of an empty record. The device holds no session, so the file wins.
+    const db = freshDb();
+    localStorage.setItem('mpfl.pseudoId', LOCAL_ID);
+    expect(JSON.parse(await exportJson(db)).pseudonymId).toBe(LOCAL_ID);
+    expect(await importSessions(db, exportText([session({ date: NEW_DATE })]))).toEqual({ ok: true, imported: 1 });
+    expect(getPseudonymId()).toBe(PSEUDONYM);
+  });
+
+  it('refuses file B after file A, and writes nothing', async () => {
+    const db = freshDb();
+    await importSessions(db, exportText([session({ date: NEW_DATE })]));
+    const before = await snapshot(db);
+    const other = exportText([session({ date: '2026-11-06T10:00:00.000Z' })], { pseudonymId: LOCAL_ID });
+    expect(await importSessions(db, other)).toMatchObject({ ok: false, error: { code: 'other-person' } });
+    expect(await snapshot(db)).toEqual(before);
+  });
+
+  it('does not change the id when the import fails as a duplicate or with a bad file', async () => {
+    const db = freshDb();
+    localStorage.setItem('mpfl.pseudoId', LOCAL_ID);
+    expect(await importSessions(db, '{"a":1}')).toMatchObject({ ok: false });
+    expect(getPseudonymId()).toBe(LOCAL_ID);
+  });
+});
+
 describe('DataScreen with a file of another person', () => {
   it('shows the refusal as plain text in an alert and keeps the file input usable', async () => {
     const db = freshDb();

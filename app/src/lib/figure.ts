@@ -10,6 +10,12 @@ import type { GuideKind } from './guides';
 import { SETUP_CONFIG } from './setupRules';
 
 export type FigureFrame = 'start' | 'end';
+
+/** Who the drawn leg is: the operated leg of the protocol, or the other leg that the person chose in Setup (L1-06). */
+export type LegLegend = 'operated' | 'chosen';
+export const LEG_LEGEND_TEXT: Record<LegLegend, string> = { operated: 'Operated leg', chosen: 'Your chosen leg' };
+/** The legend for the leg that the person chose, against the operated side of the protocol. */
+export const legLegend = (chosen: Side, operated: Side): LegLegend => (chosen === operated ? 'operated' : 'chosen');
 export interface Point {
   x: number;
   y: number;
@@ -477,7 +483,7 @@ function aroundBoxes(text: string, size: number, centre: Point, bearingDeg: numb
  * `kneeDeg` is the knee angle of the exercise data. It sets the drawn end position and the number on the arc.
  * Without it the drawing uses an illustrative angle and shows no number.
  */
-export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeDeg?: number): Figure {
+export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeDeg?: number, legend: LegLegend = 'operated'): Figure {
   const given = kneeDeg === undefined ? undefined : clamp(Math.round(kneeDeg), 0, VIEW.maxFlexionDeg);
   const hasAngle = USES_DATA_ANGLE[kind] && given !== undefined;
   const flex = hasAngle ? given! : ILLUSTRATIVE_FLEXION[kind];
@@ -567,7 +573,7 @@ export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeD
     const top = Math.min(box0.y, frameLabel.box.y - 1);
     const ringR = RING_R * 0.55;
     const legendY = Math.max(box0.y + box0.h, arcLabel ? arcLabel.box.y + arcLabel.box.h : 0) + 1;
-    const legendText = labelOf('operatedLeg', 'Operated leg', size, round1(box0.x + 2 + 2 * ringR + 3), round1(legendY));
+    const legendText = labelOf('operatedLeg', LEG_LEGEND_TEXT[legend], size, round1(box0.x + 2 + 2 * ringR + 3), round1(legendY));
     const legendRing = { center: { x: round1(box0.x + 2 + ringR), y: round1(legendY + legendText.box.h / 2) }, r: round1(ringR) };
 
     const labels = [frameLabel, legendText, surfaceLabel];
@@ -651,7 +657,7 @@ export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)
  * The camera stands at knee height, so the lens has the height of the operated knee.
  * The distance in the picture is not to scale. The text carries the advice. Source: ux-flow 6.1, PROPOSAL.
  */
-export function cameraPlan(view: CameraView, kind: GuideKind): CameraPlan {
+export function cameraPlan(view: CameraView, kind: GuideKind, legend: LegLegend = 'operated'): CameraPlan {
   const posture = POSTURE_OF[kind];
   const fig = figureFor(kind, 'start', view === 'side' ? 'left' : 'right');
   const bodyBox = unionBox([...bodyShapes(fig), ...fig.surface.rects.map((r): Shape => ({ k: 'rect', box: r }))].map(shapeBounds));
@@ -689,7 +695,7 @@ export function cameraPlan(view: CameraView, kind: GuideKind): CameraPlan {
   // The legend sits in the band below. It keeps clear of the distance text.
   const legendY = dy + 6.5;
   const ringR = RING_R * 0.55;
-  const legend1 = L('operatedLeg', 'Operated leg', pad.x + 2 + 2 * ringR + 3, legendY);
+  const legend1 = L('operatedLeg', LEG_LEGEND_TEXT[legend], pad.x + 2 + 2 * ringR + 3, legendY);
   const legend2 = L('height', 'At knee height', pad.x + 2 + 2 * ringR + 3, legendY + legend1.box.h + 1);
   const legendRing = { center: { x: round1(pad.x + 2 + ringR), y: round1(legendY + legend1.box.h / 2) }, r: round1(ringR) };
   const legendLevel = { from: { x: round1(pad.x + 2), y: round1(legend2.box.y + legend2.box.h / 2) }, to: { x: round1(pad.x + 2 + 2 * ringR), y: round1(legend2.box.y + legend2.box.h / 2) } };

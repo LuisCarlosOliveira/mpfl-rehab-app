@@ -214,9 +214,9 @@ describe('the Session with a phone', () => {
     // The laptop clock stamps each front frame on arrival (remoteSource). The test sets that clock to the time of the frame.
     let clock = 0;
     const now = vi.spyOn(performance, 'now').mockImplementation(() => clock);
-    for (let t = 0; t <= 7000; t += 100) {
+    for (let t = 0; t <= 24_500; t += 100) {
       clock = t;
-      const deg = t < 3000 ? 0 : Math.min(10, (t - 3000) / 200);
+      const deg = t % 8000 < 3000 ? 0 : Math.min(10, ((t % 8000) - 3000) / 200); // 8 s cycles, one for each rep
       const message = frontLandmarks(t);
       const tilt = (deg / 2) * (Math.PI / 180);
       const aspect = 9 / 16;
@@ -228,7 +228,8 @@ describe('the Session with a phone', () => {
     }
     now.mockRestore();
     expect(source.start).toHaveBeenCalled();
-    playRep(source as MockSource, 'left', 60);
+    let at = 0;
+    for (let i = 0; i < 3; i++) at = playRep(source as MockSource, 'left', 60, at); // 3 reps: the minimum for a front-view value
     click('Stop');
     await heading('Summary');
     const text = () => document.body.textContent ?? '';
@@ -238,7 +239,7 @@ describe('the Session with a phone', () => {
     click('Save');
     await screen.findByText('Session saved.');
     const row = (await db.sessions.toArray())[0]!;
-    expect(row).toMatchObject({ view: 'side', secondView: 'front', frontReps: 1 });
+    expect(row).toMatchObject({ view: 'side', secondView: 'front', frontReps: 3 });
     expect(row.frontChangeDeg).toBeGreaterThan(5);
     expect(text()).not.toContain(String(row.frontChangeDeg));
   });

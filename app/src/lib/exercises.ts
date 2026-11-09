@@ -33,6 +33,9 @@ const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to se
 /** The exercises that count reps. Only these need a return value and a resting angle. */
 export const countsReps = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'mini-squat';
 
+/** The exercises that the person does lying down. The setup texts then ask to move the camera and not to turn (F1). Same as the posture of figure.ts. */
+export const doneLying = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'straight-leg-raise';
+
 export type SetupResult =
   | { ok: true; kind: 'reps'; config: RepsConfig }
   | { ok: true; kind: 'hold'; config: HoldConfig }
@@ -132,6 +135,8 @@ export interface StepOutput {
 
 export interface Pipeline {
   step(landmarks: Landmark[] | null, tMs: number): StepOutput;
+  /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
+  setBaseline(deg: number): void;
   summary(): Summary;
 }
 
@@ -148,7 +153,7 @@ export interface PipelineOptions {
 export function createPipeline(exercise: Exercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
   const made = counterSetup(exercise);
   if (!made.ok) return made;
-  const setup =
+  let setup =
     made.kind === 'reps' ? { ...made, config: { ...made.config, baseline: options.baselineDeg ?? undefined } } : made;
 
   // Start values. tech.md 3.2 advises minCutoff near 1 Hz, then a higher beta. Not tuned on real video.
@@ -178,6 +183,9 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   return {
     ok: true,
     pipeline: {
+      setBaseline(deg) {
+        if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
+      },
       step(landmarks, t) {
         if (landmarks === null) {
           filter.reset();

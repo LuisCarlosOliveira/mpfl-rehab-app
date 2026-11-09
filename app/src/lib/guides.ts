@@ -1,6 +1,7 @@
 // Position guide data for the 4 exercises (FR28). Source: research/ux-flow.md section 7 and
 // research/clinical.md section 4. Wording follows mpfl-clinical-guardrails: no verdict words, and no number
 // that the protocol sets. The protocol supplies targets and limits. Each sentence has 25 words at most.
+import type { LegLegend } from './figure';
 import type { EXERCISE_KINDS } from './protocol/schema';
 
 export type GuideKind = (typeof EXERCISE_KINDS)[number];
@@ -60,6 +61,13 @@ const GUIDES: Record<GuideKind, Guide> = {
   },
 };
 
-export function guideFor(kind: GuideKind): Guide {
-  return GUIDES[kind];
+/**
+ * The guide text. When the person chose the leg that is not the operated leg, "operated" becomes "chosen" (L1-06).
+ * The text then names the leg that the app follows, and not the operated side of the protocol.
+ */
+export function guideFor(kind: GuideKind, legend: LegLegend = 'operated'): Guide {
+  const guide = GUIDES[kind];
+  if (legend === 'operated') return guide;
+  const own = (text: string) => text.replace(/operated (leg|side)/g, 'chosen $1');
+  return Object.fromEntries(Object.entries(guide).map(([key, text]) => [key, own(text)])) as unknown as Guide;
 }

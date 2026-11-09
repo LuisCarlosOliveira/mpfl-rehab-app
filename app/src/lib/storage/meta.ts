@@ -59,6 +59,14 @@ export function getPseudonymId(): string {
   return id;
 }
 
+/**
+ * The device takes the id of an imported file. Call it only after the sessions of the file are stored on a device
+ * that held none. A later import of the same file then counts as the same person, and a re-export keeps the id.
+ */
+export function adoptPseudonymId(id: string): void {
+  memoryId = write(PSEUDO_KEY, id) ? null : id;
+}
+
 export function getLastExport(): string | null {
   return read(EXPORT_KEY);
 }

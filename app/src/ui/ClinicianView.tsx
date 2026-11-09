@@ -15,7 +15,9 @@ import './dashboard.css';
 
 const NOT_APPLICABLE = 'Not applicable';
 const NO_VALUE = 'No value';
-const FRONT_NOTE = 'Front-view change, estimated, not a medical measurement. Inward is positive. The value is the largest change in one rep. It comes from the second camera.';
+const FRONT_HEADER = 'Front-view change, estimated, not a medical measurement';
+const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your care team, not a diagnosis. N is the number of reps in the cell. It comes from the second camera.';
+const FRONT_NOT_ENOUGH = 'Not enough front-view data';
 
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
@@ -27,6 +29,12 @@ async function readText(file: File, maxBytes: number): Promise<{ ok: true; text:
   } catch {
     return { ok: false, message: 'The app cannot read this file. Try again.' };
   }
+}
+
+/** The front-view cell: the median in degrees with the number of reps, or the reason that there is no value. */
+function frontCell(s: SessionRecord): string {
+  if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? String(s.frontChangeDeg) : `${s.frontChangeDeg} (${s.frontReps} reps)`;
+  return s.secondView === undefined ? NOT_APPLICABLE : FRONT_NOT_ENOUGH;
 }
 
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
@@ -93,7 +101,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
   );
 
   // T12b (FR24): the column and the note show only when a file holds a front-view value.
-  const showFront = sessions.some((s) => s.frontChangeDeg !== undefined);
+  const showFront = sessions.some((s) => s.secondView !== undefined || s.frontChangeDeg !== undefined);
 
   async function onSessionFile(input: HTMLInputElement) {
     const picked = input.files?.[0];
@@ -189,7 +197,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
               label="Session list"
               head={[
                 'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling',
-                ...(showFront ? ['Front-view change (degrees)'] : []),
+                ...(showFront ? [FRONT_HEADER] : []),
               ]}
             >
               {sessions.map((s) => (
@@ -204,7 +212,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{orNone(s.topFlexion)}</td>
                   <td className="num-cell">{s.pain}</td>
                   <td>{SWELLING_TEXT[s.swelling]}</td>
-                  {showFront && <td className="num-cell">{s.secondView === undefined ? NOT_APPLICABLE : s.frontChangeDeg === undefined ? NO_VALUE : s.frontChangeDeg}</td>}
+                  {showFront && <td className="num-cell">{frontCell(s)}</td>}
                 </tr>
               ))}
             </Table>

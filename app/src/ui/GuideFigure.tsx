@@ -12,6 +12,7 @@ import {
   type FigureFrame,
   type FigureLabel,
   type Joint,
+  type LegLegend,
   type Limb,
   type Point,
 } from '../lib/figure';
@@ -75,10 +76,12 @@ interface Props {
   description: string;
   /** The knee angle of the exercise data in degrees. It sets the drawn end position and the number on the arc. */
   kneeDeg?: number;
+  /** "chosen" when the drawn leg is not the operated leg. The legend then says "Your chosen leg". */
+  legend?: LegLegend;
 }
 
-export function GuideFigure({ kind, frame, side, description, kneeDeg }: Props) {
-  const fig = figureFor(kind, frame, side, kneeDeg);
+export function GuideFigure({ kind, frame, side, description, kneeDeg, legend }: Props) {
+  const fig = figureFor(kind, frame, side, kneeDeg, legend);
   const arc = frame === 'end' ? arcPath(fig.kneeArc) : null;
   const byKey = (key: FigureLabel['key']) => fig.labels.find((l) => l.key === key)!;
   const frameName = frame === 'start' ? 'Start position' : 'End position';
@@ -119,11 +122,13 @@ interface CameraProps {
   kind: GuideKind;
   /** The text alternative. */
   description: string;
+  /** "chosen" when the drawn leg is not the operated leg. */
+  legend?: LegLegend;
 }
 
 /** The camera placement drawing: the person in profile, the phone on a stand at knee height, the view cone and the distance. */
-export function CameraFigure({ view, kind, description }: CameraProps) {
-  const plan = cameraPlan(view, kind);
+export function CameraFigure({ view, kind, description, legend }: CameraProps) {
+  const plan = cameraPlan(view, kind, legend);
   const { figure: f, phone, distance } = plan;
   const size = plan.labelSize;
   const label = (key: (typeof plan.labels)[number]['key']) => plan.labels.find((l) => l.key === key)!;

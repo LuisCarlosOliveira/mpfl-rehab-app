@@ -4,6 +4,7 @@
 // Rule (FR11): Stop and "knee gave way or hurts" both end the session and go to Summary.
 
 import type { Side } from '../lib/angle';
+import type { BaselineSource } from '../lib/baseline';
 import { initialScreen, type ScreenId } from '../lib/flow';
 import type { Summary } from '../lib/exercises';
 import type { SetsState } from '../lib/sets';
@@ -20,6 +21,8 @@ export interface RunSummary extends Summary {
   sets?: SetsState;
   /** T12b: the front-view record of the second camera. It goes to the clinician record only. Absent: one camera. */
   front?: FrontRecord;
+  /** F1: where the resting angle came from. Absent when the exercise has no rep counter or no angle was set. */
+  baselineSource?: BaselineSource;
 }
 
 export interface RunResult {

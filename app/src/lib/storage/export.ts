@@ -3,7 +3,7 @@ import { version as APP_VERSION } from '../../../package.json';
 import { MAX_FILE_BYTES, describeFirstIssue, overByteCap } from '../protocol/loader';
 import { protocolIdSchema } from '../protocol/schema';
 import { loadGeneratorInputs, sessionSchema, storedInputsSchema, type MpflDb, type SessionData } from './db';
-import { getPseudonymId, storedPseudonymId } from './meta';
+import { adoptPseudonymId, getPseudonymId, storedPseudonymId } from './meta';
 
 export const ANGLE_METHOD = '2D webcam estimate, not a goniometer measurement';
 export const MAX_IMPORT_BYTES = MAX_FILE_BYTES;
@@ -83,7 +83,8 @@ export async function importSessions(
   // PROPOSAL (audit A1-2): a clinician or the user has not confirmed this rule.
   // A file with another id never mixes into a database that already holds sessions.
   // Nothing is written before this check, and the check reads the id without writing it.
-  if ((await db.sessions.count()) > 0 && parsed.file.pseudonymId !== storedPseudonymId()) {
+  const hadSessions = (await db.sessions.count()) > 0;
+  if (hadSessions && parsed.file.pseudonymId !== storedPseudonymId()) {
     return fail('other-person', "This file belongs to another person's record. Nothing was imported. Erase this device first if you want to load it.");
   }
   const keyOf = (s: { date: string; exercise: string }) => `${s.date}|${s.exercise}`;
@@ -92,6 +93,9 @@ export async function importSessions(
     return fail('duplicate', 'Some of these sessions are already stored. Nothing was imported.');
   }
   await db.sessions.bulkAdd(parsed.file.sessions);
+  // A device with no sessions takes the id of the file, even when it already holds an id of its own
+  // (for example from an export of an empty record). The file is then the record of this device.
+  if (!hadSessions && parsed.file.sessions.length > 0) adoptPseudonymId(parsed.file.pseudonymId);
   return { ok: true, imported: parsed.file.sessions.length };
 }
 
@@ -102,7 +106,7 @@ const CSV_COLUMNS = [
   'reps', 'peakFlexion', 'holdSeconds', 'topFlexion', 'marginDeg', 'marginSource',
   'nearLimit', 'overLimit', 'tooFast', 'gaveWayPresses', 'redFlagBlocks', 'pain', 'swelling',
   'sets_prescribed', 'reps_prescribed', 'reps_per_set', 'leg_tracked', 'camera_side',
-  'second_view', 'front_reps', 'front_change_deg', 'set_pain',
+  'second_view', 'front_reps', 'front_change_deg', 'set_pain', 'baseline_source',
 ] as const;
 
 // PROPOSAL: the per-set counts are numbers joined by a space. A number cannot start a formula,
@@ -134,6 +138,7 @@ function valueOf(c: CsvColumn, s: SessionData, file: ExportFile): string | numbe
     case 'reps_per_set': return s.repsPerSet?.join(REPS_PER_SET_SEPARATOR);
     case 'leg_tracked': return s.legTracked;
     case 'camera_side': return s.cameraSide;
+    case 'baseline_source': return s.baselineSource;
     case 'second_view': return s.secondView;
     case 'front_reps': return s.frontReps;
     case 'front_change_deg': return s.frontChangeDeg;

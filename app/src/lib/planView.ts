@@ -117,9 +117,8 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   return lines;
 }
 
-/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. accept.ts enforces the same rule. */
-export function movesForward(current: Protocol, next: Protocol): boolean {
-  if (next.activePhase > current.activePhase) return true;
+/** True when a limit in the proposal is higher than the stored limit, or is gone. accept.ts enforces the same rule. */
+export function raisesLimit(current: Protocol, next: Protocol): boolean {
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const e of phase.exercises) {
@@ -128,6 +127,11 @@ export function movesForward(current: Protocol, next: Protocol): boolean {
     }
   }
   return false;
+}
+
+/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. accept.ts enforces the same rule. */
+export function movesForward(current: Protocol, next: Protocol): boolean {
+  return next.activePhase > current.activePhase || raisesLimit(current, next);
 }
 
 /** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */
@@ -147,28 +151,39 @@ const EVIDENCE: Record<Grade, string> = {
 /** The evidence level in plain words, with the code of the knowledge base. */
 export const evidenceLabel = (level: Grade): string => `${EVIDENCE[level]} (${level})`;
 
-/** A source as one line: the id, the authors and the year. */
+/** A source as one line: the id, the authors and the year. A project file shows its honest label and no authors or year. */
 export function sourceLine(id: SourceId): string {
   const s = SOURCES[id];
-  return `${id}: ${s.authors}, ${s.year}`;
+  return s.notPublished === undefined ? `${id}: ${s.authors}, ${s.year}` : `${id}: ${s.notPublished}`;
 }
+
+/** The note for a heel slide that the app made. The count value is set by the app. It is no target and no goal. */
+export const APP_VALUE = '(set by the app, not by a clinician)';
+export const countStartText = (deg: number): string => `The app starts counting a rep at ${deg} degrees ${APP_VALUE}`;
 
 const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
   maxFlexion: { label: 'knee-bend limit', unit: ' degrees' },
-  targetFlexion: { label: 'target knee bend', unit: ' degrees' },
   returnWithinDeg: { label: 'return within', unit: ' degrees' },
   sets: { label: 'sets' },
   reps: { label: 'reps' },
   reviewDate: { label: 'review date' },
 };
 
-/** One applied value as a line: where it is in the plan, the number, and who gave it. */
+/**
+ * One applied value as a line: the phase, where it is in the plan, the number, and who set it.
+ * The phase is in every line, so a plan with two phases never shows the same line twice.
+ * The count value and the return tolerance of the heel slide are values of the app. They are no target and no goal.
+ */
 function appliedLine(a: WhyEntry['applied'][number]): string {
-  const [phase, kind, field] = a.path.split('.') as [string, string, string | undefined];
-  const name = field === undefined ? `Phase ${phase.replace('phase', '')}` : (NAMES[kind as Exercise['kind']] ?? kind);
+  const [phaseKey, kind, field] = a.path.split('.') as [string, string, string | undefined];
+  const phase = `Phase ${phaseKey.replace('phase', '')}`;
+  const name = NAMES[kind as Exercise['kind']] ?? kind;
+  if (field === 'targetFlexion') return `${phase}, ${name}, the app starts counting a rep at ${a.value} degrees ${APP_VALUE}`;
+  if (field === 'returnWithinDeg') return `${phase}, ${name}, the app ends a rep when the knee is back within ${a.value} degrees of rest ${APP_VALUE}`;
   const info = FIELD_LABELS[field ?? kind] ?? { label: field ?? kind };
   const who = a.origin === 'person' ? ' (as entered by you)' : '';
-  return `${name}, ${info.label}: ${a.value}${info.unit ?? ''}${who}`;
+  const where = field === undefined ? phase : `${phase}, ${name}`;
+  return `${where}, ${info.label}: ${a.value}${info.unit ?? ''}${who}`;
 }
 
 export interface WhyView {

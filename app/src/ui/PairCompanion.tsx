@@ -14,13 +14,19 @@ import { createCompanionLink, type CompanionLink } from '../pairing/rtcLink';
 import { startCamera, stopCamera, type CameraResult } from '../pose/camera';
 import { cameraSource, type LandmarkSource } from '../pose/source';
 
+/** The part of a Wake Lock sentinel that this screen uses. The `release` event comes from the browser. */
+export interface ScreenLock {
+  release(): Promise<void>;
+  addEventListener?(type: 'release', listener: () => void): void;
+}
+
 export interface CompanionDeps {
   createLink: () => CompanionLink;
   createSource: () => LandmarkSource;
   startCamera: () => Promise<CameraResult>;
   stopCamera: () => void;
   startScan: (video: HTMLVideoElement, onText: (text: string) => void) => () => void;
-  wakeLock: () => Promise<{ release(): Promise<void> } | null>;
+  wakeLock: () => Promise<ScreenLock | null>;
   now: () => number;
 }
 
@@ -34,11 +40,17 @@ const defaultDeps: CompanionDeps = {
     try {
       return (await navigator.wakeLock?.request('screen')) ?? null;
     } catch {
-      return null; // the screen can still turn off. The page works the same.
+      return null; // the screen can turn off. The page tells the person and works the same.
     }
   },
   now: () => performance.now(),
 };
+
+/** `pending`: not asked yet or waiting for the answer. `on`: the browser granted the lock. `off`: missing, refused or released. */
+type Lock = 'pending' | 'on' | 'off';
+
+const LOCK_ON_TEXT = 'The screen stays on while the phone works.';
+const LOCK_OFF_TEXT = 'Your screen could turn off. Turn off the screen timeout in your phone settings while the phone works as the second camera.';
 
 type Step = 'intro' | 'scan' | 'answer' | 'run' | 'stopped' | 'failed';
 
@@ -57,6 +69,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [lock, setLock] = useState<Lock>('pending');
   const [pasted, setPasted] = useState('');
   const h1 = useRef<HTMLHeadingElement>(null);
   const viewfinder = useRef<HTMLVideoElement>(null);
@@ -64,7 +77,8 @@ export function PairCompanion({ onExit, deps: override }: Props) {
   const link = useRef<CompanionLink | null>(null);
   const source = useRef<LandmarkSource | null>(null);
   const stopScan = useRef<(() => void) | null>(null);
-  const wake = useRef<{ release(): Promise<void> } | null>(null);
+  const wake = useRef<ScreenLock | null>(null);
+  const lockTurn = useRef(0); // each request and each release gets a new number, so that a late answer is dropped
   const cameraOn = useRef(false);
   const unsubscribe = useRef<(() => void) | null>(null);
 
@@ -82,9 +96,38 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     link.current = null;
     if (cameraOn.current) depsRef.current.stopCamera();
     cameraOn.current = false;
+    lockTurn.current++;
     void wake.current?.release().catch(() => undefined);
     wake.current = null;
   }, []);
+
+  // The lock starts with the link, at the button press, so that the screen does not turn off during the scan.
+  // A lock that is missing or refused sets `off`. The browser releases a lock when the page is hidden.
+  const requestLock = useCallback(async () => {
+    const turn = ++lockTurn.current;
+    const granted = await depsRef.current.wakeLock();
+    if (turn !== lockTurn.current) {
+      void granted?.release().catch(() => undefined); // the screen was left while the browser answered
+      return;
+    }
+    wake.current = granted;
+    setLock(granted ? 'on' : 'off');
+    granted?.addEventListener?.('release', () => {
+      if (wake.current !== granted) return;
+      wake.current = null;
+      setLock('off');
+    });
+  }, []);
+
+  // The page is visible again: ask again when no lock is held, while the link is in use.
+  useEffect(() => {
+    if (step !== 'scan' && step !== 'answer' && step !== 'run') return;
+    const again = () => {
+      if (document.visibilityState === 'visible' && wake.current === null) void requestLock();
+    };
+    document.addEventListener('visibilitychange', again);
+    return () => document.removeEventListener('visibilitychange', again);
+  }, [step, requestLock]);
 
   // Every way out stops the camera, the link and the wake lock.
   useEffect(() => releaseAll, [releaseAll]);
@@ -105,7 +148,6 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     source.current = mine;
     const allow = createThrottle(SEND_HZ);
     void (async () => {
-      wake.current = await depsRef.current.wakeLock();
       const result = await mine.start((landmarks, timeMs) => {
         if (!landmarks || !allow(timeMs) || !link.current) return;
         const message = landmarksMessage(landmarks, mine.view, timeMs, mine.aspect());
@@ -150,6 +192,8 @@ export function PairCompanion({ onExit, deps: override }: Props) {
 
   async function beginScan() {
     setStep('scan');
+    setLock('pending');
+    void requestLock();
     const camera = await depsRef.current.startCamera();
     if (!camera.ok) {
       setError(camera.error.message);
@@ -180,10 +224,16 @@ export function PairCompanion({ onExit, deps: override }: Props) {
 
       {stepIndex !== null && <PairSteps current={stepIndex} />}
 
+      {lock === 'off' && (step === 'scan' || step === 'answer' || step === 'run') && (
+        <Notice role="status" icon="info">
+          <p>{LOCK_OFF_TEXT}</p>
+        </Notice>
+      )}
+
       {step === 'intro' && (
         <div className="card stack-s">
           <p className="pair-lead">This phone becomes the second camera of the app on your laptop. It sends body points only. It never sends video or pictures.</p>
-          <p className="pair-lead">Put the phone upright in front of you, so that it sees your legs. The screen stays on while the phone works.</p>
+          <p className="pair-lead">Put the phone upright in front of you, so that it sees your legs.</p>
           <div className="actions">
             <button type="button" className="btn btn-primary btn-lg" onClick={() => void beginScan()}>
               <Icon name="camera" size={20} />
@@ -249,6 +299,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
             <p>{sending ? 'Sending' : 'Connected'}</p>
           </Notice>
           <p className="pair-lead">The camera is on. The phone sends body points only. It shows no video and sends none.</p>
+          {lock === 'on' && <p className="pair-lead">{LOCK_ON_TEXT}</p>}
           <video ref={hiddenVideo} className="pair-offscreen" muted playsInline aria-hidden="true" />
           <button type="button" className="btn btn-primary btn-lg btn-block pair-btn-stop" onClick={stop}>
             <Icon name="square" size={22} fill="currentColor" />

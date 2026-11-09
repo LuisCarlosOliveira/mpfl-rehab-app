@@ -37,12 +37,15 @@ export const sessionSchema = z.strictObject({
   // Both are optional, so a session from an older file still reads. No index. The schema version stays 1.
   legTracked: z.enum(['left', 'right']).optional(),
   cameraSide: z.enum(['left', 'right']).optional(),
+  // F1: where the resting angle of the rep counter came from. 'still' is a still window (the rule of Setup).
+  // 'lowest' is the lowest steady angle that the person chose to use. Optional, no index, the schema version stays 1.
+  baselineSource: z.enum(['still', 'lowest']).optional(),
   // T12b (FR24): a second camera (the phone) was used, and the front-view knee change. For the clinician only.
-  // `frontReps` counts the reps that gave a value. `frontChangeDeg` is the largest change, inward positive.
+  // `frontReps` counts the reps that gave a value. `frontChangeDeg` is the median change per rep, inward positive. It is absent when too few reps gave a value.
   // All three are optional, so a session from an older file still reads. No index. The schema version stays 1.
   secondView: z.literal('front').optional(),
   frontReps: z.number().int().min(0).max(1000).optional(),
-  frontChangeDeg: z.number().min(-180).max(180).optional(),
+  frontChangeDeg: z.number().min(-90).max(90).optional(),
   // The pain answer (0 to 10) at the end of each completed set. null means no answer. Optional, so an older file still reads.
   // It never stops the session by itself. Only a clinician `painPauseThreshold` does (adaptation design 4.3, L2).
   setPain: z.array(z.number().int().min(0).max(10).nullable()).max(20).optional(),

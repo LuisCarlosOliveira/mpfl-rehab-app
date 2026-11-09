@@ -16,6 +16,7 @@ export interface IdentityConfig {
   minFrames: number; // frames with the whole leg visible that a leg needs in a window
   minRangeDeg: number; // below this range for both legs the answer is none
   ambiguousRatio: number; // the smaller range over the larger range at or above this gives ambiguous
+  confirmWindows: number; // the note needs the other leg to win this many windows in a row (F1, issue L1-08)
 }
 
 export const IDENTITY_CONFIG: IdentityConfig = {
@@ -24,6 +25,7 @@ export const IDENTITY_CONFIG: IdentityConfig = {
   minFrames: 30,
   minRangeDeg: 8,
   ambiguousRatio: 0.6,
+  confirmWindows: 2,
 };
 
 const percentile = (sorted: number[], p: number) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] as number;
@@ -72,6 +74,15 @@ export function movingLeg(frames: Landmark[][], aspect: number, config: Identity
   if (high < config.minRangeDeg) return 'none';
   if (low / high >= config.ambiguousRatio) return 'ambiguous';
   return left > right ? 'left' : 'right';
+}
+
+/**
+ * True when the last `confirmWindows` answers all name the other leg. One window is not enough, so the soft note stays rare.
+ * F1: on the saved clips only two windows in a row named the other leg for clips 03 and 06 (tests/legIdentityClips.test.ts).
+ */
+export function otherLegConfirmed(answers: MovingLeg[], other: Side, config: IdentityConfig = IDENTITY_CONFIG): boolean {
+  const n = config.confirmWindows;
+  return answers.length >= n && answers.slice(-n).every((a) => a === other);
 }
 
 /**

@@ -144,7 +144,7 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
           {view.offerText && (
             <section className="card stack-s" aria-labelledby="pair-host-step1">
               <h2 id="pair-host-step1">Step 1. Scan this code with the phone</h2>
-              <p>On the phone, open this app and choose Use this phone as the second camera.</p>
+              <p>On the phone, open this app and choose Use this phone as the second camera. Use one phone only.</p>
               <div className="pair-qr">
                 <QrCode text={view.offerText} label="Pairing code of this laptop" />
               </div>

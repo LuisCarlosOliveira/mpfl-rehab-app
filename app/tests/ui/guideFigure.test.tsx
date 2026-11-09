@@ -159,3 +159,21 @@ describe('figures.css', () => {
     expect(source).not.toMatch(/fetch\(|XMLHttpRequest|<image|href=/);
   });
 });
+
+describe('the legend of the drawings follows the chosen leg (L1-06)', () => {
+  it('GuideFigure writes "Your chosen leg" for the other leg and "Operated leg" by default', () => {
+    const other = render(<GuideFigure kind="heel-slide" frame="start" side="right" legend="chosen" description="d" />);
+    expect([...other.container.querySelectorAll('text')].map((t) => t.textContent)).toContain('Your chosen leg');
+    expect([...other.container.querySelectorAll('text')].map((t) => t.textContent)).not.toContain('Operated leg');
+    other.unmount();
+    const own = render(<GuideFigure kind="heel-slide" frame="start" side="right" description="d" />);
+    expect([...own.container.querySelectorAll('text')].map((t) => t.textContent)).toContain('Operated leg');
+  });
+
+  it('CameraFigure follows the legend too', () => {
+    const { container } = render(<CameraFigure view="side" kind="heel-slide" legend="chosen" description="d" />);
+    const texts = [...container.querySelectorAll('text')].map((t) => t.textContent);
+    expect(texts).toContain('Your chosen leg');
+    expect(texts).not.toContain('Operated leg');
+  });
+});

@@ -109,3 +109,36 @@ describe('styles.css rules', () => {
     expect(Number(min[1]) * 16).toBeGreaterThanOrEqual(72);
   });
 });
+
+// L2-06 and L2-11: long text without spaces and a very narrow screen. The rules sit in a marked block at the end of the file.
+describe('styles.css, long text and narrow screens', () => {
+  const css2 = css.slice(Math.max(0, css.indexOf('LONG TEXT AND NARROW SCREENS (F2a)')));
+  const block = css2.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('has the marked block at the end of the file', () => {
+    expect(css.includes('LONG TEXT AND NARROW SCREENS (F2a)')).toBe(true);
+    expect(css2.length).toBeGreaterThan(100);
+  });
+
+  it('lets text without spaces wrap in the cards, the facts, the lists and the notices', () => {
+    for (const selector of ['.fact-row dd', '.card', '.notice', '.why-source', '.chip', '.answer-value', '.change-list li', 'main h2']) {
+      expect(block, selector).toContain(selector);
+    }
+    expect(block).toMatch(/overflow-wrap:\s*anywhere/);
+    // A heading in a flex row must not shrink to one letter, so headings and chips use break-word.
+    expect(/\.chip,[^}]*\{[^}]*overflow-wrap:\s*break-word/.test(block)).toBe(true);
+  });
+
+  it('lets grid and flex children shrink with min-width 0', () => {
+    expect(block).toMatch(/min-width:\s*0/);
+    expect(block).toMatch(/\.home-grid > \*/);
+  });
+
+  it('lets the option cards fit a screen of 195 px', () => {
+    expect(block).toMatch(/\.options\s*\{[^}]*min\(11rem, 100%\)/);
+  });
+
+  it('gives the pain scale a shape that does not overlap below 320 px', () => {
+    expect(block).toMatch(/@media \(max-width: 319px\)/);
+  });
+});

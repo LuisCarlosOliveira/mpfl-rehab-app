@@ -95,20 +95,21 @@ describe('CSV column set_pain', () => {
     return { header: (lines[1] as string).split(','), row: lines[2] as string };
   };
 
-  it('is the last column, so old positions stay', async () => {
+  it('comes after the front columns and before baseline_source (F1 appends that column last), so old positions stay', async () => {
     const { header } = await rows({});
-    expect(header[header.length - 1]).toBe('set_pain');
-    expect(header.indexOf('front_change_deg')).toBe(header.length - 2);
+    expect(header[header.length - 2]).toBe('set_pain');
+    expect(header[header.length - 1]).toBe('baseline_source');
+    expect(header.indexOf('front_change_deg')).toBe(header.length - 3);
   });
 
   it('writes the answers joined by a space, and "no-answer" for a skipped set', async () => {
     const { row } = await rows({ setPain: [2, null, 7] });
-    expect(row.endsWith(',"2 no-answer 7"')).toBe(true);
+    expect(row.endsWith(',"2 no-answer 7",')).toBe(true); // the empty baseline_source cell follows
   });
 
   it('leaves the cell empty for an old session', async () => {
     const { row } = await rows({});
-    expect(row.endsWith(',')).toBe(true);
+    expect(row.endsWith(',,')).toBe(true); // the set_pain cell and the baseline_source cell
     expect(row).not.toContain('undefined');
   });
 });

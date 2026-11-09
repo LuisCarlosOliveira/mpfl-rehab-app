@@ -42,6 +42,21 @@ The user ordered: "in the end launch a full and factual live test, fixing any is
 - [ ] Independent audit of the final tree, then the Opus final verdict (`docs/final-audit.md`).
 - [ ] Final report to the user: what passed, what failed and was fixed, what is still unproven (real phone, real accuracy, clinician review, regulatory decision).
 
+## Body map overlay (user request, 2026-11-09, only if it helps)
+
+The user showed two physiotherapy apps that draw the body on the camera picture. The user decided: add it only if it improves a feature of the app, such as the count or the evaluation. A map does not evaluate form, so the case rests on the count and on Setup. The live tests showed that tracking the wrong leg gave 0 reps on clip 01 and 4 reps on the other leg. Build it as a small experiment with two gates. Gate 1: the median pose loop frame rate drops by no more than 1 fps with the map on. Measure it over 60 seconds on the real clips, on the same machine. Gate 2: on the real clips, a wrong leg or a lost joint is clearly visible on the map. If a gate fails, remove the map and report the numbers.
+
+- [ ] Draw the skeleton as an SVG layer over the camera picture. Do not use a canvas that holds the video. The app must never copy a frame.
+- [ ] Draw the bones and joints that the pose model finds. The chosen leg (hip, knee, ankle) is drawn stronger. Other joints are drawn softer.
+- [ ] A joint with low visibility is drawn dim or dashed, and the rule "leg not seen" stays the same.
+- [ ] Draw the knee angle arc on the chosen leg with the live number, with the label "estimated angle".
+- [ ] The picture and the map use the same mirror setting. A test proves that the map follows the person.
+- [ ] Draw with no React state per frame, so the pose loop keeps its frame rate. Measure the frame rate before and after.
+- [ ] Use neutral colours. No green or red verdict colour. No score. No "perfect form" text. The user decided earlier that the app never judges form.
+- [ ] A hold timer ring or bar for the seated hold, with the seconds left. The hold time comes from the protocol.
+- [ ] Keep an off switch ("Hide body map") for a person who finds it distracting.
+- [ ] Test with the real clips: the map must sit on the person.
+
 ## Quality gates
 - [ ] Full precheck. Full `npm run e2e`. `npm run e2e:pairing`.
 - [ ] Lighthouse 95 or more. axe zero violations. WebKit smoke test.

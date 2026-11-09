@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateProtocol, RULES, SOURCES, type GeneratorInputs } from '../src/lib/protocolGen';
 import type { SessionRecord } from '../src/lib/storage';
-import { describeChanges, describeNewPlan, draftOf, eventsSince, evidenceLabel, localIsoDate, movesForward, reviewDue, sourceLine, weeksSince } from '../src/lib/planView';
+import { describeChanges, describeNewPlan, draftOf, eventsSince, evidenceLabel, localIsoDate, movesForward, raisesLimit, reviewDue, sourceLine, weeksSince, whyView } from '../src/lib/planView';
 
 const TODAY = '2026-11-08';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -178,5 +178,51 @@ describe('draftOf', () => {
 
   it('refuses a plan with no answers', () => {
     expect(() => draftOf(plan(3), 'create', null)).toThrow();
+  });
+});
+
+describe('whyView, the lines of "Values in your plan" (L2-08, L2-01, L2-09)', () => {
+  const allEntries = (week: number, over: Partial<GeneratorInputs> = {}) => plan(week, over).why;
+
+  it('never repeats a line, also in a phase 2 plan, and names the phase', () => {
+    const entries = allEntries(8, { phaseClearance: 'yes' });
+    for (const e of entries) {
+      const lines = whyView(e).applied;
+      expect(new Set(lines).size, `${e.ruleId}: ${lines.join(' | ')}`).toBe(lines.length);
+    }
+    const dose = whyView(entries.find((e) => e.ruleId === 'DOSE')!).applied;
+    expect(dose).toContain('Phase 1, Straight leg raise, sets: 2');
+    expect(dose).toContain('Phase 2, Straight leg raise, sets: 2');
+  });
+
+  it('shows the count value as a value of the app and never as a target', () => {
+    const e = allEntries(3).find((x) => x.ruleId === 'ENG_TARGET')!;
+    const lines = whyView(e).applied;
+    expect(lines).toEqual(['Phase 1, Heel slide, the app starts counting a rep at 18 degrees (set by the app, not by a clinician)']);
+    expect(whyView(e).title).not.toMatch(/target/i);
+    expect(whyView(e).text).not.toMatch(/target/i);
+    const r = allEntries(3).find((x) => x.ruleId === 'ENG_RETURN')!;
+    expect(whyView(r).applied).toEqual(['Phase 1, Heel slide, the app ends a rep when the knee is back within 9 degrees of rest (set by the app, not by a clinician)']);
+  });
+
+  it('keeps "as entered by you" for the limit of the person', () => {
+    const e = allEntries(3).find((x) => x.ruleId === 'RANGE_SURGEON')!;
+    expect(whyView(e).applied).toEqual(['Phase 1, Heel slide, knee-bend limit: 60 degrees (as entered by you)']);
+  });
+
+  it('labels the project file honestly and not as a published source', () => {
+    expect(sourceLine('RR')).toBe('RR: Project knowledge base summary (not a published source)');
+    expect(sourceLine('DESIGN')).toContain('(not a published source)');
+    expect(sourceLine('P2')).not.toContain('not a published source');
+    const refused = allEntries(3).find((x) => x.ruleId === 'NONE_FREQ')!;
+    expect(whyView(refused).sources.join(' ')).not.toContain('Project knowledge base, 2026');
+  });
+});
+
+describe('raisesLimit', () => {
+  it('is true for a higher or removed limit and false for a lower limit and a later phase only', () => {
+    expect(raisesLimit(plan(3).protocol, plan(3, { surgeonLimit: { kind: 'degrees', degrees: 95 } }).protocol)).toBe(true);
+    expect(raisesLimit(plan(3).protocol, plan(3, { surgeonLimit: { kind: 'degrees', degrees: 50 } }).protocol)).toBe(false);
+    expect(raisesLimit(plan(3).protocol, plan(3).protocol)).toBe(false);
   });
 });

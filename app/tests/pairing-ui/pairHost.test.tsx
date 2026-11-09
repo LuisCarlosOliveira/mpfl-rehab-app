@@ -55,6 +55,12 @@ async function toOffer() {
 }
 
 describe('PairHost', () => {
+  // L3-02: a second phone that takes the same offer can stop the first pairing. The transport cannot ignore it, so the screen says it.
+  it('tells the person to use one phone only, next to the laptop code', async () => {
+    await toOffer();
+    expect(screen.getByText(/Use one phone only\./)).toBeInTheDocument();
+  });
+
   it('starts with the heading in focus, two plain lines and two buttons', () => {
     setup();
     const h1 = screen.getByRole('heading', { level: 1, name: 'Add a second camera' });

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { AUDIT_DATE, GRADES, SOURCES, type Source } from '../src/lib/protocolGen/sources';
+import { RULES } from '../src/lib/protocolGen/rules';
+import { AUDIT_DATE, GRADES, isPublished, SOURCES, type Source } from '../src/lib/protocolGen/sources';
 
 // The two research files are the only place where a quote can come from.
 const research = (name: string) => readFileSync(resolve(__dirname, '../../research', name), 'utf8');
@@ -50,5 +51,20 @@ describe('sources table', () => {
 
   it('never grades the guideline sources above OPINION', () => {
     for (const id of ['S1', 'P1', 'P2', 'P3'] as const) expect(SOURCES[id].grade).toBe('OPINION');
+  });
+});
+
+describe('published sources and project files (L2-09)', () => {
+  it('marks the project files as not published and the literature as published', () => {
+    expect(isPublished(SOURCES.RR)).toBe(false);
+    expect(isPublished(SOURCES.DESIGN)).toBe(false);
+    for (const [, s] of entries) if (s.id !== 'RR' && s.id !== 'DESIGN') expect(isPublished(s), s.id).toBe(true);
+  });
+
+  it('gives every rule that carries a number at least one published source', () => {
+    for (const r of Object.values(RULES)) {
+      if (Object.keys(r.values).length === 0) continue;
+      expect(r.sourceIds.some((id) => isPublished(SOURCES[id])), `${r.id} rests only on a project file`).toBe(true);
+    }
   });
 });

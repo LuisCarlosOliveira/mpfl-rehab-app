@@ -3,7 +3,7 @@
 // This screen saves nothing. A change that moves forward needs VITE_SELF_PROGRESSION, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, limitNumber, answered, type Answers } from '../lib/onboarding';
-import { describeChanges, draftOf, eventsSince, movesForward, weeksSince, type PlanDraft } from '../lib/planView';
+import { describeChanges, draftOf, eventsSince, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, type MpflDb, type StoredInputs } from '../lib/storage';
@@ -26,6 +26,7 @@ interface Props {
 }
 
 export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
+export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
 export const HOLD_EVENT = 'Contact your care team before the next stage. The app recorded a safety event after the date of your plan.';
 
 type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'ready'; stored: StoredInputs; events: number };
@@ -115,7 +116,8 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
       return;
     }
     const forward = movesForward(protocol, result.protocol);
-    const hold = !forward ? null : !selfProgression ? HOLD_NEXT_STAGE : events > 0 ? HOLD_EVENT : null;
+    const heldText = raisesLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
+    const hold = !forward ? null : !selfProgression ? heldText : events > 0 ? HOLD_EVENT : null;
     onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol), hold));
   }
 

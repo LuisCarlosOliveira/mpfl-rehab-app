@@ -4,7 +4,7 @@
 
 import { MIN_VISIBILITY, selectLeg, type Landmark, type Side } from './angle';
 import { restingBaseline } from './baseline';
-import { isStill } from './still';
+import { calmRun, isStill } from './still';
 
 export interface SetupConfig {
   edgeFraction: number;
@@ -27,9 +27,12 @@ export const SETUP_CONFIG: SetupConfig = {
   minLegFraction: 0.3,
   // PROPOSAL, to be tuned in T13: gap between the two hips, as a fraction of leg length. Side-on needs a small gap (rule 6).
   maxHipGap: 0.25,
-  // PROPOSAL, to be tuned in T13: hip, knee or ankle moves more than 2 percent of frame height (rule 7).
+  // PROPOSAL (engineering, not clinical): hip, knee or ankle moves more than 2 percent of frame height (rule 7).
+  // F1 check on the saved pose output of 7 clips (tests/still.test.ts). A leg that holds still moves 0.004 to 0.013 of the frame
+  // in its calmest 2 s window (noise floor, clips 03 to 07). A person who moves all the time moves 0.040 or more (clips 01, 02).
+  // The limit 0.02 is 1.5 times the highest noise floor and half of the move of a moving person. So it is not stricter than the camera.
   stillMaxMove: 0.02,
-  // PROPOSAL, to be tuned in T13: the stillness window is 2 seconds (rule 7).
+  // PROPOSAL (engineering, not clinical): the stillness window is 2 seconds (rule 7). The same F1 check holds for this window.
   stillWindowMs: 2000,
   // PROPOSAL, to be tuned in T13: a failure must last 1 second before the text changes (FR27: no flicker).
   failHoldMs: 1000,
@@ -56,6 +59,18 @@ export const SETUP_TEXT: Record<SetupRuleId, string> = {
   still: 'Hold still for 2 seconds.',
   ready: 'The camera sees your hip, knee and ankle.',
 };
+
+export type Posture = 'upright' | 'lying';
+
+// A person who lies down cannot turn the body. These two rules then ask to move the camera. Other texts fit both postures.
+const LYING_TEXT: Partial<Record<SetupRuleId, string>> = {
+  'turn-leg': 'Move the camera so that it sees the side of your chosen leg.',
+  'side-on': 'Move the camera to the side of your body.',
+};
+
+/** The instruction for a rule. A person who lies down gets the camera text for the turn rules. */
+export const setupText = (id: SetupRuleId, posture: Posture = 'upright'): string =>
+  (posture === 'lying' ? LYING_TEXT[id] : undefined) ?? SETUP_TEXT[id];
 
 export interface SetupSample {
   tMs: number;
@@ -88,8 +103,9 @@ export function evaluateSetup(
   config: SetupConfig = SETUP_CONFIG,
   history: SetupSample[] = [],
   cameraSide: Side = side,
+  posture: Posture = 'upright',
 ): SetupResult {
-  const out = (id: SetupRuleId): SetupResult => ({ id, text: SETUP_TEXT[id], ready: id === 'ready' });
+  const out = (id: SetupRuleId): SetupResult => ({ id, text: setupText(id, posture), ready: id === 'ready' });
 
   if (!landmarks || landmarks.length < 33) return out('no-pose');
   const leg = selectLeg(landmarks, side);
@@ -126,6 +142,8 @@ export interface SetupSampleInput {
   side: Side;
   /** The side of the person that the camera is on. Missing means the side of the chosen leg. */
   cameraSide?: Side;
+  /** Missing means upright. A person who lies down gets the camera texts. */
+  posture?: Posture;
   aspect: number;
 }
 
@@ -140,6 +158,8 @@ export interface StabilizedSetup {
   countdownLeftMs: number | null;
   /** The resting flexion of the chosen leg in degrees, once the check is ready. Otherwise null. */
   baselineDeg: number | null;
+  /** From 0 to 1: how much of the still window the leg has held still. null unless the shown rule is the still rule. */
+  stillProgress: number | null;
 }
 
 /**
@@ -165,7 +185,8 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
       history = [];
     }
 
-    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history, sample.cameraSide).id;
+    const posture = sample.posture ?? 'upright';
+    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history, sample.cameraSide, posture).id;
     if (current === 'ready') {
       // The leg held still, so the median of the window is the resting angle. The newest good value stays.
       const rest = restingBaseline(history, sample.side, sample.aspect, config);
@@ -191,11 +212,14 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
 
     let announce: string | null = null;
     if (shown !== announced && tMs - announcedAt >= config.announceEveryMs) {
-      announce = SETUP_TEXT[shown];
+      announce = setupText(shown, posture);
       announced = shown;
       announcedAt = tMs;
     }
-    return { rule: shown, text: SETUP_TEXT[shown], ready: countdownLeftMs === 0, announce, countdownLeftMs, baselineDeg };
+    const calm = shown === 'still' && history.length > 0 ? calmRun(history, sample.side, sample.aspect, config.stillMaxMove) : [];
+    const stillProgress =
+      shown !== 'still' ? null : calm.length < 2 ? 0 : Math.min(1, ((calm[calm.length - 1] as SetupSample).tMs - (calm[0] as SetupSample).tMs) / config.stillWindowMs);
+    return { rule: shown, text: setupText(shown, posture), ready: countdownLeftMs === 0, announce, countdownLeftMs, baselineDeg, stillProgress };
   };
 
   return Object.assign(step, {

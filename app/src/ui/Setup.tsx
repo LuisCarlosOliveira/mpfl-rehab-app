@@ -12,9 +12,10 @@
 // The camera guide drawing shows the side view. After a phone is connected it also shows the front view.
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { countsReps } from '../lib/exercises';
+import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import { guideFor, type GuideKind } from '../lib/guides';
+import { legLegend } from '../lib/figure';
 import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import type { FrameHandler, LandmarkSource } from '../pose/source';
@@ -23,7 +24,7 @@ import { CameraFigure, GuideFigure } from './GuideFigure';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
-import { LEG_TEXT, countdownSeconds, ruleRows } from './setupView';
+import { CAPTURE_TEXT, LEG_TEXT, countdownSeconds, ruleRows } from './setupView';
 import type { Sound } from './sound';
 
 type Camera = { kind: 'idle' } | { kind: 'starting' } | { kind: 'running' } | { kind: 'error'; message: string };
@@ -37,6 +38,8 @@ interface Live {
   announced: string;
   /** The resting angle in whole degrees once the leg held still, or null. */
   resting: number | null;
+  /** The hold still progress in whole percent while the check waits for a still leg, or null. */
+  progress: number | null;
 }
 
 /** What Setup hands to the next screen. */
@@ -115,7 +118,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
-    const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect() }, timeMs);
+    const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: doneLying(kind) ? 'lying' : 'upright' }, timeMs);
     if (out.announce !== null) announced.current = out.announce;
     baseline.current = out.baselineDeg;
     const next: Live = {
@@ -125,6 +128,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       seconds: countdownSeconds(out.countdownLeftMs),
       announced: announced.current,
       resting: out.baselineDeg === null ? null : Math.round(out.baselineDeg),
+      progress: out.stillProgress === null ? null : Math.round(out.stillProgress * 20) * 5,
     };
     const key = JSON.stringify(next);
     if (key === lastKey.current) return;
@@ -170,7 +174,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       <p className="detail">{LEG_TEXT.noReturnValueDetail}</p>
     </Notice>
   );
-  const guide = guideFor(kind);
+  const legend = legLegend(leg, side);
+  const guide = guideFor(kind, legend);
   const notes: { icon: IconName; label: string; text: string }[] = [
     { icon: 'bed-single', label: 'Start position', text: guide.startPosition },
     { icon: 'camera', label: 'Leg and camera', text: guide.legFacingCamera },
@@ -181,7 +186,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   ];
   const cameraGuide = cameraViews.map((view) => (
     <figure key={view} className="figure-card camera-guide">
-      <CameraFigure view={view} kind={kind} description={CAMERA_CAPTION[view]} />
+      <CameraFigure view={view} kind={kind} legend={legend} description={CAMERA_CAPTION[view]} />
       <figcaption>{CAMERA_CAPTION[view]}</figcaption>
     </figure>
   ));
@@ -302,8 +307,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           </fieldset>
           <h2>Position guide</h2>
           <div className="guide-figures">
-            <GuideFigure kind={kind} frame="start" side={leg} kneeDeg={targetFlexion} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
-            <GuideFigure kind={kind} frame="end" side={leg} kneeDeg={targetFlexion} description={`End position. ${guide.range}`} />
+            <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
+            <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} description={`End position. ${guide.range}`} />
             {cameraGuide}
           </div>
           <div className="stack-s">
@@ -372,10 +377,19 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                     Starting in <span className="num">{live.seconds}</span> {live.seconds === 1 ? 'second' : 'seconds'}.
                   </p>
                 )}
+                {live?.progress != null && (
+                  <progress className="capture-progress" max={100} value={live.progress} aria-label={CAPTURE_TEXT.progress} />
+                )}
                 {live?.resting != null && countsReps(kind) && (
                   <p data-testid="resting" className="detail">
                     {LEG_TEXT.resting(live.resting)}
                   </p>
+                )}
+                {live?.resting == null && !needsReturnValue && countsReps(kind) && (
+                  <Notice icon="ruler">
+                    <p>{CAPTURE_TEXT.setupNoRest}</p>
+                    <p className="detail">{CAPTURE_TEXT.setupNoRestDetail}</p>
+                  </Notice>
                 )}
                 <ul className="rule-list" aria-label="Camera check">
                   {ruleRows(live?.rule ?? 'no-pose').map((row) => {

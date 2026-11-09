@@ -1,5 +1,5 @@
 import { flexion, kneeAngle, type Side } from '../src/lib/angle';
-import { boxShapeGap, cameraPlan, figureFor, ILLUSTRATIVE_FLEXION, MIN_LABEL_PX, MIN_RENDER_W, obstaclesOf, planObstacles, unionBox, VIEW, type Box, type Figure, type Point } from '../src/lib/figure';
+import { boxShapeGap, cameraPlan, figureFor, ILLUSTRATIVE_FLEXION, legLegend, MIN_LABEL_PX, MIN_RENDER_W, obstaclesOf, planObstacles, unionBox, VIEW, type Box, type Figure, type Point } from '../src/lib/figure';
 import { SETUP_CONFIG } from '../src/lib/setupRules';
 import { EXERCISE_KINDS } from '../src/lib/protocol/schema';
 
@@ -424,5 +424,34 @@ describe('figureFor seated hold (T3)', () => {
         }),
       ),
     );
+  });
+});
+
+describe('the legend names the chosen leg (L1-06)', () => {
+  it('says "Operated leg" for the operated side and "Your chosen leg" for the other leg', () => {
+    expect(legLegend('left', 'left')).toBe('operated');
+    expect(legLegend('right', 'left')).toBe('chosen');
+    EXERCISE_KINDS.forEach((kind) => {
+      const text = (legend: 'operated' | 'chosen') => figureFor(kind, 'start', 'right', undefined, legend).labels.find((l) => l.key === 'operatedLeg')?.text;
+      expect(text('operated')).toBe('Operated leg');
+      expect(text('chosen')).toBe('Your chosen leg');
+      expect(figureFor(kind, 'start', 'right').labels.find((l) => l.key === 'operatedLeg')?.text).toBe('Operated leg');
+    });
+  });
+
+  it.each(['side', 'front'] as const)('%s view: the camera drawing follows the legend', (view) => {
+    const text = (legend?: 'operated' | 'chosen') => cameraPlan(view, 'heel-slide', legend).labels.find((l) => l.key === 'operatedLeg')?.text;
+    expect(text()).toBe('Operated leg');
+    expect(text('chosen')).toBe('Your chosen leg');
+  });
+
+  it('keeps the legend label inside the picture and apart from the other labels', () => {
+    EXERCISE_KINDS.forEach((kind) => {
+      const fig = figureFor(kind, 'end', 'left', 60, 'chosen');
+      const legend = fig.labels.find((l) => l.key === 'operatedLeg')!;
+      expect(legend.box.x).toBeGreaterThanOrEqual(fig.view.x);
+      expect(legend.box.x + legend.box.w).toBeLessThanOrEqual(fig.view.x + fig.view.w);
+      expect(legend.box.y + legend.box.h).toBeLessThanOrEqual(fig.view.y + fig.view.h + 0.01);
+    });
   });
 });

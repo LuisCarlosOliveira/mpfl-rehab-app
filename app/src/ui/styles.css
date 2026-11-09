@@ -1827,3 +1827,97 @@ input[type='file']::file-selector-button {
 .why-entry {
   padding-top: var(--s-2);
 }
+
+/* ===== LONG TEXT AND NARROW SCREENS (F2a). Appended block. L2-06, L2-11, load error screen. =====
+   A text without spaces (a file name, a long answer, a long title) wraps inside its box.
+   Running text uses "anywhere". Headings and chips use "break-word", so a flex row never squeezes them to one letter.
+   Grid items shrink with min-width 0. Below 320 px the pain scale has 3 columns and the option cards fit the screen. */
+.card,
+.notice,
+.fact-row dd,
+.why-source,
+.answer-value,
+.answer-label,
+.change-list li,
+.lede,
+.detail,
+main p {
+  overflow-wrap: anywhere;
+}
+.why-head h3,
+.chip,
+.exercise-name,
+main h1,
+main h2,
+main h3 {
+  overflow-wrap: break-word;
+}
+.home-grid > *,
+.exercise-body,
+.fact-row,
+.fact-row dd,
+.answer-row > *,
+.notice > div,
+.narrow > * {
+  min-width: 0;
+}
+.chip {
+  max-width: 100%;
+}
+/* Labels and buttons keep their words whole. Only long free text breaks inside a word. */
+.facts dt,
+.btn {
+  overflow-wrap: normal;
+}
+.facts-split dt {
+  flex: none;
+}
+.options {
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+}
+@media (max-width: 319px) {
+  .scale {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .scale-item {
+    min-width: 0;
+  }
+  .tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .exercise {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  summary {
+    flex-wrap: wrap;
+  }
+  .facts-split .fact-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .facts-split dd {
+    text-align: left;
+  }
+}
+
+/* ===== F1: the in-place capture of the starting angle and the hold still progress. Appended block. ===== */
+.capture-progress {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: 0.75rem;
+  appearance: none;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-s);
+  background: var(--sunken);
+  overflow: hidden;
+}
+.capture-progress::-webkit-progress-bar {
+  background: var(--sunken);
+}
+.capture-progress::-webkit-progress-value {
+  background: var(--primary);
+}
+.capture-progress::-moz-progress-bar {
+  background: var(--primary);
+}

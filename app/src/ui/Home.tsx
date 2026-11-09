@@ -34,13 +34,17 @@ const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
   'seated-extension-hold': 'armchair',
 };
 
-/** What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon. */
-export function prescription(e: Exercise): { text: string; icon: IconName }[] {
+/**
+ * What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon.
+ * `madeByApp` is true for a plan that the generator made. Its targetFlexion is the count value of the app and no target,
+ * so no chip shows it. A clinician sets the target in a written protocol, so that chip stays (L2-01).
+ */
+export function prescription(e: Exercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
   if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
-  if (e.targetFlexion !== undefined) lines.push({ text: `Target knee bend ${e.targetFlexion} degrees`, icon: 'circle-dot' });
+  if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Target knee bend ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   return lines;
 }
@@ -165,7 +169,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                   <div className="exercise-body">
                     <h3 className="exercise-name">{name}</h3>
                     <ul className="chips">
-                      {prescription(e).map((line) => (
+                      {prescription(e, madeByApp).map((line) => (
                         <li key={line.text} className="chip">
                           <Icon name={line.icon} size={16} />
                           {line.text}
@@ -176,7 +180,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                   </div>
                   {featured && (
                     <figure className="exercise-figure">
-                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} kneeDeg={e.targetFlexion} description={`End position. ${guideFor(e.kind).range}`} />
+                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} kneeDeg={madeByApp ? undefined : e.targetFlexion} description={`End position. ${guideFor(e.kind).range}`} />
                     </figure>
                   )}
                   <div className="exercise-go">

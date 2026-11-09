@@ -3,7 +3,7 @@
 // Nothing is saved here. The generator runs only when the person presses "Make my plan", and it saves nothing.
 import { useEffect, useRef, useState } from 'react';
 import {
-  answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, toInputs,
+  answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, surgeryDateProblem, toInputs,
   type Answers, type StepId,
 } from '../lib/onboarding';
 import { draftOf, type PlanDraft } from '../lib/planView';
@@ -131,7 +131,7 @@ export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
       }
     }
     if (fromSummary) {
-      const open = steps.find((s) => s !== 'summary' && !answered(s, answers));
+      const open = steps.find((s) => s !== 'summary' && !answered(s, answers, today));
       setStep(open ?? 'summary');
       if (open === undefined) setFromSummary(false);
       return;
@@ -152,6 +152,8 @@ export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
     if (inputs === null) return;
     onDone(draftOf(generateProtocol(inputs, today), 'create', inputs));
   }
+
+  const dateProblem = surgeryDateProblem(answers.surgeryDate, today);
 
   const body = (() => {
     switch (step) {
@@ -180,7 +182,21 @@ export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
         return (
           <div className="field choices">
             <label htmlFor="surgery-date">Date of surgery</label>
-            <input id="surgery-date" className="text-input" type="date" max={today} value={answers.surgeryDate} onChange={(e) => set({ surgeryDate: e.target.value })} />
+            <input
+              id="surgery-date"
+              className="text-input"
+              type="date"
+              max={today}
+              value={answers.surgeryDate}
+              aria-invalid={dateProblem !== null}
+              aria-describedby={dateProblem === null ? undefined : 'surgery-date-problem'}
+              onChange={(e) => set({ surgeryDate: e.target.value })}
+            />
+            {dateProblem !== null && (
+              <p id="surgery-date-problem" className="detail" role="alert">
+                {dateProblem}
+              </p>
+            )}
             <p className="detail">The app keeps this date on this device only. It uses the date to count the weeks since surgery.</p>
           </div>
         );
@@ -262,7 +278,7 @@ export function Onboarding({ today, initial = null, onDone, onCancel }: Props) {
             Make my plan
           </button>
         ) : (
-          <button type="button" className="btn btn-primary btn-lg" disabled={!answered(step, answers)} onClick={goNext}>
+          <button type="button" className="btn btn-primary btn-lg" disabled={!answered(step, answers, today)} onClick={goNext}>
             Next
             <Icon name="chevron-right" size={20} />
           </button>

@@ -50,10 +50,10 @@ describe('Summary and the front-view record', () => {
   });
 
   it('saves a front record with no change value when no rep gave one', async () => {
-    const db = summaryWith({ reason: 'stop', summary: { ...base, front: { reps: 0 } } });
+    const db = summaryWith({ reason: 'stop', summary: { ...base, front: { reps: 2 } } });
     await saveIt();
     const row = (await db.sessions.toArray())[0]!;
-    expect(row).toMatchObject({ secondView: 'front', frontReps: 0 });
+    expect(row).toMatchObject({ secondView: 'front', frontReps: 2 });
     expect(row).not.toHaveProperty('frontChangeDeg');
   });
 
@@ -81,21 +81,29 @@ describe('Care team view and the front-view change', () => {
     await screen.findByText(BANNER);
   };
 
-  it('shows the value with the label "front-view change, estimated, not a medical measurement"', async () => {
+  it('puts the exact label in the header cell, and the value with its rep count in the cell', async () => {
     await open([session({ exercise: 'heel-slide', secondView: 'front', frontReps: 3, frontChangeDeg: 6.4 })]);
     const list = screen.getByRole('table', { name: /session list/i });
-    expect(within(list).getByRole('columnheader', { name: /front-view change/i })).toBeInTheDocument();
-    expect(within(list).getByText('6.4')).toBeInTheDocument();
-    expect(screen.getByText(/front-view change, estimated, not a medical measurement/i)).toBeInTheDocument();
+    expect(within(list).getByRole('columnheader', { name: 'Front-view change, estimated, not a medical measurement' })).toBeInTheDocument();
+    expect(within(list).getByText('6.4 (3 reps)')).toBeInTheDocument();
   });
 
-  it('shows "No value" for a session with a front record and no value, and a dash for one camera', async () => {
+  it('states the median, the sign and that the number is logged and not a diagnosis, in the note', async () => {
+    await open([session({ exercise: 'heel-slide', secondView: 'front', frontReps: 3, frontChangeDeg: -6.4 })]);
+    const note = screen.getByText(/^Median of N reps, inward positive, a logged number for your care team, not a diagnosis/);
+    expect(note).toBeInTheDocument();
+    expect(screen.getByRole('table', { name: /session list/i })).toHaveTextContent('-6.4 (3 reps)');
+  });
+
+  it('shows "Not enough front-view data" for a front record with no value, and "Not applicable" for one camera', async () => {
     await open([
-      session({ exercise: 'heel-slide', secondView: 'front', frontReps: 0 }),
+      session({ exercise: 'heel-slide', secondView: 'front', frontReps: 2 }),
       session({ exercise: 'heel-slide', date: '2026-11-02T10:00:00.000Z' }),
     ]);
     const list = screen.getByRole('table', { name: /session list/i });
-    expect(within(list).getAllByText('No value').length).toBeGreaterThan(0);
+    expect(within(list).getByText('Not enough front-view data')).toBeInTheDocument();
+    expect(within(list).getByRole('columnheader', { name: /front-view change/i })).toBeInTheDocument();
+    expect(within(list).getAllByText('Not applicable').length).toBeGreaterThan(0);
   });
 
   it('adds no column and no note when no session has a front value', async () => {

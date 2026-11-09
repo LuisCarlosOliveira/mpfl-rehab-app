@@ -1,0 +1,70 @@
+// L2-02: a screen that cannot load shows a heading, a text and two buttons. Retry loads it again.
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { Suspense, type ReactElement } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LoadError, retryableLazy } from '../../src/ui/LoadError';
+import { hasVerdictWord } from './verdict';
+
+afterEach(cleanup);
+beforeEach(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
+});
+
+const TEXT = 'This screen could not load. Check your connection and try again.';
+
+function mount(load: () => Promise<{ default: () => ReactElement }>) {
+  const Screen = retryableLazy(load);
+  const onBack = vi.fn();
+  const view = render(
+    <LoadError onBack={onBack}>
+      <Suspense fallback={<p>Loading</p>}>
+        <Screen />
+      </Suspense>
+    </LoadError>,
+  );
+  return { onBack, view };
+}
+
+describe('LoadError and retryableLazy', () => {
+  it('shows a focused heading, the text and two buttons when the import rejects', async () => {
+    mount(() => Promise.reject(new Error('chunk')));
+    const h1 = await screen.findByRole('heading', { level: 1 });
+    expect(h1).toHaveFocus();
+    expect(screen.getByText(TEXT)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to Home' })).toBeInTheDocument();
+    expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
+    expect(document.querySelector('[style]')).toBeNull();
+  });
+
+  it('loads the screen on Try again when the import works the second time', async () => {
+    let calls = 0;
+    mount(() => (++calls === 1 ? Promise.reject(new Error('offline')) : Promise.resolve({ default: () => <h1>My data</h1> })));
+    await screen.findByText(TEXT);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'My data' })).toBeInTheDocument();
+    expect(screen.queryByText(TEXT)).toBeNull();
+    expect(calls).toBe(2);
+  });
+
+  it('stays on the message when the import fails again, and asks again each time', async () => {
+    let calls = 0;
+    mount(() => (++calls, Promise.reject(new Error('offline'))));
+    await screen.findByText(TEXT);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByText(TEXT);
+    expect(calls).toBe(2);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+  });
+
+  it('calls onBack from Back to Home', async () => {
+    const { onBack } = mount(() => Promise.reject(new Error('x')));
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to Home' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the children when nothing fails', async () => {
+    mount(() => Promise.resolve({ default: () => <h1>Fine</h1> }));
+    expect(await screen.findByRole('heading', { name: 'Fine' })).toBeInTheDocument();
+  });
+});

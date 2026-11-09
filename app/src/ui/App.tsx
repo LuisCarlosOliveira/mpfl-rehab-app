@@ -1,6 +1,6 @@
 // The app shell. It holds the stored protocol and the navigation state (appState.ts).
 // Banners show above every screen (plan FR3, NFR2).
-import { lazy, Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
@@ -15,6 +15,7 @@ import { CompanionEntry } from './CompanionEntry';
 import { ConfirmPlan } from './ConfirmPlan';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
+import { LoadError, retryableLazy } from './LoadError';
 import { LoadProtocol } from './LoadProtocol';
 import { Notice } from './Notice';
 import { Onboarding } from './Onboarding';
@@ -31,9 +32,10 @@ import { Summary } from './Summary';
 import { UpdatePlan } from './UpdatePlan';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
-const Dashboard = lazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
-const DataScreen = lazy(() => import('./DataScreen').then((m) => ({ default: m.DataScreen })));
-const ClinicianView = lazy(() => import('./ClinicianView').then((m) => ({ default: m.ClinicianView })));
+// A chunk that cannot load shows the message of LoadError, and a new try asks for it again (L2-02).
+const Dashboard = retryableLazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
+const DataScreen = retryableLazy(() => import('./DataScreen').then((m) => ({ default: m.DataScreen })));
+const ClinicianView = retryableLazy(() => import('./ClinicianView').then((m) => ({ default: m.ClinicianView })));
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
@@ -218,7 +220,8 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               kind={exercise.kind}
               side={protocol.side}
               exerciseName={EXERCISE_NAMES[exercise.kind]}
-              targetFlexion={exercise.targetFlexion}
+              // The figure shows no number for a plan that the app made: its count value is no target (L2-01).
+              targetFlexion={protocol.generated === undefined ? exercise.targetFlexion : undefined}
               limit={exercise.maxFlexion}
               returnWithinDeg={exercise.returnWithinDeg}
               source={source}
@@ -380,7 +383,9 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
       <Banners texts={banners} />
       <Brand />
       <main ref={main}>
-        <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
+        <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
+          <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
+        </LoadError>
       </main>
     </div>
   );

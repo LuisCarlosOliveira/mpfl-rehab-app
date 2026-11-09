@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Landmark, Side } from '../src/lib/angle';
-import { createFrontRecorder, PAIR_TOLERANCE_MS } from '../src/lib/views';
+import { createFrontRecorder, frontKneeInward, MIN_FRONT_REPS, PAIR_TOLERANCE_MS } from '../src/lib/views';
 
 const IDS: Record<Side, [number, number, number]> = { left: [23, 25, 27], right: [24, 26, 28] };
 
@@ -34,24 +34,81 @@ describe('createFrontRecorder', () => {
     expect(rec.finish()).toBeNull();
   });
 
-  it('gives the change of one rep from the front frames inside the rep window', () => {
+  /** Feed `peaks.length` reps. Rep i lasts 2 s and ends at 5 s + 6 s * i. Its change is peaks[i]. */
+  const reps = (rec: ReturnType<typeof recorder>, peaks: number[], side: Side = 'right') =>
+    peaks.forEach((peak, i) => {
+      const end = 5000 + 6000 * i;
+      feed(rec, side, end - 2000, end, peak);
+      rec.rep(end, 2000);
+    });
+
+  it('gives the median of the signed change of the reps, with the count of reps used', () => {
     const rec = recorder();
-    feed(rec, 'right', 3000, 5000, 8);
-    rec.rep(5000, 2000);
+    reps(rec, [4, 12, 8]);
     const r = rec.finish();
-    expect(r?.reps).toBe(1);
+    expect(r?.reps).toBe(3);
     expect(Math.abs((r?.changeDeg ?? 0) - 8)).toBeLessThan(0.5);
   });
 
-  it('keeps the largest change over the reps, with its sign', () => {
+  it('takes the mean of the two middle values for an even number of reps', () => {
     const rec = recorder();
-    feed(rec, 'right', 3000, 5000, 4);
-    rec.rep(5000, 2000);
-    feed(rec, 'right', 9000, 11000, 12);
-    rec.rep(11000, 2000);
+    reps(rec, [4, 6, 10, 20]);
+    expect(Math.abs((rec.finish()?.changeDeg ?? 0) - 8)).toBeLessThan(0.5);
+  });
+
+  it('does not move the median for one odd rep', () => {
+    const clean = recorder();
+    reps(clean, [9, 10, 11, 10, 9]);
+    const odd = recorder();
+    reps(odd, [9, 10, 11, 10, -57]);
+    const [a, b] = [clean.finish()?.changeDeg ?? 0, odd.finish()?.changeDeg ?? 0];
+    expect(Math.abs(a - 10)).toBeLessThan(0.5);
+    expect(Math.abs(b - 9.5)).toBeLessThan(1); // the median of 9, 9, 10, 10, 11 moved by one rep position only
+    expect(b).toBeGreaterThan(5);
+  });
+
+  it('ignores a frame with low visibility, even when its position is wild', () => {
+    const rec = recorder();
+    reps(rec, [8, 8]);
+    feed(rec, 'right', 15000, 17000, 8);
+    const wild = frontFrame('right', -80).map((p) => ({ ...p, visibility: 0.1 }));
+    rec.frame(wild, 16050);
+    rec.rep(17000, 2000);
     const r = rec.finish();
-    expect(r?.reps).toBe(2);
-    expect(Math.abs((r?.changeDeg ?? 0) - 12)).toBeLessThan(0.5);
+    expect(r?.reps).toBe(3);
+    expect(Math.abs((r?.changeDeg ?? 0) - 8)).toBeLessThan(0.5);
+  });
+
+  it('gives a rep value that ignores a wild frame with low visibility', () => {
+    const frames = Array.from({ length: 12 }, (_, i) => frontFrame('right', i === 0 ? 0 : 8));
+    frames[6] = frontFrame('right', -80).map((p) => ({ ...p, visibility: 0.1 }));
+    const r = frontKneeInward(frames, 'right', 1);
+    expect(Math.abs((r?.changeDeg ?? 0) - 8)).toBeLessThan(0.5);
+  });
+
+  it('keeps the sign of a negative series', () => {
+    const rec = recorder();
+    reps(rec, [-6, -8, -10]);
+    const change = rec.finish()?.changeDeg ?? 0;
+    expect(change).toBeLessThan(0);
+    expect(Math.abs(change + 8)).toBeLessThan(0.5);
+  });
+
+  it('stores no value when fewer reps than the minimum have enough frames, and still counts them', () => {
+    const rec = recorder();
+    reps(rec, [8, 8]);
+    expect(MIN_FRONT_REPS).toBe(3);
+    const r = rec.finish();
+    expect(r).toEqual({ reps: 2 });
+    expect(r).not.toHaveProperty('changeDeg');
+  });
+
+  it('counts only the reps with enough frames: a rep with 3 frames adds nothing', () => {
+    const rec = recorder();
+    reps(rec, [8, 8]);
+    feed(rec, 'right', 16800, 17000, 8);
+    rec.rep(17000, 2000);
+    expect(rec.finish()).toEqual({ reps: 2 });
   });
 
   it('counts a rep with too few front frames as no value', () => {

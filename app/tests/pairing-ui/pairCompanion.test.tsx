@@ -91,7 +91,7 @@ describe('PairCompanion', () => {
     show();
     expect(screen.getByRole('heading', { level: 1, name: COMPANION_TITLE })).toHaveFocus();
     expect(screen.getByText(/sends body points only/)).toBeInTheDocument();
-    expect(screen.getByText(/The screen stays on/)).toBeInTheDocument();
+    expect(screen.queryByText(/The screen stays on/)).toBeNull(); // no promise before the lock is granted
   });
 
   it('does not start the camera before the button press', () => {
@@ -219,7 +219,7 @@ describe('PairCompanion', () => {
   it('works when the wake lock is not available', async () => {
     deps = { ...deps, wakeLock: async () => null };
     await toRun();
-    expect(screen.getByRole('status')).toHaveTextContent('Connected');
+    expect(screen.getAllByRole('status').map((n) => n.textContent)).toContain('Connected');
   });
 
   it('stops everything when the screen goes away', async () => {
@@ -245,5 +245,137 @@ describe('PairCompanion', () => {
       expect(hasVerdictWord(text), `${w}: ${text}`).toBeNull();
       expect(container.querySelectorAll('[style]')).toHaveLength(0);
     }
+  });
+});
+
+describe('PairCompanion and the screen wake lock (L3-04)', () => {
+  const ON = 'The screen stays on while the phone works.';
+  const OFF = /Your screen could turn off\. Turn off the screen timeout in your phone settings while the phone works as the second camera\./;
+
+  /** A sentinel like the browser one. `drop()` is the release that the browser does when the page is hidden. */
+  function sentinel() {
+    const listeners: Array<() => void> = [];
+    const lock = {
+      release: vi.fn(async () => undefined),
+      addEventListener: (_type: 'release', l: () => void) => void listeners.push(l),
+      drop: () => listeners.forEach((l) => l()),
+    };
+    return lock;
+  }
+  const setVisibility = (state: 'visible' | 'hidden') => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state });
+    document.dispatchEvent(new Event('visibilitychange'));
+  };
+  afterEach(() => void Reflect.deleteProperty(document, 'visibilityState'));
+
+  it('asks for the lock when the link starts, at the button press and not before', async () => {
+    show();
+    expect(wakeLockMock).not.toHaveBeenCalled();
+    await act(async () => press('Scan the laptop code'));
+    expect(wakeLockMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('says that the screen stays on only after the lock was granted', async () => {
+    const lock = sentinel();
+    deps = { ...deps, wakeLock: vi.fn(async () => lock) };
+    await toRun();
+    expect(screen.getByText(ON)).toBeInTheDocument();
+    expect(screen.queryByText(OFF)).toBeNull();
+  });
+
+  it('shows a plain notice and no promise when the lock was refused', async () => {
+    deps = { ...deps, wakeLock: vi.fn(async () => null) };
+    await toRun();
+    expect(screen.getByText(OFF)).toBeInTheDocument();
+    expect(screen.queryByText(ON)).toBeNull();
+  });
+
+  /** The real default of the screen: it reads `navigator.wakeLock`. The test gives the other dependencies only. */
+  const withBrowserLock = () => {
+    const rest: Partial<CompanionDeps> = { ...deps };
+    delete rest.wakeLock;
+    return render(<PairCompanion onExit={vi.fn()} deps={rest} />);
+  };
+
+  it('shows the same notice when the browser has no wake lock API', async () => {
+    Reflect.deleteProperty(navigator, 'wakeLock');
+    expect(navigator.wakeLock).toBeUndefined();
+    withBrowserLock();
+    await act(async () => press('Scan the laptop code'));
+    expect(screen.getByText(OFF)).toBeInTheDocument();
+  });
+
+  it('shows the notice when the request throws', async () => {
+    const request = vi.fn(async () => {
+      throw new DOMException('no', 'NotAllowedError');
+    });
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
+    withBrowserLock();
+    await act(async () => press('Scan the laptop code'));
+    expect(request).toHaveBeenCalledWith('screen');
+    expect(screen.getByText(OFF)).toBeInTheDocument();
+    Reflect.deleteProperty(navigator, 'wakeLock');
+  });
+
+  it('shows the notice when the browser releases the lock, and asks again when the page is visible', async () => {
+    const first = sentinel();
+    const second = sentinel();
+    const ask = vi.fn<CompanionDeps['wakeLock']>().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    deps = { ...deps, wakeLock: ask };
+    await toRun();
+    expect(screen.getByText(ON)).toBeInTheDocument();
+
+    await act(async () => first.drop());
+    expect(screen.getByText(OFF)).toBeInTheDocument();
+    expect(screen.queryByText(ON)).toBeNull();
+
+    await act(async () => setVisibility('visible'));
+    expect(ask).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(ON)).toBeInTheDocument();
+    expect(screen.queryByText(OFF)).toBeNull();
+  });
+
+  it('asks again after a hidden page is visible again, in the scan step', async () => {
+    const first = sentinel();
+    const ask = vi.fn<CompanionDeps['wakeLock']>().mockResolvedValueOnce(first).mockResolvedValueOnce(sentinel());
+    deps = { ...deps, wakeLock: ask };
+    show();
+    await act(async () => press('Scan the laptop code'));
+    await act(async () => first.drop());
+    await act(async () => setVisibility('hidden'));
+    expect(ask).toHaveBeenCalledTimes(1); // a hidden page does not ask
+    await act(async () => setVisibility('visible'));
+    expect(ask).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(OFF)).toBeNull();
+  });
+
+  it('does not ask again while a lock is held', async () => {
+    const ask = vi.fn(async () => sentinel());
+    deps = { ...deps, wakeLock: ask };
+    await toRun();
+    await act(async () => setVisibility('visible'));
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases the lock on Stop and does not ask again afterwards', async () => {
+    const lock = sentinel();
+    const ask = vi.fn(async () => lock);
+    deps = { ...deps, wakeLock: ask };
+    await toRun();
+    await act(async () => press('Stop'));
+    expect(lock.release).toHaveBeenCalledTimes(1);
+    await act(async () => setVisibility('visible'));
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases a lock that the browser grants after the person has left', async () => {
+    const lock = sentinel();
+    let grant: (l: typeof lock) => void = () => undefined;
+    deps = { ...deps, wakeLock: () => new Promise((resolve) => (grant = resolve)) };
+    const { unmount } = show();
+    await act(async () => press('Scan the laptop code'));
+    unmount();
+    await act(async () => grant(lock));
+    expect(lock.release).toHaveBeenCalledTimes(1);
   });
 });

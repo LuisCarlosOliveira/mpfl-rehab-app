@@ -5,7 +5,8 @@ import { Session } from '../../src/ui/Session';
 import { Setup } from '../../src/ui/Setup';
 import { App } from '../../src/ui/App';
 import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';
-import { LEG_TEXT } from '../../src/ui/setupView';
+import { setupText } from '../../src/lib/setupRules';
+import { CAPTURE_TEXT, LEG_TEXT } from '../../src/ui/setupView';
 import { HEEL_SLIDE, audioHarness, freshDb, mockSource, playRep, protocolText, readyLegOf, twoLegs, type MockSource } from './helpers';
 import type { Exercise } from '../../src/lib/protocol';
 import { flexion, kneeAngle, selectLeg, type Side } from '../../src/lib/angle';
@@ -42,6 +43,18 @@ function setup(over: { side?: Side; kind?: 'heel-slide' | 'straight-leg-raise'; 
   );
   return { source, onReady };
 }
+
+describe('Setup: the legend of the drawings follows the chosen leg (live test L1-06)', () => {
+  it('says Operated leg when the operated leg is chosen and Your chosen leg when the other leg is chosen', () => {
+    setup({ side: 'left' });
+    const legendTexts = () => Array.from(document.querySelectorAll('svg[role="img"] text')).map((n) => n.textContent ?? '');
+    expect(legendTexts().some((s) => /operated leg/i.test(s))).toBe(true);
+    expect(legendTexts().some((s) => /your chosen leg/i.test(s))).toBe(false);
+    fireEvent.click(radio(LEG_Q, 'Right'));
+    expect(legendTexts().some((s) => /your chosen leg/i.test(s))).toBe(true);
+    expect(legendTexts().some((s) => /operated leg/i.test(s))).toBe(false);
+  });
+});
 
 describe('Setup: the two questions', () => {
   it('shows the leg question and the camera question, each a group of two real radios', () => {
@@ -161,10 +174,11 @@ describe('Setup: the camera step uses the chosen leg', () => {
     expect(screen.getByTestId('instruction')).toHaveTextContent('The camera sees your hip, knee and ankle.');
   });
 
-  it('asks to turn the chosen leg to the camera when only the other leg shows', async () => {
+  it('asks a person who lies down (heel slide) to move the camera when only the other leg shows, and not to turn (F1, L1-05)', async () => {
     const { source } = await cameraRunning({ side: 'right' });
     feed(source, readyLegOf('left'), 3500);
-    expect(screen.getByTestId('instruction')).toHaveTextContent('Turn so your chosen leg faces the camera.');
+    expect(screen.getByTestId('instruction')).toHaveTextContent(setupText('turn-leg', 'lying'));
+    expect(screen.getByTestId('instruction').textContent).not.toMatch(/\bturn\b/i);
   });
 
   it('shows the resting angle with the label when the leg held still', async () => {
@@ -255,9 +269,9 @@ describe('Session: counting notices', () => {
     expect(onEnd.mock.calls[0]![1].peakFlexion).toBeGreaterThan(60);
   });
 
-  it('says that there is no resting angle when Setup measured none, and counts no rep', () => {
+  it('finds the starting angle in place when Setup measured none, and counts no rep until it has one', () => {
     const { source } = session({ baselineDeg: null });
-    expect(screen.getByText(LEG_TEXT.noBaseline)).toBeInTheDocument();
+    expect(screen.getByText(CAPTURE_TEXT.title)).toBeInTheDocument();
     playRep(source, 'left', 70);
     tick();
     expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
@@ -266,7 +280,7 @@ describe('Session: counting notices', () => {
   it('shows no counting notice when both values are present, and counts the rep', () => {
     const { source } = session({ baselineDeg: 20 });
     expect(screen.queryByText(LEG_TEXT.noReturnValue)).toBeNull();
-    expect(screen.queryByText(LEG_TEXT.noBaseline)).toBeNull();
+    expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
     playRep(source, 'left', 70); // the rep returns to 0, which is within 18 of the baseline of 20
     tick();
     expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('1');
@@ -303,15 +317,22 @@ describe('Session: the chosen leg and the far leg note', () => {
 });
 
 describe('Session: the moving-leg note', () => {
-  // Left chosen. The right leg swings and the left leg stays at 5 degrees. 8 seconds of frames.
+  // Left chosen. The right leg swings and the left leg stays at 5 degrees. 13 seconds of frames: two windows in a row (F1, L1-08).
   const swing = (i: number, amp = 60) => (amp / 2) * (1 - Math.cos((2 * Math.PI * i) / 40));
-  const run = (source: MockSource, left: (i: number) => number, right: (i: number) => number, from = 0, seconds = 7) => {
+  const run = (source: MockSource, left: (i: number) => number, right: (i: number) => number, from = 0, seconds = 13) => {
     let i = 0;
     for (let t = from; t <= from + seconds * 1000; t += 100, i++) act(() => source.emit(twoLegs(left(i), right(i)), t));
     return from + seconds * 1000 + 100;
   };
 
-  it('shows the soft note when the other leg moves more over the first window', () => {
+  it('shows no note after one window only: the note needs the other leg to win two windows in a row (F1)', () => {
+    const { source } = session({ side: 'left', baselineDeg: 5 });
+    run(source, () => 5, (i) => swing(i), 0, 7);
+    tick();
+    expect(screen.queryByText(LEG_TEXT.identity)).toBeNull();
+  });
+
+  it('shows the soft note when the other leg moves more over two windows in a row', () => {
     const { source } = session({ side: 'left', baselineDeg: 5 });
     run(source, () => 5, (i) => swing(i));
     tick();
@@ -350,7 +371,7 @@ describe('Session: the moving-leg note', () => {
 
   it('never switches the leg: the chosen leg still counts its rep after the note', () => {
     const { source, onEnd } = session({ side: 'left', baselineDeg: 0 });
-    const t = run(source, () => 0, (i) => swing(i), 0, 7);
+    const t = run(source, () => 0, (i) => swing(i), 0, 13);
     tick();
     expect(screen.getByText(LEG_TEXT.identity)).toBeInTheDocument();
     playRep(source, 'left', 70, t);
@@ -362,7 +383,7 @@ describe('Session: the moving-leg note', () => {
 
   it('never counts a rep for the other leg after the note', () => {
     const { source } = session({ side: 'left', baselineDeg: 0 });
-    const t = run(source, () => 0, (i) => swing(i), 0, 7);
+    const t = run(source, () => 0, (i) => swing(i), 0, 13);
     playRep(source, 'right', 70, t);
     tick();
     expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
