@@ -297,3 +297,41 @@ New references:
 - X2: Comput Biol Med 2025. https://doi.org/10.1016/j.compbiomed.2025.110848 (abstract)
 - X3: `J Orthop Sports Phys Ther 2018;48(10):812-822`. https://doi.org/10.2519/jospt.2018.8006 (abstract)
 - X4: Knee 2025. https://doi.org/10.1016/j.knee.2024.11.006 (abstract)
+
+## 9. Addendum of 2026-11-09: quotes for generator version 2
+
+Auditor: the build agent of generator version 2. It did not trust the quotes of `docs/generator-v2-design.md`. It opened each source again on 2026-11-09 and compared the text.
+
+Method: P1, P2 and P3 were downloaded as PDF files and read as text. N3 and S1 came from NCBI efetch (PMC11180699 and PMC12222034). S16 came from the Europe PMC record by DOI. A line break in the PDF text counts as a space. Page numbers are PDF pages. No paywall was worked around. This audit was done by the same agent that builds the generator. A person must still review the rows.
+
+| # | Claim | Where I found it | Verdict | Note or true wording |
+|---|---|---|---|---|
+| V95 | N3 early phase of MPFL reconstruction, 0 to 6 weeks: "Mini squats range 0–50° knee flexion" | N3 Table 1, row "Early phase MPFL‐R, 0–6 weeks" | EXACT | The same words stand in the row for bony procedures, after "After 4–6 weeks". The text gives the range for weeks 0 to 6. It gives no depth for weeks 6/8 to 12 |
+| V96 | N3 intermediate phase, 6/8 to 12 weeks: "Progressive resisted quadriceps strengthening (squats" | N3 Table 1, row "Intermediate phase, 6/8–12 weeks" | EXACT | The row names squats and gives no depth. The row also says "Avoid open chain quadriceps exercises through large arcs of motion if bony procedures are performed" |
+| V97 | N3 "Quadriceps sets (isometric and dynamic contractions)" | N3 Table 1, early phase | EXACT | |
+| V98 | N3 "Gluteal sets (isometric and dynamic contractions)" | N3 Table 1, early phase | EXACT | |
+| V99 | S1 "Quadriceps sets, 3-way straight leg raises" | S1 Table 1, Interventions of the protection phase | EXACT | |
+| V100 | S1 "Straight leg raise without extension lag" | S1 Table 1, Milestones of the protection phase | EXACT | The text also says: "The milestones of the protection phase are knee flexion greater than 110°, full knee extension, straight leg raise without extension lag, and walking without crutches" |
+| V101 | S1 "Walking without crutches" | S1 Table 1, Milestones of the protection phase | EXACT | |
+| V102 | P1 "Continue phase I exercises, as appropriate" | P1 page 10, Phase 2 | EXACT | |
+| V103 | P1 "Quadriceps sets with towel roll under knee, gluteal sets, ankle pumps" | P1 page 4, Acute Care Phase, HEP | EXACT | The line "Ankle pumps, quadriceps sets, gluteal sets" and the line "Straight leg raise (SLR) in multiple planes" stand in the Pre-operative Phase section (page 3 of the PDF), not in the same section as this quote. Corrected after the independent audit `docs/audit-generator-v2.md` |
+| V104 | P1 "ROM 0° KE to > 125° KF, no limits" | P1 page 10, Criteria for advancement of Phase 2 | EXACT | This line is a criterion to leave phase 2. It is not a rule for the start of phase 2. Corrected after the independent audit |
+| V105 | P1 phase 2 open chain arc: "Follow surgeon preference and patient tolerance for open chain strengthening in a limited arc of motion (90-40 degrees)" | P1 page 9, Phase 2, Functional Quadriceps strengthening | EXACT | This row corrects the label of V47. The arc belongs to Phase 2 |
+| V106 | P1 "Do not perform AROM open chain KE, unless cleared by surgeon" | P1 page 8, Phase 2 precautions | EXACT | Phase 1 (page 6) has the same line without "unless cleared by surgeon" |
+| V107 | P1 "ability to demonstrate active quad contraction with SLR" | P1 page 7, Phase 1 treatment, line "Leg press (LP): bilateral with at least 90 degrees flexion ROM and ability to demonstrate active quad contraction with SLR" | EXACT | The rule is about the leg press and not about a squat. The same line asks for at least 90 degrees of knee bend. The app cannot check this bend. The gate for the mini squat is BORROWED from this rule |
+| V108 | P1 "Sit to stand starting with elevated seat height" | P1 page 9, Phase 2, Functional Quadriceps strengthening | EXACT | The same list holds "Progress pain-free arc of motion for closed chain strengthening" and "Leg press:  bilateral with progression to single leg". P1 does not name the mini squat |
+| V109 | P3 "hip abduction, hip extension & ankle pumps" | P3 page 4, Phase 1, Increase muscle strength | EXACT | The full line is "Commence heel slides, early static quadriceps sets/isometrics, hip abduction, hip extension & ankle pumps" |
+| V110 | P3 "mini squats, leg press, heel raises, step ups" | P3 page 4, Phase 2 | EXACT | Same quote as V41. I read the PDF again |
+| V111 | P2 rec 17 "It is recommended that dosage of physical therapy be approximately 2-3 times per week with a supplemental HEP" | P2 page 6 | EXACT | The Note says: "Patients who participate in supervised clinical visits demonstrate greater gains in muscle strength, functional mobility, gait speed" |
+| V112 | P2 rec 25 "strengthening exercises for this phase begin with isometric and isotonic exercises" | P2 page 7 | EXACT | |
+| V113 | P2 Appendix 1a, initial phase: "Quadriceps isometric sets", "Gluteal isometric sets", "Straight leg raises for hip flexion, abduction, adduction and extension", "Mini squats with hip hinge emphasis" | P2 page 13 | EXACT | |
+| V114 | P2 rec 39 Note: "It may be helpful to perform OKCE for knee flexion/extension initially only from 90°-30°" | P2 page 9 | EXACT | The arc is in a Note. This is the true wording that V46 flagged |
+| V115 | P2 rec 40 "isotonic Closed Kinetic Chain Exercises (CKCE) are initiated using a double limb stance" | P2 page 9 | EXACT | |
+| V116 | S16 "a smaller knee angle range between 0 degrees and 50 degrees" | S16 abstract, Europe PMC, DOI 10.1249/mss.0b013e31818e7ead | EXACT | 18 healthy subjects. BORROWED. The full sentence starts with "When the goal is to minimize patellofemoral compressive force and stress, it may be prudent to use". It is about patellofemoral force, not about a graft. Corrected after the independent audit |
+| V117 | P1 phase 3 squat: "Squat progression: chair squats to free squats" | P1 page 12, Phase 3 (Weeks 12-20) | EXACT | This is the source that disagrees with an earlier start of the squat |
+| V118 | N3 and P3 against P1 for the start of the squat | N3 V95 and V96, P3 V110, P1 V108 and V117 | PARAPHRASED | This row is a summary and holds no quote. It leaves out two facts. N3 lists squats in weeks 6/8 to 12 (V96). P2 lists double leg squats in the phase "Restoring Basic Function". Changed from EXACT after the independent audit |
+| V119 | P2 Appendix 1b: "Wall squats and leg press beginning at 45 degrees of knee flexion and progressively working into the higher and lower levels of flexion" | P2 page 14, Appendix 1b | EXACT | P2 gives no week for this phase. The text breaks across lines in the PDF. Added for the squat depth entry (the sources disagree) |
+
+Result of section 9: 25 rows. 24 EXACT. 1 PARAPHRASED (V118). 0 WRONG. 0 NOT READABLE. 0 NOT FOUND. V119 is a new row.
+
+What this audit does not cover: the quotes of SH (Sanford) and BM (Ben Mayo) in `docs/generator-v2-design.md`. They stay unaudited and drive no value. The claim "no clinician reviewed these rows" stays true.

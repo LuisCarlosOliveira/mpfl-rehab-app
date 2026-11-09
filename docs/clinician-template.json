@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "SET BY CLINICIAN",
+  "side": "SET BY CLINICIAN",
+  "authoredBy": null,
+  "approvedOn": "SET BY CLINICIAN",
+  "activePhase": "SET BY CLINICIAN",
+  "painPauseThreshold": "SET BY CLINICIAN",
+  "phases": [
+    {
+      "id": "SET BY CLINICIAN",
+      "name": null,
+      "reviewDate": "SET BY CLINICIAN",
+      "exercises": [
+        {
+          "kind": "heel-slide",
+          "sets": "SET BY CLINICIAN",
+          "reps": "SET BY CLINICIAN",
+          "targetFlexion": "SET BY CLINICIAN",
+          "maxFlexion": "SET BY CLINICIAN",
+          "returnWithinDeg": "SET BY CLINICIAN",
+          "minRepSeconds": "SET BY CLINICIAN",
+          "source": null
+        },
+        {
+          "kind": "straight-leg-raise",
+          "sets": "SET BY CLINICIAN",
+          "reps": "SET BY CLINICIAN",
+          "maxTopFlexion": "SET BY CLINICIAN",
+          "minRepSeconds": "SET BY CLINICIAN",
+          "source": null
+        }
+      ],
+      "reviewCriteria": [
+        {
+          "kind": "numeric",
+          "measure": "SET BY CLINICIAN",
+          "op": "SET BY CLINICIAN",
+          "limit": "SET BY CLINICIAN",
+          "lastSessions": "SET BY CLINICIAN",
+          "evidence": "SET BY CLINICIAN"
+        },
+        {
+          "kind": "swelling",
+          "noneOrSomeOnly": true,
+          "lastSessions": "SET BY CLINICIAN",
+          "evidence": "SET BY CLINICIAN"
+        },
+        {
+          "kind": "clinicianCheck",
+          "key": "SET BY CLINICIAN",
+          "evidence": "SET BY CLINICIAN"
+        }
+      ]
+    },
+    {
+      "id": "SET BY CLINICIAN",
+      "name": null,
+      "reviewDate": "SET BY CLINICIAN",
+      "exercises": [
+        {
+          "kind": "mini-squat",
+          "sets": "SET BY CLINICIAN",
+          "reps": "SET BY CLINICIAN",
+          "targetFlexion": "SET BY CLINICIAN",
+          "maxFlexion": "SET BY CLINICIAN",
+          "returnWithinDeg": "SET BY CLINICIAN",
+          "minRepSeconds": "SET BY CLINICIAN",
+          "source": null
+        },
+        {
+          "kind": "seated-extension-hold",
+          "sets": "SET BY CLINICIAN",
+          "reps": "SET BY CLINICIAN",
+          "holdSeconds": "SET BY CLINICIAN",
+          "minFlexion": "SET BY CLINICIAN",
+          "targetFlexion": "SET BY CLINICIAN",
+          "source": null
+        }
+      ]
+    }
+  ],
+  "surgeon": {
+    "brace": null,
+    "weightBearing": null,
+    "depthLimit": null,
+    "phaseClearance": null,
+    "concurrentProcedures": null
+  }
+}

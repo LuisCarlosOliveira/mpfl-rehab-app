@@ -64,6 +64,14 @@ describe('guideFor', () => {
   });
 });
 
+describe('the leg raise guide gives no lift height', () => {
+  it('sends the person to the care team for the height and drops "height of your other knee"', () => {
+    const range = guideFor('straight-leg-raise').range;
+    expect(range).toMatch(/Ask your care team how high to lift your leg\./);
+    expect(range).not.toMatch(/other knee/);
+  });
+});
+
 describe('the guide names the chosen leg (L1-06)', () => {
   it('keeps "operated" by default', () => {
     EXERCISE_KINDS.forEach((k) => expect(JSON.stringify(guideFor(k))).toBe(JSON.stringify(guideFor(k, 'operated'))));

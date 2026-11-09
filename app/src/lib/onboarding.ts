@@ -4,11 +4,12 @@
 
 import { generateProtocol, RULES, type GenerateResult, type GeneratorInputs } from './protocolGen';
 import { weeksSince } from './planView';
+import { generatorExtendedOn } from './mode';
 
 export type YesNoUnknown = 'yes' | 'no' | 'unknown';
 export type StepId =
   | 'writtenPlan' | 'procedure' | 'ageBand' | 'bothKnees' | 'firstSurgery' | 'specialRules'
-  | 'surgeryDate' | 'side' | 'limit' | 'redFlags' | 'today' | 'clearance' | 'summary';
+  | 'surgeryDate' | 'side' | 'limit' | 'redFlags' | 'today' | 'clearance' | 'walking' | 'legRaise' | 'seatedHold' | 'summary';
 
 export interface Answers {
   writtenPlan: YesNoUnknown | null;
@@ -26,11 +27,16 @@ export interface Answers {
   pain: number | null;
   swelling: GeneratorInputs['swelling'] | null;
   phaseClearance: YesNoUnknown | null;
+  /** The three questions of version 2. They are asked only after the answer yes to the clearance question. */
+  walksWithoutCrutches: YesNoUnknown | null;
+  legRaiseStraight: YesNoUnknown | null;
+  seatedHoldCleared: YesNoUnknown | null;
 }
 
 export const emptyAnswers = (): Answers => ({
   writtenPlan: null, procedure: null, ageBand: null, bothKnees: null, firstSurgery: null, specialRules: null,
   surgeryDate: '', side: null, limitKind: null, limitDegrees: '', redFlags: {}, pain: null, swelling: null, phaseClearance: null,
+  walksWithoutCrutches: null, legRaiseStraight: null, seatedHoldCleared: null,
 });
 
 const BEFORE_DATE: StepId[] = ['writtenPlan', 'procedure', 'ageBand', 'bothKnees', 'firstSurgery', 'specialRules', 'surgeryDate', 'side', 'limit', 'redFlags', 'today'];
@@ -44,8 +50,16 @@ export const clearanceAsked = (a: Answers, today: string): boolean => {
   return w !== null && w >= RULES.PH2.values.firstWeek;
 };
 
+/** The questions about walking, the leg raise and the seated hold run after the answer yes to the clearance question, only when the extended items are on. */
+export const gatesAsked = (a: Answers, today: string): boolean => generatorExtendedOn() && clearanceAsked(a, today) && a.phaseClearance === 'yes';
+
 export function stepsFor(a: Answers, today: string): StepId[] {
-  return [...BEFORE_DATE, ...(clearanceAsked(a, today) ? (['clearance'] as const) : []), 'summary'];
+  return [
+    ...BEFORE_DATE,
+    ...(clearanceAsked(a, today) ? (['clearance'] as const) : []),
+    ...(gatesAsked(a, today) ? (['walking', 'legRaise', 'seatedHold'] as const) : []),
+    'summary',
+  ];
 }
 
 /** The number of the limit field, or null when the text is not a number from 0 to 180. */
@@ -81,6 +95,9 @@ export function answered(step: StepId, a: Answers, today?: string): boolean {
     case 'redFlags': return true; // no tick is a valid answer
     case 'today': return a.pain !== null && a.swelling !== null;
     case 'clearance': return a.phaseClearance !== null;
+    case 'walking': return a.walksWithoutCrutches !== null;
+    case 'legRaise': return a.legRaiseStraight !== null;
+    case 'seatedHold': return a.seatedHoldCleared !== null;
     case 'summary': return true;
   }
 }
@@ -95,6 +112,8 @@ export function toInputs(a: Answers, today: string): GeneratorInputs | null {
   if (a.limitKind === 'degrees' && degrees === null) return null;
   const asked = clearanceAsked(a, today);
   if (asked && a.phaseClearance === null) return null;
+  const gates = gatesAsked(a, today);
+  if (gates && (a.walksWithoutCrutches === null || a.legRaiseStraight === null || a.seatedHoldCleared === null)) return null;
   return {
     writtenPlan: a.writtenPlan,
     procedure: a.procedure,
@@ -106,6 +125,10 @@ export function toInputs(a: Answers, today: string): GeneratorInputs | null {
     side: a.side,
     surgeonLimit: a.limitKind === 'degrees' ? { kind: 'degrees', degrees: degrees as number } : { kind: a.limitKind },
     phaseClearance: asked ? (a.phaseClearance as YesNoUnknown) : 'no',
+    walksWithoutCrutches: gates ? (a.walksWithoutCrutches as YesNoUnknown) : 'unknown',
+    legRaiseStraight: gates ? (a.legRaiseStraight as YesNoUnknown) : 'unknown',
+    seatedHoldCleared: gates ? (a.seatedHoldCleared as YesNoUnknown) : 'unknown',
+    kneeGaveWay: false,
     redFlags: Object.fromEntries(Object.entries(a.redFlags).filter(([, v]) => v)),
     pain: a.pain,
     swelling: a.swelling,
@@ -128,6 +151,9 @@ export function fromInputs(i: GeneratorInputs): Answers {
     pain: i.pain,
     swelling: i.swelling,
     phaseClearance: i.phaseClearance,
+    walksWithoutCrutches: i.walksWithoutCrutches ?? null,
+    legRaiseStraight: i.legRaiseStraight ?? null,
+    seatedHoldCleared: i.seatedHoldCleared ?? null,
   };
 }
 

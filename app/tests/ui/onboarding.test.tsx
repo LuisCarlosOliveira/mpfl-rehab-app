@@ -1,8 +1,13 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
 import { Onboarding } from '../../src/ui/Onboarding';
 import { hasVerdictWord } from './verdict';
+
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
 afterEach(cleanup);
 
@@ -276,11 +281,52 @@ describe('Onboarding, the summary and the plan', () => {
       expect(screen.getByText('Question 12 of 12')).toBeInTheDocument();
       choose('Yes');
       next();
+      // Generator v2: the answer yes opens three more questions.
+      expect(h1()).toMatch(/Do you walk without crutches/);
+      expect(screen.getByText('Question 13 of 15')).toBeInTheDocument();
+      choose('I do not know');
+      next();
+      choose('I do not know');
+      next();
+      choose('I do not know');
+      next();
     });
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     const draft = onDone.mock.calls[0]![0];
     expect(draft.inputs.phaseClearance).toBe('yes');
     expect(draft.protocol.activePhase).toBe(2);
+  });
+
+  it('asks no more questions after the answer no to the clearance question', () => {
+    const { onDone } = setup();
+    walk('2026-09-15', () => {
+      choose('No');
+      next();
+    });
+    expect(h1()).toBe('Check your answers');
+    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
+    expect(onDone.mock.calls[0]![0].inputs).toMatchObject({ walksWithoutCrutches: 'unknown', legRaiseStraight: 'unknown', seatedHoldCleared: 'unknown' });
+  });
+
+  it('adds the mini squat to the plan when both answers are yes, and no hold without the surgeon answer', () => {
+    const { onDone } = setup();
+    walk('2026-09-15', () => {
+      choose('Yes');
+      next();
+      choose('Yes');
+      next();
+      choose('Yes');
+      next();
+      choose('No');
+      next();
+    });
+    expect(screen.getByText('Walking without crutches')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
+    const draft = onDone.mock.calls[0]![0];
+    const kinds = draft.protocol.phases.find((p: { id: number }) => p.id === 2).exercises.map((e: { kind: string }) => e.kind);
+    expect(kinds).toContain('mini-squat');
+    expect(kinds).not.toContain('seated-extension-hold');
+    expect(draft.inputs).toMatchObject({ walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'no', kneeGaveWay: false });
   });
 
   it('starts at the summary when it is given the earlier answers', () => {

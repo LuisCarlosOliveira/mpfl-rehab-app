@@ -1,0 +1,142 @@
+// "Update my plan" with the questions of generator version 2: the mini squat, the seated hold and the knee gave way event.
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Protocol } from '../../src/lib/protocol';
+import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
+import { saveGeneratorInputs, saveProtocol, saveSession, type StoredInputs } from '../../src/lib/storage';
+import { UpdatePlan } from '../../src/ui/UpdatePlan';
+import { freshDb, sessionInput } from './helpers';
+
+afterEach(cleanup);
+
+const TODAY = '2026-11-08';
+const PLAN_DAY = '2026-11-01';
+const stored: StoredInputs = {
+  writtenPlan: 'no', procedure: 'mpflr-only', ageBand: '18-plus', bothKnees: false, firstSurgery: 'yes', specialRules: 'no',
+  surgeryDate: '2026-09-12', side: 'left', surgeonLimit: { kind: 'none' },
+};
+const asked = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
+
+async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: string } = {}) {
+  const db = freshDb();
+  const r = generateProtocol({ ...stored, phaseClearance: 'no', redFlags: {}, pain: 2, swelling: 'none', ...planAnswers }, PLAN_DAY);
+  if (r.kind !== 'protocol') throw new Error('expected a plan');
+  const saved = await saveProtocol(db, JSON.stringify(r.protocol), 'demo');
+  if (!saved.ok) throw new Error(saved.error.message);
+  await saveGeneratorInputs(db, stored);
+  if (props.event) await saveSession(db, { ...sessionInput(), date: props.event, gaveWayPresses: 1 });
+  const onDone = vi.fn();
+  render(<UpdatePlan db={db} protocol={saved.protocol as Protocol} today={TODAY} selfProgression onDone={onDone} onCancel={vi.fn()} onCreate={vi.fn()} />);
+  return { onDone };
+}
+const ready = () => screen.findByRole('button', { name: 'Check my plan' });
+const answerToday = () => {
+  fireEvent.click(screen.getByRole('radio', { name: '2' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'No swelling' }));
+};
+const group = (name: RegExp) => screen.getByRole('group', { name });
+const pick = (name: RegExp, choice: string) => fireEvent.click(within(group(name)).getByRole('radio', { name: choice }));
+import { within } from '@testing-library/react';
+
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+const clearance = /Has your surgeon or physiotherapist said that you can start the next stage/;
+const walking = /Do you walk without crutches/;
+const legRaise = /Can you lift your leg with a straight knee/;
+const seated = /knee straightening exercises while you sit/;
+
+describe('UpdatePlan, the questions of version 2', () => {
+  it('asks the three questions only after the answer yes to the clearance question', async () => {
+    await seed({});
+    await ready();
+    expect(screen.queryByRole('group', { name: walking })).toBeNull();
+    pick(clearance, 'No');
+    expect(screen.queryByRole('group', { name: walking })).toBeNull();
+    pick(clearance, 'Yes');
+    for (const q of [walking, legRaise, seated]) expect(group(q)).toBeInTheDocument();
+  });
+
+  it('keeps Check my plan closed until the three answers are given', async () => {
+    await seed({});
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
+    pick(walking, 'Yes');
+    pick(legRaise, 'Yes');
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
+    pick(seated, 'No');
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeEnabled();
+  });
+
+  it('proposes the mini squat with its reason when both answers are yes', async () => {
+    const { onDone } = await seed({ phaseClearance: 'yes' });
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    pick(walking, 'Yes');
+    pick(legRaise, 'Yes');
+    pick(seated, 'No');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    const draft = onDone.mock.calls[0]![0];
+    expect(draft.changes.join(' ')).toContain('Mini squat added');
+    expect(draft.changes.join(' ')).toContain('SQUAT_P2');
+    expect(draft.inputs).toMatchObject({ walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'no', kneeGaveWay: false });
+  });
+
+  it('removes the mini squat after a knee gave way press since the plan, and needs no hold', async () => {
+    const { onDone } = await seed(asked, { event: '2026-11-04T10:00:00.000Z' });
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    pick(walking, 'Yes');
+    pick(legRaise, 'Yes');
+    pick(seated, 'No');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    const draft = onDone.mock.calls[0]![0];
+    expect(draft.inputs.kneeGaveWay).toBe(true);
+    expect(draft.changes.join(' ')).toContain('Mini squat removed');
+    expect(draft.changes.join(' ')).toContain('SQUAT_GATE');
+    expect(draft.hold).toBeNull();
+  });
+
+  it('ignores a knee gave way press from before the plan', async () => {
+    const { onDone } = await seed(asked, { event: '2026-10-20T10:00:00.000Z' });
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    pick(walking, 'Yes');
+    pick(legRaise, 'Yes');
+    pick(seated, 'No');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    expect(onDone.mock.calls[0]![0].inputs.kneeGaveWay).toBe(false);
+    expect(onDone.mock.calls[0]![0].changes).toEqual([]);
+  });
+
+  it('removes the mini squat when an answer changes to no', async () => {
+    const { onDone } = await seed(asked);
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    pick(walking, 'No');
+    pick(legRaise, 'Yes');
+    pick(seated, 'No');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    expect(onDone.mock.calls[0]![0].changes.join(' ')).toContain('Mini squat removed');
+    expect(onDone.mock.calls[0]![0].hold).toBeNull();
+  });
+});
+
+describe('UpdatePlan with the flag off (the default)', () => {
+  it('does not ask the three questions and keeps Check my plan open after the clearance answer', async () => {
+    vi.unstubAllEnvs();
+    await seed({});
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    expect(screen.queryByRole('group', { name: walking })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeEnabled();
+  });
+});

@@ -4,6 +4,8 @@ The app is a static single-page app. All code runs in the browser. The app has n
 
 Updated on 2026-11-09 for commit 939d096. The second camera is now wired into Home and Setup. A real phone has not run it (UNPROVEN).
 
+Updated on 2026-11-09 (task T42). The pose model runs in a Web Worker. The section "Pose worker" below gives the design. [docs/pose-worker.md](pose-worker.md) gives the measurements.
+
 Updated on 2026-11-09 for commit 903d2c9. The changes since are the in-app Back handling (`ui/useBackButton.ts`), the CSP, the field `repsBy` and the hand-count marker. They are described below. The tests of these changes are unit tests and browser tests. No live re-test exists.
 
 ## Data flow
@@ -12,8 +14,9 @@ The diagram shows the path of the data on one device, and the second camera. The
 
 ```mermaid
 flowchart LR
-  cam["Camera (video only)"] --> pose["Pose model (lite, WASM)"]
-  pose --> lm["Landmarks from the frame callback"]
+  cam["Camera (video only)"] --> bridge["Frame bridge: one picture at a time"]
+  bridge -->|"transferred picture"| pose["Pose model in a Web Worker (lite, WASM)"]
+  pose -->|"numbers and a time only"| lm["Landmarks from the worker result"]
   lm --> map["Body map: SVG over the picture, no frame copy"]
   lm --> gate["Visibility gate"]
   gate --> angle["Knee angle"]
@@ -114,7 +117,9 @@ Paths are under `app/src`.
 | `zodConfig.ts` | Zod setting that avoids `new Function` under the CSP |
 | `pose/camera.ts` | Camera access and stop rules |
 | `pose/landmarker.ts` | Pose model wrapper and the load progress |
-| `pose/loop.ts` | Frame loop |
+| `pose/loop.ts` | Frame loop. It calls `detect` for each video frame |
+| `pose/frameBridge.ts` | Main-thread side of the pose worker. The only file that makes a picture of a video frame |
+| `pose/poseWorker.ts` | The pose worker. It loads the model, detects on each picture, closes it and sends numbers |
 | `pose/source.ts` | Landmark source interface, with the tag `side` or `front` |
 | `pairing/` | QR draw and read, WebRTC link (`rtcLink.ts`), frame messages, `pairing.ts`, `usePairing` hook |
 | `ui/App.tsx`, `ui/appState.ts` | App shell with lazy screens, and the navigation state (pure reducer) |
@@ -129,9 +134,36 @@ Paths are under `app/src`.
 | `ui/askSurgeon.ts`, `notReady.ts`, `labels.ts`, `Banners.tsx` | Open surgeon decisions, notice for an exercise with no value, exercise names, banners |
 | `main.tsx` | Starts the app. It imports `zodConfig.ts` first |
 
+## Pose worker
+
+The pose model runs in a Web Worker (task T42, user decision "6. ok"). The model call `detectForVideo` is synchronous. On the main thread it blocked the page for most of each second. The measurements are in [pose-worker.md](pose-worker.md).
+
+Design:
+
+- `pose/frameBridge.ts` runs on the main thread. For each video frame it calls the picture API of the browser once and transfers the picture to the worker. The picture is a transferable object, so it moves with no copy.
+- `pose/poseWorker.ts` runs in the worker. It loads the model with the existing `createLandmarker`, detects on each picture, closes the picture and sends back `{ type: 'result', timestampMs, landmarks }`. The landmarks are numbers (`x`, `y`, `visibility`) or `null`. The worker never sends a picture.
+- The rest of the app is not changed. The angle, the counters, the body map and the safety rules read the same landmark numbers.
+- `pose/source.ts` chooses the path. It tries the worker first. It uses the main-thread landmarker in three cases. The browser has no `Worker`. The browser cannot make a picture of a frame. The worker does not start. The build flag `VITE_POSE_WORKER=off` and the option `worker: false` force the main thread.
+
+Why this way (the choice of the frame API):
+
+| Option | Result |
+|---|---|
+| (a) `createImageBitmap(video)` on the main thread, transfer to the worker | Chosen. It works in Chromium, Firefox and Safari. It needs no change of the camera code. Measured cost on the main thread: about 1 to 2 ms for each frame |
+| (b) `MediaStreamTrackProcessor` in the worker | Not chosen. It exists only in Chromium. It needs the track in the worker and a second code path for Safari |
+| (c) Copy pixels with a canvas | Not chosen. The guard bans a canvas, and a pixel copy is slower |
+
+The worker builds as a classic worker (the Vite default format `iife`). MediaPipe loads its WASM loader with `importScripts`, and a classic worker is the form that it supports. The WASM file and the model come from `/models/` on the own origin. The hash check `model-hash-check.sh` is unchanged. The worker sets the same guard against a request to a foreign origin as the main thread (`blockForeignFetch` in `landmarker.ts`). It also counts the bytes for the load text "Loading the pose model, N of 20.4 MB".
+
+Backpressure. One picture is in flight at a time. A frame that comes while the worker is busy is dropped. Nothing queues. When a result comes, the bridge takes the frame that shows now at once, if the video moved on. So the worker never waits for the next frame callback. The times come from `performance.now()` and the bridge keeps them strictly rising.
+
+Stop. `stop()` of the camera source ends the worker with `terminate()` and closes a picture that is still being made. A picture that the worker holds goes with the worker. The camera tracks stop as before. Back, Stop, "Knee gave way or hurts", a hidden tab and `pagehide` all go through the same `release()`.
+
+The frame rule. Exactly one file touches the frame API: `pose/frameBridge.ts`. `claims-check.sh` has an allow-list of that path with one line, which ends with the marker `claims-check:allow`. A marker in another file does not help, and a second line in the bridge fails. The worker file never names the API. It receives a picture as a message. The check reads `src` only. The MediaPipe library inside the worker bundle draws a frame to its own GPU buffer. This is library code that the check does not read, and the picture never leaves the worker.
+
 ## Content Security Policy
 
-The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` because the pose model can need it. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
+The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` as before. The pose worker loads from the own origin (`/assets/poseWorker-<hash>.js`), so the worker needs no change of the policy. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
 
 Live test 3 ran two Chromium browsers (`docs/live-test/pairing.md`, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
 
@@ -145,7 +177,7 @@ The record has no `pain` and no `swelling` at first. The Summary adds both with 
 
 These items never leave the device:
 
-- Video and every frame. The code has no `MediaRecorder`, `toBlob`, `toDataURL` or `ImageCapture`. The check `claims-check.sh` finds these. It also bans `drawImage`, a canvas and `getContext` outside the QR reader.
+- Video and every frame. The code has no `MediaRecorder`, `toBlob`, `toDataURL` or `ImageCapture`. The check `claims-check.sh` finds these. It also bans `drawImage`, a canvas and `getContext` outside the QR reader. It bans `createImageBitmap` everywhere except one marked line of `pose/frameBridge.ts` (see "Pose worker").
 - Landmark numbers of the main camera.
 - Sessions, the protocol, the stored answers of the generator and the pseudonymous id. They stay in IndexedDB and localStorage until the patient exports a file or erases the data. The generator does not store pain, swelling, red flags or the clearance answer (workflows check C05).
 

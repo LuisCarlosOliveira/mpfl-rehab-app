@@ -15,6 +15,7 @@ import type { Side } from '../lib/angle';
 import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import { guideFor, type GuideKind } from '../lib/guides';
+import { SOURCE_NAMES, TECHNIQUE_NOTE, techniqueFor } from '../lib/technique';
 import { legLegend } from '../lib/figure';
 import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
@@ -348,6 +349,28 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               </div>
             ))}
           </dl>
+          <details className="card disclosure technique">
+            <summary>
+              <h2>How the sources describe this exercise</h2>
+              <span className="chev">
+                <Icon name="chevron-down" />
+              </span>
+            </summary>
+            <div className="disclosure-body stack-s">
+              <p className="detail">{TECHNIQUE_NOTE}</p>
+              <ul className="stack-s">
+                {techniqueFor(kind).map((l) => (
+                  <li key={l.text}>
+                    <p>{l.text}</p>
+                    <p className="detail">
+                      Source: {l.sources.map((id) => SOURCE_NAMES[id]).join(', ')}.
+                      {l.borrowed && ' Borrowed: none of these sources is about MPFL surgery.'}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
           {pair && (
             <div className="card card-flat stack-s">
               <h2>Second camera</h2>

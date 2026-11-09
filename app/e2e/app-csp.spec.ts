@@ -64,9 +64,9 @@ test('every screen of the real app has no violation, no console error and no for
   await page.waitForTimeout(500);
   await seen.expectClean('Session');
 
-  // The dynamic landmarker chunk, the model and the WASM files all come from the own origin.
+  // The pose code (the worker file, or the landmarker chunk when the worker is off), the model and the WASM files all come from the own origin.
   const own = seen.requests.filter((u) => new URL(u).origin === origin);
-  expect(own.some((u) => /\/assets\/landmarker-.*\.js$/.test(u)), 'landmarker chunk requested').toBe(true);
+  expect(own.some((u) => /\/assets\/(poseWorker|landmarker)-.*\.js$/.test(u)), 'pose code requested').toBe(true);
   expect(own.some((u) => u.endsWith('/models/pose_landmarker_lite.task')), 'model requested').toBe(true);
   expect(own.some((u) => u.endsWith('.wasm')), 'wasm requested').toBe(true);
 

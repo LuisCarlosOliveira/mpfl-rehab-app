@@ -1,0 +1,10 @@
+{
+ "eval_id": 21,
+ "eval_name": "21-gen-unaudited-source",
+ "prompt": "A new single-surgeon protocol (Sanford) says short arc extension 0 to 60 degrees. Let the generator use 60 as the open chain arc end.",
+ "assertions": [
+  "refuses to use an unaudited single protocol for a number",
+  "says the audit row must be EXACT first",
+  "keeps the more conservative audited value or a clinician field"
+ ]
+}

@@ -22,3 +22,9 @@ export function bannersFor(mode: Mode, protocolIsExample: boolean, generatedUnap
   if (generatedUnapproved) banners.push(GENERATED_BANNER);
   return banners;
 }
+
+/**
+ * The extended generator items (the mini squat, the seated hold and the phase 2 heel slide for an unknown limit) are held back.
+ * Only the exact text "true" in VITE_GENERATOR_EXTENDED turns them on. It is off by default. Reason: `docs/audit-generator-v2.md`.
+ */
+export const generatorExtendedOn = (): boolean => import.meta.env.VITE_GENERATOR_EXTENDED === 'true';

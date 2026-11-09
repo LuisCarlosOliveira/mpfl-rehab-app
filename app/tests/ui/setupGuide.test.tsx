@@ -57,3 +57,16 @@ describe('legend of the chosen leg (U14)', () => {
     container.querySelectorAll('svg.fig').forEach((svg) => expect(svg.getAttribute('role')).toBe('img'));
   });
 });
+
+describe('technique lines (text guide)', () => {
+  it('shows the lines in a details element that is closed by default, with the sources', () => {
+    const { container } = open();
+    const details = container.querySelector('details.technique') as HTMLDetailsElement;
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary')?.textContent).toMatch(/How the sources describe this exercise/);
+    expect(details.textContent).toMatch(/Source: /);
+    expect(details.textContent).toMatch(/paraphrase/i);
+    expect(details.querySelectorAll('li').length).toBeGreaterThanOrEqual(3);
+  });
+});

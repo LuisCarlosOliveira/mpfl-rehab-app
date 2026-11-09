@@ -69,6 +69,17 @@ export const exerciseSchema = z
     path: ['maxTopFlexion'],
   });
 
+// Home exercises that the camera cannot count (generator v2, step A). They are a list with no angle and no count.
+// The dose is optional. The app never reads them in a session.
+export const HOME_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const;
+
+export const homeExerciseSchema = z.strictObject({
+  kind: z.enum(HOME_EXERCISE_KINDS),
+  sets: z.number().int().min(1).max(20).optional(),
+  reps: z.number().int().min(1).max(100).optional(),
+  source: text(200),
+});
+
 // Review criteria: what the clinician reads in the clinician view. No free text, no default.
 const evidence = z.enum(['mpflr', 'borrowed', 'unvalidated']);
 const lastSessions = z.number().int().min(3).max(10);
@@ -113,11 +124,15 @@ export const phaseSchema = z.strictObject({
   id: z.number().int().min(1).max(10),
   name: text(60),
   exercises: z.array(exerciseSchema).max(10),
+  homeExercises: z.array(homeExerciseSchema).max(10).optional(),
   reviewCriteria: z.array(reviewCriterionSchema).max(12).optional(),
   reviewDate: z.iso.date().optional(),
 }).refine((p) => new Set(p.exercises.map((e) => e.kind)).size === p.exercises.length, {
   message: 'An exercise can appear only once in a phase, because a second entry makes the limit unclear.',
   path: ['exercises'],
+}).refine((p) => p.homeExercises === undefined || new Set(p.homeExercises.map((e) => e.kind)).size === p.homeExercises.length, {
+  message: 'A home exercise can appear only once in a phase.',
+  path: ['homeExercises'],
 });
 
 // Every surgeon field is optional and has no default.
@@ -168,5 +183,6 @@ export const protocolSchema = z.strictObject({
 
 export type Protocol = z.infer<typeof protocolSchema>;
 export type Exercise = z.infer<typeof exerciseSchema>;
+export type HomeExercise = z.infer<typeof homeExerciseSchema>;
 export type ReviewCriterion = z.infer<typeof reviewCriterionSchema>;
 export type SurgeonField = (typeof SURGEON_FIELDS)[number];

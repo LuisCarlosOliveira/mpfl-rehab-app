@@ -223,6 +223,25 @@ describe('Session screen', () => {
     tick();
     expect(screen.getByText(/Estimated angle at the top: \d+ degrees \(estimated angle, not a medical measurement\)\./)).toBeInTheDocument();
   });
+
+  // C-prime: a neutral fact after a lift, only when the angle is more than the camera error. No colour, no verdict word.
+  const liftWith = (flexion: number) => {
+    const { source } = setup({ kind: 'straight-leg-raise', source: 'test' });
+    const lift = () => legLandmarks('left', flexion, { thighAngle: -Math.PI / 2 + 0.15, hip: { x: 0.5, y: 0.6 } });
+    for (let t = 0; t < 1500; t += 30) act(() => source.emit(lift(), t));
+    tick();
+  };
+
+  it('adds the sources and the camera error under the top angle when the angle is above the camera error', () => {
+    liftWith(20);
+    expect(screen.getByText(/The sources describe a straight knee\. The camera error is about 9 degrees or more/)).toBeInTheDocument();
+  });
+
+  it('adds nothing under the top angle when the angle is inside the camera error', () => {
+    liftWith(4);
+    expect(screen.getByText(/Estimated angle at the top: \d+ degrees?/)).toBeInTheDocument();
+    expect(screen.queryByText(/The sources describe a straight knee/)).toBeNull();
+  });
 });
 
 describe('Session sound (FR10, FR23)', () => {

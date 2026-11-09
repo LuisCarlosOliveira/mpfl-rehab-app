@@ -1,11 +1,16 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Protocol } from '../../src/lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
 import { saveGeneratorInputs, saveProtocol, saveSession, type StoredInputs } from '../../src/lib/storage';
 import { UpdatePlan } from '../../src/ui/UpdatePlan';
 import { freshDb, sessionInput } from './helpers';
 import { hasVerdictWord } from './verdict';
+
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
 afterEach(cleanup);
 
@@ -44,6 +49,12 @@ const ready = () => screen.findByRole('button', { name: 'Check my plan' });
 const answerToday = () => {
   fireEvent.click(screen.getByRole('radio', { name: '2' }));
   fireEvent.click(screen.getByRole('radio', { name: 'No swelling' }));
+};
+// Generator v2: the answer yes to the clearance question opens three more questions. These tests need no squat and no hold.
+const answerGates = () => {
+  for (const q of [/Do you walk without crutches/, /Can you lift your leg with a straight knee/, /knee straightening exercises while you sit/]) {
+    fireEvent.click(within(screen.getByRole('group', { name: q })).getByRole('radio', { name: 'I do not know' }));
+  }
 };
 const check = async () => {
   fireEvent.click(await ready());
@@ -175,6 +186,7 @@ describe('UpdatePlan, the next stage', () => {
     await ready();
     answerToday();
     fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    answerGates();
     await check();
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'plan', hold: 'Ask your care team about the next stage.' });
   });
@@ -184,6 +196,7 @@ describe('UpdatePlan, the next stage', () => {
     await ready();
     answerToday();
     fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    answerGates();
     await check();
     const draft = onDone.mock.calls[0]![0];
     expect(draft.hold).toBeNull();
@@ -196,6 +209,7 @@ describe('UpdatePlan, the next stage', () => {
     await ready();
     answerToday();
     fireEvent.click(screen.getByRole('radio', { name: 'Yes' }));
+    answerGates();
     await check();
     expect(onDone.mock.calls[0]![0].hold).toMatch(/^Contact your care team/);
   });

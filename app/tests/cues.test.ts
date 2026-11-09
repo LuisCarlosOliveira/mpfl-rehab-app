@@ -1,4 +1,4 @@
-import { allCueTexts, cueFor, PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText, topUnreadable, type CueEvent } from '../src/lib/cues';
+import { allCueTexts, cueFor, PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleNote, topAngleText, topUnreadable, type CueEvent } from '../src/lib/cues';
 
 const BANNED = /\b(correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone)\b|risk of injury/i;
 
@@ -105,5 +105,26 @@ describe('the plausibility check of the leg raise peak (M8)', () => {
   it('has a plain text with no verdict word', () => {
     expect(PEAK_UNREADABLE_TEXT).toBe('The camera could not read this leg raise.');
     expect(PEAK_UNREADABLE_TEXT).not.toMatch(BANNED);
+  });
+});
+
+// C-prime live fact (form-evidence check 5): the note names the sources and the camera error. It carries no verdict word.
+describe('topAngleNote', () => {
+  const NOTE = 'The sources describe a straight knee. The camera error is about 9 degrees or more (estimated angle, not a medical measurement).';
+  it('shows nothing when the angle is null or inside the camera error (no praise, no message)', () => {
+    expect(topAngleNote(null)).toBeNull();
+    expect(topAngleNote(0)).toBeNull();
+    expect(topAngleNote(9)).toBeNull();
+  });
+  it('states the sources and the camera error when the angle is more than the margin', () => {
+    expect(topAngleNote(9.1)).toBe(NOTE);
+    expect(topAngleNote(30)).toBe(NOTE);
+  });
+  it('shows nothing for an angle that the camera could not read', () => {
+    expect(topAngleNote(30.1)).toBeNull();
+  });
+  it('has no verdict word and no word "lag"', () => {
+    expect(NOTE).not.toMatch(/\b(lag|correct|incorrect|good|bad|safe|dangerous|score|pass|fail)\b/i);
+    expect(allCueTexts()).toContain(NOTE);
   });
 });

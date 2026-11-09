@@ -389,3 +389,50 @@ Changed 2026-11-08 after the knowledge base audit: VERIFIED now means that I, th
 | SRC-MCKAY | McKay et al. 2022 | No reliable effect of feedback frequency | UNVERIFIED (search summary only) | Not audited |
 | SRC-ACCURACY | `docs/accuracy.md` | No goniometer data | Project file, read | Not applicable |
 | SRC-REPLAY | My replay, script path in section 2 | R1 to R8 | Own measurement, INFERRED | Not applicable |
+
+## 13. Update 2026-11-09: live facts, text guide and clinician template
+
+User decision: "C+A". The reading of C is C-prime: a neutral fact that compares what the camera measured with the sourced description, with the camera error stated. It has no verdict word, no score and no verdict colour. Sources: `research/technique-sources.md`, `research/form-evidence.md`.
+
+### 13.1 What I built
+
+- One live fact. After a straight leg raise, the screen shows the top angle (it existed). Under it, the screen can add a note. The note shows when the angle is more than 9 degrees and the camera can read it. The note text is: "The sources describe a straight knee. The camera error is about 9 degrees or more (estimated angle, not a medical measurement)." Code: `topAngleNote` in `app/src/lib/cues.ts`, shown in `app/src/ui/Session.tsx`. The note shows after a lift, never during it. It has no colour and no sound.
+- The text guide. The Setup guide step has a closed `details` element, "How the sources describe this exercise". Each line shows its sources by short name and a BORROWED mark when no source is about MPFL surgery. Code: `app/src/lib/technique.ts`, `app/src/ui/Setup.tsx`.
+- The leg raise text "about the height of your other knee" is gone. The guide now says "Ask your care team how high to lift your leg." Reason: only general sources (T16, T17) name that height. The sources give 5 cm to 40 cm.
+- The clinician template: `docs/clinician-template.json` and `docs/clinician-template.md`.
+
+### 13.2 Why the live fact has this rule
+
+- Check 5 of `form-evidence.md`: the 10 degree extension limit of P2 sits inside the camera error. So a smaller angle says nothing, and the app does not say "lag".
+- The guardrails say that an in-range rep shows nothing, because a message reads as an approval. So the note shows only above 9 degrees. It never says that a small angle is fine.
+- The note states a fact about the sources and a fact about the camera. It does not say that the person did a movement wrongly. It does not name the 10 degree limit, because P2 gives it as a goal for a therapist and not as a camera limit.
+- An angle above 30 degrees is already shown as unreadable (`SLR_PEAK_PLAUSIBLE_MAX_DEG`, ENGINEERING). The note stays hidden for it.
+- The clinician log keeps the number. Nothing new is stored.
+
+### 13.3 What I refused to build
+
+| Item | Verdict in the evidence | Reason |
+|---|---|---|
+| Steadiness during a hold | NO BUILD (check 4) | No source. Base noise is 0.9 to 2.1 degrees. The error is larger |
+| Hip rise | NO BUILD (check 9) | No source, and the framing dominates |
+| Knee inward (valgus) in a front view | NO BUILD (check 7, M4) | The frontal 2D bias is about 19 degrees. No MPFLR threshold exists |
+| Trunk lean | LOG only (check 8) | No source limit. It needs the own error test (T13) |
+| Tempo without a clinician value | LOG (check 3) | No source gives seconds. The existing cue uses `minRepSeconds` |
+| Lift height and hold time of the leg raise as a fact | LOG (S4, S8) | The sources disagree (5 to 40 cm, 2 to 10 s). None is an MPFLR value |
+| Any "knee straight" or "knee bent" label, any score | Guardrails | It is a verdict. The error is as large as the effect |
+
+The knee bend against the clinician limit (checks 1, 2 and 6) stays as it is.
+
+### 13.4 Text guide rules
+
+- Only points that `technique-sources.md` lists as text guide lines. The WEAK points (one source) stay out.
+- No number in a line. Where sources disagree (lift height, hold time), the line says "ask your care team".
+- The lines are paraphrases in simple English. The source file marks some quotes (f). They were cut to 125 characters and are not verified. The app shows none of them as a quote.
+- The seated hold never asks for a straight knee. It shows no toe position, because sources differ.
+- The guide start text of the leg raise still says "Bend your other knee and put that foot flat". Sources split on this (S5). It stays a PROPOSAL and a clinician must review it.
+
+### 13.5 Unproven
+
+- No clinician reviewed any line. A clinician must review every line before patient use.
+- The 9 degree margin is a start value, UNVERIFIED for the `lite` model (`margin.ts`).
+- No user test shows how a person reads the note.

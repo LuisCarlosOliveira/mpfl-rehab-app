@@ -29,13 +29,13 @@ const GUIDES: Record<GuideKind, Guide> = {
     speed: SLOW,
     cameraMustSee: 'The camera must see your whole leg, from hip to foot. Keep the blanket off your leg.',
   },
-  // ux-flow 7.2. The bent other knee and the lift height are PROPOSAL (clinical.md section 4: hip flexion of 30 to 45 degrees, PROPOSAL, not measured).
+  // ux-flow 7.2. The bent other knee is PROPOSAL (sources differ, technique-sources S5). The lift height is not set: sources give 5 to 40 cm (S4) (clinical.md section 4: hip flexion of 30 to 45 degrees, PROPOSAL, not measured).
   'straight-leg-raise': {
     startPosition: 'Lie on your back. Bend your other knee and put that foot flat. Keep your operated leg straight.',
     legFacingCamera: 'Your operated leg is the leg nearest the camera. Keep your other leg low and behind it.',
     handsAndSupport: 'Keep your hands at your sides or on the floor.',
     range:
-      'Keep your knee straight. Lift your leg to about the height of your other knee. Hold. Then lower your leg with control. If your knee bends when you lift your leg, lower the leg. Ask your care team how to do this exercise.',
+      'Keep your knee straight. Lift your leg. Ask your care team how high to lift your leg. Hold. Then lower your leg with control. If your knee bends when you lift your leg, lower the leg. Ask your care team how to do this exercise.',
     speed: SLOW,
     cameraMustSee: 'The camera must see your hip, knee and ankle during the whole lift. Keep your device level.',
   },

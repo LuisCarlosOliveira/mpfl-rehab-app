@@ -4,6 +4,11 @@ import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { RED_FLAGS } from '../src/lib/redflags';
 import { generateProtocol, RULES, type GeneratorInputs, type WhyEntry } from '../src/lib/protocolGen';
 
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+
 // Plain case tables. A small seeded generator gives many inputs. No extra package.
 const TODAY = '2026-11-08';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -54,6 +59,10 @@ function randomInputs(seed: number): GeneratorInputs {
       { kind: 'degrees', degrees: 28 + Math.floor(next() * 120) },
     ] as GeneratorInputs['surgeonLimit'][]),
     phaseClearance: pick(['yes', 'no', 'unknown'] as const),
+    walksWithoutCrutches: pick(['yes', 'yes', 'no', 'unknown'] as const),
+    legRaiseStraight: pick(['yes', 'yes', 'no', 'unknown'] as const),
+    seatedHoldCleared: pick(['yes', 'yes', 'no', 'unknown'] as const),
+    kneeGaveWay: next() < 0.15,
     redFlags: next() < 0.05 ? { [pick(flagIds)]: true } : {},
     pain: next() < 0.05 ? 7 + Math.floor(next() * 4) : Math.floor(next() * 7),
     swelling: next() < 0.05 ? 'more' : pick(['none', 'some'] as const),
@@ -73,6 +82,9 @@ const leaves = (p: Protocol) => {
   for (const ph of p.phases) {
     if (ph.reviewDate) out.push([`phase${ph.id}.reviewDate`, ph.reviewDate]);
     for (const e of ph.exercises) {
+      for (const [k, v] of Object.entries(e)) if (typeof v === 'number') out.push([`phase${ph.id}.${e.kind}.${k}`, v]);
+    }
+    for (const e of ph.homeExercises ?? []) {
       for (const [k, v] of Object.entries(e)) if (typeof v === 'number') out.push([`phase${ph.id}.${e.kind}.${k}`, v]);
     }
   }
@@ -150,9 +162,10 @@ describe('properties of the generator', () => {
         }
       }
     }
+    // The mini squat ceiling of 50 is a rule value (SQUAT_DEPTH), tested below. Only the heel slide ceiling comes from the person.
     for (const { seed, protocol } of protocols) {
       const limit = randomInputs(seed).surgeonLimit;
-      for (const e of protocol.phases.flatMap((p) => p.exercises)) {
+      for (const e of protocol.phases.flatMap((p) => p.exercises).filter((x) => x.kind === 'heel-slide')) {
         if (e.maxFlexion === undefined) continue;
         expect(limit.kind, `seed ${seed}`).toBe('degrees');
         expect(e.maxFlexion).toBeLessThanOrEqual((limit as { degrees: number }).degrees);
@@ -165,7 +178,7 @@ describe('properties of the generator', () => {
       const i = randomInputs(seed);
       const r = generateProtocol(i, TODAY);
       if (r.kind !== 'protocol') continue;
-      for (const e of r.protocol.phases.flatMap((p) => p.exercises)) {
+      for (const e of r.protocol.phases.flatMap((p) => p.exercises).filter((x) => x.kind === 'heel-slide')) {
         if (i.surgeonLimit.kind !== 'degrees') expect(e.maxFlexion, `seed ${seed}`).toBeUndefined();
       }
     }
@@ -205,8 +218,60 @@ describe('properties of the generator', () => {
             expect(e.sets).toBeUndefined();
             expect(e.reps).toBeUndefined();
           }
-          expect(['straight-leg-raise', 'heel-slide']).toContain(e.kind);
+          expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
         }
+        for (const h of ph.homeExercises ?? []) {
+          if (h.kind === 'ankle-pump') expect(h).not.toHaveProperty('sets');
+          else expect(h).toMatchObject({ sets: 2, reps: 10 });
+        }
+      }
+    }
+  });
+
+  it('never gives a mini squat ceiling above 50 and never a squat without the gates', () => {
+    let squats = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      const r = generateProtocol(i, TODAY);
+      if (r.kind !== 'protocol') continue;
+      for (const ph of r.protocol.phases) {
+        const squat = ph.exercises.find((e) => e.kind === 'mini-squat');
+        if (squat === undefined) continue;
+        squats += 1;
+        expect(ph.id, `seed ${seed}`).toBe(2);
+        expect(squat.maxFlexion, `seed ${seed}`).toBeLessThanOrEqual(RULES.SQUAT_DEPTH.values.maxFlexion);
+        expect([i.walksWithoutCrutches, i.legRaiseStraight, i.phaseClearance], `seed ${seed}`).toEqual(['yes', 'yes', 'yes']);
+        expect(i.kneeGaveWay, `seed ${seed}`).toBe(false);
+      }
+    }
+    expect(squats).toBeGreaterThan(0);
+  });
+
+  it('never gives a seated hold without the reported clearance, in phase 1, or with a straight arc', () => {
+    let holds = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      const r = generateProtocol(i, TODAY);
+      if (r.kind !== 'protocol') continue;
+      for (const ph of r.protocol.phases) {
+        const hold = ph.exercises.find((e) => e.kind === 'seated-extension-hold');
+        if (hold === undefined) continue;
+        holds += 1;
+        expect(ph.id, `seed ${seed}`).toBe(2);
+        expect(i.seatedHoldCleared, `seed ${seed}`).toBe('yes');
+        expect(hold.minFlexion, `seed ${seed}`).toBeGreaterThan(0);
+        expect(hold.holdSeconds, `seed ${seed}`).toBeUndefined();
+      }
+    }
+    expect(holds).toBeGreaterThan(0);
+  });
+
+  it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {
+    for (const { seed, protocol } of protocols) {
+      for (const ph of protocol.phases) {
+        const kinds = (ph.homeExercises ?? []).map((h) => h.kind);
+        expect(kinds, `seed ${seed}`).toEqual(expect.arrayContaining(['quad-set', 'gluteal-set', 'leg-raise-side', 'leg-raise-back']));
+        expect(kinds.includes('ankle-pump'), `seed ${seed}`).toBe(ph.id === 1);
       }
     }
   });

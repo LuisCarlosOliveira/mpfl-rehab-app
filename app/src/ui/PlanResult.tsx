@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { prescription } from './Home';
+import { HomeExerciseList, PlanLines } from './HomeExercises';
 
 type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
 
@@ -123,15 +124,18 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
                     </li>
                   ))}
                 </ul>
-                {e.targetFlexion !== undefined && <p className="detail">{countStartText(e.targetFlexion)}.</p>}
+                {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail">Hold time: ask your care team.</p>}
+                {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail">{countStartText(e.targetFlexion)}.</p>}
               </li>
             ))}
           </ul>
+          <HomeExerciseList items={phase?.homeExercises ?? []} />
           {!hasHeel && (
             <Notice role="note" icon="info">
               <p>{heelNote}</p>
             </Notice>
           )}
+          <PlanLines protocol={protocol} />
           <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
         </section>
 

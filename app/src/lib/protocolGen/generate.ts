@@ -3,8 +3,9 @@
 // It fails closed: any exception and any schema failure give a referral.
 
 import { evaluateRedFlags } from '../redflags';
+import { generatorExtendedOn } from '../mode';
 import { evaluateSession } from '../safety';
-import { protocolSchema, type Exercise, type Protocol } from '../protocol/schema';
+import { protocolSchema, type Exercise, type HomeExercise, type Protocol } from '../protocol/schema';
 import { inputsSchema, type GeneratorInputs } from './inputs';
 import { NOT_APPROVED, RULES, type RuleId } from './rules';
 import type { Grade, SourceId } from './sources';
@@ -93,6 +94,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   if (week > RULES.W1.values.lastWeek) return refer('R10');
 
   const phase2 = week >= RULES.PH2.values.firstWeek && i.phaseClearance === 'yes';
+  const extended = generatorExtendedOn(); // the mini squat, the seated hold and the unknown-limit heel slide are held back without it
   const limit = i.surgeonLimit;
   const target = RULES.ENG_TARGET.values.targetFlexion;
   const back = RULES.ENG_RETURN.values.returnWithinDeg;
@@ -103,24 +105,41 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   const returnApplied: Applied[] = [];
   const limitApplied: Applied[] = [];
   const reviewApplied: Applied[] = [];
+  const squatApplied: Applied[] = [];
+  const holdApplied: Applied[] = [];
+  const holdAngleApplied: Applied[] = [];
 
-  const straightLegRaise = (phaseId: number): Exercise => {
+  // The dose of every strengthening exercise (P2 rec 26, Note 1: all strengthening exercises, all phases).
+  const dosed = (path: string): { sets: number; reps: number } => {
     const { sets, reps } = RULES.DOSE.values;
-    doseApplied.push(
-      { path: `phase${phaseId}.straight-leg-raise.sets`, value: sets, origin: 'rule' },
-      { path: `phase${phaseId}.straight-leg-raise.reps`, value: reps, origin: 'rule' },
-    );
-    return {
-      kind: 'straight-leg-raise',
-      sets,
-      reps,
-      source: `Name: S1 (SLR). ${sets} sets of ${reps}: P2 rec 26, lowest bound (DOSE), OPINION, ages 8 to 25. ${NOT_APPROVED}.`,
-    };
+    doseApplied.push({ path: `${path}.sets`, value: sets, origin: 'rule' }, { path: `${path}.reps`, value: reps, origin: 'rule' });
+    return { sets, reps };
+  };
+  const doseSource = `${RULES.DOSE.values.sets} sets of ${RULES.DOSE.values.reps}: P2 rec 26, lowest bound (DOSE), OPINION, ages 8 to 25. ${NOT_APPROVED}.`;
+
+  const straightLegRaise = (phaseId: number): Exercise => ({
+    kind: 'straight-leg-raise',
+    ...dosed(`phase${phaseId}.straight-leg-raise`),
+    source: `Name: S1 (SLR). ${doseSource}`,
+  });
+
+  // The home exercises that the camera does not count. Ankle pumps are in phase 1 only (P1, P3).
+  const homeExercises = (phaseId: number): HomeExercise[] => {
+    const named = (kind: HomeExercise['kind'], names: string): HomeExercise => ({ kind, ...dosed(`phase${phaseId}.${kind}`), source: `${names} (HOME). ${doseSource}` });
+    return [
+      named('quad-set', 'Quadriceps set: S1 P1 P2 P3 N3'),
+      named('gluteal-set', 'Gluteal set: P1 P2 N3'),
+      ...(phaseId === 1
+        ? [{ kind: 'ankle-pump' as const, source: `Ankle pump: P1 P3 (ANKLE). No dose (DOSE_NONE). ${NOT_APPROVED}.` }]
+        : []),
+      named('leg-raise-side', 'Leg raise to the side: S1 P1 P2 P3'),
+      named('leg-raise-back', 'Leg raise to the back: S1 P1 P2 P3'),
+    ];
   };
 
-  // The heel slide needs a number from the surgeon in phase 1. In phase 2 "no limit" also adds it.
+  // The heel slide needs a number from the surgeon in phase 1. In phase 2 "no limit" and "unknown" also add it.
   const heelSlide = (phaseId: number): Exercise | null => {
-    if (limit.kind === 'unknown') return null;
+    if (limit.kind === 'unknown' && (phaseId === 1 || !extended)) return null;
     if (limit.kind === 'none' && phaseId === 1) return null;
     if (limit.kind === 'degrees' && limit.degrees < lowestLimit) return null;
     const path = `phase${phaseId}.heel-slide`;
@@ -132,13 +151,50 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
       limitApplied.push({ path: `${path}.maxFlexion`, value: limit.degrees, origin: 'person' });
       return { ...common, maxFlexion: limit.degrees, source: `Heel slide: S1 P3 P1 (HEEL). Limit: your surgeon, as entered (RANGE_SURGEON). ${tail}` };
     }
+    if (limit.kind === 'unknown') return { ...common, source: `Heel slide: S1 P3 P1 (HEEL_P2_UNKNOWN). Limit not known, no ceiling. ${tail}` };
     return { ...common, source: `Heel slide: S1 P3 P1 (HEEL). No limit entered. ${tail}` };
+  };
+
+  // Mini squat (D1). From phase 2, with both answers yes and no knee gave way event. The ceiling is the lower of 50 and a surgeon number.
+  const squatCeiling = limit.kind === 'degrees' ? Math.min(RULES.SQUAT_DEPTH.values.maxFlexion, limit.degrees) : RULES.SQUAT_DEPTH.values.maxFlexion;
+  const squatBuilt =
+    extended && phase2 && i.walksWithoutCrutches === 'yes' && i.legRaiseStraight === 'yes' && !i.kneeGaveWay && squatCeiling >= lowestLimit;
+  const miniSquat = (): Exercise => {
+    const path = 'phase2.mini-squat';
+    targetApplied.push({ path: `${path}.targetFlexion`, value: target, origin: 'rule' });
+    returnApplied.push({ path: `${path}.returnWithinDeg`, value: back, origin: 'rule' });
+    squatApplied.push({ path: `${path}.maxFlexion`, value: squatCeiling, origin: limit.kind === 'degrees' && limit.degrees < RULES.SQUAT_DEPTH.values.maxFlexion ? 'person' : 'rule' });
+    return {
+      kind: 'mini-squat',
+      ...dosed(path),
+      targetFlexion: target,
+      maxFlexion: squatCeiling,
+      returnWithinDeg: back,
+      source: `Mini squat: P3 P2 N3 S1 (SQUAT_P2). Depth: N3 S16 (SQUAT_DEPTH). Dose: DOSE. Count values: ENGINEERING. ${NOT_APPROVED}.`,
+    };
+  };
+
+  // Seated hold (D4). From phase 2, after the report of the clearance. No hold time. The arc is the one of P1 and never straight.
+  const holdBuilt =
+    extended && phase2 && !i.kneeGaveWay && i.seatedHoldCleared === 'yes' && (limit.kind !== 'degrees' || limit.degrees >= RULES.HOLD_P2.values.arcStart);
+  const seatedHold = (): Exercise => {
+    const path = 'phase2.seated-extension-hold';
+    holdApplied.push({ path: `${path}.minFlexion`, value: RULES.HOLD_P2.values.minFlexion, origin: 'rule' });
+    holdAngleApplied.push({ path: `${path}.targetFlexion`, value: RULES.ENG_HOLD.values.targetFlexion, origin: 'rule' });
+    return {
+      kind: 'seated-extension-hold',
+      minFlexion: RULES.HOLD_P2.values.minFlexion,
+      targetFlexion: RULES.ENG_HOLD.values.targetFlexion,
+      source: `Seated hold: P1 P2 (HOLD_P2). Hold angle: ENGINEERING (ENG_HOLD). No hold time (NONE_HOLDTIME). ${NOT_APPROVED}.`,
+    };
   };
 
   const exercisesOf = (phaseId: number): Exercise[] => {
     const list = [straightLegRaise(phaseId)];
     const heel = heelSlide(phaseId);
     if (heel !== null) list.push(heel);
+    if (phaseId === 2 && squatBuilt) list.push(miniSquat());
+    if (phaseId === 2 && holdBuilt) list.push(seatedHold());
     return list;
   };
 
@@ -151,6 +207,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
       id: 1,
       name: 'Protection',
       exercises: exercisesOf(1),
+      homeExercises: homeExercises(1),
       reviewCriteria: [
         { kind: 'clinicianCheck', key: 'extensionFull', evidence: 'mpflr' },
         { kind: 'clinicianCheck', key: 'slrNoLag', evidence: 'mpflr' },
@@ -161,24 +218,34 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   ];
   if (phase2) {
     reviewApplied.push({ path: 'phase2.reviewDate', value: phase2Date, origin: 'rule' });
-    phases.push({ id: 2, name: 'Strengthening', exercises: exercisesOf(2), reviewDate: phase2Date });
+    phases.push({ id: 2, name: 'Strengthening', exercises: exercisesOf(2), homeExercises: homeExercises(2), reviewDate: phase2Date });
   }
 
-  const hasHeel = targetApplied.length > 0;
+  const hasHeel = phases.some((p) => p.exercises.some((e) => e.kind === 'heel-slide'));
+  const heelUnknown = phase2 && extended && limit.kind === 'unknown';
   const entries: WhyEntry[] = [
     why('W1', 'generated'),
     why('PH1', 'generated'),
     ...(week >= RULES.PH2.values.firstWeek ? [why('PH2', phase2 ? 'generated' : 'refused')] : []),
     why('SLR', 'generated'),
+    why('HOME', 'generated'),
+    why('ANKLE', 'generated'),
     why('DOSE', 'generated', doseApplied),
     why('HEEL', hasHeel ? 'generated' : 'refused'),
+    ...(heelUnknown ? [why('HEEL_P2_UNKNOWN', 'generated')] : []),
     ...(limitApplied.length > 0 ? [why('RANGE_SURGEON', 'generated', limitApplied)] : []),
-    ...(hasHeel ? [why('ENG_TARGET', 'generated', targetApplied), why('ENG_RETURN', 'generated', returnApplied)] : []),
+    ...(phase2 && !extended ? [why('EXTENDED_OFF', 'refused')] : []),
+    ...(phase2 && extended ? [why('SQUAT_P2', squatBuilt ? 'generated' : 'refused'), why('SQUAT_GATE', squatBuilt ? 'generated' : 'refused')] : []),
+    ...(squatBuilt ? [why('SQUAT_DEPTH', 'generated', squatApplied)] : []),
+    ...(holdBuilt ? [why('HOLD_P2', 'generated', holdApplied), why('ENG_HOLD', 'generated', holdAngleApplied)] : []),
+    ...(targetApplied.length > 0 ? [why('ENG_TARGET', 'generated', targetApplied), why('ENG_RETURN', 'generated', returnApplied)] : []),
     why('REVIEW', 'generated', reviewApplied),
+    ...(week <= RULES.PH1.values.lastWeek ? [why('ROM_CHECK', 'generated')] : []),
+    why('PT_VISITS', 'generated'),
     why('RANGE_NONE', 'refused'),
     why('DOSE_NONE', 'refused'),
     why('SQUAT', 'refused'),
-    why('HOLD', 'refused'),
+    ...(holdBuilt ? [] : [why('HOLD', 'refused')]),
     why('PAIN', 'refused'),
     ...(['NONE_WB_BRACE', 'NONE_FREQ', 'NONE_TEMPO', 'NONE_HOLDTIME', 'NONE_PAIN_STOP', 'NONE_VALGUS', 'NONE_REVISION', 'NONE_GRAFT'] as const).map(
       (id) => why(id, 'refused'),

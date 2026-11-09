@@ -283,6 +283,97 @@ describe('claims-check.sh: pixel read only in the QR reader (T12b)', () => {
   });
 });
 
+// T-W: the pose detection runs in a Web Worker. One file (pose/frameBridge.ts) turns a video frame into a transferable picture.
+// The API is banned everywhere else. The exception is ONE marked line in that exact file.
+describe('claims-check.sh: frame picture only in the frame bridge (T-W)', () => {
+  const bridge = 'const bitmap = await createImageBitmap(video);';
+  const marked = `${bridge} // claims-check:allow`;
+
+  it('fails on createImageBitmap in another file, also with the marker', () => {
+    put('lib/other.ts', bridge);
+    expect(run(claims, dir).status).toBe(1);
+    put('lib/other.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails in the worker file, also with the marker', () => {
+    put('pose/poseWorker.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails in a file with the same name in another folder', () => {
+    put('lib/pose/frameBridge.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails in the QR reader: the exception is for the bridge only', () => {
+    put('pairing/qrReader.ts', marked);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes on one marked line in pose/frameBridge.ts', () => {
+    put('pose/frameBridge.ts', `const a = 1;\n${marked}\n`);
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('passes when the folder holds the marked bridge and a clean file', () => {
+    put('pose/frameBridge.ts', marked);
+    put('lib/clean.ts', 'export const x = 1;');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('passes when both exceptions sit in one folder: the QR reader and the bridge', () => {
+    put('pose/frameBridge.ts', marked);
+    put('pairing/qrReader.ts', 'const img = ctx.getImageData(0, 0, w, h); // claims-check:allow');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('fails in pose/frameBridge.ts without the marker', () => {
+    put('pose/frameBridge.ts', bridge);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a second line in the bridge, with or without the marker', () => {
+    put('pose/frameBridge.ts', `${marked}\n${bridge}\n`);
+    expect(run(claims, dir).status).toBe(1);
+    put('pose/frameBridge.ts', `${marked}\n${marked}\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a comment that names the API in the bridge without the marker', () => {
+    put('pose/frameBridge.ts', `${marked}\n// never call createImageBitmap twice\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it.each([
+    'const u = canvas.toDataURL();',
+    'const f = new VideoFrame(video);',
+    'const o = new OffscreenCanvas(1, 1);',
+    'const g = c.getContext("2d");',
+    'ctx.drawImage(video, 0, 0);',
+    'const d = ctx.getImageData(0, 0, 1, 1); // claims-check:allow',
+    'const p = new MediaStreamTrackProcessor({ track });',
+    'const s = video.captureStream();',
+  ])('still bans other frame APIs in the bridge: %s', (line) => {
+    put('pose/frameBridge.ts', `${marked}\n${line}\n`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('accepts the bridge when a single file is given', () => {
+    const file = put('pose/frameBridge.ts', marked);
+    expect(run(claims, file).status).toBe(0);
+  });
+
+  it('names the file in the failure output', () => {
+    put('lib/other.ts', bridge);
+    expect(run(claims, dir).stdout).toContain('other.ts');
+  });
+
+  it('passes on the real source, which holds exactly one marked line', () => {
+    expect(run(claims, realSrc).status).toBe(0);
+  });
+});
+
 // Live test follow-up: the body map and any other screen must draw from numbers, never from pixels.
 // A frame must never be drawn to a canvas outside the QR reader.
 describe('claims-check.sh: no frame drawing outside the QR reader', () => {

@@ -4,6 +4,11 @@ import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { acceptProposal, confirmByPerson, CONFIRMATION_MAX_AGE_MS, type PersonConfirmation } from '../src/lib/protocol/accept';
 
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+
 // A jsdom event is never trusted, so a test marks the real events that stand for a click of a person.
 // Only the read of the isTrusted flag is replaced. The check for a real event and for a click type stays real.
 const marked = vi.hoisted(() => new WeakSet<object>());
@@ -260,6 +265,30 @@ describe('acceptProposal: the active phase', () => {
     expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
     const stored = await loadStoredProtocol(db, 'demo');
     expect(stored?.ok && stored.protocol.activePhase).toBe(2);
+  });
+
+  // Generator v2: a mini squat or a seated hold that the stored plan does not have is more load, so it counts as a move forward.
+  it.each([
+    ['a new mini squat', { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' }],
+    ['a new seated hold', { seatedHoldCleared: 'yes' }],
+  ] as const)('refuses %s while the flag is off and keeps the stored bytes', async (_name, answers) => {
+    const open = { phaseClearance: 'yes', surgeonLimit: { kind: 'none' } } as const;
+    await acceptProposal(db, proposalOf(plan(8, open)), confirmed(), 'demo');
+    const before = await storedRaw();
+    const more = plan(8, { ...open, ...answers });
+    expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
+    expect(await storedRaw()).toBe(before);
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+    expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: true });
+  });
+
+  it('accepts the removal of a mini squat with the flag off, because it loads the knee less', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+    const gates = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
+    await acceptProposal(db, proposalOf(plan(8, gates)), confirmed(), 'demo');
+    vi.unstubAllEnvs();
+    const without = plan(8, { ...gates, kneeGaveWay: true });
+    expect(await acceptProposal(db, proposalOf(without), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 
   it('refuses a higher limit while the flag is off', async () => {

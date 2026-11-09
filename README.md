@@ -12,7 +12,7 @@ The final test counts come from [docs/test-results.md](docs/test-results.md). Th
 |---|---|
 | Angle, filter, counters, margin rule, cues | Built, with unit tests. Checked on 8 public clips as a smoke test only |
 | Protocol file, red flags, pause floor | Built, with unit tests and browser tests |
-| Protocol generator: questions, plan, "Why this plan", referral, Confirm, "Update my plan" | Built. Confirm is the only path that saves a plan that the app made. No clinician reviewed it |
+| Protocol generator: questions, plan, "Why this plan", referral, Confirm, "Update my plan" | Built. The plan holds the straight leg raise, the heel slide with a limit, five home exercises that the camera does not count, and from week 7 a mini squat and a seated hold after answers of the person. Confirm is the only path that saves a plan that the app made. No clinician reviewed it |
 | Local storage, JSON and CSV export, import, erase | Built, with unit tests and browser tests. Live test round 1 passed the data checks |
 | Camera and pose wrapper (self-hosted model) | Built, with browser tests and with real clips as the fake webcam |
 | Camera setup rules, position guide, numbered guide, resting angle | Built. The resting angle can be captured in the Session screen when Setup gave none |

@@ -85,3 +85,34 @@ describe('published sources and project files (L2-09)', () => {
     }
   });
 });
+
+describe('sources of generator version 2 (audit section 9 of 2026-11-09)', () => {
+  const audit = research('citation-audit.md');
+  const rowOf = (id: string) => audit.split('\n').find((l) => l.startsWith(`| ${id} |`));
+
+  it('verifies N3 and S16 only through audit rows that say EXACT', () => {
+    for (const id of ['N3', 'S16'] as const) {
+      expect(SOURCES[id].audit, id).toBe('EXACT');
+      expect(SOURCES[id].verified, id).toBe(true);
+    }
+    for (const id of ['V95', 'V96', 'V97', 'V98', 'V116']) {
+      expect(rowOf(id), id).toMatch(/\| EXACT \|/);
+    }
+  });
+
+  it('lists an audit row for every source that carries a quote of version 2', () => {
+    for (const id of ['N3', 'S16', 'P2', 'P3', 'S1'] as const) {
+      for (const row of SOURCES[id].auditRows) expect(rowOf(row), `${id} ${row}`).toBeDefined();
+    }
+  });
+
+  it('keeps S16 labelled as a study of healthy people', () => {
+    expect(SOURCES.S16.population).toMatch(/healthy/i);
+    expect(SOURCES.S16.quotes).toContain('a smaller knee angle range between 0 degrees and 50 degrees');
+  });
+
+  it('keeps the arc quote of P1 for the seated hold and the quote that disagrees with an early squat', () => {
+    expect(SOURCES.P1.quotes).toContain('Follow surgeon preference and patient tolerance for open chain strengthening in a limited arc of motion (90-40 degrees)');
+    expect(SOURCES.P1.quotes).toContain('Squat progression: chair squats to free squats');
+  });
+});

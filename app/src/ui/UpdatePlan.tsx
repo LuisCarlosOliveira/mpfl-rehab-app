@@ -2,8 +2,8 @@
 // It proposes a change with the reason, and the person confirms or keeps the plan on the next screen (ConfirmPlan).
 // This screen saves nothing. A change that moves forward needs VITE_SELF_PROGRESSION, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
-import { clearanceAsked, emptyAnswers, limitNumber, answered, type Answers } from '../lib/onboarding';
-import { describeChanges, draftOf, eventsSince, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
+import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
+import { describeChanges, draftOf, eventsSince, gaveWaySince, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, type MpflDb, type StoredInputs } from '../lib/storage';
@@ -29,7 +29,7 @@ export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
 export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
 export const HOLD_EVENT = 'Contact your care team before the next stage. The app recorded a safety event after the date of your plan.';
 
-type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'ready'; stored: StoredInputs; events: number };
+type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'ready'; stored: StoredInputs; events: number; gaveWay: boolean };
 
 export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCancel, onCreate }: Props) {
   const [loaded, setLoaded] = useState<Loaded>({ state: 'loading' });
@@ -42,7 +42,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
         if (!alive) return;
         if (stored === null) return setLoaded({ state: 'missing' });
         const since = protocol.generated?.on ?? '0000-00-00';
-        setLoaded({ state: 'ready', stored, events: eventsSince(sessions, since, protocol.painPauseThreshold) });
+        setLoaded({ state: 'ready', stored, events: eventsSince(sessions, since, protocol.painPauseThreshold), gaveWay: gaveWaySince(sessions, since) });
         const limit = stored.surgeonLimit;
         setForm((f) => ({ ...f, surgeryDate: stored.surgeryDate ?? '', limitKind: limit.kind, limitDegrees: limit.kind === 'degrees' ? String(limit.degrees) : '' }));
       },
@@ -93,12 +93,14 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
     );
   }
 
-  const { stored, events } = loaded;
+  const { stored, events, gaveWay } = loaded;
   const set = (patch: Partial<Answers>) => setForm((f) => ({ ...f, ...patch }));
   const week = weeksSince(stored.surgeryDate ?? '', today);
   const asked = clearanceAsked(form, today);
   const limitReady = form.limitKind === 'degrees' ? limitNumber(form.limitDegrees) !== null : form.limitKind !== null;
-  const ready = answered('today', form) && limitReady && (!asked || form.phaseClearance !== null) && week !== null;
+  const gates = gatesAsked(form, today);
+  const gatesReady = !gates || (form.walksWithoutCrutches !== null && form.legRaiseStraight !== null && form.seatedHoldCleared !== null);
+  const ready = answered('today', form) && limitReady && (!asked || form.phaseClearance !== null) && gatesReady && week !== null;
 
   function check() {
     const degrees = limitNumber(form.limitDegrees);
@@ -106,6 +108,10 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
       ...stored,
       surgeonLimit: form.limitKind === 'degrees' && degrees !== null ? { kind: 'degrees', degrees } : { kind: form.limitKind === 'none' ? 'none' : 'unknown' },
       phaseClearance: asked ? (form.phaseClearance ?? 'unknown') : 'no',
+      walksWithoutCrutches: gates ? (form.walksWithoutCrutches ?? 'unknown') : 'unknown',
+      legRaiseStraight: gates ? (form.legRaiseStraight ?? 'unknown') : 'unknown',
+      seatedHoldCleared: gates ? (form.seatedHoldCleared ?? 'unknown') : 'unknown',
+      kneeGaveWay: gaveWay,
       redFlags: Object.fromEntries(Object.entries(form.redFlags).filter(([, v]) => v)),
       pain: form.pain ?? 0,
       swelling: form.swelling ?? 'none',
@@ -162,6 +168,34 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
               choices={YES_NO_UNKNOWN}
               onChange={(v) => set({ phaseClearance: v as Answers['phaseClearance'] })}
             />
+          </section>
+        )}
+
+        {gates && (
+          <section className="stack-s" aria-labelledby="update-gates">
+            <h2 id="update-gates">Your answers for the next exercises</h2>
+            <ChoiceGroup
+              name="walking"
+              legend="Do you walk without crutches?"
+              value={form.walksWithoutCrutches}
+              choices={YES_NO_UNKNOWN}
+              onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })}
+            />
+            <ChoiceGroup
+              name="legRaise"
+              legend="Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?"
+              value={form.legRaiseStraight}
+              choices={YES_NO_UNKNOWN}
+              onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })}
+            />
+            <ChoiceGroup
+              name="seatedHold"
+              legend="Did your surgeon say that you can do knee straightening exercises while you sit?"
+              value={form.seatedHoldCleared}
+              choices={YES_NO_UNKNOWN}
+              onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })}
+            />
+            <p className="detail">The app does not check these answers.</p>
           </section>
         )}
       </div>

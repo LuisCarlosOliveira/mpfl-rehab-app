@@ -85,8 +85,8 @@ export interface StoredProtocol {
 }
 
 // The answers of the person for the plan generator, I1 to I9. They stay on the device. The red flags, the pain and the
-// swelling are answers of one moment, so the app never stores them. The clearance answer is asked again at each update.
-export const storedInputsSchema = inputsSchema.omit({ phaseClearance: true, redFlags: true, pain: true, swelling: true });
+// swelling are answers of one moment, so the app never stores them. The clearance answers are asked again at each update.
+export const storedInputsSchema = inputsSchema.omit({ phaseClearance: true, walksWithoutCrutches: true, legRaiseStraight: true, seatedHoldCleared: true, kneeGaveWay: true, redFlags: true, pain: true, swelling: true });
 export type StoredInputs = z.infer<typeof storedInputsSchema>;
 
 export interface StoredInputsRow {

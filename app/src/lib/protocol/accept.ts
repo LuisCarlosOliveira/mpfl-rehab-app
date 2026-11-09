@@ -61,6 +61,8 @@ function movesForward(current: Protocol, next: Protocol): boolean {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const exercise of phase.exercises) {
       const old = before?.exercises.find((e) => e.kind === exercise.kind);
+      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
+      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
       if (!old) continue;
       for (const key of EXERCISE_CEILINGS) {
         const was = old[key];

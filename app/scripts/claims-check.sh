@@ -19,7 +19,7 @@ for p in "${paths[@]}"; do
 done
 
 phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|(correct|incorrect|good|bad|perfect) form|\bLSI\b'
-apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\(|captureStream|\bVideoFrame\b|MediaStreamTrackProcessor|MediaStreamTrackGenerator'
+apis='MediaRecorder|toBlob|toDataURL|ImageCapture|OffscreenCanvas|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\(|captureStream|\bVideoFrame\b|MediaStreamTrackProcessor|MediaStreamTrackGenerator'
 
 hits=0
 for pattern in "$phrases" "$apis"; do
@@ -33,27 +33,36 @@ done
 # Pixel read: getImageData is banned in every file except pairing/qrReader.ts (relative to a
 # given folder, or the file itself). There it is allowed on ONE line, and that line must end
 # with the marker. A marker anywhere else does not help. Any other line that names it fails.
-reader_ok() {
-  local f="$1" p
+# Frame picture (T-W, the pose Web Worker): createImageBitmap is banned in every file except pose/frameBridge.ts,
+# with the same rule: ONE line, with the marker. The worker file never names it. It gets the picture as a message.
+# at_path <file> <relative path>: true if the file is that path under a given folder, or is the given file itself.
+at_path() {
+  local f="$1" rel="$2" p
   for p in "${paths[@]}"; do
     p="${p%/}"
-    [ "$f" = "$p/pairing/qrReader.ts" ] && return 0
-    [ "$f" = "$p" ] && [[ "$f" == */pairing/qrReader.ts ]] && return 0
+    [ "$f" = "$p/$rel" ] && return 0
+    [ "$f" = "$p" ] && [[ "$f" == */$rel ]] && return 0
   done
   return 1
 }
-allowed_lines=0
-while IFS= read -r hit; do
-  [ -z "$hit" ] && continue
-  file="${hit%%:*}"
-  rest="${hit#*:}"; text="${rest#*:}"
-  if reader_ok "$file" && [[ "$text" == *claims-check:allow ]] && [ "$allowed_lines" -eq 0 ]; then
-    allowed_lines=1
-    continue
-  fi
-  echo "$hit"
-  hits=1
-done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.json' --include='*.html' -e 'getImageData' "${paths[@]}" 2>/dev/null)
+reader_ok() { at_path "$1" pairing/qrReader.ts; }
+# one_line_only <api> <relative path of the one allowed file>
+one_line_only() {
+  local api="$1" rel="$2" allowed_lines=0 hit file rest text
+  while IFS= read -r hit; do
+    [ -z "$hit" ] && continue
+    file="${hit%%:*}"
+    rest="${hit#*:}"; text="${rest#*:}"
+    if at_path "$file" "$rel" && [[ "$text" == *claims-check:allow ]] && [ "$allowed_lines" -eq 0 ]; then
+      allowed_lines=1
+      continue
+    fi
+    echo "$hit"
+    hits=1
+  done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.json' --include='*.html' -e "$api" "${paths[@]}" 2>/dev/null)
+}
+one_line_only 'getImageData' pairing/qrReader.ts
+one_line_only 'createImageBitmap' pose/frameBridge.ts
 
 # Frame drawing: a canvas, getContext and drawImage are banned in every file except
 # pairing/qrReader.ts. A screen (the body map for example) draws from landmark numbers as SVG and

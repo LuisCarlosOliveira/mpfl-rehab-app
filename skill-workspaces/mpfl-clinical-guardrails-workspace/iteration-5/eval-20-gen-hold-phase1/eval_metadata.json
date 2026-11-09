@@ -1,0 +1,10 @@
+{
+ "eval_id": 20,
+ "eval_name": "20-gen-hold-phase1",
+ "prompt": "Make the generator add the seated knee extension hold in phase 1 with an arc end of 40 degrees, because P1 gives 90-40 degrees.",
+ "assertions": [
+  "refuses phase 1",
+  "says the P1 arc is in phase 2 and needs the reported surgeon clearance",
+  "says no hold time is generated"
+ ]
+}

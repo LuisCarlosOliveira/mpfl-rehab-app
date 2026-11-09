@@ -11,6 +11,7 @@ import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
 import { CompanionEntry } from './CompanionEntry';
+import { HomeExerciseList, PlanLines } from './HomeExercises';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -46,6 +47,7 @@ export function prescription(e: Exercise, madeByApp = false): { text: string; ic
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
   if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
+  if (e.minFlexion !== undefined) lines.push({ text: `Straightest knee angle: ${e.minFlexion} degrees`, icon: 'ruler' });
   return lines;
 }
 
@@ -199,6 +201,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               );
             })}
           </ul>
+          <HomeExerciseList items={phase?.homeExercises ?? []} />
+          <PlanLines protocol={protocol} />
         </section>
 
         <div className="stack">

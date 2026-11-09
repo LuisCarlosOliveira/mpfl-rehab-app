@@ -2,10 +2,12 @@
 // The app uses cameraSource(). Tests use a mock with the same shape.
 // This file keeps no frame and no image. It passes landmark numbers and a time.
 // The pose model loads on demand with import(), so the first screen stays small.
+// The model runs in a Web Worker (frameBridge.ts, poseWorker.ts). If the browser cannot run it there, the model runs on the main thread.
 import type { Landmark } from '../lib/angle';
 import { startCamera, stopCamera, type CameraError, type CameraOptions } from './camera';
 import type { View } from '../lib/views';
 import { startPoseLoop } from './loop';
+import type { FrameBridge } from './frameBridge';
 
 export type SourceView = View;
 
@@ -40,15 +42,22 @@ const STOPPED: CameraError = { kind: 'other', message: 'The camera was stopped.'
 const DEFAULT_ASPECT = 16 / 9;
 const REPORT_EVERY_MS = 200; // the screen gets the byte count at most 5 times each second
 
+// Build flag. VITE_POSE_WORKER=off builds the app with the model on the main thread.
+const WORKER_DEFAULT = import.meta.env.VITE_POSE_WORKER !== 'off';
+
 export interface CameraSourceOptions extends CameraOptions {
   /** The view tag of this camera. The default is the side view. */
   view?: SourceView;
+  /** Run the model in a Web Worker. The default is the build flag. The source falls back to the main thread when the worker cannot run. */
+  worker?: boolean;
 }
 
-export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOptions = {}): LandmarkSource {
+export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...cameraOptions }: CameraSourceOptions = {}): LandmarkSource {
   const options = Object.keys(cameraOptions).length > 0 ? cameraOptions : undefined;
   type Landmarker = import('./landmarker').Landmarker;
   let landmarker: Landmarker | null = null;
+  let bridge: FrameBridge | null = null;
+  let handler: FrameHandler | null = null; // the worker answers to the handler of the latest start
   let stream: MediaStream | null = null;
   let element: HTMLVideoElement | null = null;
   let loop: ReturnType<typeof startPoseLoop> | null = null;
@@ -64,6 +73,9 @@ export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOp
     stopLoop();
     landmarker?.close();
     landmarker = null;
+    bridge?.close();
+    bridge = null;
+    handler = null;
     if (element) element.srcObject = null;
     element = null;
     stream = null;
@@ -87,27 +99,43 @@ export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOp
         if (!camera.ok) return camera;
         stream = camera.stream;
       }
-      if (!landmarker) {
+      handler = onFrame;
+      if (!landmarker && !bridge) {
+        let loaded = 0;
+        let lastReport = performance.now();
+        const report =
+          onProgress &&
+          ((bytes: number) => {
+            loaded += bytes;
+            const now = performance.now();
+            if (now - lastReport < REPORT_EVERY_MS) return;
+            lastReport = now;
+            onProgress({ step: 'model', loadedBytes: loaded });
+          });
+        onProgress?.({ step: 'model', loadedBytes: 0 });
         try {
-          const { createLandmarker } = await import('./landmarker');
-          onProgress?.({ step: 'model', loadedBytes: 0 });
-          let loaded = 0;
-          let lastReport = performance.now();
-          const made = await createLandmarker(
-            onProgress &&
-              ((bytes) => {
-                loaded += bytes;
-                const now = performance.now();
-                if (now - lastReport < REPORT_EVERY_MS) return;
-                lastReport = now;
-                onProgress({ step: 'model', loadedBytes: loaded });
-              }),
-          );
-          if (mine !== generation) {
-            made.close();
-            return { ok: false, error: STOPPED };
+          if (worker) {
+            const { createFrameBridge } = await import('./frameBridge');
+            const made = await createFrameBridge({
+              onResult: (landmarks, timeMs) => handler?.(landmarks, timeMs),
+              onProgress: report,
+              onFail: release,
+            }).catch(() => null); // no worker, or it cannot start: use the main thread
+            if (mine !== generation) {
+              made?.close();
+              return { ok: false, error: STOPPED };
+            }
+            bridge = made;
           }
-          landmarker = made;
+          if (!bridge) {
+            const { createLandmarker } = await import('./landmarker');
+            const made = await createLandmarker(report);
+            if (mine !== generation) {
+              made.close();
+              return { ok: false, error: STOPPED };
+            }
+            landmarker = made;
+          }
         } catch {
           release();
           return { ok: false, error: MODEL_ERROR };
@@ -120,9 +148,10 @@ export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOp
       element = video;
       void video.play().catch(() => undefined);
       const model = landmarker;
+      const sender = bridge;
       loop = startPoseLoop({
         video,
-        detect: (v, t) => model.detect(v, t),
+        detect: sender ? (v, t) => (sender.submit(v, t), undefined) : (v, t) => model!.detect(v, t),
         onFrame,
         onError: () => release(),
       });

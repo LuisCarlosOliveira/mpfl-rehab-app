@@ -1,6 +1,6 @@
 // The whole app with a real database (fake-indexeddb): Create my plan, the confirmation, Update my plan, the referral,
 // patient mode, erase, and the pain stop between sets with the protocol threshold.
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GENERATED_BANNER } from '../../src/lib/mode';
 import { PAUSE_MESSAGE } from '../../src/lib/safety';
@@ -8,6 +8,11 @@ import { loadGeneratorInputs, loadStoredProtocol, markPrivacyNoticeSeen, savePro
 import { App } from '../../src/ui/App';
 import { freshDb, mockSource, playRep, protocolText, readyLeg } from './helpers';
 import { installDialogStub } from './t11helpers';
+
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
 vi.mock('../../src/lib/protocol/trustedFlag', () => ({ trustedFlag: () => (globalThis as { __trust?: boolean }).__trust === true }));
 const trust = (on: boolean) => ((globalThis as { __trust?: boolean }).__trust = on);
@@ -257,6 +262,10 @@ describe('Update my plan, in the whole app', () => {
     await screen.findByRole('button', { name: 'Check my plan' });
     fillToday();
     choose('Yes');
+    // Generator v2: the answer yes opens three more questions. A squat or a hold also needs the self progression switch.
+    for (const q of [/Do you walk without crutches/, /Can you lift your leg with a straight knee/, /knee straightening exercises while you sit/]) {
+      fireEvent.click(within(screen.getByRole('group', { name: q })).getByRole('radio', { name: 'I do not know' }));
+    }
     click('Check my plan');
     await heading('Confirm the change');
     expect(screen.getByText('Ask your care team about the next stage.')).toBeInTheDocument();

@@ -128,4 +128,4 @@ Source: [docs/audit-3.md](audit-3.md) and the fixes of commit 903d2c9. No clinic
 - The legal basis to store the surgery date, and the data controller of the file exchange.
 - A hand-added `approvedOn` date (L2-05): patient mode cannot check a claim in an unsigned file.
 - The clip licences: 8 Creative Commons clips ran in private tests. The attribution is in `docs/accuracy.md`. The clips never enter the repo. YouTube terms forbid a download with a tool. The user accepted this after the vetting in `docs/dependency-vetting-ytdlp.md`.
-- Moving the pose loop to a Worker (L4-04): a decision of the user.
+- Moving the pose loop to a Worker (L4-04): the user decided yes ("6. ok"). The work is T42 and `docs/pose-worker.md`. The speed on a real phone is NOT RUN.

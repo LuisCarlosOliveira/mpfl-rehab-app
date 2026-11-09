@@ -2,7 +2,7 @@
 // Every number that they show comes from a protocol that the generator made, or from the stored answers.
 
 import { contactReason } from './contactCard';
-import type { Exercise, Protocol } from './protocol';
+import type { Exercise, HomeExercise, Protocol } from './protocol';
 import { RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
@@ -45,6 +45,19 @@ const NAMES: Record<Exercise['kind'], string> = {
   'seated-extension-hold': 'Seated knee extension hold',
 };
 
+export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
+  'quad-set': 'Quadriceps set',
+  'gluteal-set': 'Gluteal set',
+  'ankle-pump': 'Ankle pump',
+  'leg-raise-side': 'Leg raise to the side',
+  'leg-raise-back': 'Leg raise to the back',
+};
+export const NOT_CHECKED = 'The app does not check this exercise.';
+
+/** The dose of a home exercise as plain words. With no dose in the plan, the person asks the care team. */
+export const homeDose = (h: HomeExercise): string =>
+  h.sets !== undefined && h.reps !== undefined ? `${h.sets} sets of ${h.reps}` : 'How many: ask your care team';
+
 /** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */
 export function localIsoDate(d: Date): string {
   const two = (n: number) => String(n).padStart(2, '0');
@@ -72,6 +85,7 @@ export function reviewDue(reviewDate: string | undefined, today: string): boolea
 }
 
 const activeExercises = (p: Protocol): Exercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.exercises ?? [];
+const activeHome = (p: Protocol): HomeExercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.homeExercises ?? [];
 const phaseName = (p: Protocol) => {
   const ph = p.phases.find((x) => x.id === p.activePhase);
   return `Phase ${p.activePhase} ${ph?.name ?? ''}`.trim();
@@ -83,6 +97,9 @@ export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
   for (const e of activeExercises(protocol)) {
     lines.push(e.maxFlexion === undefined ? `${NAMES[e.kind]}.` : `${NAMES[e.kind]}, knee-bend limit ${e.maxFlexion} degrees.`);
+  }
+  for (const h of activeHome(protocol)) {
+    lines.push(h.sets !== undefined ? `${HOME_NAMES[h.kind]}, ${homeDose(h)}. ${NOT_CHECKED}` : `${HOME_NAMES[h.kind]}. ${homeDose(h)}. ${NOT_CHECKED}`);
   }
   return lines;
 }
@@ -102,7 +119,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   for (const e of after) {
     const old = before.find((x) => x.kind === e.kind);
     if (old === undefined) {
-      lines.push(`${NAMES[e.kind]} added. Reason: you gave a knee-bend limit from your surgeon (${RULES.HEEL.id}).`);
+      lines.push(`${NAMES[e.kind]} added. Reason: ${ADDED_REASON(e, next)}.`);
     } else if (old.maxFlexion !== e.maxFlexion) {
       lines.push(
         `Knee-bend limit in your plan: from ${limitText(old)} to ${limitText(e)}. Reason: the limit from your surgeon that you entered (${RULES.RANGE_SURGEON.id}).`,
@@ -110,15 +127,42 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
     }
   }
   for (const old of before) {
-    if (!after.some((x) => x.kind === old.kind)) {
-      lines.push(`${NAMES[old.kind]} removed. Reason: the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id}).`);
-    }
+    if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${REMOVED_REASON[old.kind]}.`);
+  }
+  const homeBefore = activeHome(current);
+  for (const h of activeHome(next)) {
+    if (!homeBefore.some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} added. Reason: published plans list it for this stage (${h.kind === 'ankle-pump' ? RULES.ANKLE.id : RULES.HOME.id}).`);
+  }
+  for (const h of homeBefore) {
+    if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
   }
   return lines;
 }
 
+const ADDED_REASON = (e: Exercise, next: Protocol): string => {
+  if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
+  if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
+  if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
+  return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
+};
+const REMOVED_REASON: Record<Exercise['kind'], string> = {
+  'heel-slide': `the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id})`,
+  'straight-leg-raise': `the app adds this exercise in every plan (${RULES.SLR.id})`,
+  'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
+  'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
+};
+
+/** True when the proposal adds a mini squat or a seated hold that the stored plan does not have in the same phase. accept.ts enforces the same rule. */
+function addsLoadedExercise(current: Protocol, next: Protocol): boolean {
+  return next.phases.some((phase) => {
+    const before = current.phases.find((p) => p.id === phase.id);
+    return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((x) => x.kind === e.kind));
+  });
+}
+
 /** True when a limit in the proposal is higher than the stored limit, or is gone. accept.ts enforces the same rule. */
 export function raisesLimit(current: Protocol, next: Protocol): boolean {
+  if (addsLoadedExercise(current, next)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const e of phase.exercises) {
@@ -138,6 +182,10 @@ export function movesForward(current: Protocol, next: Protocol): boolean {
 export function eventsSince(sessions: readonly SessionRecord[], since: string, painPauseThreshold: number | undefined): number {
   return sessions.filter((s) => s.date.slice(0, 10) >= since && (s.redFlagBlocks > 0 || contactReason(s, painPauseThreshold) !== null)).length;
 }
+
+/** True when a session since the plan date has a "Knee gave way or hurts" press. It removes the mini squat (SQUAT_GATE). */
+export const gaveWaySince = (sessions: readonly SessionRecord[], since: string): boolean =>
+  sessions.some((s) => s.date.slice(0, 10) >= since && s.gaveWayPresses > 0);
 
 const EVIDENCE: Record<Grade, string> = {
   CONSENSUS: 'Consensus statement',
@@ -163,6 +211,7 @@ export const countStartText = (deg: number): string => `The app starts counting 
 
 const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
   maxFlexion: { label: 'knee-bend limit', unit: ' degrees' },
+  minFlexion: { label: 'straightest knee angle', unit: ' degrees' },
   returnWithinDeg: { label: 'return within', unit: ' degrees' },
   sets: { label: 'sets' },
   reps: { label: 'reps' },
@@ -177,7 +226,8 @@ const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
 function appliedLine(a: WhyEntry['applied'][number]): string {
   const [phaseKey, kind, field] = a.path.split('.') as [string, string, string | undefined];
   const phase = `Phase ${phaseKey.replace('phase', '')}`;
-  const name = NAMES[kind as Exercise['kind']] ?? kind;
+  const name = NAMES[kind as Exercise['kind']] ?? HOME_NAMES[kind as HomeExercise['kind']] ?? kind;
+  if (field === 'targetFlexion' && kind === 'seated-extension-hold') return `${phase}, ${name}, the app counts the hold at ${a.value} degrees ${APP_VALUE}`;
   if (field === 'targetFlexion') return `${phase}, ${name}, the app starts counting a rep at ${a.value} degrees ${APP_VALUE}`;
   if (field === 'returnWithinDeg') return `${phase}, ${name}, the app ends a rep when the knee is back within ${a.value} degrees of rest ${APP_VALUE}`;
   const info = FIELD_LABELS[field ?? kind] ?? { label: field ?? kind };

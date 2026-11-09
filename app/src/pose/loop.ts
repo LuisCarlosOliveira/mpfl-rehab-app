@@ -30,7 +30,8 @@ function push(arr: number[], v: number) {
 
 export interface LoopOptions {
   video: HTMLVideoElement;
-  detect: (video: HTMLVideoElement, timestampMs: number) => Landmark[] | null;
+  /** `undefined` means the answer comes later, from the pose worker. The loop calls no onFrame then. */
+  detect: (video: HTMLVideoElement, timestampMs: number) => Landmark[] | null | undefined;
   onFrame: (landmarks: Landmark[] | null, timestampMs: number) => void;
   /** Called once if detect throws. The loop stops first. */
   onError: (err: unknown) => void;
@@ -82,7 +83,7 @@ export function startPoseLoop({ video, detect, onFrame, onError }: LoopOptions) 
         if (lastNow > 0) push(intervals, now - lastNow);
         lastNow = now;
         stats.frames++;
-        onFrame(landmarks, now);
+        if (landmarks !== undefined) onFrame(landmarks, now);
       } catch (err) {
         stop();
         onError(err);

@@ -20,9 +20,14 @@ export const inputsSchema = z.strictObject({
     z.strictObject({ kind: z.literal('unknown') }),
   ]), // I9
   phaseClearance: yesNoUnknown, // the person reports that the care team cleared phase 2
+  // The three answers of version 2. A missing answer is "unknown" or "no event", so no mini squat and no seated hold is added.
+  walksWithoutCrutches: yesNoUnknown.default('unknown'), // gate of the mini squat (S1, first stage)
+  legRaiseStraight: yesNoUnknown.default('unknown'), // gate of the mini squat: the leg raise with no bend of the knee (S1, first stage)
+  seatedHoldCleared: yesNoUnknown.default('unknown'), // the person reports that the surgeon cleared the seated hold (P1 phase 2)
+  kneeGaveWay: z.boolean().default(false), // a "knee gave way or hurts" press since the plan. The app derives it. It removes the mini squat.
   redFlags: z.record(z.string().max(40), z.boolean()), // I10
   pain: z.number(), // I11
   swelling: z.enum(['none', 'some', 'more']), // I11
 });
 
-export type GeneratorInputs = z.infer<typeof inputsSchema>;
+export type GeneratorInputs = z.input<typeof inputsSchema>;

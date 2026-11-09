@@ -13,8 +13,8 @@ Date: 2026-11-09. These results come from the tree of the commit that holds this
 | `bash scripts/claims-check.sh src` | Exit 0. No line matches the banned words, praise words, frame APIs, canvas code or inline colours. It is a pattern match. It cannot prove that no other banned text exists. |
 | `bash scripts/phase-check.sh src` | Exit 0. No line of the source matches the patterns of the script. The check is a pattern match. Runtime tests and `tests/importGraph.test.ts` cover the real save path. |
 | `npm audit --omit=dev` | Exit 0. 0 vulnerabilities in the runtime dependencies. |
-| `npm run build` then `npm run e2e` | Exit 0. This command has 162 tests across all its projects: 138 in the `app` project (Chromium with a fake webcam, the real built app), 14 in WebKit and 10 in older harness projects. The WebKit tests are part of the 154. CORRECTED 2026-11-09 (the final audit counted with `npx playwright test --list`). The older text said "154 browser tests passed in the `app` project", which was wrong. |
-| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). These 14 tests are already inside the 162 of `npm run e2e`. |
+| `npm run build` then `npm run e2e` | Exit 0. This command has 166 tests across all its projects: 142 in the `app` project (Chromium with a fake webcam, the real built app), 14 in WebKit and 10 in older harness projects. The WebKit tests are part of the 154. CORRECTED 2026-11-09 (the final audit counted with `npx playwright test --list`). The older text said "154 browser tests passed in the `app` project", which was wrong. |
+| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). These 14 tests are already inside the 166 of `npm run e2e`. |
 | `PAIR_PORT=4196 npm run e2e:pairing` | Exit 0 in 3 runs out of 3. 18 tests passed in each run (two Chromium pages with real WebRTC). |
 
 No preview server and no fake-camera browser was left running after these commands.
@@ -55,3 +55,9 @@ This update follows four changes. They are the leg raise counter, the body map i
 That run used a 90 second timeout on the command line. Another project loaded the machine with CPU burners (load average 35).
 
 The full browser run had one real failure: the 44 px "Hide body map" switch. After the fix, `app-a11y` and `app-session-layout` passed 57 of 57. The full `npm run e2e` has 162 tests. It had 161 passed and 1 failed before the fix. The full run was not repeated after the one-line style fix. Pairing passed 18 of 18 in 2 runs.
+
+## Final run of the combined tree
+
+The precheck passed with 165 test files and 3,359 tests, on a quiet machine with no longer timeout. This tree adds generator v2 with its flag, the guide and template, the Worker for pose detection and the automatic save.
+
+The full `npm run e2e` has 166 tests. 165 passed and 1 failed. The failure was the file name of the pose code in `app-csp.spec.ts`. The Worker moved that code to `poseWorker-*.js`. The spec now accepts that name and still checks the model and WASM requests. It passed 3 of 3 alone. The full run was not repeated. Pairing passed 18 of 18 in 2 runs. No server was left running.

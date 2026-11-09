@@ -36,6 +36,9 @@ const TITLES: Record<StepId, string> = {
   redFlags: 'Do any of these apply today?',
   today: 'How is your knee today?',
   clearance: 'Has your surgeon or physiotherapist said that you can start the next stage?',
+  walking: 'Do you walk without crutches?',
+  legRaise: 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?',
+  seatedHold: 'Did your surgeon say that you can do knee straightening exercises while you sit?',
   summary: 'Check your answers',
 };
 
@@ -52,6 +55,9 @@ const CHANGE_LABELS: Record<Exclude<StepId, 'summary'>, string> = {
   redFlags: 'the red flags',
   today: 'the pain and swelling today',
   clearance: 'the next stage answer',
+  walking: 'the walking answer',
+  legRaise: 'the leg raise answer',
+  seatedHold: 'the seated exercise answer',
 };
 
 const SUMMARY_LABELS: Record<Exclude<StepId, 'summary'>, string> = {
@@ -67,6 +73,9 @@ const SUMMARY_LABELS: Record<Exclude<StepId, 'summary'>, string> = {
   redFlags: 'Red flags',
   today: 'Pain and swelling today',
   clearance: 'Next stage said by your care team',
+  walking: 'Walking without crutches',
+  legRaise: 'Leg raise with a straight knee',
+  seatedHold: 'Knee straightening while you sit, said by your surgeon',
 };
 
 const PROCEDURES = [
@@ -89,8 +98,12 @@ const word = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'no' ? 'No' : 'I
 /** The answer of one step as a short line for the summary. */
 function valueText(step: Exclude<StepId, 'summary'>, a: Answers): string {
   switch (step) {
-    case 'writtenPlan': case 'firstSurgery': case 'specialRules': case 'clearance':
-      return word(step === 'clearance' ? a.phaseClearance : a[step]);
+    case 'writtenPlan': case 'firstSurgery': case 'specialRules':
+      return word(a[step]);
+    case 'clearance': return word(a.phaseClearance);
+    case 'walking': return word(a.walksWithoutCrutches);
+    case 'legRaise': return word(a.legRaiseStraight);
+    case 'seatedHold': return word(a.seatedHoldCleared);
     case 'procedure': return PROCEDURES.find((p) => p.value === a.procedure)?.label ?? '';
     case 'ageBand': return AGES.find((p) => p.value === a.ageBand)?.label ?? '';
     case 'bothKnees': return a.bothKnees ? 'Yes' : 'No';
@@ -248,6 +261,12 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
         );
       case 'clearance':
         return <ChoiceGroup name="clearance" legend={TITLES.clearance} value={answers.phaseClearance} choices={YES_NO_UNKNOWN} onChange={(v) => set({ phaseClearance: v as Answers['phaseClearance'] })} />;
+      case 'walking':
+        return <ChoiceGroup name="walking" legend={TITLES.walking} value={answers.walksWithoutCrutches} choices={YES_NO_UNKNOWN} onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })} />;
+      case 'legRaise':
+        return <ChoiceGroup name="legRaise" legend={TITLES.legRaise} value={answers.legRaiseStraight} choices={YES_NO_UNKNOWN} onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })} />;
+      case 'seatedHold':
+        return <ChoiceGroup name="seatedHold" legend={TITLES.seatedHold} value={answers.seatedHoldCleared} choices={YES_NO_UNKNOWN} onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })} />;
       case 'summary':
         return (
           <ul className="answer-list" aria-label="Your answers">

@@ -8,8 +8,8 @@ const WASM_DIR = '/models/wasm';
 const MODEL_PATH = '/models/pose_landmarker_lite.task';
 
 export interface Landmarker {
-  /** The 33 landmarks of the first pose, or null if no pose is found. */
-  detect(video: HTMLVideoElement, timestampMs: number): Landmark[] | null;
+  /** The 33 landmarks of the first pose, or null if no pose is found. The image is a video element, or a picture of one frame (the pose worker gets a picture). */
+  detect(image: HTMLVideoElement | ImageBitmap, timestampMs: number): Landmark[] | null;
   close(): void;
 }
 
@@ -87,10 +87,10 @@ export async function createLandmarker(onProgress?: (bytes: number) => void): Pr
   let lastTs = -1;
   let closed = false;
   return {
-    detect(video, timestampMs) {
+    detect(image, timestampMs) {
       if (closed || timestampMs <= lastTs) return null;
       lastTs = timestampMs;
-      const first = pose.detectForVideo(video, timestampMs).landmarks[0];
+      const first = pose.detectForVideo(image, timestampMs).landmarks[0];
       if (!first || first.length === 0) return null;
       return first.map(({ x, y, visibility }) => ({ x, y, visibility }));
     },

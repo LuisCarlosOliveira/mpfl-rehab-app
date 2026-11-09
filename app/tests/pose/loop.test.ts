@@ -69,6 +69,16 @@ describe('startPoseLoop with requestVideoFrameCallback', () => {
     expect(f.pending()).toBe(1);
   });
 
+  it('does not call onFrame when detect gives no answer yet (the worker answers later)', () => {
+    const f = fakeVideo(true);
+    const onFrame = vi.fn();
+    startPoseLoop({ video: f.video, detect: () => undefined, onFrame, onError: vi.fn() });
+    f.fire(10);
+    f.fire(20);
+    expect(onFrame).not.toHaveBeenCalled();
+    expect(f.pending()).toBe(1);
+  });
+
   it('stop cancels the next callback', () => {
     const f = fakeVideo(true);
     const detect = vi.fn(() => null);

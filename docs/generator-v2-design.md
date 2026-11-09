@@ -1,11 +1,11 @@
 # Protocol generator, version 2: design
 
-Date: 2026-11-09. Status: design only, proposed. No code, test, script or config changed. Nothing is committed.
+Date: 2026-11-09. Status: built on 2026-11-09 after the user decisions 1 to 4 (section 9). The text below is the design as written. Nothing is committed.
 Skills loaded with the Skill tool: `simple-english:simple-english`, `owasp-security`. Project skill read as a file: `.claude/skills/mpfl-clinical-guardrails/SKILL.md`.
 Start point for the knowledge base: `research/INDEX-v2.md`. This file adds the evidence for version 2 of the generator. It does not repeat the rules of `docs/protocol-generator-design.md` that stay the same.
 Quoted source text stays exact. A style hit inside a quote is allowed.
 
-User request (words of the user): "loosen the guards when creating the rehab protocol, so that it suggests more complete protocols even without the feedback from the surgeon, using the standard protocols and guidelines."
+User request, in the words of the user. "loosen the guards when creating the rehab protocol, so that it suggests more complete protocols even without the feedback from the surgeon, using the standard protocols and guidelines."
 
 Verdict scale of this file (rule of the user):
 - SUPPORTED: an MPFLR source states the value or the exercise.
@@ -343,3 +343,33 @@ A disagreeing source shows as one more line: "P1 starts free squats later, at we
 - No clinician reviewed any row of this file.
 
 Style check: `python3 ~/.claude/scripts/ste-check.py docs/generator-v2-design.md`. The result is in the final report of this task.
+
+## 9. Build record, 2026-11-09
+
+User decisions: 1 (build step A), 2 (add the mini squat if the guidelines recommend it), 3 (keep the early heel slide refused).
+- Decision 4: the seated hold after the reported clearance, with the limited arc.
+
+- Step A is built. The schema has `homeExercises`. The plan has five home exercises and the dose 2 x 10. It has the heel slide in phase 2 for an unknown limit. It has the lines ROM_CHECK and PT_VISITS.
+- Step B (D4) is built. The seated hold needs the report that the surgeon cleared it. The arc end is 40 degrees. No hold time is set.
+- The hold counter with no hold time was verified. `counterSetup` returns "ask-your-surgeon" with `missing: 'holdSeconds'`, and `createPipeline` refuses to start. The Home screen shows the hold as not ready. The hold runs only after a clinician sets a hold time. A test in `app/tests/protocolGenV2.test.ts` pins this.
+- The N3 audit is done (`research/citation-audit.md` section 9, rows V95 to V118). Every row is EXACT. N3 gives "Mini squats range 0–50° knee flexion" for weeks 0 to 6 of an isolated MPFL reconstruction. It gives no depth for weeks 7 to 11.
+- Step C (D1) is built. The number 50 is an EXACT quote from N3. S16 gives the same range for healthy people. Weak points stay. N3 lists this range for weeks 0 to 6, and the plan uses it from week 7. P1 starts free squats at week 12.
+- The two gates are an own reading of S1 and of one P1 line about the leg press. S1 calls them "milestones of the protection phase". The screens say "Reported by you. Not checked by the app."
+- The mini squat count of the camera has no live test. The knee gave way event reads saved sessions since the plan date.
+- The guardrails skill has one narrow exception (user decision 2). The skill change ran the loop of `skill-creator:skill-creator` in a reduced form. See `skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-5/benchmark.md`.
+- Still open: the review of every row by a clinician, the regulatory class, and a live run of the new plans.
+
+## 10. Held back behind a flag, and why
+
+The independent audit (`docs/audit-generator-v2.md`) read the sources again. The user rule for the mini squat was "add it ONLY IF the guidelines recommend it". The audit says that this condition is not cleanly met. Three items are now off by default. The build flag `VITE_GENERATOR_EXTENDED` turns them on. Only the exact text "true" counts. One function reads it: `generatorExtendedOn` in `app/src/lib/mode.ts`.
+
+| Item | Why it is held back |
+|---|---|
+| Mini squat from week 7 | Only P3 lists the mini squat in this window, as an example. P1 starts free squats at week 12. No source gives the depth 50 for weeks 7 to 11. N3 gives it for weeks 0 to 6. The two gates and the removal after a knee gave way are BORROWED or WEAK |
+| Seated hold | The arc end 40 is an exact P1 quote in the right phase. P1 does not name a hold. The clearance is only a report. The hold angle uses a margin that is not verified for the camera model |
+| Heel slide in phase 2 for an unknown limit | P1 starts the heel slide once the knee bends more than 120 degrees. The app cannot check this bend and sets no ceiling |
+
+With the flag off, these items are not in the plan. The three extra questions are not asked. The rule EXTENDED_OFF tells the person to ask the care team. The home exercises, the dose, the two text lines and the heel slide with a surgeon limit or with "no limit" stay on.
+With the flag on, the behaviour is as built. The audit defects are fixed. The seated hold now also leaves the plan after a knee gave way press. The heel slide text now carries the P1 line about 120 degrees and says to ask the care team. The squat depth entry now shows that P2 starts wall squats at 45 degrees and that the sources disagree. The ankle pump text now says what P1 and P3 say. The dose text keeps "ages 8 to 25".
+
+The guardrails skill still holds the narrow exception for the squat depth. While the flag is off, that exception has no effect. The user decides whether to revert it.

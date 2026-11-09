@@ -122,6 +122,14 @@ export function topAngleText(topFlexion: number | null): string | null {
   return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} ${plural(Math.round(topFlexion), 'degree')} (${LABEL}).`;
 }
 
+// C-prime live fact (form-evidence check 5, technique S2). The sources describe a straight knee. The camera error is as large as
+// the 10 degree limit of P2, so a smaller angle says nothing and shows nothing. The text states a fact, not a rating.
+const TOP_NOTE = `The sources describe a straight knee. The camera error is about ${MARGIN_DEG} degrees or more (${LABEL}).`;
+
+/** The note under the top angle. Only for an angle above the camera error that the camera could read. Otherwise null. */
+export const topAngleNote = (topFlexion: number | null): string | null =>
+  topFlexion !== null && topFlexion > MARGIN_DEG && !topUnreadable(topFlexion) ? TOP_NOTE : null;
+
 /** Every text this module can produce, with sample numbers. The tests check them. */
 export function allCueTexts(): string[] {
   return [
@@ -133,5 +141,6 @@ export function allCueTexts(): string[] {
     FIXED.holdRestart,
     tooFastText(1200, 2000),
     topAngleText(12) as string,
+    TOP_NOTE,
   ];
 }

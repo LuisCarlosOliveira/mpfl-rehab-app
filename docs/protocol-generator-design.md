@@ -251,3 +251,15 @@ Not found in any source that I or the audit read:
   - [ ] `phase-check.sh` and `claims-check.sh` pass. An e2e test shows no phase change without Confirm.
   - [ ] A clinician reviewed G7, G10, E1, E2 and every text. The expert ruled on the class.
 - Revisit when a CONSENSUS source gives a heel slide dose or an early ceiling, when G1 (BASK) is read, or when the expert rules.
+
+## 12. Update of 2026-11-09: version 2
+
+Version 2 is built from `docs/generator-v2-design.md`. This file keeps the rules that it does not name.
+
+- The plan holds five home exercises that the camera does not count (rules HOME, ANKLE). Each has 2 sets of 10, except the ankle pump (rule DOSE).
+- The heel slide is in phase 2 also for an unknown limit (HEEL_P2_UNKNOWN). It stays refused in weeks 0 to 6 with no surgeon number (HEEL).
+- Every plan has two text lines (ROM_CHECK in weeks 0 to 6, PT_VISITS).
+- From week 7 the mini squat has a ceiling of 50 degrees (SQUAT_DEPTH, N3). It needs the clearance answer and two answers of the person (SQUAT_GATE). A knee gave way press since the plan removes it.
+- The seated hold needs the report that the surgeon cleared it. It has the arc end of 40 degrees (HOLD_P2, P1) and no hold time.
+- Three new inputs: `walksWithoutCrutches`, `legRaiseStraight` and `seatedHoldCleared`. They are asked only after the answer yes to the clearance question. A fourth input, `kneeGaveWay`, comes from saved sessions. None is stored with the answers I1 to I9.
+- The rule that a clinician sets every number has one narrow exception (guardrails skill). The number must be an EXACT audited quote. The plan shows the source, the grade, the population and the line "Not approved by a clinician".

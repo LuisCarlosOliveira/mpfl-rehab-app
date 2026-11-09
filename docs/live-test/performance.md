@@ -295,6 +295,8 @@ Steps: read the tick time in the same runs.
 Expected: the main thread has free time, so a tap on Stop is handled at once.
 Actual: the median tick is 64 to 87 ms and the median gap is 67 to 83 ms. One long task occurs for each frame (659 to 866 in 60 s). At 4x the tick is 279 to 335 ms.
 Proposed fix: run `detect()` in a Worker, or lower the rate of detection and keep the main thread free. Measure the delay of a tap on Stop and on "Knee gave way or hurts" before and after.
+
+Update 2026-11-09 (T42): the model now runs in a Web Worker. The main thread had no long task in 11 of 12 runs. The detection rate did not rise. See `docs/pose-worker.md`. The tap delay is still NOT MEASURED.
 Evidence: `$E/fps-*.json` (fields `tickMs`, `longTasks`).
 
 ### L4-05 (MEDIUM) The model load has no progress on a slow network

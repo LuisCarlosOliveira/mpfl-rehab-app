@@ -4,6 +4,11 @@ import { PAUSE_MESSAGE } from '../src/lib/safety';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { GENERATED_BY, generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 
+// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
+// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+
 const TODAY = '2026-11-08';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 
@@ -189,7 +194,7 @@ describe('week 7 to 11, phase 2', () => {
     for (const w of [0, 3, 6]) expect(plan(at(w, { phaseClearance: 'yes' })).protocol.activePhase).toBe(1);
   });
 
-  it('adds the heel slide in phase 2 for no limit and for a number, never for an unknown limit', () => {
+  it('adds the heel slide in phase 2 for no limit, for a number and for an unknown limit, with no ceiling when no number is known', () => {
     const none = plan(at(8, { phaseClearance: 'yes', surgeonLimit: { kind: 'none' } })).protocol;
     expect(exercise(none, 2, 'heel-slide')).toMatchObject({ targetFlexion: 2 * MARGIN_DEG, returnWithinDeg: MARGIN_DEG });
     expect(exercise(none, 2, 'heel-slide')?.maxFlexion).toBeUndefined();
@@ -197,7 +202,9 @@ describe('week 7 to 11, phase 2', () => {
     const num = plan(at(8, { phaseClearance: 'yes', surgeonLimit: { kind: 'degrees', degrees: 100 } })).protocol;
     expect(exercise(num, 2, 'heel-slide')?.maxFlexion).toBe(100);
     const unknown = plan(at(8, { phaseClearance: 'yes', surgeonLimit: { kind: 'unknown' } })).protocol;
-    expect(kinds(unknown, 2)).toEqual(['straight-leg-raise']);
+    expect(kinds(unknown, 2)).toEqual(['straight-leg-raise', 'heel-slide']);
+    expect(exercise(unknown, 2, 'heel-slide')?.maxFlexion).toBeUndefined();
+    expect(kinds(unknown, 1)).toEqual(['straight-leg-raise']);
   });
 
   it('sets the review date of phase 2 twelve weeks after surgery', () => {

@@ -125,3 +125,38 @@ Report: `docs/live-test/retest3.md`. 16 changes checked in the real build: 14 ve
 - [x] Dashboard, review summary, care team view and contact card handle a record with no answer.
 - [ ] Checkpoint at the end of each set. A crash during a run still loses that run.
 - [ ] The full e2e suite and the pairing suite did not run on this change.
+
+
+## T41: text guide, live fact, clinician template (2026-11-09)
+- [x] Text guide in the Setup guide step (closed details, sources, BORROWED mark). Code: `app/src/lib/technique.ts`, `app/src/ui/Setup.tsx`. Tests: `app/tests/technique.test.ts`, `app/tests/ui/setupGuide.test.tsx`.
+- [x] Leg raise guide text asks the care team for the lift height (`app/src/lib/guides.ts`, `app/tests/guides.test.ts`).
+- [x] One neutral live note under the top angle of a leg raise, above 9 degrees only (`app/src/lib/cues.ts` `topAngleNote`, `app/src/ui/Session.tsx`). Tests: `app/tests/cues.test.ts`, `app/tests/ui/session.test.tsx`.
+- [x] Clinician template: `docs/clinician-template.json`, `docs/clinician-template.md`, `app/tests/clinicianTemplate.test.ts`. No link from the Load screen. Docs only.
+- [x] Refused, with reasons: `docs/adaptation-and-live-form-design.md` section 13.
+- [ ] A clinician reviews every text guide line. The leg raise start text (other knee bent) has split sources (S5).
+- [ ] No user test of how a person reads the live note.
+
+
+## T43: generator version 2 (2026-11-09)
+- [x] Step A: five home exercises (`app/src/lib/protocol/schema.ts` `homeExercises`, `app/src/lib/protocolGen/generate.ts`, `app/src/ui/HomeExercises.tsx`), dose 2 x 10, heel slide in phase 2 for an unknown limit. Lines ROM_CHECK and PT_VISITS. Tests: `app/tests/protocolHomeExercises.test.ts`, `app/tests/protocolGenV2.test.ts`, `app/tests/ui/planResultV2.test.tsx`.
+- [x] Step B: seated hold after the reported clearance, arc end 40, no hold time. The hold counter refuses to run with no hold time (test in `app/tests/protocolGenV2.test.ts`).
+- [x] Step C: quotes read again (`research/citation-audit.md` section 9, 24 rows, all EXACT). Mini squat with ceiling 50, two answers, removal after a knee gave way press (`app/tests/ui/updatePlanV2.test.tsx`). Guardrails skill changed with skill-creator (`skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-5/`).
+- [x] Questions of the person: walking, leg raise and seated hold answers, in the questions screen and in "Update my plan".
+- [ ] A clinician reviews the audit rows V95 to V118 and every new rule text.
+- [ ] A live run of a plan with a mini squat or a seated hold. The full e2e suite and the pairing suite did not run on this change.
+- [ ] A person tests how they read the three new questions.
+- [ ] The knee gave way event comes from saved sessions only. A press before the plan date does not count.
+
+
+## T42: the pose model in a Web Worker (2026-11-09, user decision "6. ok")
+- [x] The model runs in a Web Worker. Code: `app/src/pose/frameBridge.ts`, `app/src/pose/poseWorker.ts`, `app/src/pose/source.ts`, `app/src/pose/loop.ts`. Design and reasons: `docs/architecture.md`, section "Pose worker". Measurements: `docs/pose-worker.md`.
+- [x] Guard exception: `claims-check.sh` allows `createImageBitmap` on ONE marked line of `pose/frameBridge.ts` only. Tests: `app/tests/scripts.test.ts` (new block, 5 of 16 failed first).
+- [x] Tests first: `tests/pose/frameBridge.test.ts`, `tests/pose/poseWorker.test.ts`, `tests/pose/sourceWorker.test.ts`, one test in `tests/pose/loop.test.ts`. Browser spec `e2e/app-pose-worker.spec.ts` (3 of 4 tests fail on the main-thread build).
+- [x] Fallback to the main thread: no Worker, no picture API, or the worker does not start. Flag `VITE_POSE_WORKER=off`.
+- [x] Result: the worker ships ON. No gain in detections per second on this machine. The main thread has no long task with the worker in 11 of 12 runs.
+- [ ] A real phone (Android Chrome) test is NOT RUN. Real Safari is NOT RUN. The tap time of Stop is NOT MEASURED. The frame path in WebKit is NOT PROVEN (the stub camera gives no frame).
+- [ ] The full e2e suite and the pairing suite did not run on this change (the user runs them).
+- Note: `bash app/scripts/claims-check.sh src` failed once on lines 24 and 25 of `app/src/lib/protocolGen/inputs.ts` (the word "milestone" in comments). This is from another change in the working tree and not from T42.
+
+- [x] Held back behind a flag, and why. The audit `docs/audit-generator-v2.md` says that the rule "add the mini squat ONLY IF the guidelines recommend it" is not cleanly met. The mini squat, the seated hold and the phase 2 heel slide for an unknown limit are off unless `VITE_GENERATOR_EXTENDED` is the text "true" (`app/src/lib/mode.ts`). Tests for both states: `app/tests/protocolGenV2.test.ts`, `app/tests/onboardingModel.test.ts`, `app/tests/ui/updatePlanV2.test.tsx`, `app/tests/ui/planResultV2.test.tsx`. Details are in `docs/generator-v2-design.md` section 10.
+- [ ] The user decides whether to revert the narrow exception in the guardrails skill. It has no effect while the flag is off.
