@@ -6,7 +6,7 @@ This app is a prototype. It counts reps and estimates knee angle from a webcam, 
 
 The plan has the full task list: [MPFL_APP_PLAN.md](MPFL_APP_PLAN.md) section 6. The status block of 2026-11-09 at the top of the plan is the reference. This table is a short copy of it.
 
-The test counts come from the main session and were not re-run for this file. The unit suite (`npm run precheck`) has 2,815 tests in 140 files. The main browser suite has 154 tests and the WebKit project has 14. The pairing browser suite has 18 tests and passed three times in a row.
+The final test counts come from [docs/test-results.md](docs/test-results.md). The main session ran them on commit `903d2c9`. They were not re-run for this file. `npm run precheck` passed with 2,978 tests in 147 files. The main browser suite has 154 tests and the WebKit project has 14. The pairing browser suite has 18 tests and passed 3 runs out of 3. `npx vitest list` shows fewer tests, because tests that a loop generates are not all listed.
 
 | Area | Status |
 |---|---|
@@ -17,25 +17,28 @@ The test counts come from the main session and were not re-run for this file. Th
 | Camera and pose wrapper (self-hosted model) | Built, with browser tests and with real clips as the fake webcam |
 | Camera setup rules, position guide, numbered guide, resting angle | Built. The resting angle can be captured in the Session screen when Setup gave none |
 | Body map (leg lines over the camera picture) | Built in Setup only. Session waits for a frame-rate gate with no recorded result |
-| Session: rest panel, hold meter, sets, sound cues, pain between sets | Built, with unit tests and browser tests |
-| Dashboard, data screen, clinician view, review summary | Built, with unit tests and browser tests |
-| Lazy screens and a load error screen | Built. The first load has 172.7 kB of gzip JavaScript, checked by `tests/ui/bundleSize.test.ts` |
+| Session: rest panel, hold meter, sets, sound cues, pain between sets | Built, with unit tests and browser tests. The pain floor of 7 applies between sets and at Summary. The over-limit beep repeats every 5 s. A hand count of the straight leg raise is marked `repsBy: hand` (export column `reps_by`) |
+| Dashboard ("Your sessions"), data screen, clinician view, review summary | Built, with unit tests and browser tests. A straight leg raise peak above 30 degrees shows "The camera could not read this leg raise." and is not plotted. The Dashboard and the review summary do not mark a hand count |
+| Lazy screens and a load error screen | Built. The first load has about 172.6 kB of gzip JavaScript (172,551 bytes in round 2, 172,736 in the test comment). `tests/ui/bundleSize.test.ts` sets the limit at 185 kB |
 | Second camera: QR codes, WebRTC link, phone screen, front-view record | Built and wired into Home and Setup. Tested in two Chromium browsers. NOT tested on a real phone |
 | Accuracy record | Tooling built. `docs/accuracy.md` holds a clip smoke section and no goniometer number |
 | Security review | Written ([docs/security-review.md](docs/security-review.md)). The fix list is in [docs/audit-2.md](docs/audit-2.md) |
-| Live test | Round 1 done by four testers on commit b451206. Fixes are in later commits. The re-test is PENDING |
+| Live test | Round 1: four testers on commit b451206. Round 2 ([retest](docs/live-test/retest.md), commit 939d096, one tester): 18 of 22 fixes verified, 3 failed, 1 partly. Round 3 and the audit 3 fixes have no live re-test |
+| Audit 3 | [docs/audit-3.md](docs/audit-3.md): 2 HIGH, 9 MEDIUM, 16 LOW on commit ab171d3. Verdicts: a supervised developer demo yes, a pilot with a real phone and a clinician watching not yet, any patient use no. Commit 903d2c9 fixed H1, H2, M3, M4, M5 and M8. No independent re-audit exists |
 
 ## What is NOT done
 
 - The real phone: no run exists on the Redmi A3, on real Android Chrome or on the real tailnet. This is UNPROVEN.
 - Wake Lock: no real Wake Lock request ran. Only headless Chromium ran it, and it rejected the request.
 - Accuracy: no goniometer data exists. The margin of 9 degrees is a start value, UNVERIFIED for the `lite` model.
-- Frame rate: this laptop has no GPU. The median is at the limit of 15 frames per second and it moves with machine load. No phone number exists.
+- Frame rate: this laptop has no GPU. The median is about 15 detections per second and it moves with machine load ([docs/accuracy.md](docs/accuracy.md)). No phone number exists.
 - Clinician review: no clinician reviewed any protocol value, cue text, red-flag item, pause floor or generated plan.
 - Regulatory class: not settled. [Plan section 1.5](MPFL_APP_PLAN.md) holds the draft. An expert must decide.
 - Patient release: the flag `PATIENT_USE_APPROVED` is off.
 - iOS Safari camera: UNVERIFIED. The WebKit tests stub the camera.
-- Re-test of the fixes: PENDING. The report will be `docs/live-test/retest.md`.
+- Live re-test of round 3 and of the audit 3 fixes: NOT RUN.
+- Opus final verdict (`docs/final-audit.md`): PENDING. The file does not exist.
+- Open items after audit 3 (a self-reported phase 2 clearance, the red-flag item "not getting better", a hand-added `approvedOn`): [plan section 11.5](MPFL_APP_PLAN.md).
 
 ## Install, run, build and test
 
@@ -62,9 +65,9 @@ Run all commands in the `app` folder. The file `app/.npmrc` sets `ignore-scripts
 - `npm test`: all unit tests run.
 - `scripts/model-hash-check.sh`: the model and WASM files match `public/models/SHA256SUMS`.
 - `scripts/deps-check.sh`: each dependency is in `scripts/allowed-deps.txt` and has an exact version.
-- `scripts/claims-check.sh`: the code has no banned claim, no banned video API, no pixel read outside the QR reader and no frame drawing.
-- `scripts/phase-check.sh`: only `src/lib/protocol/` can write the active phase (FR4).
-- `scripts/plan-skills-check.sh`: each finished task in the plan records the skills that it used.
+- `scripts/claims-check.sh`: no line of the code matches the banned words, the praise words, the banned video APIs, the canvas code or the inline colours. It is a pattern match. It cannot prove that no other banned text exists.
+- `scripts/phase-check.sh`: no line of the code matches the patterns for a write of the active phase outside `src/lib/protocol/` (FR4). It is a pattern match and proves no negative. `tests/importGraph.test.ts` reads the imports with the TypeScript parser and covers the save functions.
+- `scripts/plan-skills-check.sh`: each finished task in the plan has a `Skills used:` line. It proves that the text exists and not that a skill ran.
 
 ## Tests with real clips
 
@@ -126,10 +129,11 @@ Nobody can set the flag as part of this work. It needs a clinician review and an
 - [Accuracy record](docs/accuracy.md): angle error, clip smoke results and frame rate.
 - [Clip analysis](docs/clip-analysis.md): the two clip methods.
 - [Lighthouse](docs/lighthouse.md): scores and the SEO decision.
-- [Audit 2](docs/audit-2.md) and [Security review](docs/security-review.md): the audits and their fix lists.
+- [Audit 2](docs/audit-2.md), [Audit 3](docs/audit-3.md) and [Security review](docs/security-review.md): the audits and their fix lists.
+- [Test results](docs/test-results.md): the commands and counts of the final tree.
 - [Pairing wiring](docs/pairing-wiring.md): how the second camera is wired and its limits.
 - Designs: [UI design](docs/ui-design.md), [UI ideas study](docs/ui-ideas.md), [leg choice and baseline](docs/leg-and-baseline-design.md), [protocol generator](docs/protocol-generator-design.md), [live form and adaptation](docs/adaptation-and-live-form-design.md) and the [reconciliation](docs/design-reconciliation.md) after the knowledge base audit.
-- Live test round 1: [exercise flows](docs/live-test/exercise-flows.md), [workflows](docs/live-test/workflows.md), [pairing](docs/live-test/pairing.md) and [performance](docs/live-test/performance.md).
+- Live test round 1: [exercise flows](docs/live-test/exercise-flows.md), [workflows](docs/live-test/workflows.md), [pairing](docs/live-test/pairing.md) and [performance](docs/live-test/performance.md). Round 2: [retest](docs/live-test/retest.md).
 - [Dependency vetting](docs/dependency-vetting.md), [UI package vetting](docs/dependency-vetting-ui.md) and [yt-dlp vetting](docs/dependency-vetting-ytdlp.md): the safety checks.
 - [Model files](docs/model.md): source, hashes and license text.
 - [TASKS.md](TASKS.md): the verification campaign and its gates.

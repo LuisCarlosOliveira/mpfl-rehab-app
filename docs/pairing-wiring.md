@@ -53,7 +53,9 @@ Both screens import `src/pairing/pair.css` by themselves.
 - Pairing over a tailnet with no shared LAN: UNPROVEN. IPv6-only phones: UNPROVEN, because IPv6 and tcp candidates are dropped.
 - The real phone (Redmi A3), real Android Chrome, real QR scan with a phone camera and the real tailnet address `100.77.0.108` have not run. `TASKS.md` says to set two Chrome flags on the phone. No document names them (PENDING). The pairing browser tests use `--disable-features=WebRtcHideLocalIpsWithMdns` on the PC browser in tests only.
 - Live test 3 ran two Chromium browsers on one machine with real video. It found 40 PASS, 2 FAIL and 6 NOT RUN in 48 checks. The tree was commit b451206, before the fixes above.
-- The care team column header reads "Front-view change (degrees)". The exact label "Front-view change, estimated, not a medical measurement" sits in the note above the table (L3-03). No fix is recorded.
+- The care team column header now reads "Front-view change, estimated, not a medical measurement". Live test round 2 verified it (`docs/live-test/retest.md`, L3-03). The note says "Median of N reps, inward positive".
+- Live test round 2 (commit 939d096): 10 of 10 pasted pairings connected in 1.3 to 2.0 s, and 2 real QR scans connected. The messages held no image and no video text. The test used two Chromium browsers on one machine. A real phone is still UNPROVEN.
+- Update 2026-11-09, commit 903d2c9: the CSP no longer has `blob:` in `img-src` and `media-src`. The pairing browser suite (18 tests) passed 3 runs out of 3 on the final tree (`docs/test-results.md`). The new field `repsBy` records who counted the reps of the session (`ui/Session.tsx`). It does not change `frontReps` or `frontChangeDeg`.
 
 ## The test route that is not in the pipeline
 

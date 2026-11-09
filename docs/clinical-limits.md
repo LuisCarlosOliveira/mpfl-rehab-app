@@ -14,7 +14,7 @@ A 2D webcam angle is an estimate. It is not a medical measurement. The error and
 
 The accuracy record ([docs/accuracy.md](accuracy.md)) exists. It holds no goniometer number, because no reference data exists. Update 2026-11-09: it holds a smoke test on 8 public clips of healthy people. That test shows that the tools work together. It does not show accuracy. Live tests on the same clips found angles that follow the picture in direction (`docs/live-test/exercise-flows.md`, check 17). They found no reference angle.
 
-The frame rate of the pose loop is at the limit of 15 frames per second on a laptop with no GPU. It moves with machine load (`docs/live-test/performance.md`). No phone frame rate exists. The real Redmi A3 is UNPROVEN.
+The frame rate of the pose loop is about 15 detections per second on a laptop with no GPU. It moves with machine load (`docs/live-test/performance.md`, [docs/accuracy.md](accuracy.md)). No phone frame rate exists. The real Redmi A3 is UNPROVEN.
 
 ## No form rating and no verdict
 
@@ -22,7 +22,7 @@ The app does not rate movement form. It shows a measured value against a limit t
 
 ## The app never changes the phase
 
-The active phase comes only from the protocol field `activePhase`. The app has no setter for it ([plan FR4](../MPFL_APP_PLAN.md)). A check in `npm run precheck` finds any write outside `app/src/lib/protocol/`. The check cannot stop a person from editing the protocol file.
+The active phase comes only from the protocol field `activePhase`. The app has no setter for it ([plan FR4](../MPFL_APP_PLAN.md)). A check in `npm run precheck` finds a line that matches a pattern for a write outside `app/src/lib/protocol/`. The check is a pattern match and cannot prove that no other path exists. The test `tests/importGraph.test.ts` reads the imports of the save functions. The check cannot stop a person from editing the protocol file.
 
 Update 2026-11-09: a plan that the app made changes the stored protocol only after the person presses Confirm (`app/src/ui/ConfirmPlan.tsx`, `app/src/lib/protocol/accept.ts`). A later date does not move the phase. An upward change (phase 2, a higher limit) sits behind the flag `VITE_SELF_PROGRESSION`, which is off by default. A script in the same page can still call the save function. The check cannot stop it. A file that the person edits can carry an `approvedOn` date that no one verified (open item L2-05).
 
@@ -30,7 +30,9 @@ Update 2026-11-09: a plan that the app made changes the stored protocol only aft
 
 The app pauses the session and shows "pause and contact your care team" when the pain or swelling entry reaches a set level. A protocol can set a lower pain threshold. The floor is an app rule. It is not a clinical default. Its value is a PROPOSAL. A clinician must review it. The value is stated once, in [plan FR12](../MPFL_APP_PLAN.md).
 
-Update 2026-11-09: one answer is enough. Pain at the level, or swelling "more than before", pauses the session. An unanswered question never counts as a high value. Live test 1 found that the old code waited for both answers (L1-01). The fix is in commit 6264037. The re-test is PENDING.
+Update 2026-11-09: one answer is enough. Pain at the level, or swelling "more than before", pauses the session. An unanswered question never counts as a high value. Live test 1 found that the old code waited for both answers (L1-01). The fix is in commit 6264037. Live test round 2 verified it (`docs/live-test/retest.md`, L1-01: pain 7 alone gives the message at once).
+
+Update 2026-11-09, audit 3 (H1, commit 903d2c9): the floor now also applies between sets. A pain answer between sets stops the session by the same rule as the Summary. A protocol threshold below 7 stops earlier. A threshold above 7 does not lift the floor. The Summary takes the highest answer. This has unit tests and no live re-test. The value 7 still has no source.
 
 ## The red-flag list
 
@@ -102,6 +104,23 @@ No clinician reviewed any item below. Each item names its mark. ENGINEERING and 
 | Phase structure: phase 1 to week 6, phase 2 from week 7 after clearance, no plan from week 12, review dates at 6 and 12 weeks | Generator | Grade OPINION (S1, P1, P3). A clinician must review it |
 | Referral texts and the "Contact your care team" card | Generator, `lib/contactCard.ts` | A referral and not a verdict. A clinician must review the texts |
 | Front-view change value: median of at least 3 reps, sign convention | `lib/views.ts` | UNVERIFIED sign. For the care team only. A study with patients needs ethics approval before a patient sees any such value |
+
+## Items that need a clinician after audit 3 (2026-11-09)
+
+Source: [docs/audit-3.md](audit-3.md) and the fixes of commit 903d2c9. No clinician reviewed any item below. ENGINEERING and PROPOSAL values are not clinical values.
+
+| Item | Where | Mark and note |
+|---|---|---|
+| Red-flag item "or it is not getting better" | `lib/redflags.ts` | A person cannot test it on one day (A2-10, M6). A clinician must give a yes or no form |
+| Pain floor 7, now between sets and at Summary | `lib/safety.ts`, `ui/Session.tsx`, `ui/Summary.tsx` | PROPOSAL with no source. A clinician must review the value and the new stop between sets |
+| Size threshold 0.30 along the leg and still rule 0.02 of the frame height | `lib/setupRules.ts` | PROPOSAL. Check on real phone video |
+| Capture limit of 15 seconds and the lowest-angle rule (the lowest 0.5 s plateau) | `lib/baseline.ts` | ENGINEERING. The person chooses the button. A clinician must review the rule |
+| Repeat of the over-limit beep every 5 s | `ui/Session.tsx` | ENGINEERING. A clinician and the user must decide whether the repeat suits a patient |
+| Straight leg raise peak above 30 degrees shows "The camera could not read this leg raise." | `lib/cues.ts` | ENGINEERING plausibility value with no source. The stored number stays. A clinician must review the value and the text |
+| Hand count of the straight leg raise, marked `repsBy: hand` | `ui/Session.tsx`, `ui/ClinicianView.tsx` | PROPOSAL. The Dashboard and the review summary do not mark a hand count |
+| Text "Set N done. Rest when you are ready." and "That was the last set in your plan." | `ui/Session.tsx`, `lib/sets.ts` | Neutral wording by the guardrail rule. A clinician must review it |
+| A self-reported phase 2 clearance can make a phase 2 plan | `lib/protocolGen/generate.ts` | A documented limit (M2). The guard runs only when a plan is stored. Erase then create skips it. The user decides |
+| A hand-added `approvedOn` date | Patient mode | An unsigned claim (L2-05). A regulatory expert decides |
 
 ## Items that need an expert or the user
 

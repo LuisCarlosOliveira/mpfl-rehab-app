@@ -4,6 +4,8 @@ The app is a static single-page app. All code runs in the browser. The app has n
 
 Updated on 2026-11-09 for commit 939d096. The second camera is now wired into Home and Setup. A real phone has not run it (UNPROVEN).
 
+Updated on 2026-11-09 for commit 903d2c9. The changes since are the in-app Back handling (`ui/useBackButton.ts`), the CSP, the field `repsBy` and the hand-count marker. They are described below. The tests of these changes are unit tests and browser tests. No live re-test exists.
+
 ## Data flow
 
 The diagram shows the path of the data on one device, and the second camera. The frame callback gives the landmarks to the counter path and to the body map. The map writes SVG attributes and keeps no pixel.
@@ -46,6 +48,8 @@ The generator in `src/lib/protocolGen/` is pure and never saves. A plan reaches 
 ## Screen flow
 
 Navigation is by state in `app/src/ui/appState.ts`. The app has no URL routes. A request for a screen goes through `resolve()`. A start without a cleared red-flag check goes to the check. A start without a protocol goes to Load protocol. Screens with the note "lazy" load their code when the person opens them. A chunk that does not load shows the screen of `LoadError.tsx` with "Try again" and "Back to Home".
+
+Back handling (commit ab171d3). The hook `ui/useBackButton.ts` keeps one history entry. A press of Back runs `backStep` in `ui/appState.ts`, and the app moves inside itself. `backStep` never returns an `open` action for Setup, Session or the red-flag screen. The Summary stays. A Back press in Session stops the camera. At a root screen, Back can still leave the app (recorded limit, audit 3 L12). Audit 3 read the code and found no path from the history that skips the red-flag check. The live check of round 2 failed before this change and has no re-run.
 
 ```mermaid
 flowchart TD
@@ -105,7 +109,7 @@ Paths are under `app/src`.
 | `lib/onboarding.ts`, `lib/planView.ts` | Questions of "Create my plan", and the plan screen helpers |
 | `lib/protocol/` | Schema, loader, read-only store, `accept.ts`, `trustedClick.ts`, example protocol |
 | `lib/protocolGen/` | Pure generator: inputs, rules, sources table |
-| `lib/storage/` | Database (version 3), export and import, small local values |
+| `lib/storage/` | Database (version 3), export and import, small local values. A session has an optional `repsBy` (`camera` or `hand`) and the export has the column `reps_by`. `marginSource` is a fixed list of three texts |
 | `lib/pairing/` | Pure pairing core: payload, messages (`hello`, `ready`, `landmarks`, `bye`), secrets, state machine |
 | `zodConfig.ts` | Zod setting that avoids `new Function` under the CSP |
 | `pose/camera.ts` | Camera access and stop rules |
@@ -127,7 +131,7 @@ Paths are under `app/src`.
 
 ## Content Security Policy
 
-The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
+The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` because the pose model can need it. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
 
 Live test 3 ran two Chromium browsers (`docs/live-test/pairing.md`, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
 

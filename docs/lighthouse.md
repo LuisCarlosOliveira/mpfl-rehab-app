@@ -63,6 +63,17 @@ The screens Setup, Session, Summary, the plan screens and the phone screen now l
 
 The main session reported a median Lighthouse mobile Performance of 95 on Home after this split. No report file in the repo holds that run, and I did not re-run it (not re-run). Accessibility and Best practices after the split are not in any report that I read (PENDING).
 
+Update 2026-11-09: live test round 2 measured the split (`docs/live-test/retest.md`, commit 939d096, Lighthouse 13.6.0, Chrome 1254, 3 runs for each cell). The first load had 172,551 bytes of gzip JavaScript. The test comment says 172,736 bytes, and the difference is not explained.
+
+| Screen | Form factor | Performance (runs) | Accessibility | Best practices | SEO |
+|---|---|---|---|---|---|
+| Load | mobile | 100 (100, 100, 100) | 100 | 100 | 63 |
+| Load | desktop | 100 (100, 100, 100) | 100 | 100 | 63 |
+| Home | mobile | 100 (100, 99, 100) | 100 | 100 | 63 |
+| Home | desktop | 100 (100, 100, 100) | 100 | 100 | 63 |
+
+This replaces the reported median of 95. The plan screens and Setup got no Lighthouse run. The later commits (ab171d3 and 903d2c9) got no Lighthouse run (NOT RUN).
+
 ## SEO decision
 
 The SEO score is 63, not 95. The cause is `public/robots.txt`, which holds `User-agent: *` and `Disallow: /`. Lighthouse then reports the page as not crawlable (audit `is-crawlable`, live test 4, L4-01). The old SEO failures (meta description, `robots-txt`) are fixed.
