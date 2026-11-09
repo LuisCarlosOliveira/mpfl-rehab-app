@@ -4,7 +4,7 @@
 // Layout rules: research/ux-flow.md section 8.2. Large numbers, large Stop button, units next to numbers.
 // The rep count is a polite live region. It changes only when a rep counts.
 // Every exit stops the camera: the Stop buttons and the unmount cleanup both call source.stop() (NFR9).
-// Sound (FR10): a near-limit rep and an over-limit rep make a beep. Nothing else does. The mute button is here.
+// Sound (FR10): a near-limit rep and an over-limit rep make a beep. Nothing else does. The over-limit beep repeats every 5 s while the knee stays past the limit (M5). The mute button is here.
 // Sets: src/lib/sets.ts holds the logic. Each counted rep goes to countRep. While a set is complete, counting is paused.
 // The screen shows a neutral notice for it. It makes no sound and uses no verdict colour (FR10, FR23).
 // T17: `side` is the leg that the person chose in Setup. The pipeline tracks exactly this leg.
@@ -29,7 +29,7 @@ import { createBaselineCapture, type BaselineSource, type CaptureState } from '.
 import { createIdentityWatcher, otherLegConfirmed, type MovingLeg } from '../lib/legIdentity';
 import { SETUP_CONFIG } from '../lib/setupRules';
 import { createFrontRecorder, type FrontRecorder } from '../lib/views';
-import { PAUSE_MESSAGE } from '../lib/safety';
+import { PAUSE_MESSAGE, evaluateSession } from '../lib/safety';
 import { SET_TEXT, countRep, finish, nextSet, plural, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
 import type { Exercise } from '../lib/protocol';
 import type { PairingStatus } from '../pairing/pairing';
@@ -46,6 +46,9 @@ import { CAPTURE_TEXT, LEG_TEXT, otherLeg } from './setupView';
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
 const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
 const STALE_MS = 2000; // PROPOSAL, no source: no frame for this long shows the camera notice
+// ENGINEERING, not clinical: the over-limit beep repeats this often while the knee stays past the limit (M5).
+// Reason: a person who looks away must still hear that the limit is passed. 5 s is slower than a storm of beeps.
+const OVER_LIMIT_REPEAT_MS = 5000;
 
 /** The summary when no frame came in and no pipeline can be made. Used only if the exercise has no counter setup. */
 const EMPTY_SUMMARY: Summary = {
@@ -60,6 +63,8 @@ const EMPTY_SUMMARY: Summary = {
 /** What Session adds to the run summary: the pain answer at the end of each completed set that asked. null: no answer. */
 export interface SessionRunSummary extends RunSummary {
   setPain?: (number | null)[];
+  /** M3: 'hand' when any counted rep came from the "Count this rep" button, 'camera' when all came from the pipeline. */
+  repsBy?: 'camera' | 'hand';
 }
 
 interface LiveCue {
@@ -140,7 +145,7 @@ interface Props {
   /** Optional. Missing means one camera. */
   second?: SecondView;
   sound: Sound;
-  /** The pain value from the protocol (`painPauseThreshold`). Missing means that no answer stops the session. The app sets no default. */
+  /** The pain value from the protocol (`painPauseThreshold`). A lower value than the floor stops earlier. Missing means the floor of FR12. */
   painPauseThreshold?: number;
   /** The shell calls this when the Back button of the browser is pressed. It does what the Stop button does. */
   stopRef?: MutableRefObject<(() => void) | null>;
@@ -159,6 +164,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const [muted, setMuted] = useState(sound.isMuted());
   const [sets, setSetsState] = useState(() => startSets({ sets: exercise.sets, reps: exercise.reps }));
   const setsRef = useRef(sets);
+  const repSources = useRef({ camera: 0, hand: 0 }); // how many reps each way added to the sets (M3)
   const [painAnswers, setPainAnswers] = useState<number[]>([]); // the answer of each set that asked. A skipped set has no entry.
   const painRef = useRef(painAnswers);
   const [startStep, setStartStep] = useState<'starting' | 'ready'>('starting');
@@ -198,6 +204,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     setSetsState(next);
   };
 
+  // A rep that the set logic ignores (a pause, the end) counts for nobody.
+  const addRep = (by: 'camera' | 'hand') => {
+    const next = countRep(setsRef.current);
+    if (total(next) > total(setsRef.current)) repSources.current[by] += 1;
+    applySets(next);
+  };
+
   // The pipeline needs the video aspect. It is made when the first frame arrives, or when the session ends with no frame.
   const answerPain = (value: number) => {
     const next = [...painRef.current];
@@ -229,6 +242,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     if (!ready) return;
     let alive = true;
     const gate = createCueGate(); // ENGINEERING rate limit and order of the cues. One gate for each run of the effect.
+    let overBeepAt: number | null = null; // the time of the last over-limit beep of the present alert
     const minRepMs = exercise.minRepSeconds === undefined ? null : exercise.minRepSeconds * 1000;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
@@ -271,7 +285,14 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       }
       if (out.repMs !== null) recorder.current?.rep(timeMs, out.repMs); // a counted rep gives the window for the front view
       sound.playFor(out.event as CueEvent);
-      if (out.event !== null && COUNTED_EVENTS.has(out.event)) applySets(countRep(setsRef.current));
+      // M5: the over-limit beep repeats while the knee stays past the limit. It stops when the knee returns. The mute button still holds.
+      if (out.event === 'over-limit') overBeepAt = now;
+      else if (!stillOverLimit(exercise, out.flexion)) overBeepAt = null;
+      else if (overBeepAt !== null && now - overBeepAt >= OVER_LIMIT_REPEAT_MS) {
+        sound.play('over-limit');
+        overBeepAt = now;
+      }
+      if (out.event !== null && COUNTED_EVENTS.has(out.event)) addRep('camera');
       const text = cueFor(out.event as CueEvent, {
         repMs: out.repMs,
         minRepMs,
@@ -383,6 +404,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     // The last set has no question, because the summary asks for the pain at the end.
     const asked = done.completedSets - (done.phase === 'all-sets-complete' ? 1 : 0);
     const setPain = Array.from({ length: asked }, (_, i) => painRef.current[i] ?? null);
+    const repsBy = repSources.current.hand > 0 ? 'hand' : repSources.current.camera > 0 ? 'camera' : undefined;
     const baselineSource = foundRef.current?.source ?? (baselineDeg != null && repsCounted ? 'still' : undefined);
     const result: SessionRunSummary = {
       ...base,
@@ -392,6 +414,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       sets: done,
       ...(front === null ? {} : { front }),
       ...(asked > 0 ? { setPain } : {}),
+      ...(repsBy === undefined || isHold ? {} : { repsBy }),
     };
     onEnd(reason, result);
   }
@@ -399,7 +422,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // PROPOSAL, no source: the straight leg raise has no automatic rep event, so the person counts each rep.
   // A clinician or the user must confirm this button. It shows only for a counter of kind 'lag'.
   function countByHand() {
-    applySets(countRep(setsRef.current));
+    addRep('hand');
   }
 
   // The Back button of the browser stops the session like the Stop button (F3). The ref clears when the screen goes.
@@ -433,8 +456,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const block = setup.ok && setup.kind === 'reps' && setup.config.returnWithin === undefined ? countBlock({ ...setup.config, baseline: baselineDeg ?? undefined }) : null;
   const farLeg = cameraSide !== undefined && legRoleOf(side, cameraSide) === 'far';
   const paused = sets.phase === 'set-complete' || sets.phase === 'all-sets-complete';
-  // L2: only the clinician threshold stops the session here. Without it the answer is logged and nothing stops.
-  const painAtStop = painPauseThreshold === undefined ? undefined : painAnswers.find((v) => v >= painPauseThreshold);
+  // H1: the same rule as the Summary. The floor of FR12 (an app rule, 7, a clinician must review it) stops the session here.
+  // A lower protocol threshold stops earlier. A higher one does not lift the floor.
+  const painAtStop = painAnswers.find((v) => typeof v === 'number' && evaluateSession({ pain: v, swelling: 'none', painPauseThreshold }).reasons.includes('pain'));
   const painStop = painAtStop !== undefined;
   const isHold = setup.ok && setup.kind === 'hold';
   const countUnit = isHold ? 'holds' : 'reps';

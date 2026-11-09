@@ -77,7 +77,7 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
       <FocusHeading>
         <section aria-labelledby="progress-error-title">
           <h1 id="progress-error-title" tabIndex={-1}>
-            Progress
+            Your sessions
           </h1>
           <Notice role="alert" icon="triangle-alert">
             <p>Your sessions could not be read. Go back and try again.</p>
@@ -93,7 +93,7 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
   }
   return (
     <FocusHeading>
-      <Dashboard sessions={rows.sessions} onBack={onBack} />
+      <Dashboard sessions={rows.sessions} title="Your sessions" onBack={onBack} />
     </FocusHeading>
   );
 }

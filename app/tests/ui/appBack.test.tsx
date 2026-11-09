@@ -64,8 +64,8 @@ describe('Back of the browser stays in the app', () => {
     click('Back');
     await heading('Home');
     await act(() => new Promise((r) => setTimeout(r, 30))); // the entry goes away with an async history step
-    click('Progress');
-    await heading('Progress');
+    click('Your sessions');
+    await heading('Your sessions');
     expect(window.history.length).toBeLessThanOrEqual(before + 1);
   });
 
@@ -86,7 +86,7 @@ describe('Back of the browser stays in the app', () => {
 
   it.each([
     ['My data', async () => { click('My data'); await heading('My data'); }],
-    ['Progress', async () => { click('Progress'); await heading('Progress'); }],
+    ['Your sessions', async () => { click('Your sessions'); await heading('Your sessions'); }],
     ['the red-flag check', async () => { click('Start Heel slide'); await heading('Check before you exercise'); }],
     ['Setup', toSetup],
   ])('Back from %s goes Home, and Forward does nothing', async (_name, open) => {
@@ -126,7 +126,7 @@ describe('Back of the browser stays in the app', () => {
     const seen: (string | null)[] = [];
     const screens = [
       async () => { click('My data'); await heading('My data'); },
-      async () => { click('Progress'); await heading('Progress'); },
+      async () => { click('Your sessions'); await heading('Your sessions'); },
       async () => { click('Start Heel slide'); await heading('Check before you exercise'); },
     ];
     for (const open of screens) {

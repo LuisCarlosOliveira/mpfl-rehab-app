@@ -80,8 +80,8 @@ test('Progress, My data, the erase dialog and the care team view have no violati
   const seen = watch(page, new URL(baseURL!).origin);
   await saveOneSession(page);
 
-  await page.getByRole('button', { name: 'Progress' }).click();
-  await expectScreen(page, 'Progress');
+  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await expectScreen(page, 'Your sessions');
   await expect(page.locator('.dash-chart-box svg').first()).toBeVisible(); // Recharts drew under the CSP
   await seen.expectClean('Progress with charts');
   await page.getByRole('button', { name: 'Back' }).click();

@@ -259,7 +259,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
 
           <section className="card card-erase stack-s" aria-labelledby="erase-heading">
             <h2 id="erase-heading">Erase</h2>
-            <p>Erase removes all data of this app from this device.</p>
+            <p>Erase removes all data of this app from this device. Files that you already exported stay where you saved them.</p>
             <div className="actions">
               <button type="button" className="btn btn-danger" ref={eraseButton} onClick={openDialog}>
                 <Icon name="trash-2" size={18} />
@@ -278,7 +278,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
       >
         <h2 id="erase-title">Erase all your data?</h2>
         <p>This removes your sessions, your protocol file and your settings from this device. You cannot undo it.</p>
-        <p>If you want a copy, export the file first.</p>
+        <p>Files that you already exported stay where you saved them. If you want a copy, export the file first.</p>
         {eraseError && (
           <p className="status-line mt-s" role="alert">
             <Icon name="triangle-alert" size={20} />

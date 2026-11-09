@@ -64,6 +64,23 @@ describe('index.html and public/_headers', () => {
   });
 });
 
+describe('the CSP sources (F4b)', () => {
+  const csp = /Content-Security-Policy: (.*)/.exec(headers)![1]!;
+  const source = (name: string) => csp.split('; ').find((d) => d.startsWith(`${name} `))!.split(' ').slice(1);
+
+  // The empty favicon link of index.html (href="data:,") needs data: for images. Without it the browser reports a violation.
+  it('allows no blob: image and no blob: media, and data: only for the empty favicon', () => {
+    expect(source('img-src')).toEqual(["'self'", 'data:']);
+    expect(source('media-src')).toEqual(["'self'"]);
+    expect(readFileSync('index.html', 'utf8')).toContain('<link rel="icon" href="data:," />');
+  });
+
+  it('keeps blob: only for workers, which the pose model may need', () => {
+    expect(source('worker-src')).toEqual(["'self'", 'blob:']);
+    expect(csp.match(/blob:/g)).toHaveLength(1);
+  });
+});
+
 describe('package.json', () => {
   const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> };
 

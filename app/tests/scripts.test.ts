@@ -482,3 +482,140 @@ describe('phase-check.sh: patterns for the confirm-before-save path', () => {
     expect(run(phase, realSrc).status).toBe(0);
   });
 });
+
+describe('phase-check.sh: bypass patterns (F4b)', () => {
+  it.each([
+    ['acceptProposal', "import { acceptProposal as ap } from '../lib/protocol/accept';\nawait ap(db, p, c, mode);"],
+    ['confirmByPerson', "import { confirmByPerson as cp } from '../lib/protocol/accept';"],
+    ['saveProtocol', "import { saveProtocol as sp } from '../lib/storage/db';"],
+    ['a re-export under a new name', 'export { saveProtocol as store } from "../lib/storage/db";'],
+    ['a destructure rename', "const { acceptProposal: ap } = await import('../lib/protocol/accept');"],
+    ['a quoted member name', "const m = await import('../lib/protocol/accept');\nawait m['acceptProposal'](db, p, c, mode);"],
+  ])('fails on an alias of %s outside the allowed callers', (_name, text) => {
+    put('ui/Alias.tsx', text);
+    const r = run(phase, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('ui/Alias.tsx');
+  });
+
+  it.each([
+    ['a concatenation', "const k = 'active' + 'Phase';\nreturn { ...p, [k]: 2 };"],
+    ['a second concatenation', "const k = 'active'+'Phase';"],
+    ['a concatenation with the end part first', "const k = prefix + 'Phase';"],
+    ['a template', 'const k = `active${suffix}`;'],
+    ['a template with the end part', 'const k = `${prefix}Phase`;'],
+    ['an array join', "const k = ['active', 'Phase'].join('');"],
+  ])('fails on %s that builds the text activePhase', (_name, text) => {
+    put('ui/Computed.ts', text);
+    expect(run(phase, dir).status).toBe(1);
+  });
+
+  it.each([
+    ['db.table with a string name', "await db.table('protocol').put(p);"],
+    ['db.table with double quotes', 'await db.table("protocol").put(p);'],
+    ['a call of .table on another object', 'const t = store.table(name);'],
+    ['a bracket access of the protocol table', "await db['protocol'].put(p);"],
+  ])('fails on %s outside the storage file', (_name, text) => {
+    put('ui/Table.tsx', text);
+    expect(run(phase, dir).status).toBe(1);
+  });
+
+  it('passes on .table in the storage file', () => {
+    put('lib/storage/db.ts', "const t = db.table('protocol');");
+    expect(run(phase, dir).status).toBe(0);
+  });
+
+  it.each([
+    ['a replace call', "const t = raw.replace('\"activePhase\":1', '\"activePhase\":2');"],
+    ['a JSON.parse line', "const o = JSON.parse(text); o['activePhase'] = 2;"],
+    ['a quoted key', "const o = {}; o[\"activePhase\"] = 2;"],
+    ['a template with the text', 'const t = `{"activePhase":2}`;'],
+  ])('fails on the text activePhase in a string (%s) outside the loader and the generator', (_name, text) => {
+    put('ui/Json.ts', text);
+    expect(run(phase, dir).status).toBe(1);
+  });
+
+  it('passes on the text activePhase in a string inside the loader and the generator', () => {
+    put('lib/protocol/x.ts', "const k = 'activePhase';");
+    put('lib/protocolGen/generate.ts', "const k = 'activePhase';");
+    expect(run(phase, dir).status).toBe(0);
+  });
+
+  it('passes on a template that only reads the phase', () => {
+    put('lib/planView.ts', 'return `Phase ${p.activePhase} ${name}`;');
+    expect(run(phase, dir).status).toBe(0);
+  });
+});
+
+describe('claims-check.sh: praise and outcome words (F4b)', () => {
+  const praise = [
+    'great', 'nice', 'well done', 'excellent', 'awesome', 'congratulations', 'success', 'successful',
+    'improve', 'improving', 'improved', 'worse', 'worsening', 'healing', 'recovered', 'recovery',
+  ];
+  it.each(praise)('fails on "%s" in a screen file', (word) => {
+    put('ui/Praise.tsx', `export const t = "Your knee: ${word}";`);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('ui/Praise.tsx');
+  });
+
+  it('fails on the full praise sentence of the audit', () => {
+    put('ui/Praise.tsx', 'const t = "Great job. Well done, your knee is improving. Success!";');
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it.each(['lib/cues.ts', 'lib/redflags.ts', 'pose/camera.ts', 'lib/sets.ts', 'lib/guides.ts', 'lib/planView.ts', 'lib/onboarding.ts', 'ui/setupView.ts'])(
+    'checks %s for a praise word',
+    (rel) => {
+      put(rel, 'export const t = "Your knee is improving";');
+      expect(run(claims, dir).status).toBe(1);
+    },
+  );
+
+  it('skips a praise word on a line with the allow marker', () => {
+    put('ui/Praise.tsx', 'const t = "recovery"; // claims-check:allow');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('does not check a file that no patient reads', () => {
+    put('lib/other.ts', 'const success = true; // great');
+    expect(run(claims, dir).status).toBe(0);
+  });
+});
+
+describe('claims-check.sh: no colour in a screen file (F4b)', () => {
+  it.each([
+    ['an inline style object', "<div style={{ color: 'green' }}>x</div>"],
+    ['an inline style attribute', '<div style="color:red">x</div>'],
+    ['an inline style with a variable', '<div style={s}>x</div>'],
+    ['a style write through the DOM', 'el.style.color = v;'],
+    ['a style attribute set by code', "el.setAttribute('style', v);"],
+  ])('fails on %s in a ui file', (_name, text) => {
+    put('ui/Colour.tsx', text);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('ui/Colour.tsx');
+  });
+
+  it.each([
+    ['a hex colour', "const c = '#00ff00';"],
+    ['a short hex colour', 'const c = "#0f0";'],
+    ['a colour name', "const c = 'green';"],
+    ['an rgb colour', 'const c = `rgb(0, 200, 0)`;'],
+    ['an hsl colour', "const c = 'hsl(120 50% 50%)';"],
+    ['an oklch colour', "const c = 'oklch(0.7 0.2 140)';"],
+  ])('fails on %s in a tsx file', (_name, text) => {
+    put('ui/Literal.tsx', text);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes on the SVG paint values that the icons use', () => {
+    put('ui/Icon.tsx', '<svg fill="none" stroke="currentColor"><path fill="currentColor" /></svg>');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('passes on an anchor link and a CSS variable name', () => {
+    put('ui/Link.tsx', '<a href="#main">Skip</a>;\nconst v = "var(--paper)";');
+    expect(run(claims, dir).status).toBe(0);
+  });
+});

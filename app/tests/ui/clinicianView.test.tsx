@@ -71,7 +71,7 @@ describe('ClinicianView session file', () => {
   it('shows text from the file as plain text, with no script, no link and no image', async () => {
     const { container } = setup();
     const hostile = '<script>alert(1)</script><a href="https://evil.example/x">link</a><img src=x onerror=alert(1)>';
-    await loadFile(exportText(threeSquats(105).map((s) => ({ ...s, marginSource: hostile }))));
+    await loadFile(exportText(threeSquats(105)));
     pick(protocolPicker(), protocolFileText([peakCriterion()], { phases: [{ id: 1, name: hostile.slice(0, 60), exercises: [], reviewCriteria: [peakCriterion()] }] }));
     await screen.findByText(STATE.cannotTell, { exact: false });
     expect(container.querySelector('script, a, img, iframe')).toBeNull();

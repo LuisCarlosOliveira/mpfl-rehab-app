@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // S-07 and S-09: storage that fails, an insecure origin, and an erase that stays inside this app.
 import { vi } from 'vitest';
 import { ANGLE_METHOD, createDb, eraseAll, parseExport, sessionSchema } from '../src/lib/storage';
@@ -79,7 +80,7 @@ describe('limits (S-08)', () => {
   const longDate = `2026-11-01T10:00:00.${'0'.repeat(60)}Z`;
   const base = {
     date: '2026-11-01T10:00:00.000Z', exercise: 'mini-squat', side: 'left', reps: 5, peakFlexion: 40, holdSeconds: null,
-    topFlexion: null, marginDeg: 5, marginSource: 'x', view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0,
+    topFlexion: null, marginDeg: 5, marginSource: MARGIN_SOURCE, view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0,
     gaveWayPresses: 0, redFlagBlocks: 0, pain: 1, swelling: 'none', protocolId: 'p-001', phase: 1, schemaVersion: 1,
   };
 

@@ -77,7 +77,7 @@ describe('arc end of the seated hold', () => {
     const t = feed(source, 10, 1000, 0);
     feed(source, 10, 8000, t);
     expect(alertText()).toBe('Stop at your limit, do not push.');
-    expect(audio.oscillators).toHaveLength(1);
+    expect(audio.oscillators).toHaveLength(2); // the first beep, then one repeat after 5 s (M5)
   });
 
   it('removes the alert 4 s after the knee is back inside the arc', () => {

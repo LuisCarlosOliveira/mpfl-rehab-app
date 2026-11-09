@@ -1,3 +1,4 @@
+import type { SessionRecord } from '../../src/lib/storage';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -18,7 +19,7 @@ const sessions = () => [
 describe('Dashboard', () => {
   it('shows an empty state in plain words and no chart', () => {
     const { container } = render(<Dashboard sessions={[]} onBack={vi.fn()} />);
-    expect(screen.getByRole('heading', { level: 1, name: 'Progress' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Your sessions' })).toBeInTheDocument();
     expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument();
     expect(container.querySelector('.recharts-wrapper')).toBeNull(); // the empty state has an icon, so any svg is allowed
     expect(container.querySelector('.empty svg')).not.toBeNull();
@@ -119,7 +120,7 @@ describe('Dashboard', () => {
 
   it('shows text from the data as plain text only', () => {
     // The title comes from the app. A session field is not shown by this screen.
-    const { container } = render(<Dashboard sessions={[session({ marginSource: '<img src=x onerror=alert(1)>' })]} onBack={vi.fn()} />);
+    const { container } = render(<Dashboard sessions={[session({ marginSource: '<img src=x onerror=alert(1)>' as SessionRecord['marginSource'] })]} onBack={vi.fn()} />);
     expect(container.querySelector('img, script, a')).toBeNull();
   });
 });

@@ -5,7 +5,7 @@
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { topAngleText } from '../lib/cues';
+import { PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
 import { MARGIN_DEG, MARGIN_SOURCE } from '../lib/margin';
 import { MESSAGES } from '../lib/redflags';
@@ -50,16 +50,19 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [saveError, setSaveError] = useState(false);
   const sets = summary.sets ?? null;
   const painBetweenSets = (summary as SessionRunSummary).setPain; // the pain answers between sets (Session adds them)
+  const repsBy = (summary as SessionRunSummary).repsBy; // who counted the reps (Session adds it)
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
 
   // The pause rule runs on the current answers, in each render. A changed answer changes the message at once.
   // FR12 says pain 7 or more OR swelling more than before. One answer is enough, so an unanswered question
   // counts as no reason to pause. It is never read as a high value. Live test L1-01 found the old wait for both.
+  // H1: a high answer between sets counts too, so the message stays after Finish. The highest pain answer decides.
+  const highestPain = Math.max(pain ?? 0, ...(painBetweenSets ?? []).filter((v): v is number => v !== null));
   const verdict =
-    pain === null && swelling === null
+    pain === null && swelling === null && highestPain === 0
       ? null
-      : evaluateSession({ pain: pain ?? 0, swelling: swelling ?? 'none', painPauseThreshold: protocol.painPauseThreshold });
+      : evaluateSession({ pain: highestPain, swelling: swelling ?? 'none', painPauseThreshold: protocol.painPauseThreshold });
 
   // After Save, focus moves to the saved message. The screen reader reads it, and the button that was pressed is gone.
   useEffect(() => {
@@ -89,6 +92,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       pain,
       swelling,
       ...(painBetweenSets === undefined ? {} : { setPain: painBetweenSets }),
+      ...(repsBy === undefined ? {} : { repsBy }),
       protocolId: protocol.id,
       phase: activePhase,
       ...(legTracked === undefined ? {} : { legTracked }),
@@ -160,15 +164,20 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           {summary.peakFlexion !== null && (
             <div className="stat">
               <dt>Highest knee bend</dt>
-              <dd>
-                <span className="num">{Math.round(summary.peakFlexion)}</span> {plural(Math.round(summary.peakFlexion), 'degree')}
-                <span className="detail">({ANGLE_LABEL})</span>
-              </dd>
+              {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
+              {peakUnreadable(exercise.kind, summary.peakFlexion) ? (
+                <dd>{PEAK_UNREADABLE_TEXT}</dd>
+              ) : (
+                <dd>
+                  <span className="num">{Math.round(summary.peakFlexion)}</span> {plural(Math.round(summary.peakFlexion), 'degree')}
+                  <span className="detail">({ANGLE_LABEL})</span>
+                </dd>
+              )}
             </div>
           )}
         </dl>
         {/* The pause message sits here, above both questions, so a phone shows it at once (FR12). */}
-        <PauseNotice verdict={verdict} pain={pain} />
+        <PauseNotice verdict={verdict} pain={highestPain} />
         {sets !== null && sets.prescription.reps !== undefined && (
           <ul className="set-list" aria-label="Reps in each set">
             {sets.repsPerSet.map((n, i) => (

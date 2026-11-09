@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../../src/lib/margin';
 // Helpers for the dashboard, clinician view and data screen tests (T11, T11b).
 import { fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -9,7 +10,7 @@ let nextId = 1;
 export function session(over: Partial<SessionRecord> = {}): SessionRecord {
   return {
     id: nextId++, date: '2026-11-01T10:00:00.000Z', exercise: 'mini-squat', side: 'left', reps: 10, peakFlexion: 100,
-    holdSeconds: null, topFlexion: null, marginDeg: 9, marginSource: 'start value', view: 'side', nearLimit: 0, overLimit: 0,
+    holdSeconds: null, topFlexion: null, marginDeg: 9, marginSource: MARGIN_SOURCE, view: 'side', nearLimit: 0, overLimit: 0,
     tooFast: 0, gaveWayPresses: 0, redFlagBlocks: 0, pain: 2, swelling: 'none', protocolId: 'p-1', phase: 1, schemaVersion: 1, ...over,
   };
 }

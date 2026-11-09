@@ -1,5 +1,5 @@
-// The pain question between sets (adaptation design 4.3, L2). It is logged always. It stops the session only with a
-// clinician `painPauseThreshold`. The app sets no threshold of its own.
+// The pain question between sets (adaptation design 4.3, L2). It is logged always. The safety floor of FR12 (7, an app rule
+// that a clinician must review) stops the session here, as it does in the summary. A lower clinician threshold stops earlier.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Exercise } from '../../src/lib/protocol';
@@ -78,13 +78,52 @@ describe('pain question between sets', () => {
   });
 });
 
-describe('stop only with the clinician threshold', () => {
-  it('does not stop for any answer when the protocol has no threshold', () => {
+describe('stop at the safety floor or at a lower clinician threshold', () => {
+  it('does not stop below the floor 7 when the protocol has no threshold', () => {
+    const { source } = setup(THREE_BY_ONE, undefined);
+    oneRep(source);
+    answer(6);
+    expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Start next set' })).toBeInTheDocument();
+  });
+
+  it('stops at the floor 7 when the protocol has no threshold, with the Summary reason text and a Finish button', () => {
+    const { source, onEnd } = setup(THREE_BY_ONE, undefined);
+    oneRep(source);
+    answer(7);
+    const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
+    expect(notice).toHaveClass('notice-strong');
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(notice).toHaveTextContent('You reported pain 7 out of 10.');
+    expect(notice).toHaveTextContent('This is a rule of the app. It is not a diagnosis.');
+    expect(screen.queryByRole('button', { name: 'Start next set' })).toBeNull();
+    press('Finish');
+    expect(onEnd.mock.calls[0]![0]).toBe('stop');
+    expect(onEnd.mock.calls[0]![1].setPain).toEqual([7]);
+  });
+
+  it('stops for pain 10 when the protocol has no threshold', () => {
     const { source } = setup(THREE_BY_ONE, undefined);
     oneRep(source);
     answer(10);
-    expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Start next set' })).toBeInTheDocument();
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start next set' })).toBeNull();
+  });
+
+  it('does not let a protocol threshold above 7 lift the floor', () => {
+    const { source } = setup(THREE_BY_ONE, 9);
+    oneRep(source);
+    answer(7);
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start next set' })).toBeNull();
+  });
+
+  it('stops earlier when the protocol threshold is lower than 7', () => {
+    const { source } = setup(THREE_BY_ONE, 4);
+    oneRep(source);
+    answer(4);
+    expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start next set' })).toBeNull();
   });
 
   it('does not stop below the threshold', () => {

@@ -114,10 +114,10 @@ test('Summary, Progress and My data work after one saved session', async ({ page
   await page.getByRole('button', { name: 'Done' }).click();
   await expectScreen(page, 'Home');
 
-  await page.getByRole('button', { name: 'Progress' }).click();
-  await expectScreen(page, 'Progress');
+  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await expectScreen(page, 'Your sessions');
   await expect(page.locator('main [role="img"]').first()).toBeVisible();
-  await seen.expectClean('Progress');
+  await seen.expectClean('Your sessions');
   await page.getByRole('button', { name: 'Back' }).click();
 
   await openMyData(page);

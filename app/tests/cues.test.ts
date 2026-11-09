@@ -1,4 +1,4 @@
-import { allCueTexts, cueFor, topAngleText, type CueEvent } from '../src/lib/cues';
+import { allCueTexts, cueFor, PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText, type CueEvent } from '../src/lib/cues';
 
 const BANNED = /\b(correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone)\b|risk of injury/i;
 
@@ -68,5 +68,27 @@ describe('cue texts follow the guardrails', () => {
     const texts = allCueTexts();
     expect(new Set(texts).size).toBe(texts.length);
     expect(texts.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe('the fast-rep cue (A2-7)', () => {
+  it('does not say that the rep did not count, because the counter counts a fast rep (tests/counters.test.ts)', () => {
+    expect(cueFor('too-fast', { repMs: 1000, minRepMs: 2000 })).not.toMatch(/did not count/i);
+  });
+});
+
+describe('the plausibility check of the leg raise peak (M8)', () => {
+  it('reads a peak up to 30 degrees and not a higher one, for the straight leg raise only', () => {
+    expect(peakUnreadable('straight-leg-raise', 30)).toBe(false);
+    expect(peakUnreadable('straight-leg-raise', 30.1)).toBe(true);
+    expect(peakUnreadable('straight-leg-raise', 165)).toBe(true);
+    expect(peakUnreadable('straight-leg-raise', null)).toBe(false);
+    expect(peakUnreadable('heel-slide', 165)).toBe(false);
+    expect(peakUnreadable('mini-squat', 100)).toBe(false);
+  });
+
+  it('has a plain text with no verdict word', () => {
+    expect(PEAK_UNREADABLE_TEXT).toBe('The camera could not read this leg raise.');
+    expect(PEAK_UNREADABLE_TEXT).not.toMatch(BANNED);
   });
 });

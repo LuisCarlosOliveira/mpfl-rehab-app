@@ -103,6 +103,15 @@ export function stillOverLimit(exercise: Pick<Exercise, 'kind' | 'maxFlexion' | 
   return exercise.maxFlexion !== undefined && flexion > exercise.maxFlexion + MARGIN_DEG;
 }
 
+// ENGINEERING plausibility value, not clinical (M8): the knee of a straight leg raise stays near straight. A peak above this
+// many degrees is a camera misread (live test R2-08: 165 and 85 degrees for a leg that stayed straight). No source sets it.
+export const SLR_PEAK_PLAUSIBLE_MAX_DEG = 30;
+export const PEAK_UNREADABLE_TEXT = 'The camera could not read this leg raise.';
+
+/** True when the stored peak of a straight leg raise is too high to trust. The stored value stays as it is. */
+export const peakUnreadable = (kind: Exercise['kind'], peakFlexion: number | null): boolean =>
+  kind === 'straight-leg-raise' && peakFlexion !== null && peakFlexion > SLR_PEAK_PLAUSIBLE_MAX_DEG;
+
 /** The angle at the top of the straight leg raise, as a number with its label. */
 export function topAngleText(topFlexion: number | null): string | null {
   return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} degrees (${LABEL}).`;

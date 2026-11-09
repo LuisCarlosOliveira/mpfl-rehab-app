@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 import {
   ANGLE_METHOD,
   createDb,
@@ -26,7 +27,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,

@@ -224,7 +224,7 @@ interface Props {
   onBack: () => void;
 }
 
-export function Dashboard({ sessions, title = 'Progress', onBack }: Props) {
+export function Dashboard({ sessions, title = 'Your sessions', onBack }: Props) {
   return (
     <section aria-labelledby="dashboard-title">
       <header className="page-head">

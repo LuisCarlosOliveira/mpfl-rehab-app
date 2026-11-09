@@ -120,19 +120,25 @@ describe('Home screen', () => {
     expect(onLoadProtocol).toHaveBeenCalledTimes(1);
   });
 
-  it('has a Progress button and a My data button', () => {
+  it('has a Your sessions button and a My data button', () => {
     const { onOpenProgress, onOpenData } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Progress' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Your sessions' }));
     expect(onOpenProgress).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'My data' }));
     expect(onOpenData).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no button or word of progress (ux-flow 3.4)', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: /progress/i })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/progress/i);
   });
 
   it('keeps the export date, the Ask your surgeon list and the new buttons together', () => {
     setup();
     const block = screen.getByRole('heading', { level: 2, name: 'Your data' }).parentElement!;
     expect(within(block).getByText(/last export/i)).toBeInTheDocument();
-    expect(within(block).getByRole('button', { name: 'Progress' })).toHaveClass('btn');
+    expect(within(block).getByRole('button', { name: 'Your sessions' })).toHaveClass('btn');
     expect(within(block).getByRole('button', { name: 'My data' })).toHaveClass('btn');
     expect(screen.getByRole('heading', { level: 2, name: 'Decisions for your surgeon' })).toBeInTheDocument();
   });

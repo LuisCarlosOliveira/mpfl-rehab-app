@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 import { buildProgressSeries, toTableRows, type ProgressSeries } from '../src/lib/progress';
 import type { SessionRecord } from '../src/lib/storage';
 
@@ -5,7 +6,7 @@ let nextId = 1;
 function session(over: Partial<SessionRecord> = {}): SessionRecord {
   return {
     id: nextId++, date: '2026-11-01T10:00:00.000Z', exercise: 'mini-squat', side: 'left', reps: 10, peakFlexion: 60, holdSeconds: null,
-    topFlexion: null, marginDeg: 9, marginSource: 'start value', view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0, gaveWayPresses: 0,
+    topFlexion: null, marginDeg: 9, marginSource: MARGIN_SOURCE, view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0, gaveWayPresses: 0,
     redFlagBlocks: 0, pain: 2, swelling: 'none', protocolId: 'p-1', phase: 1, schemaVersion: 1, ...over,
   };
 }
@@ -56,6 +57,22 @@ describe('buildProgressSeries', () => {
   it('keeps null peak values as null', () => {
     const s = buildProgressSeries([session({ peakFlexion: null })]);
     expect(s.peakFlexion[0]?.points[0]?.degrees).toBeNull();
+  });
+
+  // Audit 3 and live test R2-08: a straight leg raise peak above the plausible limit is a camera misread. The chart and
+  // its table must not plot it as a knee bend. The stored value in the record stays as it is.
+  it('plots no peak for a straight leg raise above the plausible limit, and keeps a plausible one', () => {
+    const list = [
+      session({ exercise: 'straight-leg-raise', peakFlexion: 165, date: '2026-11-01T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 12, date: '2026-11-02T10:00:00.000Z' }),
+      session({ exercise: 'mini-squat', peakFlexion: 90, date: '2026-11-01T10:00:00.000Z' }),
+    ];
+    const s = buildProgressSeries(list);
+    const slr = s.peakFlexion.find((x) => x.exercise === 'straight-leg-raise')!;
+    expect(slr.points.map((p) => p.degrees)).toEqual([null, 12]);
+    const squat = s.peakFlexion.find((x) => x.exercise === 'mini-squat')!;
+    expect(squat.points.map((p) => p.degrees)).toEqual([90]);
+    expect(list[0]!.peakFlexion).toBe(165);
   });
 
   it('does not change the input list', () => {

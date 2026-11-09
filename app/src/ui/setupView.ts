@@ -1,5 +1,6 @@
 // Plain helpers for the Setup screen. No React here, so a test can read them directly.
 // The rule order is the priority order of src/lib/setupRules.ts (research/ux-flow.md section 6.2).
+import { plural } from '../lib/sets';
 import type { SetupRuleId } from '../lib/setupRules';
 
 export interface RuleRow {
@@ -77,7 +78,7 @@ export const LEG_TEXT = {
   continueButton: 'Continue with this leg',
   farLeg: 'The camera is on the other side. The estimated angle can be less exact.',
   identity: 'The camera sees your other leg move more. Make sure that the chosen leg is the one that moves.',
-  resting: (deg: number) => `Resting angle: ${deg} degrees. Estimated angle, not a medical measurement.`,
+  resting: (deg: number) => `Resting angle: ${deg} ${plural(deg, 'degree')}. Estimated angle, not a medical measurement.`,
   // PROPOSAL (T17): the app has no default return value. The notice shows in Setup and in Session.
   noReturnValue: 'Your protocol has no return value. Ask your surgeon.',
   noReturnValueDetail: 'The app counts no rep. The angle and the peak still show.',
@@ -98,7 +99,7 @@ export const CAPTURE_TEXT = {
   chooseShort: 'No still moment yet. See the button under the numbers.',
   lowestButton: 'Use my lowest steady angle as the start',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
-  startingAngle: (deg: number) => `Starting angle: ${deg} degrees (estimated)`,
+  startingAngle: (deg: number) => `Starting angle: ${deg} ${plural(deg, 'degree')} (estimated)`,
   setupNoRest: 'The app has no resting angle yet.',
   setupNoRestDetail: 'Hold your leg still. If you start now, the next screen finds your starting angle.',
 } as const;

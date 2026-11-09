@@ -4,6 +4,7 @@
 // Every fixed text of the review summary comes from src/lib/reviewSummary.ts. The screen adds no total,
 // rating, no percentage and no colour (research/progression.md section 5.2).
 import { useMemo, useState, type ReactNode } from 'react';
+import { PEAK_UNREADABLE_TEXT, peakUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
 import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
@@ -18,6 +19,7 @@ const NO_VALUE = 'No value';
 const FRONT_HEADER = 'Front-view change, estimated, not a medical measurement';
 const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your care team, not a diagnosis. N is the number of reps in the cell. It comes from the second camera.';
 const FRONT_NOT_ENOUGH = 'Not enough front-view data';
+const COUNTED_BY_HAND = 'counted by hand'; // M3: the reps came from the "Count this rep" button, not from the camera
 
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
@@ -38,6 +40,12 @@ function frontCell(s: SessionRecord): string {
 }
 
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
+
+/** The reps, with the note when the person counted them by hand. */
+const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
+
+/** The peak knee bend. A leg raise peak above the plausibility value shows a sentence. The file keeps the number (M8). */
+const peakCell = (s: SessionRecord) => (peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNone(s.peakFlexion));
 
 function Table({ label, head, children }: { label: string; head: ReactNode[]; children: ReactNode }) {
   return (
@@ -206,9 +214,9 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td>{EXERCISE_NAMES[s.exercise]}</td>
                   <td className="num-cell">{s.phase}</td>
                   <td>{s.protocolId}</td>
-                  <td className="num-cell">{orNone(s.reps)}</td>
+                  <td className="num-cell">{repsCell(s)}</td>
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
-                  <td className="num-cell">{orNone(s.peakFlexion)}</td>
+                  <td className="num-cell">{peakCell(s)}</td>
                   <td className="num-cell">{orNone(s.topFlexion)}</td>
                   <td className="num-cell">{s.pain}</td>
                   <td>{SWELLING_TEXT[s.swelling]}</td>

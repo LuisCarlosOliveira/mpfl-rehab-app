@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // T17: the leg that was tracked and the camera side are optional fields of the stored session.
 // They follow the pattern of the set fields: optional, no index, no schema version change.
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
@@ -14,7 +15,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,
@@ -114,7 +115,7 @@ describe('CSV leg columns', () => {
 
   it('writes the two sides as quoted text at the end of the row', async () => {
     const { row } = await rows({ legTracked: 'right', cameraSide: 'left' });
-    expect(row).toMatch(/,"right","left",,,,,$/); // the three second view cells, the set_pain cell and the baseline_source cell follow, empty here
+    expect(row).toMatch(/,"right","left",,,,,,$/); // the three second view cells, the set_pain, baseline_source and reps_by cells follow, empty here
   });
 
   it('leaves both cells empty for an old session', async () => {

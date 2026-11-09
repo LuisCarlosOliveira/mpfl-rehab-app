@@ -15,21 +15,21 @@ async function downloadOf(page: Page, buttonName: string) {
 
 test('Home links to Progress and My data', async ({ page }) => {
   await toHome(page);
-  await expect(page.getByRole('button', { name: 'Progress' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Your sessions' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'My data' })).toBeVisible();
 });
 
 test('Progress with no session shows the empty text', async ({ page }) => {
   await toHome(page);
-  await page.getByRole('button', { name: 'Progress' }).click();
-  await expectScreen(page, 'Progress');
+  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await expectScreen(page, 'Your sessions');
   await expect(page.getByText('No sessions yet.')).toBeVisible();
 });
 
 test('Progress shows 3 charts, each with a data table', async ({ page }) => {
   await saveOneSession(page);
-  await page.getByRole('button', { name: 'Progress' }).click();
-  await expectScreen(page, 'Progress');
+  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await expectScreen(page, 'Your sessions');
   await expect(page.locator('main [role="img"].dash-chart-box')).toHaveCount(3);
   await expect(page.locator('main table.data-table')).toHaveCount(3);
   await expect(page.getByRole('region', { name: /^Data table:/ })).toHaveCount(3);

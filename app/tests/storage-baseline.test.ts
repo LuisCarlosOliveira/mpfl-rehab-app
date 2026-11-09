@@ -1,5 +1,18 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // F1: `baselineSource` is an optional field of the stored session ('still' or 'lowest'). Same pattern as the leg fields.
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
+
+// Split one CSV line. A quoted cell can hold a comma (the margin source does).
+const splitCsv = (line: string): string[] => {
+  const out: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (const ch of line) {
+    if (ch === '"') quoted = !quoted;
+    if (ch === ',' && !quoted) { out.push(cur); cur = ''; } else cur += ch;
+  }
+  return [...out, cur];
+};
 
 let n = 0;
 const freshDb = () => createDb(`baseline-${Date.now()}-${n++}`);
@@ -12,7 +25,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,
@@ -78,8 +91,8 @@ describe('save, export, import and CSV of baselineSource', () => {
     const lines = (await exportCsv(db)).trimEnd().split('\n');
     const header = (lines[1] as string).split(',');
     const at = header.indexOf('baseline_source');
-    expect(at).toBe(header.length - 1); // the last column, so older readers of the columns keep their places
-    const cell = (row: string) => row.split(',').at(-1);
+    expect(at).toBe(header.length - 2); // F4a appends reps_by after it, so older readers of the columns keep their places
+    const cell = (row: string) => splitCsv(row)[at];
     expect(cell(lines[2] as string)).toBe('"still"');
     expect(cell(lines[3] as string)).toBe('');
   });

@@ -250,8 +250,8 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
     await heading('Home');
-    click('Progress');
-    await heading('Progress');
+    click('Your sessions');
+    await heading('Your sessions');
     expect(screen.getByText(PROTOTYPE_BANNER)).toBeInTheDocument();
   });
 
@@ -262,8 +262,8 @@ describe('App flow', () => {
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} />);
     await heading('Home');
-    click('Progress');
-    await heading('Progress');
+    click('Your sessions');
+    await heading('Your sessions');
     click('Back');
     await heading('Home');
     click('Start Heel slide');

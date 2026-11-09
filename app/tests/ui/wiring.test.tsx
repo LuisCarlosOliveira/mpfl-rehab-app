@@ -34,11 +34,11 @@ async function openHome(mode: 'demo' | 'patient' = 'demo') {
   return { db, ...view };
 }
 
-describe('Progress', () => {
+describe('Your sessions', () => {
   it('shows the charts and a table for each chart, and Back returns to Home', async () => {
     await openHome();
-    click('Progress');
-    expect(await heading('Progress')).toBeInTheDocument();
+    click('Your sessions');
+    expect(await heading('Your sessions')).toBeInTheDocument();
     expect(document.querySelectorAll('section.dash-chart').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
     expect(screen.queryByText('Loading')).toBeNull();
@@ -48,8 +48,8 @@ describe('Progress', () => {
 
   it('moves the focus to the new heading', async () => {
     await openHome();
-    click('Progress');
-    const h1 = await heading('Progress');
+    click('Your sessions');
+    const h1 = await heading('Your sessions');
     await waitFor(() => expect(h1).toHaveFocus());
   });
 
@@ -59,7 +59,7 @@ describe('Progress', () => {
     vi.spyOn(db.sessions, 'orderBy').mockImplementation(() => {
       throw new Error('read failed');
     });
-    click('Progress');
+    click('Your sessions');
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not be read/i);
     expect(document.querySelector('.recharts-wrapper')).toBeNull(); // no chart, only the notice icon
     click('Back');
@@ -156,7 +156,7 @@ describe('Erase', () => {
     click('I understand');
     await heading('Load protocol file');
     expect(screen.queryByText('Test clinic')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Progress' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Your sessions' })).toBeNull();
     expect(await db.sessions.count()).toBe(0);
   });
 });

@@ -10,6 +10,11 @@
 # a storage import or a browser storage use inside src/lib/protocolGen/, a call of acceptProposal or confirmByPerson
 # outside accept.ts and src/ui/ConfirmPlan.tsx, a call of saveProtocol outside storage/db.ts, protocol/accept.ts and
 # ui/LoadProtocol.tsx (and in LoadProtocol.tsx when the file uses the generator), and a write to db.protocol outside storage/db.ts.
+# F4b: also fails on an alias of acceptProposal, confirmByPerson or saveProtocol (import as, a destructure rename or a quoted member
+# name), a string table name (.table( or ['protocol']) outside storage/db.ts, a build of the text activePhase from string parts, and the
+# quoted text activePhase or a replace or JSON.parse line with activePhase outside src/lib/protocol/ and protocolGen/generate.ts.
+# HONEST LIMIT: this is a pattern match. No line of the source matches the patterns of this script. The check cannot prove that no
+# other code path exists. Runtime tests cover the real save path (tests/protocolAccept.test.ts and tests/ui/importGraph.test.ts).
 # Usage: phase-check.sh [folder]   (default: the src folder of the app)
 # A path that does not exist is an error (exit 2).
 set -u
@@ -43,6 +48,22 @@ add "$(scan -e 'acceptProposal[[:space:]]*\(' | grep -Ev '/lib/protocol/accept\.
 add "$(scan -e 'confirmByPerson[[:space:]]*\(' | grep -Ev '/lib/protocol/accept\.ts:[0-9]+:|/ui/ConfirmPlan\.tsx:[0-9]+:')"
 
 add "$(scan -e '\.protocol\.(put|add|update|bulkPut|bulkAdd|set|delete|clear)[[:space:]]*\(' | grep -Ev '/lib/storage/db\.ts:[0-9]+:')"
+
+# F4b bypass patterns. Alias names of the three save functions are banned outside the files that may call them.
+names='acceptProposal|confirmByPerson|saveProtocol'
+add "$(scan -e "(^|[^[:alnum:]_])($names)[[:space:]]+as[[:space:]]" \
+  -e "(^|[^[:alnum:]_])($names)[[:space:]]*:[[:space:]]*[[:alpha:]_]" \
+  -e "\\[[[:space:]]*['\"\`]($names)['\"\`]" \
+  | grep -Ev '/lib/protocol/accept\.ts:[0-9]+:|/ui/ConfirmPlan\.tsx:[0-9]+:|/lib/storage/db\.ts:[0-9]+:|/ui/LoadProtocol\.tsx:[0-9]+:')"
+# String table access and a bracket access of the protocol table.
+add "$(scan -e '\.table[[:space:]]*\(' -e "\\[[[:space:]]*['\"\`]protocol['\"\`][[:space:]]*\\]" | grep -Ev '/lib/storage/db\.ts:[0-9]+:')"
+# The text activePhase built from parts, or named in a string that is parsed or replaced.
+add "$(scan -e "['\"\`]active['\"\`][[:space:]]*(\+|,[[:space:]]*['\"\`]Phase['\"\`])" \
+  -e "\+[[:space:]]*['\"\`]Phase['\"\`]" \
+  -e '`active\$\{' -e '\}Phase`' \
+  -e "['\"\`]activePhase['\"\`]" \
+  -e '(replace|replaceAll|JSON\.parse)[[:space:]]*\(.*activePhase' -e 'activePhase.*(replace|replaceAll|JSON\.parse)[[:space:]]*\(' \
+  | grep -v '/lib/protocol/' | grep -Ev '/lib/protocolGen/generate\.ts:[0-9]+:')"
 
 # saveProtocol: only the storage file defines it, accept.ts saves a plan, and LoadProtocol.tsx saves a file.
 # LoadProtocol.tsx must not also use the generator.

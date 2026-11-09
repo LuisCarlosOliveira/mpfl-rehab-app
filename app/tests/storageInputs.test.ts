@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // The answers of the person for the plan generator (I1 to I9). They stay on the device, in the same database.
 // They are optional, strict, in the export and gone after erase. An old export file still imports.
 import {
@@ -39,7 +40,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,

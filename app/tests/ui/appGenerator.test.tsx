@@ -337,10 +337,19 @@ describe('Pain stop between sets, with the threshold of the protocol (T24a wirin
     expect(screen.getByRole('button', { name: 'Start next set' })).toBeInTheDocument();
   });
 
-  it('stops nothing without a threshold in the protocol, also for the answer 9', async () => {
+  // Audit 3, H1: the FR12 floor of 7 applies between sets even when the protocol has no threshold.
+  it('stops at the floor of 7 without a threshold in the protocol, also for the answer 9', async () => {
     const source = await toSession({});
     playRep(source, 'left', 60, 60_000);
     choose('9');
+    expect(await screen.findByText(PAUSE_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Start next set' })).toBeNull();
+  });
+
+  it('does not stop at 6 without a threshold in the protocol', async () => {
+    const source = await toSession({});
+    playRep(source, 'left', 60, 60_000);
+    choose('6');
     expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
     expect(screen.getByRole('button', { name: 'Start next set' })).toBeInTheDocument();
   });

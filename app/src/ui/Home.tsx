@@ -44,7 +44,7 @@ export function prescription(e: Exercise, madeByApp = false): { text: string; ic
   if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
-  if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Target knee bend ${e.targetFlexion} degrees`, icon: 'circle-dot' });
+  if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   return lines;
 }
@@ -293,7 +293,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               {onOpenProgress && (
                 <button type="button" className="btn btn-tile" onClick={onOpenProgress}>
                   <Icon name="chart-line" />
-                  Progress
+                  Your sessions
                 </button>
               )}
               {onOpenData && (

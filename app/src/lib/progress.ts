@@ -5,6 +5,7 @@
 // colour, no status and no trend field (guardrails skill, section Wording).
 
 import type { SessionRecord } from './storage';
+import { peakUnreadable } from './cues';
 
 export const EXERCISE_LABEL = {
   'heel-slide': 'heel slide',
@@ -66,7 +67,8 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
   const byExercise = new Map<ExerciseKind, PeakPoint[]>();
   for (const s of sorted) {
     const points = byExercise.get(s.exercise) ?? [];
-    points.push({ sessionId: s.id, date: s.date, degrees: s.peakFlexion });
+    // A straight leg raise peak above the plausible limit is a camera misread: the chart plots no value for it (audit 3, M8).
+    points.push({ sessionId: s.id, date: s.date, degrees: peakUnreadable(s.exercise, s.peakFlexion) ? null : s.peakFlexion });
     byExercise.set(s.exercise, points);
   }
 

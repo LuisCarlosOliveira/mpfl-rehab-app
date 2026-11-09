@@ -1,10 +1,11 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // B1, the "Contact your care team" card (adaptation design 5.4). It reads one saved session and never judges it.
 import { CONTACT_TITLE, contactReason } from '../src/lib/contactCard';
 import type { SessionData } from '../src/lib/storage';
 
 const clean: SessionData = {
   date: '2026-03-01T10:00:00.000Z', exercise: 'heel-slide', side: 'left', reps: 10, peakFlexion: 50, holdSeconds: null, topFlexion: null,
-  marginDeg: 9, marginSource: 't', view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0, gaveWayPresses: 0, redFlagBlocks: 0,
+  marginDeg: 9, marginSource: MARGIN_SOURCE, view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0, gaveWayPresses: 0, redFlagBlocks: 0,
   pain: 2, swelling: 'none', protocolId: 'example-001', phase: 1, schemaVersion: 1,
 };
 

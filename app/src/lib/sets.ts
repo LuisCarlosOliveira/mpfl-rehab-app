@@ -41,7 +41,7 @@ export const MAX_REPS_WITHOUT_PRESCRIPTION = 1000;
 // Neutral status texts. They state a fact and give no verdict (FR10, FR23).
 export const SET_TEXT = {
   setComplete: 'Set complete. Rest when you are ready.',
-  allComplete: 'All prescribed sets are complete.',
+  allComplete: 'That was the last set in your plan.', // M4: a fact about the plan. It does not say that work is finished or a goal is met.
 } as const;
 
 // PROPOSAL: reps without sets count as one set of that many reps. No source decides this.

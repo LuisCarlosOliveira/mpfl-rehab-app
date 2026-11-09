@@ -144,7 +144,7 @@ describe('Session screen', () => {
     expect(alertRegion()).toBeEmptyDOMElement();
   });
 
-  it('makes the over-limit sound once while the knee stays above the limit', () => {
+  it('makes the over-limit sound again once after 5 seconds while the knee stays above the limit (M5)', () => {
     const { source, audio } = setup();
     audio.sound.unlock();
     let t = riseAboveLimit(source);
@@ -154,7 +154,7 @@ describe('Session screen', () => {
       t += 100;
       tick(100);
     }
-    expect(audio.oscillators.length).toBe(after);
+    expect(audio.oscillators.length).toBe(after + 1); // 8 s: the first beep, then one repeat at 5 s
   });
 
   it('a missing leg shows "Show your whole leg." and shows it no more when the leg returns', () => {

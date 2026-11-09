@@ -1,11 +1,20 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { z } from 'zod';
+import { MARGIN_SOURCE } from '../margin';
 import { EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
 import { loadProtocol, type LoadResult, type Mode } from '../protocol';
 import { inputsSchema } from '../protocolGen/inputs';
 import { requestPersistOnce } from './meta';
 
 const counter = z.number().int().min(0).max(100000);
+
+// A1-3: the margin source is a fixed text, not free text (FR14). It lists the two values that older versions wrote
+// (git history of margin.ts) and the value of this version. Any other value is refused, so no free text enters the export.
+const MARGIN_SOURCES = [
+  'start value, UNVERIFIED for the lite model (Okuno 2026, heavy model, still photos)',
+  'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)',
+  MARGIN_SOURCE,
+] as const;
 
 export const sessionSchema = z.strictObject({
   date: z.iso.datetime().max(40),
@@ -16,7 +25,7 @@ export const sessionSchema = z.strictObject({
   holdSeconds: z.number().min(0).max(3600).nullable(),
   topFlexion: z.number().min(0).max(180).nullable(), // estimated angle at the top of the leg raise
   marginDeg: z.number().min(0).max(45), // the camera error margin used for this session
-  marginSource: z.string().max(200), // where that margin comes from, so old sessions stay readable
+  marginSource: z.enum(MARGIN_SOURCES), // where that margin comes from, so old sessions stay readable
   view: z.enum(['side', 'front']),
   nearLimit: counter,
   overLimit: counter,
@@ -49,6 +58,9 @@ export const sessionSchema = z.strictObject({
   // The pain answer (0 to 10) at the end of each completed set. null means no answer. Optional, so an older file still reads.
   // It never stops the session by itself. Only a clinician `painPauseThreshold` does (adaptation design 4.3, L2).
   setPain: z.array(z.number().int().min(0).max(10).nullable()).max(20).optional(),
+  // M3: who counted the reps of the session. 'hand' when any rep came from the "Count this rep" button, 'camera' when all came
+  // from the pipeline. Optional, so an older file still reads. No index. The schema version stays 1.
+  repsBy: z.enum(['camera', 'hand']).optional(),
   schemaVersion: z.literal(1),
 }).superRefine((s, ctx) => {
   if (s.repsPerSet === undefined) return;

@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../../src/lib/margin';
 import { act } from '@testing-library/react';
 import { vi } from 'vitest';
 import example from '../../src/lib/protocol/example-protocol.json';
@@ -81,7 +82,7 @@ export const sessionInput = (): import('../../src/lib/storage').SessionInput => 
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'test',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,

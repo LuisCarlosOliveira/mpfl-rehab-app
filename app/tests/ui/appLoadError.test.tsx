@@ -34,7 +34,7 @@ async function openHome() {
 
 describe('lazy screens that fail to load', () => {
   it.each([
-    ['Progress', 'Progress'],
+    ['Your sessions', 'Your sessions'],
     ['My data', 'My data'],
   ])('%s: shows the message with a heading and a way back to Home', async (button) => {
     await openHome();

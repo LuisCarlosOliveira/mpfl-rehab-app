@@ -1,6 +1,19 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // T12b: a second view and the front-view change are optional fields of the stored session (FR24).
 // They are for the clinician only. They follow the pattern of the set and leg fields: optional, no index, no version change.
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
+
+// Split one CSV line. A quoted cell can hold a comma (the margin source does).
+const splitCsv = (line: string): string[] => {
+  const out: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (const ch of line) {
+    if (ch === '"') quoted = !quoted;
+    if (ch === ',' && !quoted) { out.push(cur); cur = ''; } else cur += ch;
+  }
+  return [...out, cur];
+};
 
 let n = 0;
 const freshDb = () => createDb(`front-${Date.now()}-${n++}`);
@@ -14,7 +27,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,
@@ -109,9 +122,9 @@ describe('save, export and import of the second view fields', () => {
 describe('CSV second view columns', () => {
   const rows = async (over: Partial<SessionInput>) => {
     const db = freshDb();
-    await saveSession(db, session({ marginSource: 'test', ...over })); // no comma in the text, so a split is safe
+    await saveSession(db, session({ marginSource: MARGIN_SOURCE, ...over })); // no comma in the text, so a split is safe
     const lines = (await exportCsv(db)).trimEnd().split('\n');
-    return { header: (lines[1] as string).split(','), row: (lines[2] as string).split(',') };
+    return { header: (lines[1] as string).split(','), row: splitCsv(lines[2] as string) };
   };
 
   it('has the columns second_view, front_reps and front_change_deg after the leg columns', async () => {

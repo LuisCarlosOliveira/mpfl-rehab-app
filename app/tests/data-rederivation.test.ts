@@ -1,6 +1,7 @@
 // Independent re-derivation of the protocol, red-flag and storage rules.
 // These tests do not repeat the earlier tests. Each one comes from the rules in
 // MPFL_APP_PLAN.md (FR1, FR5, FR14, FR16) and research/clinical.md section 7.
+import { MARGIN_SOURCE } from '../src/lib/margin';
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol, MAX_FILE_BYTES, SURGEON_FIELDS, protocolSchema } from '../src/lib/protocol';
 import { GENERAL_GUIDANCE_NOTE, MESSAGES, RED_FLAGS, evaluateRedFlags } from '../src/lib/redflags';
@@ -53,7 +54,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: null,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 0,
   overLimit: 0,
@@ -350,6 +351,7 @@ describe('red flags against research/clinical.md section 7 and the Cincinnati gu
   });
 });
 
+// The schema now refuses free text in marginSource (A1-3). These tests force a text into the cell writer on purpose.
 describe('CSV formula guard', () => {
   const csvWith = async (over: Partial<SessionInput>) => {
     const db = freshDb();
@@ -358,23 +360,23 @@ describe('CSV formula guard', () => {
   };
 
   it.each(['＝1+1', '＋1', '－1', '＠SUM(A1)'])('quotes a cell that starts with the wide sign %j', async (start) => {
-    const csv = await csvWith({ marginSource: `${start}` });
+    const csv = await csvWith({ marginSource: `${start}` as SessionInput['marginSource'] });
     expect(csv).toContain(`"'${start}"`);
   });
 
   it.each(['=1+1', '+1', '-1', '@x', '\tx', '\rx'])('keeps the leading-quote rule for the ASCII start %j', async (start) => {
-    const csv = await csvWith({ marginSource: start });
+    const csv = await csvWith({ marginSource: start as SessionInput['marginSource'] });
     expect(csv).toContain(`"'${start}"`);
   });
 
   it('does not change a plain text cell', async () => {
-    expect(await csvWith({ marginSource: 'plain text' })).toContain('"plain text"');
+    expect(await csvWith({ marginSource: 'plain text' as SessionInput['marginSource'] })).toContain('"plain text"');
   });
 
   it('has the same number of cells in the header and in every row', async () => {
     const db = freshDb();
-    await saveSession(db, session({ marginSource: 'a,b' }));
-    await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z', marginSource: 'say "hi"', peakFlexion: null }));
+    await saveSession(db, session({ marginSource: 'a,b' as SessionInput['marginSource'] }));
+    await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z', marginSource: 'say "hi"' as SessionInput['marginSource'], peakFlexion: null }));
     const lines = (await exportCsv(db)).trimEnd().split('\n').slice(1);
     const count = (l: string) => l.replace(/"(?:[^"]|"")*"/g, 'T').split(',').length;
     expect(new Set(lines.map(count)).size).toBe(1);

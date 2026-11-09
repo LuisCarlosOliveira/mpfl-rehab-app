@@ -48,4 +48,21 @@ describe('Summary and setPain', () => {
     expect(screen.getByRole('group', { name: /How much pain do you have now\?/ })).toBeInTheDocument();
     expect(screen.getAllByRole('radio').filter((x) => (x as HTMLInputElement).name === 'pain')).toHaveLength(11);
   });
+
+  it('shows the pause message at once when an answer between sets was at the floor, before any end answer', () => {
+    const r = loadProtocol(protocolText(), 'demo');
+    if (!r.ok) throw new Error('fixture');
+    render(<Summary run={{ reason: 'stop', summary: { ...base, setPain: [8, null] } as SessionRunSummary }} exercise={HEEL_SLIDE} protocol={r.protocol}
+      activePhase={1} redFlagBlocks={0} db={freshDb()} now={() => new Date()} onDone={vi.fn()} />);
+    expect(screen.getByText('Pause and contact your care team.')).toBeInTheDocument();
+    expect(screen.getByText('Pause and contact your care team.').closest('.notice')).toHaveTextContent('You reported pain 8 out of 10.');
+  });
+
+  it('shows no pause message when every answer between sets is below the floor', () => {
+    const r = loadProtocol(protocolText(), 'demo');
+    if (!r.ok) throw new Error('fixture');
+    render(<Summary run={{ reason: 'stop', summary: { ...base, setPain: [6, null] } as SessionRunSummary }} exercise={HEEL_SLIDE} protocol={r.protocol}
+      activePhase={1} redFlagBlocks={0} db={freshDb()} now={() => new Date()} onDone={vi.fn()} />);
+    expect(screen.queryByText('Pause and contact your care team.')).toBeNull();
+  });
 });

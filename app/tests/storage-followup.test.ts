@@ -1,3 +1,4 @@
+import { MARGIN_SOURCE } from '../src/lib/margin';
 // The word lag as a name part: lag, extensionLag, topLag. It does not match Flag in redFlagBlocks.
 const LAG_WORD = /\b[Ll]ag\b|[a-z]Lag(?![a-z])/;
 
@@ -46,7 +47,7 @@ const session = (over: Partial<SessionInput> = {}): SessionInput => ({
   holdSeconds: null,
   topFlexion: 14.5,
   marginDeg: 9,
-  marginSource: 'start value, UNVERIFIED for the lite model',
+  marginSource: MARGIN_SOURCE,
   view: 'side',
   nearLimit: 2,
   overLimit: 1,

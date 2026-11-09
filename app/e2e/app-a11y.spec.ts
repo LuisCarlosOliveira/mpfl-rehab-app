@@ -67,11 +67,11 @@ export const SCREENS: Screen[] = [
   },
   {
     name: 'Progress with charts',
-    h1: 'Progress',
+    h1: 'Your sessions',
     go: async (page) => {
       await saveOneSession(page);
-      await page.getByRole('button', { name: 'Progress' }).click();
-      await expectScreen(page, 'Progress');
+      await page.getByRole('button', { name: 'Your sessions' }).click();
+      await expectScreen(page, 'Your sessions');
       await expect(page.locator('.dash-chart-box svg').first()).toBeVisible();
     },
   },

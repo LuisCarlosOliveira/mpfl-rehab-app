@@ -166,7 +166,7 @@ describe('neutral texts', () => {
 
   it('has the fixed texts', () => {
     expect(SET_TEXT.setComplete).toBe('Set complete. Rest when you are ready.');
-    expect(SET_TEXT.allComplete).toBe('All prescribed sets are complete.');
+    expect(SET_TEXT.allComplete).toBe('That was the last set in your plan.');
   });
 
   it('builds the set and rep labels', () => {

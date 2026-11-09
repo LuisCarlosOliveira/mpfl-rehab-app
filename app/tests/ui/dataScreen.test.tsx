@@ -236,3 +236,15 @@ describe('DataScreen layout and text', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Erase all my data' }));
   }
 });
+
+describe('DataScreen erase text names the exported files (F4b)', () => {
+  const NOTE = 'Files that you already exported stay where you saved them.';
+  it('says it in the Erase card', async () => {
+    await setup();
+    expect(screen.getByRole('heading', { name: 'Erase' }).closest('section')).toHaveTextContent(NOTE);
+  });
+  it('says it in the erase dialog', async () => {
+    await setup();
+    expect(document.querySelector('.erase-dialog')).toHaveTextContent(NOTE);
+  });
+});
