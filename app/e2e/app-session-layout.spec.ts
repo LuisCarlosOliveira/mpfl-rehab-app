@@ -118,6 +118,10 @@ for (const size of SIZES) {
         timeout: 40_000,
       });
       // The fake camera sees no leg, so no real alert can show. The text is the real cue text. The geometry is what counts here.
+      // Wait until the capture line shows, because the alert must also win over it (the first frame of the fake camera starts it).
+      await expect(page.locator(".capture-status")).toBeVisible({
+        timeout: 20_000,
+      });
       await page.evaluate(() => {
         const alert = document.querySelector(".cue-alert") as HTMLElement;
         alert.textContent = "Stop at your limit, do not push.";

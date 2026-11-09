@@ -101,7 +101,7 @@ body:has(.v2-session) main {
   padding: var(--s-2) var(--gutter);
 }
 .v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert),
-.v2-session .status-slot:has(.capture-status) > .cue {
+.v2-session .status-slot:has(.capture-status) > .cue:not(.cue-alert) {
   display: none;
 }
 .v2-session .status-slot > .cue {

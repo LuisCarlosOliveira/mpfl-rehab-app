@@ -79,6 +79,11 @@ describe('A1: the CSS file keeps its own scope', () => {
         expect(/^(\.v2-session|\.v2-setup|body:has\(\.v2-session\))/.test(sel), `unscoped selector: ${sel}`).toBe(true);
   });
 
+  it('lets the alert win over the capture line: the rule that hides the cue must not match the alert', () => {
+    expect(rules).toMatch(/:has\(\.capture-status\) > \.cue:not\(\.cue-alert\)\s*\{[^}]*display:\s*none/);
+    expect(rules).toMatch(/:has\(\.cue-alert:not\(:empty\)\) > :not\(\.cue-alert\)/);
+  });
+
   it('hides the brand bar on Session only', () => {
     expect(rules).toMatch(/body:has\(\.v2-session\) \.topbar\s*\{[^}]*display:\s*none/);
   });
