@@ -5,6 +5,7 @@
 
 import { MARGIN_DEG } from './margin';
 import type { Exercise } from './protocol';
+import { plural } from './sets';
 
 export type CueEvent = 'rep' | 'shallow' | 'near-limit' | 'over-limit' | 'too-fast' | 'paused' | 'hold-restart' | 'hold-complete' | null;
 
@@ -118,7 +119,7 @@ export const topUnreadable = (topFlexion: number | null): boolean => topFlexion 
 /** The angle at the top of the straight leg raise, as a number with its label. Above the limit it shows the plain sentence. */
 export function topAngleText(topFlexion: number | null): string | null {
   if (topUnreadable(topFlexion)) return PEAK_UNREADABLE_TEXT;
-  return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} degrees (${LABEL}).`;
+  return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} ${plural(Math.round(topFlexion), 'degree')} (${LABEL}).`;
 }
 
 /** Every text this module can produce, with sample numbers. The tests check them. */

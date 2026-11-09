@@ -36,6 +36,9 @@ describe('cueFor', () => {
 });
 
 describe('topAngleText', () => {
+  it('uses the singular for 1 degree (R3-01)', () => {
+    expect(topAngleText(1.2)).toBe('Estimated angle at the top: 1 degree (estimated angle, not a medical measurement).');
+  });
   it('shows the angle as a number with the label', () => {
     expect(topAngleText(12.4)).toBe('Estimated angle at the top: 12 degrees (estimated angle, not a medical measurement).');
   });

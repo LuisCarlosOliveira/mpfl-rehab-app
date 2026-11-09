@@ -93,3 +93,15 @@ The study is `docs/ui-ideas.md`: 163 finds of designeer.xyz, 19 ideas. Built in 
 - [ ] Live re-test of round 3 and of the F4a fixes: PENDING.
 - [ ] Real-phone test (Redmi A3, tailnet, real Wake Lock): NOT RUN.
 - [ ] Clinician review of every value and text: NOT RUN.
+
+## Round 3 live re-test (2026-11-09, commit 045b73d)
+
+Report: `docs/live-test/retest3.md`. 16 changes checked in the real build: 14 verified, 1 partly fixed, 1 unchanged (L2-05). No fix failed. No new HIGH or MEDIUM issue. The eight starting-angle clicks on clip 01 gave 6, 4, 4, 4, 4, 4, 4 and 5 degrees (round 2: 20 to 46).
+- [x] R3-01 "1 degrees" in the top angle text: fixed with a test that failed first (`tests/cues.test.ts`).
+- [ ] R3-02 The starting-angle button sits under the bottom bar on a small screen (LOW).
+- [ ] R3-03 "Finish" can be out of view with a pause message at 390 x 844 (LOW, one screenshot, not measured).
+- [ ] R3-04 Back inside the generator questions leaves the generator and drops the answers (design note).
+- [ ] R3-05 Rule codes such as "(RANGE_SURGEON)", "(PH2)" and "(HEEL)" show in the Update plan text (LOW). The codes are consistent, so this is a design choice for the user.
+- [ ] L2-05 A generated file with a hand-added `approvedOn` loads in the patient build. Stays open (regulatory item).
+- Unproven: the real Redmi A3, a real Wake Lock, speed on a phone, accuracy against a goniometer. The over-limit repeat beep is proven only at a fixture limit of 45.
+
