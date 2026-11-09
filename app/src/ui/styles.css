@@ -2391,6 +2391,22 @@ main h3 {
   }
 }
 
+/* 200 percent text at 320 px wide: grid and flex items may shrink and long words wrap, so no screen scrolls sideways. */
+.guide-notes {
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+}
+.exercise-body,
+.guide-note,
+.plan-exercise,
+.session-meta > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.session-meta .btn {
+  white-space: normal;
+}
+
 /* ===== F3 START: fixes of the live test round 2. Appended block. Keep this block together at the end of the file. ===== */
 /* R2-04: while the app looks for the starting angle, one line and the progress sit on the camera picture, like .session-start.
    They take no room, so the count and the angle stay above the fixed bar. */
