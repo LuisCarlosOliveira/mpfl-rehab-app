@@ -480,6 +480,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const limit = exercise.maxFlexion;
   const scaleEnd = Math.max(120, limit === undefined ? 0 : Math.ceil((limit + 30) / 10) * 10);
   const at = (deg: number) => 3 + (Math.min(Math.max(deg, 0), scaleEnd) / scaleEnd) * 94;
+  // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It is a scale, not a goal.
+  const ticks = Array.from({ length: scaleEnd / 5 + 1 }, (_, i) => i * 5);
 
   return (
     <section aria-labelledby="session-title" className="session">
@@ -593,19 +595,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree')}</span>
                     </p>
                     <p className="detail">Knee bend: {ANGLE_LABEL}</p>
-                    {limit !== undefined && (
-                      <>
-                        <svg className="gauge" viewBox="0 0 100 12" aria-hidden="true" focusable="false">
-                          <rect className="gauge-track" x="1" y="3" width="98" height="6" rx="3" />
-                          {view.angle !== null && <rect className="gauge-fill" x="3" y="4" width={Math.max(at(view.angle) - 3, 0)} height="4" rx="2" />}
-                          <line className="gauge-limit" x1={at(limit)} x2={at(limit)} y1="0" y2="12" />
-                          {view.angle !== null && <circle className="gauge-thumb" cx={at(view.angle)} cy="6" r="3.2" />}
-                        </svg>
-                        <p className="gauge-caption">
-                          Your limit <span className="num">{limit}</span> degrees
-                        </p>
-                      </>
-                    )}
                   </div>
                   <div className="readout readout-reps">
                     <p className="readout-label">{isHold ? 'Holds' : 'Reps'}</p>
@@ -625,6 +614,21 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     {exercise.kind === 'straight-leg-raise' && view.topNote && <p className="detail">{view.topNote}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
                   </div>
+                  {limit !== undefined && (
+                    <div className="readout-gauge">
+                      <svg className="gauge" viewBox="0 0 100 16" aria-hidden="true" focusable="false">
+                        <line className="gauge-base" x1="3" x2="97" y1="13" y2="13" />
+                        {ticks.map((deg) => (
+                          <line key={deg} className={deg % 10 === 0 ? 'gauge-tick gauge-tick-long' : 'gauge-tick'} x1={at(deg)} x2={at(deg)} y1="13" y2={deg % 10 === 0 ? 7 : 9.5} />
+                        ))}
+                        <line className="gauge-limit" x1={at(limit)} x2={at(limit)} y1="2" y2="13" />
+                        {view.angle !== null && <line className="gauge-index" x1={at(view.angle)} x2={at(view.angle)} y1="0" y2="13" />}
+                      </svg>
+                      <p className="gauge-caption">
+                        Your limit <span className="num">{limit}</span> degrees
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

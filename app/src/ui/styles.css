@@ -967,9 +967,7 @@ input[type='file']::file-selector-button {
   position: relative;
   overflow: hidden;
   background: var(--sunken);
-  border: 1px solid var(--line);
-  border-radius: var(--r-m);
-  box-shadow: var(--shadow-2);
+  border-radius: var(--r-s);
 }
 .preview {
   display: block;
@@ -1229,6 +1227,11 @@ input[type='file']::file-selector-button {
   grid-template-columns: 1fr;
   padding: 0;
   overflow: clip;
+  /* No card around the live numbers: they sit on the page, between thin dividers. */
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 .counters > .readout {
   padding: var(--s-5);
@@ -1262,8 +1265,8 @@ input[type='file']::file-selector-button {
 .readout-number {
   font-size: var(--step-hero);
   line-height: 0.95;
-  font-weight: 750;
-  letter-spacing: -0.04em;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 .readout-reps .readout-number {
   color: var(--primary-press);
@@ -1273,6 +1276,16 @@ input[type='file']::file-selector-button {
     color: var(--chart);
   }
 }
+.readout-gauge {
+  grid-column: 1 / -1;
+  padding: var(--s-2) var(--s-5) var(--s-4);
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 39.99rem) {
+  .readout-gauge {
+    padding-inline: 0;
+  }
+}
 .gauge {
   display: block;
   width: 100%;
@@ -1280,23 +1293,31 @@ input[type='file']::file-selector-button {
   margin-top: var(--s-2);
   overflow: visible;
 }
-.gauge-track {
-  fill: var(--sunken);
-  stroke: var(--line);
-  stroke-width: 1;
+.gauge-base {
+  stroke: var(--edge);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
 }
-.gauge-fill {
-  fill: var(--primary);
+.gauge-tick {
+  stroke: var(--edge);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.gauge-tick-long {
+  stroke: var(--ink);
+}
+/* The index is the live angle. It is taller than any tick, and it is a line, not a colour change. */
+.gauge-index {
+  stroke: var(--primary-press);
+  stroke-width: 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 .gauge-limit {
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-.gauge-thumb {
-  fill: var(--raised);
-  stroke: var(--primary-press);
+  stroke: var(--accent-ink);
   stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 .gauge-caption {
   display: flex;
@@ -1362,7 +1383,6 @@ input[type='file']::file-selector-button {
   z-index: 10;
   background: var(--bg);
   border-top: 1px solid var(--line);
-  box-shadow: 0 -8px 24px #2317140d;
 }
 .session-bar-inner {
   display: grid;
@@ -1375,7 +1395,7 @@ input[type='file']::file-selector-button {
 .session-bar .btn {
   min-height: 4.5rem;
   font-size: var(--step-1);
-  border-radius: var(--r-m);
+  border-radius: var(--r-s);
 }
 .btn-stop {
   background: var(--ink);
@@ -1597,9 +1617,7 @@ input[type='file']::file-selector-button {
   align-items: baseline;
   column-gap: var(--s-4);
   row-gap: var(--s-1);
-  padding: var(--s-3) var(--s-5);
-  background: var(--raised);
-  border-bottom: 1px solid var(--line);
+  padding: var(--s-2) 0 var(--s-1);
 }
 .counters-head p {
   max-width: none;
@@ -1968,6 +1986,11 @@ main h3 {
 @media (max-width: 61.99rem) {
   .session-grid .frame {
     order: -1;
+    /* Full width: the picture runs to the screen edge, with no card. */
+    margin-inline: calc(-1 * var(--gutter));
+    width: calc(100% + 2 * var(--gutter));
+    max-width: none;
+    border-radius: 0;
   }
   /* The picture takes 42 percent of the height, and less on a short screen, so the count and the angle stay above the bar. */
   .session-grid .preview {
@@ -1985,21 +2008,24 @@ main h3 {
   .counters > .counters-head {
     order: -2;
   }
-  .counters > .readout-reps {
-    order: -1;
-    border-top: 0;
-    border-left: 0;
+  .counters > .readout-gauge {
+    grid-column: 1 / -1;
+    order: 3;
   }
   .counters > .readout {
-    padding: var(--s-3);
+    padding: var(--s-3) 0;
+  }
+  .counters > .readout + .readout {
+    padding-left: var(--s-4);
   }
   /* The unit sits under the number here, so the number starts at the left edge with the unit. */
   .counters .readout-number {
     text-align: start;
   }
-  .counters > .readout:not(.readout-reps) {
-    border-left: 1px solid var(--line);
-  }
+}
+/* The live numbers start at the left edge, with the unit under them. */
+.counters .readout-number {
+  text-align: start;
 }
 /* U10: the start step sits on the camera picture, so it takes no room and nothing below it moves. */
 .session-start {

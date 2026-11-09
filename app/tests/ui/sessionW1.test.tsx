@@ -91,10 +91,11 @@ describe('U4: live numbers and units', () => {
   });
 });
 
-describe('U3: the camera is first on a phone, the count is left of the angle', () => {
-  it('has a phone rule that moves the frame first and puts the count before the angle', () => {
+describe('U3: the camera is first on a phone, the angle is left of the count', () => {
+  it('has a phone rule that moves the frame first, and keeps the angle before the count (redesign)', () => {
     expect(w1Rules).toMatch(/\.session-grid \.frame\s*\{[^}]*order:\s*-1/);
-    expect(w1Rules).toMatch(/\.counters > \.readout-reps\s*\{[^}]*order:\s*-1/);
+    expect(w1Rules).not.toMatch(/\.counters > \.readout-reps\s*\{[^}]*order:\s*-1/);
+    expect(w1Rules).toMatch(/\.counters > \.readout-gauge\s*\{[^}]*grid-column:\s*1 \/ -1/);
     expect(w1Rules).toMatch(/\.session-grid \.preview\s*\{[^}]*max-height:\s*min\(42svh,/);
   });
 
