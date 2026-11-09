@@ -6,7 +6,7 @@ Date: 2026-11-09. These results come from the tree of the commit that holds this
 
 | Command (from the folder `app`) | Result |
 |---|---|
-| `npm run precheck` | Exit 0. 148 test files and 3,105 tests passed. It runs type check, lint, unit tests, and the five check scripts. |
+| `npm run precheck` | Exit 0. 148 test files and 3,107 tests passed. It runs type check, lint, unit tests, and the five check scripts. |
 | `bash scripts/model-hash-check.sh` | Exit 0. The model and WASM files match `public/models/SHA256SUMS`. |
 | `bash scripts/deps-check.sh` | Exit 0. Every dependency is on `scripts/allowed-deps.txt`. |
 | `bash scripts/plan-skills-check.sh` | Exit 0. Every finished task of the plan has a `Skills used:` line. |

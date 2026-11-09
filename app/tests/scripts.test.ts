@@ -6,6 +6,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// The scans read every source file. They take 2 to 3 s idle and more under load, so the default 5 s limit is too short.
+vi.setConfig({ testTimeout: 30_000 });
+
 const here = dirname(fileURLToPath(import.meta.url));
 const claims = resolve(here, '../scripts/claims-check.sh');
 const phase = resolve(here, '../scripts/phase-check.sh');
@@ -480,7 +483,7 @@ describe('phase-check.sh: patterns for the confirm-before-save path', () => {
 
   it('passes on the real source', () => {
     expect(run(phase, realSrc).status).toBe(0);
-  }, 30_000);
+  });
 });
 
 describe('phase-check.sh: bypass patterns (F4b)', () => {
@@ -798,5 +801,5 @@ describe('claims-check.sh: frame and relay APIs (F5a)', () => {
 
   it('passes on the real source of the app, with no allow marker added by F5a', () => {
     expect(run(claims, realSrc).status).toBe(0);
-  }, 30_000);
+  });
 });

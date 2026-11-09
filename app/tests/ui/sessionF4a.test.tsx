@@ -56,6 +56,18 @@ describe('repsBy in the run summary (M3)', () => {
 });
 
 // ENGINEERING: the repeat time of the over-limit beep is 5 s. See OVER_LIMIT_REPEAT_MS in Session.tsx.
+describe('the leg raise has no automatic count (count diagnosis)', () => {
+  it('tells the person that the camera does not count leg raises and to press the button', () => {
+    setup(SLR);
+    expect(screen.getByText('The camera does not count leg raises. Press Count this rep after each lift.')).toBeInTheDocument();
+  });
+
+  it('shows no such line for the heel slide, which the camera counts', () => {
+    setup(HEEL_SLIDE);
+    expect(screen.queryByText(/does not count leg raises/)).toBeNull();
+  });
+});
+
 describe('the over-limit beep repeats (M5)', () => {
   /** Rest, then a slow rise above the limit of 90 degrees plus the margin. Returns the next time. */
   function riseAboveLimit(source: MockSource): number {

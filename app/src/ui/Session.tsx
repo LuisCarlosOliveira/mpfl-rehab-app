@@ -616,6 +616,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       </div>
                     )}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
+                    {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera does not count leg raises. Press Count this rep after each lift.</p>}
                   </div>
                 </div>
               )}
