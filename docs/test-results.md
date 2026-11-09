@@ -6,15 +6,15 @@ Date: 2026-11-09. These results come from the tree of the commit that holds this
 
 | Command (from the folder `app`) | Result |
 |---|---|
-| `npm run precheck` | Exit 0. 147 test files and 2,978 tests passed. It runs type check, lint, unit tests, and the five check scripts. |
+| `npm run precheck` | Exit 0. 147 test files and 3,083 tests passed. It runs type check, lint, unit tests, and the five check scripts. |
 | `bash scripts/model-hash-check.sh` | Exit 0. The model and WASM files match `public/models/SHA256SUMS`. |
 | `bash scripts/deps-check.sh` | Exit 0. Every dependency is on `scripts/allowed-deps.txt`. |
 | `bash scripts/plan-skills-check.sh` | Exit 0. Every finished task of the plan has a `Skills used:` line. |
 | `bash scripts/claims-check.sh src` | Exit 0. No line matches the banned words, praise words, frame APIs, canvas code or inline colours. It is a pattern match. It cannot prove that no other banned text exists. |
 | `bash scripts/phase-check.sh src` | Exit 0. No line of the source matches the patterns of the script. The check is a pattern match. Runtime tests and `tests/importGraph.test.ts` cover the real save path. |
 | `npm audit --omit=dev` | Exit 0. 0 vulnerabilities in the runtime dependencies. |
-| `npm run build` then `npm run e2e` | Exit 0. 154 browser tests passed in the `app` project (Chromium with a fake webcam, the real built app). |
-| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). |
+| `npm run build` then `npm run e2e` | Exit 0. This command has 154 tests across all its projects: 130 in the `app` project (Chromium with a fake webcam, the real built app), 14 in WebKit and 10 in older harness projects. The WebKit tests are part of the 154. CORRECTED 2026-11-09 (the final audit counted with `npx playwright test --list`). The older text said "154 browser tests passed in the `app` project", which was wrong. |
+| `npx playwright test --workers=1 --project=webkit` | Exit 0. 14 tests passed (WebKit 27.2). These 14 tests are already inside the 154 of `npm run e2e`. |
 | `PAIR_PORT=4196 npm run e2e:pairing` | Exit 0 in 3 runs out of 3. 18 tests passed in each run (two Chromium pages with real WebRTC). |
 
 No preview server and no fake-camera browser was left running after these commands.
@@ -43,3 +43,7 @@ No preview server and no fake-camera browser was left running after these comman
 ## Note on test counts
 
 `npx vitest list` shows fewer tests than a run executes. Tests that a loop generates are not all listed. For example `tests/protocolGenGenerate.test.ts` lists 32 entries and executes 139 tests. The executed count of the precheck run is the figure that this file quotes.
+
+## Which run these figures come from
+
+The figures above come from the run after the fixes of the Opus final audit (the commit that holds this file). The plan, the README and TASKS.md quote the earlier run of commit `903d2c9`: 147 test files and 2,978 tests. The fixes that followed added 105 tests. The browser figures did not change. `npm run e2e` has 154 tests across all its projects: 130 in `app`, 14 in WebKit and 10 in older harness projects. The 18 pairing tests passed three times in a row.

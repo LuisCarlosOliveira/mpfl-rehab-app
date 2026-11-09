@@ -60,6 +60,29 @@ describe('Summary: the leg raise peak (M8)', () => {
   });
 });
 
+describe('Summary: the leg raise top angle (F5a)', () => {
+  it('shows the number when the top angle is 30 degrees or less', () => {
+    summaryOf(SLR, { ...base, topFlexion: 30 });
+    expect(screen.getByText(/Estimated angle at the top: 30 degrees/)).toBeInTheDocument();
+  });
+
+  it('shows the plain sentence and no number when the top angle is above 30 degrees', () => {
+    summaryOf(SLR, { ...base, topFlexion: 85 });
+    expect(screen.getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/at the top: 85/);
+    expect(document.body.textContent).not.toMatch(/\b85\b/);
+  });
+
+  it('keeps the stored value as it is', async () => {
+    const db = summaryOf(SLR, { ...base, topFlexion: 85 });
+    fireEvent.click(screen.getByRole('radio', { name: '2' }));
+    fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Session saved.');
+    expect((await db.sessions.toArray())[0]!.topFlexion).toBe(85);
+  });
+});
+
 describe('Summary: repsBy reaches the record (M3)', () => {
   it('saves hand, and no repsBy key when Session sent none', async () => {
     const db = summaryOf(SLR, { ...base, repsBy: 'hand' });
@@ -116,6 +139,16 @@ describe('Care team view', () => {
     expect(list.textContent).not.toContain('165');
     expect(within(list).getByText('25.5')).toBeInTheDocument();
     expect(within(list).getByText('130')).toBeInTheDocument();
+  });
+
+  it('shows the sentence in place of a leg raise top angle above 30 degrees, and the number for a lower one (F5a)', async () => {
+    const list = await open([
+      session({ exercise: 'straight-leg-raise', reps: 3, peakFlexion: 12, topFlexion: 143.5 }),
+      session({ exercise: 'straight-leg-raise', reps: 4, peakFlexion: 12, topFlexion: 21.5, date: '2026-11-02T10:00:00.000Z' }),
+    ]);
+    expect(within(list).getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
+    expect(list.textContent).not.toContain('143.5');
+    expect(within(list).getByText('21.5')).toBeInTheDocument();
   });
 });
 

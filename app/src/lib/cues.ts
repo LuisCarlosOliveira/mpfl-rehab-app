@@ -112,8 +112,12 @@ export const PEAK_UNREADABLE_TEXT = 'The camera could not read this leg raise.';
 export const peakUnreadable = (kind: Exercise['kind'], peakFlexion: number | null): boolean =>
   kind === 'straight-leg-raise' && peakFlexion !== null && peakFlexion > SLR_PEAK_PLAUSIBLE_MAX_DEG;
 
-/** The angle at the top of the straight leg raise, as a number with its label. */
+/** True when the top angle of a straight leg raise is too high to trust. The same ENGINEERING limit as the peak. The stored value stays. */
+export const topUnreadable = (topFlexion: number | null): boolean => topFlexion !== null && topFlexion > SLR_PEAK_PLAUSIBLE_MAX_DEG;
+
+/** The angle at the top of the straight leg raise, as a number with its label. Above the limit it shows the plain sentence. */
 export function topAngleText(topFlexion: number | null): string | null {
+  if (topUnreadable(topFlexion)) return PEAK_UNREADABLE_TEXT;
   return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} degrees (${LABEL}).`;
 }
 

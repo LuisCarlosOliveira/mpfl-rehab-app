@@ -619,3 +619,184 @@ describe('claims-check.sh: no colour in a screen file (F4b)', () => {
     expect(run(claims, dir).status).toBe(0);
   });
 });
+
+// F5a: seven save paths that the final audit found and that the first patterns missed.
+// HONEST LIMIT: each pattern matches text. A person can still hide a save path from a text match.
+describe('phase-check.sh: more save paths (F5a)', () => {
+  it.each([
+    ['a key from fromCharCode', "const k = String.fromCharCode(97, 99, 116, 105, 118, 101);\nreturn { ...p, [k]: 2 };"],
+    ['a table kept in a variable', 'const t = db.protocol;\nawait t.put(p);'],
+    ['a table kept in a variable with a type', 'const t: Table = store.protocol;'],
+    ['a destructured table', 'const { protocol } = db;\nawait protocol.put(p);'],
+    ['a destructured parameter', 'const f = ({ protocol }) => protocol.put(p);'],
+    ['a bare write to a table name', 'await protocol.put(p);'],
+    ['db.tables', 'await db.tables.find((t) => t.name === "protocol")!.put(p);'],
+    ['a raw indexedDB open', "const r = indexedDB.open('mpfl-rehab');"],
+    ['a new Dexie', "const d = new Dexie('mpfl-rehab');"],
+    ['a Dexie import', "import Dexie from 'dexie';"],
+    ['acceptProposal with the argument on the next line', 'await acceptProposal(\n  db, p, c, mode);'],
+    ['acceptProposal with the bracket on the next line', 'await acceptProposal\n  (db, p, c, mode);'],
+    ['confirmByPerson with the bracket on the next line', 'const c = confirmByPerson\n(e);'],
+    ['saveProtocol with the bracket on the next line', 'await st.saveProtocol\n(db, raw, mode);'],
+    ['a table call split before the method', 'await db.protocol\n  .put(p);'],
+  ])('fails on %s in a ui file', (_name, text) => {
+    const rel = 'ui/Bypass.ts';
+    put(rel, text);
+    const r = run(phase, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain(rel);
+  });
+
+  it('passes when the same split call is in an allowed file', () => {
+    put('ui/ConfirmPlan.tsx', 'await acceptProposal(\n  db, p, c, mode);\nconst c = confirmByPerson\n(e);');
+    put('ui/LoadProtocol.tsx', 'await saveProtocol\n(db, raw, mode);');
+    expect(run(phase, dir).status).toBe(0);
+  });
+
+  it('passes on Dexie, indexedDB, tables and fromCharCode in the files that may hold them', () => {
+    put('lib/storage/db.ts', "import Dexie from 'dexie';\nconst d = new Dexie(name);\nconst { protocol } = db;\nawait protocol.put(p);\nconst t = db.protocol;\nawait db.tables;");
+    put('lib/pairing/payload.ts', 'const s = String.fromCharCode(...bytes);');
+    expect(run(phase, dir).status).toBe(0);
+  });
+
+  it('passes on a read of the protocol prop and on a protocol value', () => {
+    put('ui/Show.tsx', 'const { protocol } = props;\nreturn <A protocol={protocol} />;');
+    expect(run(phase, dir).status).toBe(0);
+  });
+
+  it('names the header test file that exists', () => {
+    const head = execFileSync('head', ['-n', '30', phase], { encoding: 'utf8' });
+    expect(head).toContain('tests/importGraph.test.ts');
+    expect(head).not.toContain('tests/ui/importGraph.test.ts');
+  });
+});
+
+// F5a: gaps that the final audit found in claims-check.sh.
+// HONEST LIMIT: a pattern match joins quoted parts that sit next to a plus sign. It cannot see a word that a variable or a function builds.
+describe('claims-check.sh: praise built from parts, more words, more files (F5a)', () => {
+  it.each([
+    ['a plus between two strings', "const t = 'Well ' + 'done';"],
+    ['a plus with no spaces', 'const t = "Well "+"done";'],
+    ['a word cut in two', "const t = 'Excel' + 'lent';"],
+    ['a plus on the next line', "const t = 'Great '\n  + 'job';"],
+    ['a template part that is empty', 'const t = `Excel${\'\'}lent`;'],
+    ['a join of two parts', "const t = ['Well ', 'done'].join('');"],
+  ])('fails on praise built from parts: %s', (_n, text) => {
+    put('ui/Parts.tsx', text);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('ui/Parts.tsx');
+  });
+
+  it('passes on two parts that do not make a banned word', () => {
+    put('ui/Parts.tsx', "const t = 'Stop at ' + 'your limit';");
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it.each(['proud', 'fantastic', 'amazing', 'brilliant', 'superb', 'impressive', 'well-done', 'keep it up', 'you did it', 'way to go', 'healed'])(
+    'fails on the praise word "%s"',
+    (word) => {
+      put('ui/Praise.tsx', `const t = "Today you are ${word}.";`);
+      expect(run(claims, dir).status).toBe(1);
+    },
+  );
+
+  it.each(['lib/cues.ts', 'lib/sets.ts', 'lib/guides.ts', 'lib/planView.ts', 'lib/onboarding.ts', 'lib/figure.ts', 'lib/setupRules.ts', 'lib/redflags.ts',
+    'ui/askSurgeon.ts', 'lib/reviewSummary.ts', 'lib/contactCard.ts'])('checks %s for the new praise words', (rel) => {
+    put(rel, 'export const t = "Fantastic work";');
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('checks a lib file that holds patient text for a split praise word', () => {
+    put('lib/contactCard.ts', "export const t = 'Well ' + 'done';");
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('does not check the source quotes of the plan generator', () => {
+    put('lib/protocolGen/sources.ts', 'export const q = "Recovery and improvement after surgery";');
+    put('lib/protocolGen/rules.ts', 'export const q = "recovery";');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('keeps the old praise words', () => {
+    put('ui/Praise.tsx', 'const t = "Success";');
+    expect(run(claims, dir).status).toBe(1);
+  });
+});
+
+describe('claims-check.sh: colour from a lib file and in a var() fallback (F5a)', () => {
+  it.each([
+    ['a colour name in a style object', "export const s = { color: 'limegreen' };"],
+    ['a colour name that is not on the list', "export const s = { color: 'chartreuse' };"],
+    ['a background name', "export const s = { background: 'palegreen' };"],
+    ['a hex colour', "export const c = '#0a0';"],
+    ['an rgb function', 'export const c = `rgb(0 200 0)`;'],
+    ['a colour name in quotes', "export const c = 'green';"],
+  ])('fails on %s in a lib file', (_n, text) => {
+    put('lib/palette.ts', text);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('lib/palette.ts');
+  });
+
+  it('fails on a colour in lib/figure.ts too', () => {
+    put('lib/figure.ts', "export const c = { fill: 'red' };");
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes on a CSS variable name and on currentColor in a lib file', () => {
+    put('lib/figure.ts', "export const a = { fill: 'var(--ink)', stroke: 'currentColor', color: 'none' };");
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it.each([
+    ['a colour name', 'a { color: var(--ok, red); }'],
+    ['a hex colour', 'a { color: var(--ok, #0f0); }'],
+    ['an rgb colour', 'a { color: var(--ok, rgb(0 200 0)); }'],
+    ['a name with no space', 'a { color: var(--ok,lime); }'],
+  ])('fails on %s as a var() fallback in a css file', (_n, text) => {
+    put('ui/x.css', text);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('ui/x.css');
+  });
+
+  it('fails on a var() fallback colour in a tsx string', () => {
+    put('ui/Box.tsx', "const c = 'var(--ok, lime)';");
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes on a var() with another variable as the fallback and on a colour token in a css file', () => {
+    put('ui/x.css', ':root { --paper: #fafaf7; }\na { color: var(--ink, var(--paper)); border: 1px solid var(--line); }');
+    expect(run(claims, dir).status).toBe(0);
+  });
+});
+
+describe('claims-check.sh: frame and relay APIs (F5a)', () => {
+  it.each([
+    ['captureStream', 'const s = video.captureStream();'],
+    ['VideoFrame', 'const f = new VideoFrame(video);'],
+    ['MediaStreamTrackProcessor', 'const p = new MediaStreamTrackProcessor({ track });'],
+    ['a stun url', "const c = { urls: 'stun:stun.example.org' };"],
+    ['a turn url', 'const c = { urls: "turn:relay.example.org" };'],
+    ['a filled ice list', "const p = new RTCPeerConnection({ iceServers: [{ urls: 'x' }] });"],
+    ['an ice list over two lines', 'const p = new RTCPeerConnection({ iceServers: [\n  { urls: u },\n] });'],
+    ['an ice list from a variable', 'const p = new RTCPeerConnection({ iceServers: servers });'],
+    ['an ice list as a shorthand key', 'const p = new RTCPeerConnection({ iceServers });'],
+  ])('fails on %s', (_n, text) => {
+    put('pairing/link.ts', text);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('pairing/link.ts');
+  });
+
+  it('passes on the empty ice list of the data channel and on requestVideoFrameCallback', () => {
+    put('pairing/link.ts', 'const p = new RTCPeerConnection({ iceServers: [] });\nconst p2 = new RTCPeerConnection({ iceServers: [ ] });');
+    put('pose/loop.ts', 'const h = video.requestVideoFrameCallback(tick);');
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('passes on the real source of the app, with no allow marker added by F5a', () => {
+    expect(run(claims, realSrc).status).toBe(0);
+  });
+});

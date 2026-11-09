@@ -44,6 +44,23 @@ describe('sources table', () => {
     for (const [, s] of entries.filter(([, e]) => e.verified)) expect(s.quotes.length, s.id).toBeGreaterThan(0);
   });
 
+  // F5a (V34): the Opus final audit read the PDF of P1 again. The text is "Follow more conservative guideline".
+  // Only the audit row can hold the quote, because the rehab rules file still has the old text. The row is PARAPHRASED.
+  it('quotes the combined-surgery line of P1 with the true word and finds it in the audit row V34', () => {
+    expect(SOURCES.P1.quotes).toContain('Follow more conservative guideline');
+    expect(SOURCES.P1.quotes).not.toContain('Follow most conservative guideline');
+    const row = research('citation-audit.md').split('\n').find((l) => l.startsWith('| V34 |'))!;
+    expect(row).toContain('"Follow more conservative guideline"');
+    expect(row).toContain('PARAPHRASED');
+    expect(row).not.toContain('EXACT');
+    expect(row).toContain('corrected by the Opus final audit, 2026-11-09');
+  });
+
+  it('keeps the rule text for combined surgery in step with the true quote', () => {
+    expect(RULES.R2.text).toContain('more conservative guideline');
+    expect(RULES.R2.text).not.toContain('most conservative');
+  });
+
   it('keeps the paraphrased HSS guideline unverified, as the audit says', () => {
     expect(SOURCES.P1.audit).toBe('PARAPHRASED');
     expect(SOURCES.P1.verified).toBe(false);

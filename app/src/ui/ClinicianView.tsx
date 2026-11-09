@@ -4,7 +4,7 @@
 // Every fixed text of the review summary comes from src/lib/reviewSummary.ts. The screen adds no total,
 // rating, no percentage and no colour (research/progression.md section 5.2).
 import { useMemo, useState, type ReactNode } from 'react';
-import { PEAK_UNREADABLE_TEXT, peakUnreadable } from '../lib/cues';
+import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
 import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
@@ -217,7 +217,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{repsCell(s)}</td>
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
-                  <td className="num-cell">{orNone(s.topFlexion)}</td>
+                  <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNone(s.topFlexion)}</td>
                   <td className="num-cell">{s.pain}</td>
                   <td>{SWELLING_TEXT[s.swelling]}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}

@@ -1,4 +1,4 @@
-import { allCueTexts, cueFor, PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText, type CueEvent } from '../src/lib/cues';
+import { allCueTexts, cueFor, PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText, topUnreadable, type CueEvent } from '../src/lib/cues';
 
 const BANNED = /\b(correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone)\b|risk of injury/i;
 
@@ -42,6 +42,18 @@ describe('topAngleText', () => {
 
   it('shows nothing when no angle was measured', () => {
     expect(topAngleText(null)).toBeNull();
+  });
+
+  it('shows the plain sentence and no number above the ENGINEERING limit of 30 degrees (F5a)', () => {
+    expect(topAngleText(30)).toMatch(/30 degrees/);
+    expect(topAngleText(30.1)).toBe(PEAK_UNREADABLE_TEXT);
+    expect(topAngleText(165)).toBe(PEAK_UNREADABLE_TEXT);
+  });
+
+  it('flags only a number above the limit as unreadable (F5a)', () => {
+    expect(topUnreadable(30)).toBe(false);
+    expect(topUnreadable(30.1)).toBe(true);
+    expect(topUnreadable(null)).toBe(false);
   });
 });
 

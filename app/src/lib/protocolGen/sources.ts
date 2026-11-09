@@ -89,7 +89,7 @@ const list = [
       'unless cleared by surgeon',
       'Avoid KF ROM beyond surgeon guidelines',
       'heel slides once KF >120',
-      'Follow most conservative guideline',
+      'Follow more conservative guideline',
     ],
     grade: 'OPINION',
     // V47 and V14 are PARAPHRASED. V37 is WRONG for the old claim, so only its corrected wording is used.

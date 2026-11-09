@@ -67,7 +67,7 @@ Locations: P1 = HSS PDF, 22 pages. P2 = Cincinnati Guideline 46 PDF, 38 pages. P
 | V31 | S10 TTO "delayed or non weight bearing (56%) ... (67%)" | S10 abstract | EXACT | |
 | V32 | S1 weight-bearing changes with "a concurrent procedure" | S1 text | EXACT | |
 | V33 | P2 excludes "tibial tubercle re-alignment" | P2 page 1, Exclusions | EXACT | Also excludes lateral retinacular release |
-| V34 | P1 "Follow most conservative guideline" | P1 page 1 | EXACT | |
+| V34 | P1 "Follow more conservative guideline" | P1 page 1 | PARAPHRASED | The first audit read "most", corrected by the Opus final audit, 2026-11-09 |
 | V35 | R5 "100% of papers evaluated lacked adequate return-to-play guidelines" | R5 abstract | EXACT | |
 | V36 | Heel slides in phase 1 (S1, P3) | S1 Table 1, P3 page 4 | EXACT | |
 | V37 | Heel slides in phase 1, "P1: heel slides in the AROM progression" | P1 pages 7, 9, 12 | WRONG | P1 phase 1 uses "Sitting knee ROM exercise: AAROM KF to PROM KE". Heel slides start in phase 2: "heel slides once KF >120" |
@@ -231,7 +231,7 @@ Verdict: SAFE FOR THE APP TO ENCODE as a block. If a bone or cartilage procedure
 
 | Item | Content |
 |---|---|
-| Quote | P2 Exclusions: "With patellofemoral re-alignment techniques as part of the surgical procedure (e.g. lateral retinacular release, tibial tubercle re-alignment)". P1: "Follow most conservative guideline". S10: TTO "delayed or non weight bearing (56%), locked brace duration greater than 6 weeks (67%)" |
+| Quote | P2 Exclusions: "With patellofemoral re-alignment techniques as part of the surgical procedure (e.g. lateral retinacular release, tibial tubercle re-alignment)". P1: "Follow more conservative guideline" (corrected by the Opus final audit, 2026-11-09: the first audit wrote "most"). S10: TTO "delayed or non weight bearing (56%), locked brace duration greater than 6 weeks (67%)" |
 | Grade in substance | OPINION and REVIEW of practice |
 | Contrary source | N5 RCT (TTO plus MPFLR, N=50): rapid rehab "appears to be safe and effective". This supports surgeon choice, not isolated defaults |
 | Harm if wrong | Isolated values after a TTO can overload the osteotomy. N3: "Avoid open chain quadriceps exercises to avoid pull at osteotomy site through patellar tendon" |

@@ -215,3 +215,37 @@ describe('Session sets: hold exercise', () => {
     expect(onEnd.mock.calls[0]![1]).toMatchObject({ reps: null, holds: 0 });
   });
 });
+
+// F5a: a check mark reads as an achievement. The rest panel and the set notice use a neutral icon.
+// The check icon path of Lucide is the text that the test looks for in the svg of each notice.
+const CHECK_PATH = 'M20 6 9 17l-5-5';
+const hasCheck = (el: Element) => [...el.querySelectorAll('path')].some((p) => p.getAttribute('d') === CHECK_PATH);
+
+describe('Session sets: no check icon in a set notice (F5a)', () => {
+  it('shows no check icon in the rest panel after a set', () => {
+    const { source } = setup(TWO_BY_TWO);
+    const t = playRep(source, 'left', 60);
+    playRep(source, 'left', 60, t);
+    const notice = screen.getByText('Set 1 done. Rest when you are ready.').closest('.notice')!;
+    expect(notice.querySelector('svg')).not.toBeNull();
+    expect(hasCheck(notice)).toBe(false);
+    expect(hasCheck(notice.closest('.rest-panel')!)).toBe(false);
+  });
+
+  it('shows no check icon in the notice after the last set', () => {
+    const { source } = setup({ ...TWO_BY_TWO, sets: 1 });
+    const t = playRep(source, 'left', 60);
+    playRep(source, 'left', 60, t);
+    const notice = screen.getByText(SET_TEXT.allComplete).closest('.notice')!;
+    expect(notice.querySelector('svg')).not.toBeNull();
+    expect(hasCheck(notice)).toBe(false);
+  });
+
+  it('can tell a check icon from a clock icon (the test can fail)', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', CHECK_PATH);
+    svg.appendChild(path);
+    expect(hasCheck(svg)).toBe(true);
+  });
+});

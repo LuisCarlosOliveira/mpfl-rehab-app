@@ -536,7 +536,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
             <div className="stack">
               {paused && (
                 <div className={resting ? 'stack-s rest-panel' : 'stack-s'}>
-                  <Notice role="status" icon="check">
+                  <Notice role="status" icon="clock">
                     {resting ? (
                       <h2 className="notice-title rest-title" tabIndex={-1} ref={restRef}>
                         Set {sets.setIndex + 1} done. Rest when you are ready.

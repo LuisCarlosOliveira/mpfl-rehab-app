@@ -310,7 +310,7 @@ const defs = {
     sourceIds: ['P2', 'P1', 'S10'],
     grade: 'OPINION',
     population: 'MPFL reconstruction with a bone or cartilage procedure.',
-    text: 'P2 excludes realignment surgery. P1 says to follow the most conservative guideline. S10 reports slower plans after a bone procedure.',
+    text: 'P2 excludes realignment surgery. P1 says to follow the more conservative guideline. S10 reports slower plans after a bone procedure.',
     referralText: `${REFERRAL_LINE} The app makes plans only after MPFL reconstruction with no other procedure. Contact your care team for your plan.`,
   },
   R3: {

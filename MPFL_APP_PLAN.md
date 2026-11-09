@@ -26,10 +26,11 @@ Status on 2026-11-09 (after commit `939d096`). This is a prototype. It is not a 
 
 Status on 2026-11-09 (after commit `903d2c9`, the final tree of this record). This is a prototype. It is not a medical device. No clinician and no regulatory expert has reviewed it. No real phone has run it. This block replaces the test numbers of the older blocks. Those blocks stay as the record, and their counts are older counts. Sources: `docs/test-results.md`, `docs/live-test/retest.md` and `docs/audit-3.md`. I did not re-run any suite for this edit.
 
-- Final test numbers. They come from `docs/test-results.md`. The main session ran them on the tree of `903d2c9`. I did not re-run them. `npm run precheck` passed with 2,978 tests in 147 files. The main browser suite has 154 tests and the WebKit project has 14. The pairing suite has 18 tests and passed 3 runs out of 3. `npm audit --omit=dev` showed 0 vulnerabilities. The raw logs are not in the repository. `npx vitest list` shows fewer tests (audit 3 counted 2,256) because tests that a loop generates are not all listed. The executed count is the figure of this plan.
+- Final test numbers. They come from `docs/test-results.md`. The main session ran them on the tree of `903d2c9`. I did not re-run them. `npm run precheck` passed with 2,978 tests in 147 files. `npm run e2e` has 154 tests across all its projects (130 in the `app` project, 14 in WebKit, 10 in older harness projects). The pairing suite has 18 tests, run three times, and passed 3 runs out of 3. CORRECTED 2026-11-09 by the final audit: earlier text double counted the WebKit tests. `npm audit --omit=dev` showed 0 vulnerabilities. The raw logs are not in the repository. `npx vitest list` shows fewer tests (audit 3 counted 2,256) because tests that a loop generates are not all listed. The executed count is the figure of this plan.
 - Live test round 2 (`docs/live-test/retest.md`, commit `939d096`, one tester) checked 22 round 1 fixes. It verified 18, 3 failed and 1 is partly fixed (task T34). Round 3 changed the Back button, the 195 px layout, the plurals, the capture layout and the lowest-angle rule (T35). Round 3 and the later fixes have no live re-test.
-- Audit 3 (`docs/audit-3.md`, commit `ab171d3`, task T36, fixes in T37): 2 HIGH, 9 MEDIUM and 16 LOW findings. Its verdicts: a supervised developer demo yes, a pilot with a real phone and a clinician watching not yet, any patient use no. Commit `903d2c9` (tasks T37) fixed H1, H2, M3, M4, M5, M8 and L8, and some audit 2 items. No independent re-audit of these fixes exists (PENDING). The verdicts of audit 3 were given for the tree before these fixes.
-- Still NOT done: the real phone (Redmi A3, tailnet, real Wake Lock) and accuracy against a goniometer. Also not done: any clinician review, the regulatory decision, the frame rate on a phone and the Opus final verdict (T27, PENDING). The file `docs/final-audit.md` does not exist.
+- Audit 3 (`docs/audit-3.md`, commit `ab171d3`, task T36, fixes in T37): 2 HIGH, 9 MEDIUM and 16 LOW findings. Its verdicts: a supervised developer demo yes, a pilot with a real phone and a clinician watching not yet, any patient use no. Commit `903d2c9` (tasks T37) fixed H1, M3, M4, M5 and L8, fixed M8 for the peak only, and closed some audit 2 items. H2 (the guard scripts) is improved, not fixed: a pattern match cannot prove a negative. The exact count of missed cases is in `docs/final-audit.md`. The verdicts of audit 3 were given for the tree before these fixes.
+- Final audit (`docs/final-audit.md`, task T38, commit `b00d2aa`, Opus at high effort): a supervised developer demo YES. A pilot with one real phone and a clinician watching NOT YET. Any patient use NO.
+- Still NOT done: the real phone (Redmi A3, tailnet, real Wake Lock) and accuracy against a goniometer. Also not done: any clinician review, the regulatory decision and the frame rate on a phone. The live re-test of round 3 and F4a is PENDING.
 
 ## 0. Progress checklist
 
@@ -64,10 +65,11 @@ Update 2026-11-09, after commit `903d2c9`. The lines above stay as the record. T
 - [x] Re-test of the round 1 fixes written (`docs/live-test/retest.md`, T34): 18 of 22 verified, 3 failed, 1 partly. It ran on commit `939d096`.
 - [x] Round 3 fixes (T35). No live re-test of them.
 - [x] Audit 3 written (`docs/audit-3.md`, T36): 2 HIGH, 9 MEDIUM, 16 LOW.
-- [x] Audit 3 fixes F4a and F4b in commit `903d2c9` (T37): H1, H2, M3, M4, M5, M8, L8 and more. No independent re-audit (PENDING).
+- [x] Audit 3 fixes F4a and F4b in commit `903d2c9` (T37): H1, M3, M4, M5, L8 and more. H2 is improved, not fixed (final audit). M8 covers the peak only.
 - [ ] Real-phone test (Redmi A3, tailnet): still NOT RUN, UNPROVEN.
 - [ ] Clinician review of every value and text: NOT RUN.
-- [ ] Opus final verdict (T27, `docs/final-audit.md`): PENDING. The file does not exist.
+- [ ] Live re-test of round 3 and of the F4a fixes: PENDING.
+- [x] Opus final verdict (T27 and T38, `docs/final-audit.md`): DONE on commit `b00d2aa`. Demo YES, pilot NOT YET, any patient use NO.
 
 ## 1. Research findings and decisions
 
@@ -229,7 +231,7 @@ Priority: M = MVP, M2 = built right after the single-camera flow works, F = futu
 | NFR3 Accuracy | Document the angle error. Record that `lite` accuracy is not known. Run a Bland-Altman check if reference data exists. Reported errors range from about 3 to 15 degrees. The 15 degree figure is UNVERIFIED. The app uses a start margin of 9 degrees (Okuno 2026, heavy model, still photos). It is UNVERIFIED for `lite`. | `docs/accuracy.md` holds real numbers or the statement that no reference data exists. UPDATE 2026-11-09: still no goniometer data. The 8-clip section of `docs/accuracy.md` is a plausibility check. Round 1 found angles that follow the picture in direction and had no reference angle (`exercise-flows.md` check 17). The design reconciliation lists a video error of 9.3 to 21.9 degrees (`docs/design-reconciliation.md` D16, F3, UNVERIFIED by me). The margin of 9 degrees stays a start value, UNVERIFIED for `lite`. |
 | NFR4 Performance | Pose loop median is at least 15 frames per second over 60 seconds, headed Chromium, dev machine, `lite` model. Phone speed is UNVERIFIED until a phone test. | Median value recorded in `docs/accuracy.md`. UPDATE 2026-11-09, measured on one laptop (Intel i5-9400H, 8 threads, no GPU, software rendering). Tester 1 found a median of 20.0 (clip 01), 29.9 (clip 06) and 14.99 (clip 05) with no polling, and 12.0 and 15.0 with polling (`exercise-flows.md`). Tester 4 found 14.97 to 14.99 in 7 of 9 runs and 11.99 in 2 of 9 runs. With 4x CPU throttling the median was 3.0, and with 6x it was 2.2 (`performance.md`). With the second camera running, the laptop median was 14.99. With one camera it was 19.96 (`pairing.md` check 34). The main session reported that its baseline moved between 12.6 and 15.3 with machine load (no report file). Caveats: the machine had no GPU and was shared. The loop runs on the main thread and uses nearly all of it (L4-04). The value is at the limit and not stable. NFR4 is NOT met on a phone, because no phone number exists (UNPROVEN). The main session reported that the GPU delegate was not faster on this machine and that a camera request of 480x270 was rejected. No report file holds this. A search of `src/pose` finds no GPU delegate, no such request and no Worker. A Worker is a decision of the user (section 11.4). The frame-rate table of `docs/accuracy.md` said "not measured" and was stale. It now holds the measured laptop figures (edit of 2026-11-09, after commit `903d2c9`). Live test round 2 measured the Setup loop on clip 01, 60 seconds per run, 4 pairs: the median was 29.94 fps in 7 of 8 runs and 20.04 in 1 run, with the body map on and off. These numbers come from `requestVideoFrameCallback` on software WebGL and are not proof for a phone. The audit 3 line "NFR4 not met on a phone, not measured" holds. |
 | NFR5 Accessibility | WCAG 2.2 AA target. Keyboard use, large buttons, text alternatives for charts. | axe has 0 serious or critical issues. Lighthouse accessibility is 95 or more. Keyboard checklist in T12 is complete. UPDATE 2026-11-09: Lighthouse accessibility was 100 in all 18 runs on 3 screens at commit `b451206` (`performance.md`). axe found 0 violations on 37 screens at 2 sizes, and on 12 screens at 320, 640 and 1920 px, in the dark theme and with reduced motion (`workflows.md` H01 and H02). axe found 0 violations in 48 runs on the pairing screens (`pairing.md` check 43). Below 320 px, five screens scrolled sideways (L2-11, FAIL at 195 px wide). A CSS fix for L2-06 and L2-11 is in commit `6264037` (F2a, `ui/styles.test.ts` reads the CSS text). The browser re-run is PENDING. The SEO target is DROPPED on purpose: `robots.txt` holds `Disallow: /`, so SEO is 63 (section 11.3, `docs/lighthouse.md`). Accessibility after the first-load split is not in a report (PENDING). UPDATE 2026-11-09: live test round 2 (`retest.md`, commit `939d096`) measured Lighthouse Accessibility 100 and Best practices 100 in 12 runs on Load and Home, mobile and desktop, and mobile Performance 99 to 100. At 195 px four screens still scrolled sideways (R2-02). They passed at 390 and 320 px. Round 3 (F3, commit `ab171d3`) changed the 195 px layout (`ui/styles.css`, `ui/styles.test.ts` reads the CSS text). The browser re-run at 195 px is NOT RUN. |
-| NFR6 Security | CSP and headers as in section 3.2. No `eval`. `wasm-unsafe-eval` only for MediaPipe. Lockfile, `npm ci`, exact versions, SHA-256 of model and WASM files checked at build. CHANGED on 2026-11-09 (audit 3, A1-4, F4b, commit `903d2c9`): `blob:` is removed from `img-src` and from `media-src`. `data:` stays in `img-src`, because the empty favicon link of `index.html` (`href="data:,"`) needs it. `worker-src` keeps `blob:`, because the pose model may need it. Both CSP copies (`public/_headers` and the meta tag) changed. OLD TEXT, SUPERSEDED: `worker-src 'self' blob:; media-src 'self' blob:; img-src 'self' data: blob:`. The main browser suite (154 tests, run by the main session) passed with the new policy. A real host that reads `_headers` is NOT RUN (L5). | `npm audit --omit=dev` shows 0 high (0 vulnerabilities at the final run). Hash check passes. Playwright reads the headers and finds 0 CSP violations. `tests/config.test.ts` reads the headers and fails if `img-src` or `media-src` has `blob:` or if `blob:` appears outside `worker-src`. |
+| NFR6 Security | CSP and headers as in section 3.2. No `eval`. `wasm-unsafe-eval` only for MediaPipe. Lockfile, `npm ci`, exact versions, SHA-256 of model and WASM files checked at build. CHANGED on 2026-11-09 (audit 3, A1-4, F4b, commit `903d2c9`): `blob:` is removed from `img-src` and from `media-src`. `data:` stays in `img-src`, because the empty favicon link of `index.html` (`href="data:,"`) needs it. `worker-src` keeps `blob:`, because the pose model may need it. Both CSP copies (`public/_headers` and the meta tag) changed. OLD TEXT, SUPERSEDED: `worker-src 'self' blob:; media-src 'self' blob:; img-src 'self' data: blob:`. `npm run e2e` (154 tests across all its projects, run by the main session) passed with the new policy. The final audit also ran `app-flow` and `app-csp` (16 of 16) on the built app. A real host that reads `_headers` is NOT RUN (L5). | `npm audit --omit=dev` shows 0 high (0 vulnerabilities at the final run). Hash check passes. Playwright reads the headers and finds 0 CSP violations. `tests/config.test.ts` reads the headers and fails if `img-src` or `media-src` has `blob:` or if `blob:` appears outside `worker-src`. |
 | NFR7 Simplicity | Dependencies stay inside the allowed list in this plan. No state library. No backend. | `scripts/deps-check.sh` compares `package.json` with `scripts/allowed-deps.txt`. |
 | NFR8 Documentation | All docs follow the skill `simple-english`. | `ste-check.py` prints zeros on all docs. |
 | NFR9 Camera | Ask for video only (`audio:false`), only after a button press and a short explanation. Stop all tracks on session end, `visibilitychange`, `pagehide`, route change and error. Warn that other people in the frame are in the video. | Test: `readyState` is `ended` after each exit path. Permission denied shows error text and a retry button. No-device case shows its own text. |
@@ -627,6 +629,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Steps: map each requirement to a passing test. Check that each task used its skills. Then one Opus verdict (`OPUS-REASON: final-verdict`). Write `docs/final-audit.md`.
 - Result: PENDING. The file `docs/final-audit.md` does not exist.
 - Update, 2026-11-09: still PENDING. The file `docs/final-audit.md` does not exist. The Opus verdict has not run. The re-test of the fixes comes first. Skills used: none yet.
+- Update, 2026-11-09, later: the Opus verdict ran. See T38. The two lines above are the older record.
 
 ### T28. Seated hold follows the guidelines
 - Agent: main session and a general agent. Skills: `mpfl-clinical-guardrails`, `mpfl-rehab-knowledge`. Tech: TypeScript, Zod, Vitest. Depends on: T9b, T24. Requirements: FR2, FR8, FR9. Added 2026-11-09. The work is in commit `43f034f` (2026-11-08).
@@ -656,7 +659,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
   - The other-leg note needs 2 windows in a row (L1-08, `legIdentityClips.test.ts`).
 - Decided, not fixed: L2-04 (option C kept, section 11.4) and L4-01 (the SEO target is dropped, section 11.3). Also L4-03 and L4-04: the Worker is a decision of the user.
 - No test or commit message for them that I found (PENDING): L1-03, L1-07, L1-09, L2-05, L2-10, L3-02, L3-03, L3-05, L3-06, L3-07, L4-06, L4-07 and L4-09.
-- Tests: the main session reported a green precheck. It also reported 154 browser tests and 14 WebKit tests. The 18 pairing tests passed three times in a row. The unit count of that date (2,815 in 140 files) is an OLDER COUNT. The final counts are in `docs/test-results.md`. I did not re-run them.
+- Tests: the main session reported a green precheck. It also reported that `npm run e2e` has 154 tests across all its projects (130 in the `app` project, 14 in WebKit, 10 in older harness projects). The 18 pairing tests passed three times in a row. The unit count of that date (2,815 in 140 files) is an OLDER COUNT. The final counts are in `docs/test-results.md`. I did not re-run them.
 - Acceptance: each failed check re-runs and passes. NOT met yet. The re-test is PENDING. Another agent writes `docs/live-test/retest.md`. It is not finished and I did not read it.
 - Result: PARTIAL 2026-11-09. The code fixes are in the three commits. The re-run of each FAIL is PENDING. Skills used: not recorded in a report or in a commit message (gap).
 
@@ -699,7 +702,7 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Not fixed in this round: R2-05 (L2-05), R2-07 and R2-08.
 - Tests: the final counts are in `docs/test-results.md` (see the status block).
 - Acceptance: each check of T34 that failed re-runs and passes. NOT met: no live re-test of round 3 exists. `docs/test-results.md` says so.
-- Result: DONE with limits, 2026-11-09. The code fixes are in commit `ab171d3` with unit tests. The browser suite passed at the final tree (154 tests, run by the main session). No live re-run of the 195 px layout, of the Back button or of the capture layout exists. Skills used: not recorded in a report or in a commit message (gap).
+- Result: DONE with limits, 2026-11-09. The code fixes are in commit `ab171d3` with unit tests. `npm run e2e` passed at the final tree (154 tests across all its projects, run by the main session). No live re-run of the 195 px layout, of the Back button or of the capture layout exists. Skills used: not recorded in a report or in a commit message (gap).
 
 ### T36. Final audit (audit 3)
 - Agent: one independent agent, read-only. Skills: see the Result line. Depends on: T35. Source: `docs/audit-3.md`. Added 2026-11-09. The commit under audit is `ab171d3`.
@@ -724,9 +727,37 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
   - H2 (F4b), second part: `phase-check.sh` now fails on an alias of `acceptProposal`, `confirmByPerson` or `saveProtocol`. It fails on a string table name outside `storage/db.ts` and on a build of the text `activePhase` from parts. It fails on a quoted `activePhase` with a replace or a parse. Tests: `scripts.test.ts` and `importGraph.test.ts`. The second test reads the imports with the TypeScript parser. HONEST LIMIT: both scripts are pattern matches. A pattern match cannot prove a negative. No line matches the patterns. This does not prove that no other banned text or code path exists. `docs/test-results.md` and both script headers say so.
   - CSP (F4b, A1-4): `blob:` is removed from `img-src` and `media-src`. `data:` stays for the favicon. `blob:` stays in `worker-src`. Test: `config.test.ts`.
 - Not fixed in this round: M2 (a self-reported phase 2 clearance), M6 (the red-flag item) and M1 (the confirm step cannot prove a human acted). Also not fixed: M9 (a real phone layout), L1 (the fetch guard) and L11 to L13. The items L17 to L22 and the audit 2 items of section 11.5 stay open.
-- Tests: at the final tree the main session reported 2,978 tests in 147 files. It reported 154 browser tests, 14 WebKit tests and 18 pairing tests (3 runs of 3). The source is `docs/test-results.md`. I did not re-run them.
+- Tests: at the final tree the main session reported 2,978 tests in 147 files. It reported that `npm run e2e` has 154 tests across all its projects (130 in `app`, 14 in WebKit, 10 in older harness projects). It also reported that the pairing suite has 18 tests (3 runs of 3). The source is `docs/test-results.md`. I did not re-run them.
 - Acceptance: each fixed item has a test that fails without the fix. I did not run a mutation check of F4a and F4b. No independent re-audit exists (PENDING). The fixes have no live re-test.
-- Result: DONE with limits, 2026-11-09. The fixes are in commit `903d2c9` with unit and browser tests. `claims-check.sh` and `phase-check.sh` print ok on the final tree. This shows that no line matches their patterns, and nothing more. The verdicts of audit 3 were given before these fixes and nobody has re-judged them. Skills used: not recorded in a report or in a commit message (gap).
+- Result: DONE with limits, 2026-11-09. The fixes are in commit `903d2c9` with unit and browser tests. `claims-check.sh` and `phase-check.sh` print ok on the final tree. This shows that no line matches their patterns, and nothing more. The verdicts of audit 3 were given before these fixes. The final audit (T38) re-judged them: H1 is correct, H2 is improved and not fixed. Skills used: not recorded in a report or in a commit message (gap).
+
+### T38. Final verdict (Opus)
+- Agent: one Opus agent at high effort, read-only except for its report `docs/final-audit.md`. `OPUS-REASON: user-authorized`. The user asked for Opus at effort high. The words of the user are kept exactly, with the typos. They are dated 2026-11-08: "use opus with hight for that design agents and any investigstion you need to do". The main session read "any investigation" as covering the final judgment. If the user meant only the design work, this reading is wrong. Then correct it here. Depends on: T37. Commit under audit: `b00d2aa` (code of `903d2c9`). Added 2026-11-09. Source: `docs/final-audit.md`.
+- Steps: read the plan, `TASKS.md`, `docs/test-results.md`, audit 2, audit 3, the live-test reports, the design files and the research files. Read the code of F4a and F4b and try to break it. All scratch work ran under `/tmp/fa-judge/` and was removed.
+- Tests (its own checks): `npm run precheck` passed with 147 files and 2,978 tests, the same as `docs/test-results.md`. `app-flow` and `app-csp` passed 16 of 16 on the built app. Its own pain floor test (64 cases) passed, and it failed (15 of 64) when the floor was changed to 11. A search of every reducer path found no way to Setup or Session without the red-flag check. It also covered these paths: Back, reload, lazy error, companion, generator and ConfirmPlan. It ran no real phone, no goniometer, no person, no full e2e suite, no WebKit project and no pairing suite. It re-fetched two guideline PDFs.
+- Acceptance: a verdict for three uses and a list of defects. It also needs a check of earlier claims, a science check, a privacy check and an ordered next list.
+- Verdicts:
+  - (A) Supervised developer demo: YES. The presenter must say that no clinician approved any value. The presenter must also say that the guard scripts are only a pattern match.
+  - (B) Pilot with one real phone and a clinician watching: NOT YET. First run the real phone test and a live re-test of the round 3 and F4a fixes. The clinician must review the values. Use a protocol file that the clinician writes, with the generator off. Use a healthy volunteer until a regulatory expert says whether a patient pilot counts as a clinical investigation.
+  - (C) Any patient use: NO. Four blockers: the regulatory class, no clinician review, the camera error is not measured, and no real phone has run the app.
+- Defects found: the guard scripts and the import-graph test miss some cases (the exact count is in `docs/final-audit.md`, section 1.5 and 1.6). The top angle of the leg raise has no plausibility check. The rest panel shows a check-mark icon next to "Set N done". The header of `phase-check.sh` names a wrong test path. The quote of P1 at V34 has one wrong word. Fixes are in progress (F5a). No fix is verified yet.
+- What earlier reports overstated: the browser test count (corrected above), the H2 claim (improved, not fixed), and V34 marked EXACT.
+- Science check: 4 of 5 patient-visible numbers match their sources. The dose 2 sets of 10 is quoted correctly from P2 rec 26. It comes from a group aged 8 to 25. It goes against the citation audit rule that a dose must be set by a clinician. This is the option C choice of the user, and it is recorded. The heel slide values 18 and 9 degrees rest on a margin from still photos, and the screen labels them as app values. The pain floor 7 has no source.
+- Privacy check: the code and the tests support the claim that no frame or video leaves the device and none is stored (Chromium only). Three things can still break it: new code that the scripts do not ban, a real network, and a host that ignores `_headers`.
+- Next list, in order:
+  1. Correct the record.
+  2. Close the cheap gate gaps.
+  3. Apply the plausibility rule to the top angle, or mark it.
+  4. Live re-test of round 3 and F4a.
+  5. Real phone test on the Redmi A3.
+  6. Measure the `lite` error against a goniometer.
+  7. Clinician review.
+  8. Ask a regulatory expert.
+  9. Build the patient-mode bundle with the clinician file and the generator closed.
+  10. Run pilot B with a healthy volunteer first.
+  11. One cleanup commit for L17 to L22.
+  12. Before any patient use: signed protocol files, a DPIA, a consent flow and ethics approval.
+- Result: DONE, 2026-11-09. The verdicts are above. Skills used: as named in the report, `owasp-security`, `anti-slop-code:anti-slop-code` and `simple-english:simple-english`. The report says that the guardrails skill was read with Read.
 
 ## 7. Completion criteria
 
@@ -764,12 +795,12 @@ Update on 2026-11-08, evening (after commit `d2012c1`). The old lines above stay
 - Criterion 8: the table of section 8 now has rows for FR30 to FR37, NFR11 and NFR12. FR30 to FR35 have no test, because they are not built.
 - Criterion 9: unmet. The fixes for the three HIGH findings of audit 2 have no independent re-review (T19).
 - New unmet criteria: the citation audit of the knowledge base (NFR11, T22) and the frame rate of the Redmi A3 (NFR4). Also a pairing test on a real phone (FR25) and the protocol generator with live checks (FR30 to FR35, T23, T24). Also a clinician review of every value, cue and rule, and the regulatory ruling on the class (section 11).
-- Section 10, the final audit and the Opus verdict: pending (T27).
+- Section 10, the final audit and the Opus verdict: pending (T27). Superseded: the verdict ran (T38).
 
 Update on 2026-11-09 (after commit `939d096`). The old lines above stay as the record. Counts come from the main session and I did not re-run them. Each criterion has one state: met, partly met or unmet.
 
 - Criterion 1 (type check, lint, unit tests, build): met, as reported. The precheck ran 2,815 unit tests in 140 files (OLDER COUNT). The final run has 2,978 tests in 147 files (see the update after commit `903d2c9` below).
-- Criterion 2 (`npm run e2e`, Chromium and WebKit smoke): partly met. Reported: 154 tests in the main browser suite and 14 in the WebKit project. The pairing suite (18 tests) is outside `npm run e2e` and passed three times in a row. No document that I read names a skipped test, so the skip count is PENDING. The WebKit camera is stubbed, so iOS Safari stays UNVERIFIED.
+- Criterion 2 (`npm run e2e`, Chromium and WebKit smoke): partly met. Reported: `npm run e2e` has 154 tests across all its projects (130 in `app`, 14 in WebKit, 10 in older harness projects). The pairing suite (18 tests) is outside `npm run e2e` and passed three times in a row. No document that I read names a skipped test, so the skip count is PENDING. The WebKit camera is stubbed, so iOS Safari stays UNVERIFIED.
 - Criterion 3 (`claims-check.sh`, `deps-check.sh`): met, as reported by the precheck. The claims check now also bans frame drawing outside the QR reader.
 - Criterion 4 (`npm audit --omit=dev` shows 0 high, model hash check): partly met. The hash check is in the precheck. `npm audit` ran at T14 (0 vulnerabilities) and has no later record (PENDING).
 - Criterion 5 (axe 0 serious or critical, Lighthouse accessibility 95 or more): partly met. Met at commit `b451206`: axe found 0 violations on 37 screens, and Lighthouse accessibility was 100 in 18 runs. Not re-run on `939d096`. A plan screen got no Lighthouse run. SEO is no longer a target (section 11.3).
@@ -782,15 +813,17 @@ Update on 2026-11-09 (after commit `939d096`). The old lines above stay as the r
 Update on 2026-11-09 (after commit `903d2c9`). The old lines above stay as the record. Counts come from `docs/test-results.md` (run by the main session, not re-run by me). Each criterion has one state.
 
 - Criterion 1 (type check, lint, unit tests, build): met, as reported. The precheck passed with 2,978 tests in 147 files.
-- Criterion 2 (`npm run e2e`, Chromium and WebKit smoke): partly met. Reported: 154 tests in the main browser suite and 14 in the WebKit project, both passed. The pairing suite (18 tests) passed 3 runs of 3. A skipped test is not named in `docs/test-results.md` (skip count PENDING). The WebKit camera is stubbed, so iOS Safari stays UNVERIFIED.
+- Criterion 2 (`npm run e2e`, Chromium and WebKit smoke): partly met. Reported: `npm run e2e` has 154 tests across all its projects (130 in `app`, 14 in WebKit, 10 in older harness projects), and all passed. The pairing suite (18 tests) passed 3 runs of 3. A skipped test is not named in `docs/test-results.md` (skip count PENDING). The WebKit camera is stubbed, so iOS Safari stays UNVERIFIED.
 - Criterion 3 (`claims-check.sh`, `deps-check.sh`): met as a pattern check. Both print ok. A pattern match cannot prove that no other banned text exists (audit 3 H2, F4b).
 - Criterion 4 (`npm audit --omit=dev`, model hash check): met at the final run. `npm audit` showed 0 vulnerabilities and the hash check passed (`docs/test-results.md`). Audit 3 also ran `npm audit` (0 vulnerabilities).
 - Criterion 5 (axe 0 serious or critical, Lighthouse accessibility 95 or more): partly met. Lighthouse accessibility was 100 in 12 runs on Load and Home at commit `939d096` (`retest.md`). axe at 390 px and 320 px had 0 violations in round 2. At 195 px the layout failed in round 2, and the round 3 fix has no browser re-run. A plan screen got no Lighthouse run.
 - Criterion 6 (`ste-check.py` prints zeros on all docs): partly met. The files of this revision print zeros. The older note about `docs/live-test/exercise-flows.md` and `research/github-features.md` is not re-checked here.
 - Criterion 7 (`docs/accuracy.md` and `docs/clinical-limits.md` exist): met. `docs/accuracy.md` now holds the measured laptop frame rate, with caveats, and no goniometer number.
 - Criterion 8 (the traceability table): partly met. The table "State on 2026-11-09 (after commit `903d2c9`)" in section 8 maps each changed requirement.
-- Criterion 9 (0 open high findings): partly met. The two HIGH findings of audit 3 (H1, H2) are fixed in code and have unit tests. No independent re-audit confirmed them. H2 is fixed as a better pattern match with an honest limit, and not as a proof. The open MEDIUM findings are listed in section 11.5.
-- Also unmet: NFR3 (no goniometer data), NFR4 on a phone, the clinician review and the regulatory ruling. The real phone test and the final audit with the Opus verdict (T27, PENDING) are also unmet.
+- Criterion 9 (0 open high findings): partly met. The two HIGH findings of audit 3 (H1, H2) have code changes and unit tests. The final audit (T38) confirmed H1. It found H2 improved, not fixed: a pattern match cannot prove a negative. The open MEDIUM findings are listed in section 11.5.
+- Also unmet: NFR3 (no goniometer data), NFR4 on a phone, the clinician review and the regulatory ruling. The real phone test is also unmet. The final audit with the Opus verdict is DONE (T38): demo YES, pilot NOT YET, any patient use NO.
+
+Update on 2026-11-09 (final audit, commit `b00d2aa`, `docs/final-audit.md`). The final audit ran the precheck (147 files, 2,978 tests) and `app-flow` and `app-csp` (16 of 16). Corrections to the lines above: `npm run e2e` has 154 tests across all its projects (130 in `app`, 14 in WebKit, 10 in older harness projects). Criterion 3 stays met as a pattern check only: the audit found missed cases (count in the audit). Criterion 9 stays partly met: H1 is confirmed, and H2 is improved, not fixed.
 
 ## 8. Verification evidence
 
@@ -919,6 +952,15 @@ State on 2026-11-09 (after commit `903d2c9`). This table lists only the rows tha
 | NFR6 | `public/_headers`, `index.html` | `config.test.ts`, `e2e/app-csp.spec.ts`, `e2e/headers.spec.ts` | Partly met. `blob:` removed from `img-src` and `media-src`. The headers of a real host are NOT RUN (L5) |
 | NFR13 | `tests/ui/bundleSize.test.ts` | the same file. Round 2 measured 172,551 bytes gzip | Met by the test (limit 185,000 bytes). Two figures exist: 172,551 (round 2, gzip level 9) and 172,736 (the test comment). The difference is not explained |
 
+Evidence of the final audit (2026-11-09, `docs/final-audit.md`, task T38, commit `b00d2aa`). This block quotes the audit and adds no new claim.
+- Precheck, run by the audit: 147 files and 2,978 tests passed, the same as `docs/test-results.md`. The five check scripts printed ok.
+- Browser: `app-flow` and `app-csp` passed 16 of 16. Every screen had 0 CSP violations, 0 console errors and 0 foreign requests. No stored session held image data.
+- Pain floor (FR12): the audit test of 64 cases passed. With the floor changed to 11, 15 of the cases failed, so the test can fail.
+- Red-flag gate (FR1 and related): a search of every reducer path found no way to Setup or Session without the check. It also covered the Back, reload, lazy error, companion, generator and ConfirmPlan paths.
+- Guard scripts (FR4, FR6): the five cases of audit 3 are caught. Some new cases are missed (count in the audit). The claims check does not ban `captureStream` or `VideoFrame`, so the FR6 claim is not enforced by the precheck for those names.
+- Honesty check: the audit checked 10 claims. The browser test count was wrong. The H2 claim was overstated. The V34 quote had one wrong word ("more", not "most"). The rest were true.
+- Not run by the audit: a real phone, a goniometer, a person, the full e2e suite, WebKit and pairing.
+
 ## 9. Independent plan review
 
 Three read-only agents reviewed revision 1: Security Engineer (clinical safety, regulatory, privacy), Software Architect (technology, KISS) and Code Reviewer (requirements, tests). They reported 36 findings. Result: 33 accepted, 2 partly accepted and 1 rejected.
@@ -982,6 +1024,8 @@ Update 2026-11-08: still pending. The file `docs/final-audit.md` does not exist 
 Update 2026-11-09: still pending. The file `docs/final-audit.md` does not exist. The re-test of the fixes (`docs/live-test/retest.md`) comes before the audit.
 
 Update 2026-11-09, after commit `903d2c9`: an independent audit ran (`docs/audit-3.md`, T36). It is an audit by one agent. It is not the Opus final verdict. The Opus verdict (`OPUS-REASON: final-verdict`) is PENDING, and the file `docs/final-audit.md` does not exist. Verdicts of audit 3 for the tree `ab171d3`: a supervised developer demo yes. A pilot with one real phone and a clinician watching not yet. Any patient use no. The fixes of T37 have no independent re-audit.
+
+Update 2026-11-09, final verdict (T38, `docs/final-audit.md`, Opus at high effort, `OPUS-REASON: user-authorized`, commit `b00d2aa`). The Opus verdict ran. (A) A supervised developer demo: YES. (B) A pilot with one real phone and a clinician watching: NOT YET. (C) Any patient use: NO. The older lines above are the record and are superseded. The full record is in T38.
 
 ## 11. Blockers, limits and open items
 
@@ -1155,3 +1199,29 @@ Rank 4. Findings of audit 2 that are still NOT closed. The reason of each line i
 - Also open from audit 3: M9 (Session layout on a real phone, UNVERIFIED) and L5 (the dev build has the meta CSP only). Also L11 ("Why this plan" is one page of 12,491 px at 390 px width). Also L12 (Back can leave the app at a root screen).
 
 Closed by T37: A1-3, A1-4 (the `blob:` change), A1-6, A2-5, A2-8 and A2-3 for the sound. A1-7 is closed in part (a longer pattern list, with the honest limit of FR4). Each fix has unit tests and no live re-test.
+
+### 11.6 Decisions from the final audit (2026-11-09, `docs/final-audit.md` section 8, commit `b00d2aa`)
+
+The table of the audit is copied here. Nobody has decided these items. The ranks are the ranks of the audit, inside each owner.
+
+User.
+1. For the pilot, use a protocol file that a clinician writes and switch the generator off. The audit recommends yes.
+2. Keep the generator with the dose 2 x 10 (option C), or limit it to a demo.
+3. Make the guards structural, or accept the pattern match with its limit. Structural means an ESLint import rule for each folder and one write module for the protocol table.
+4. The Worker for the pose loop, after the phone test.
+5. Keep the front view, the body map and the pairing code.
+
+Clinician.
+1. Every value that a patient sees. These are: pain floor 7, dose 2 x 10, week 7, review weeks 6 and 12, margin 9. Also count start 18, return 9, plausibility 30 and beep repeat 5 s.
+2. The red-flag items and groups, and "or it is not getting better" (M6).
+3. The cue texts, the hand count, the set texts and the check-mark icon.
+4. A heel slide in phase 1 with a surgeon number, against P1 "heel slides once KF >120".
+
+Regulatory expert.
+1. The intended purpose and the class (MDR Rule 11 and Rule 22), with and without the generator.
+2. Whether a pilot with a patient is a clinical investigation that needs approval.
+3. Signed protocol files in place of an unsigned `approvedOn`.
+4. GDPR: the surgery date, the export file, a shared device and a DPIA.
+5. The MediaPipe model card, which says the model is not for life-critical decisions.
+
+Item 2 of the user list is already the user option C choice. The audit says that the dose breaks the citation audit rule that a dose must be set by a clinician.

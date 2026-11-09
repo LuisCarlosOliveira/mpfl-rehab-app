@@ -6,7 +6,7 @@ This app is a prototype. It counts reps and estimates knee angle from a webcam, 
 
 The plan has the full task list: [MPFL_APP_PLAN.md](MPFL_APP_PLAN.md) section 6. The status block of 2026-11-09 at the top of the plan is the reference. This table is a short copy of it.
 
-The final test counts come from [docs/test-results.md](docs/test-results.md). The main session ran them on commit `903d2c9`. They were not re-run for this file. `npm run precheck` passed with 2,978 tests in 147 files. The main browser suite has 154 tests and the WebKit project has 14. The pairing browser suite has 18 tests and passed 3 runs out of 3. `npx vitest list` shows fewer tests, because tests that a loop generates are not all listed.
+The final test counts come from [docs/test-results.md](docs/test-results.md). The main session ran them on commit `903d2c9`. They were not re-run for this file. `npm run precheck` passed with 2,978 tests in 147 files. `npm run e2e` has 154 tests across all its projects (130 in the `app` project, 14 in WebKit, 10 in older harness projects). The pairing suite has 18 tests, run three times. The earlier text counted the WebKit tests twice (corrected, see [docs/final-audit.md](docs/final-audit.md)). `npx vitest list` shows fewer tests, because tests that a loop generates are not all listed.
 
 | Area | Status |
 |---|---|
@@ -24,7 +24,8 @@ The final test counts come from [docs/test-results.md](docs/test-results.md). Th
 | Accuracy record | Tooling built. `docs/accuracy.md` holds a clip smoke section and no goniometer number |
 | Security review | Written ([docs/security-review.md](docs/security-review.md)). The fix list is in [docs/audit-2.md](docs/audit-2.md) |
 | Live test | Round 1: four testers on commit b451206. Round 2 ([retest](docs/live-test/retest.md), commit 939d096, one tester): 18 of 22 fixes verified, 3 failed, 1 partly. Round 3 and the audit 3 fixes have no live re-test |
-| Audit 3 | [docs/audit-3.md](docs/audit-3.md): 2 HIGH, 9 MEDIUM, 16 LOW on commit ab171d3. Verdicts: a supervised developer demo yes, a pilot with a real phone and a clinician watching not yet, any patient use no. Commit 903d2c9 fixed H1, H2, M3, M4, M5 and M8. No independent re-audit exists |
+| Audit 3 | [docs/audit-3.md](docs/audit-3.md): 2 HIGH, 9 MEDIUM, 16 LOW on commit ab171d3. Verdicts: a supervised developer demo yes, a pilot with a real phone and a clinician watching not yet, any patient use no. Commit 903d2c9 fixed H1, M3, M4 and M5, and fixed M8 for the peak only. H2 (the guard scripts) is improved, not fixed: a pattern match cannot prove a negative. The final audit by Opus (below) is the re-audit |
+| Final audit (Opus) | [docs/final-audit.md](docs/final-audit.md): commit b00d2aa. A supervised developer demo: YES. A pilot with one real phone and a clinician watching: NOT YET. Any patient use: NO (four blockers: the regulatory class, no clinician review, the camera error is not measured, no real phone has run the app). It corrects earlier text: the browser test count, the H2 claim and the V34 quote. The record is in plan task T38 |
 
 ## What is NOT done
 
@@ -37,7 +38,8 @@ The final test counts come from [docs/test-results.md](docs/test-results.md). Th
 - Patient release: the flag `PATIENT_USE_APPROVED` is off.
 - iOS Safari camera: UNVERIFIED. The WebKit tests stub the camera.
 - Live re-test of round 3 and of the audit 3 fixes: NOT RUN.
-- Opus final verdict (`docs/final-audit.md`): PENDING. The file does not exist.
+- Live re-test of round 3 and of the F4a fixes on the built app: PENDING (the final audit asks for it before any pilot).
+- Opus final verdict (`docs/final-audit.md`): DONE on commit b00d2aa. Supervised developer demo YES, pilot NOT YET, any patient use NO.
 - Open items after audit 3 (a self-reported phase 2 clearance, the red-flag item "not getting better", a hand-added `approvedOn`): [plan section 11.5](MPFL_APP_PLAN.md).
 
 ## Install, run, build and test

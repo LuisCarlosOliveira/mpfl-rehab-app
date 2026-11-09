@@ -14,6 +14,8 @@ const realSrc = resolve(here, '../src');
 const GUARDED: Record<string, { definedIn: string; allowed: string[] }> = {
   saveProtocol: { definedIn: 'lib/storage/db.ts', allowed: ['lib/protocol/accept.ts', 'lib/storage/index.ts', 'ui/LoadProtocol.tsx'] },
   acceptProposal: { definedIn: 'lib/protocol/accept.ts', allowed: ['ui/ConfirmPlan.tsx'] },
+  // F5a: the person confirmation. accept.ts defines it and only the confirm screen may use it.
+  confirmByPerson: { definedIn: 'lib/protocol/accept.ts', allowed: ['ui/ConfirmPlan.tsx'] },
 };
 
 function listFiles(dir: string): string[] {
@@ -38,7 +40,9 @@ function linksOf(root: string, file: string): Link[] {
   const target = (spec: string): string | null => {
     if (!spec.startsWith('.')) return null;
     const base = resolve(dirname(file), spec);
-    const hit = [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((c) => /\.tsx?$/.test(c) && existsSync(c) && statSync(c).isFile());
+    // F5a: a specifier that ends in .js names the .ts or .tsx file (the way of a Node ESM build), so the graph follows it too.
+    const bare = base.replace(/\.(js|mjs|cjs)$/, '');
+    const hit = [base, `${base}.ts`, `${base}.tsx`, `${bare}.ts`, `${bare}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((c) => /\.tsx?$/.test(c) && existsSync(c) && statSync(c).isFile());
     return hit ? relative(root, hit) : null;
   };
   const add = (spec: ts.Expression | undefined, names: string[] | 'all', reexport: boolean) => {
@@ -79,6 +83,32 @@ function importersOf(root: string, name: string): string[] {
   return [...new Set(links.filter(shows).map((l) => l.from))].sort();
 }
 
+/**
+ * F5a: every file that names a guarded identifier in code, whatever the form: a call, a value kept in a variable, a property
+ * after a namespace or a dynamic import, or a quoted member name. Comments are not code, so they do not count.
+ * HONEST LIMIT: a name that a program builds from parts at run time ('save' + 'Protocol') has no such token. The parser cannot see it.
+ */
+function referencesOf(root: string, name: string): string[] {
+  const out = new Set<string>();
+  for (const file of listFiles(root)) {
+    const kind = file.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+    const visit = (n: ts.Node) => {
+      if ((ts.isIdentifier(n) || ts.isStringLiteralLike(n) || ts.isPrivateIdentifier(n)) && n.text === name) out.add(relative(root, file));
+      ts.forEachChild(n, visit);
+    };
+    visit(source);
+  }
+  return [...out].sort();
+}
+
+/** Files that import or name the guarded identifier and are neither the defining file nor on the allowed list. */
+function violationsOf(root: string, name: string): string[] {
+  const g = GUARDED[name]!;
+  const ok = new Set([g.definedIn, ...g.allowed]);
+  return [...new Set([...importersOf(root, name), ...referencesOf(root, name)])].filter((f) => !ok.has(f)).sort();
+}
+
 describe('import graph of src (F4b)', () => {
   it('reads every module under src', () => {
     const files = listFiles(realSrc);
@@ -88,6 +118,16 @@ describe('import graph of src (F4b)', () => {
 
   it.each(Object.keys(GUARDED))('lets only the allowed files import %s', (name) => {
     expect(importersOf(realSrc, name)).toEqual(GUARDED[name]!.allowed);
+  });
+
+  it.each(Object.keys(GUARDED))('names %s in no file outside the defining file and the allowed files (F5a)', (name) => {
+    expect(violationsOf(realSrc, name)).toEqual([]);
+  });
+
+  it('guards confirmByPerson with the confirm screen as the only importer (F5a)', () => {
+    expect(GUARDED.confirmByPerson).toEqual({ definedIn: 'lib/protocol/accept.ts', allowed: ['ui/ConfirmPlan.tsx'] });
+    expect(readFileSync(join(realSrc, GUARDED.confirmByPerson!.definedIn), 'utf8')).toMatch(/export function confirmByPerson/);
+    expect(importersOf(realSrc, 'confirmByPerson')).toEqual(['ui/ConfirmPlan.tsx']);
   });
 
   it('defines saveProtocol in storage/db.ts and imports it in accept.ts', () => {
@@ -131,6 +171,51 @@ describe('import graph of src (F4b)', () => {
     it('finds no new importer when a file imports another name', () => {
       put('ui/Ok.tsx', "import { createDb } from '../lib/storage';");
       expect(importersOf(dir, 'saveProtocol')).toEqual(['lib/protocol/accept.ts', 'lib/storage/index.ts']);
+    });
+
+    it.each([
+      ['a .js specifier', "import { saveProtocol } from '../lib/storage/db.js';"],
+      ['a .js specifier of a namespace import', "import * as st from '../lib/storage/db.js';"],
+      ['a .js specifier of a re-export', "export { saveProtocol as go } from '../lib/storage/db.js';"],
+      ['a .js specifier with a dynamic import', "const m = await import('../lib/storage/db.js');"],
+    ])('finds %s (F5a)', (_n, text) => {
+      put('ui/New.tsx', text);
+      expect(importersOf(dir, 'saveProtocol')).toContain('ui/New.tsx');
+    });
+
+    it('finds a .js specifier of the confirmation function (F5a)', () => {
+      put('lib/protocol/accept.ts', "import { saveProtocol } from '../storage/db';\nexport function confirmByPerson() {}\nexport async function acceptProposal() { await saveProtocol(); }");
+      put('ui/New.tsx', "import { confirmByPerson } from '../lib/protocol/accept.js';");
+      expect(importersOf(dir, 'confirmByPerson')).toEqual(['ui/New.tsx']);
+      expect(violationsOf(dir, 'confirmByPerson')).toEqual(['ui/New.tsx']);
+    });
+
+    it('lets the confirm screen use the confirmation function (F5a)', () => {
+      put('lib/protocol/accept.ts', 'export function confirmByPerson() {}');
+      put('ui/ConfirmPlan.tsx', "import { confirmByPerson } from '../lib/protocol/accept';\nconst c = confirmByPerson();");
+      expect(violationsOf(dir, 'confirmByPerson')).toEqual([]);
+    });
+
+    it.each([
+      ['a value kept in a variable', "import { saveProtocol } from '../lib/storage/db';\nconst f = saveProtocol;\nf();"],
+      ['a property of a namespace', "import * as st from '../lib/storage/db';\nst.saveProtocol(1);"],
+      ['a quoted member name', "import * as st from '../lib/storage/db';\nst['saveProtocol'](1);"],
+      ['a property of a dynamic import with no static link', "const m = await import(path);\nm.saveProtocol(1);"],
+      ['an object that holds the function', "const o = { run: saveProtocol };"],
+    ])('names the guarded identifier in a file that is not allowed: %s (F5a)', (_n, text) => {
+      put('ui/Rebound.ts', text);
+      expect(violationsOf(dir, 'saveProtocol')).toContain('ui/Rebound.ts');
+    });
+
+    it('does not count a comment or a different name (F5a)', () => {
+      put('ui/Clean.ts', '// saveProtocol is named here only in a comment\nconst saveProtocolLater = 1;');
+      expect(violationsOf(dir, 'saveProtocol')).toEqual([]);
+    });
+
+    it('fails on the file of the final audit: a .js namespace import and a split call (F5a)', () => {
+      put('ui/JudgeBypass.ts', "import * as st from '../lib/storage/db.js';\nexport async function go() {\n  await st.saveProtocol\n  (1, 'x', 'demo');\n}\n");
+      expect(importersOf(dir, 'saveProtocol')).toContain('ui/JudgeBypass.ts');
+      expect(violationsOf(dir, 'saveProtocol')).toEqual(['ui/JudgeBypass.ts']);
     });
   });
 });

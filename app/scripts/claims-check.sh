@@ -19,7 +19,7 @@ for p in "${paths[@]}"; do
 done
 
 phrases='clinically (validated|proven)|medically accurate|goal (reached|achieved|met)|milestone|you (passed|failed)|cleared to (run|jump|progress|return)|ready to progress|(correct|incorrect|good|bad|perfect) form|\bLSI\b'
-apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\('
+apis='MediaRecorder|toBlob|toDataURL|ImageCapture|createImageBitmap|OffscreenCanvas|navigator\.share|sendBeacon|WebSocket|dangerouslySetInnerHTML|\beval\(|captureStream|\bVideoFrame\b|MediaStreamTrackProcessor|MediaStreamTrackGenerator'
 
 hits=0
 for pattern in "$phrases" "$apis"; do
@@ -72,20 +72,28 @@ done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.html' -e 'd
 # onboarding.ts and setupView.ts, which hold patient text too. Those five files have code names such as
 # Grade and comments with the word goal, so the older verdict list does not apply to them.
 words='correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone'
-praise='great|nice|well done|excellent|awesome|congratulations|success|successful|improve|improving|improved|worse|worsening|healing|recovered|recovery'
+praise='great|nice|well done|well-done|excellent|awesome|congratulations|success|successful|improve|improving|improved|worse|worsening|healing|recovered|recovery|proud|fantastic|amazing|brilliant|superb|impressive|keep it up|you did it|way to go|healed'
 # The file list is read with NUL separators, so a path with a space stays one word.
-found=$(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) \( -path '*/ui/*' -o -name 'cues.ts' -o -name 'redflags.ts' -o -name 'camera.ts' \) -print0 2>/dev/null \
-  | xargs -0 -r grep -HniwE -e "$words|$praise" -e 'risk of injury' 2>/dev/null | grep -v 'claims-check:allow' || true)
-if [ -n "$found" ]; then
-  echo "$found"
-  hits=1
-fi
-found=$(find "${paths[@]}" -type f \( -name 'sets.ts' -o -name 'guides.ts' -o -name 'planView.ts' -o -name 'onboarding.ts' -o -name 'setupView.ts' \) -print0 2>/dev/null \
-  | xargs -0 -r grep -HniwE -e "$praise" 2>/dev/null | grep -v 'claims-check:allow' || true)
-if [ -n "$found" ]; then
-  echo "$found"
-  hits=1
-fi
+# F5a: each file is read two ways. First as it is. Second with every string that is built from two quoted parts
+# ('Well ' + 'done') or from the parts of a join('') joined into one text. A quoted fragment that a variable joins stays unseen.
+# A line that ends with the allow marker is left out in both reads.
+patient_scan() {
+  local re="$1" f out
+  while IFS= read -r -d '' f; do
+    out=$(grep -HniwE -e "$re" -e 'risk of injury' "$f" 2>/dev/null | grep -v 'claims-check:allow' || true)
+    [ -n "$out" ] && { echo "$out"; hits=1; }
+    out=$(grep -v 'claims-check:allow' "$f" | tr '\n' ' ' | sed -E "s/['\"\`][[:space:]]*\+[[:space:]]*['\"\`]//g; s/\\$\{[^}]*\}//g" \
+      | { if grep -qE "join\(['\"\`]{2}\)" "$f"; then sed -E "s/['\"\`][[:space:]]*,[[:space:]]*['\"\`]//g"; else cat; fi; } \
+      | grep -oiwE -e "$re" | head -n 1 || true)
+    [ -n "$out" ] && { echo "$f: joined text holds the word: $out"; hits=1; }
+  done
+  return 0
+}
+patient_scan "$words|$praise" < <(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) \( -path '*/ui/*' -o -name 'cues.ts' -o -name 'redflags.ts' -o -name 'camera.ts' \) -print0 2>/dev/null)
+# These lib files hold patient text too. The praise words apply. The verdict list does not, because they hold code names such as
+# Grade and comments with the word goal. protocolGen/sources.ts and rules.ts are not in the list: they quote clinical sources.
+patient_scan "$praise" < <(find "${paths[@]}" -type f \( -name 'sets.ts' -o -name 'guides.ts' -o -name 'planView.ts' -o -name 'onboarding.ts' -o -name 'setupView.ts' \
+  -o -name 'setupRules.ts' -o -name 'figure.ts' -o -name 'reviewSummary.ts' -o -name 'contactCard.ts' -o -name 'askSurgeon.ts' \) -print0 2>/dev/null)
 
 # F4b: no colour in a screen file. A colour comes from the style sheet only (tests/ui/styles.test.ts checks its tokens).
 # Banned in every .tsx file: a style attribute, a colour function, a hex colour and a colour name in a string.
@@ -103,6 +111,37 @@ fi
 found=$(find "${paths[@]}" -type f \( -name '*.ts' -o -name '*.tsx' \) -path '*/ui/*' -print0 2>/dev/null \
   | xargs -0 -r grep -HniE -e '\.style\b' -e 'cssText' -e "setAttribute[[:space:]]*\([[:space:]]*['\"\`]style" 2>/dev/null \
   | grep -v 'claims-check:allow' || true)
+if [ -n "$found" ]; then
+  echo "$found"
+  hits=1
+fi
+
+# F5a: no colour in a lib .ts file. A colour name or a literal colour value in a quoted string, or a colour property with a quoted
+# value that is not a CSS variable, could reach a screen through a spread. figure.ts is included: it must use CSS variable names only.
+# A colour in a .css file is allowed, except as a literal fallback in var(): it would show when the token is missing.
+found=$(find "${paths[@]}" -type f -name '*.ts' -path '*/lib/*' -print0 2>/dev/null \
+  | xargs -0 -r grep -HniE -e '(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|hwb)[[:space:]]*\(' \
+      -e "#[0-9a-fA-F]{3,8}([^[:alnum:]_-]|$)" -e "['\"\`]($names)['\"\`]" \
+      -e "(color|background|backgroundColor|fill|stroke|borderColor|outline)['\"\`]?[[:space:]]*:[[:space:]]*['\"\`][^'\"\`]" 2>/dev/null \
+  | grep -vE "(color|background|backgroundColor|fill|stroke|borderColor|outline)['\"\`]?[[:space:]]*:[[:space:]]*['\"\`](var\(--|currentColor|none|transparent|inherit)" \
+  | grep -v 'claims-check:allow' || true)
+if [ -n "$found" ]; then
+  echo "$found"
+  hits=1
+fi
+colour_value="#[0-9a-fA-F]{3,8}([^[:alnum:]_-]|$)|(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|hwb)[[:space:]]*\\(|($names)([^[:alnum:]_-]|$)"
+found=$(find "${paths[@]}" -type f \( -name '*.css' -o -name '*.ts' -o -name '*.tsx' \) -print0 2>/dev/null \
+  | xargs -0 -r grep -HniE "var\([[:space:]]*--[[:alnum:]_-]+[[:space:]]*,[[:space:]]*($colour_value)" 2>/dev/null \
+  | grep -v 'claims-check:allow' || true)
+if [ -n "$found" ]; then
+  echo "$found"
+  hits=1
+fi
+
+# F5a: a STUN or TURN server, and an ICE server list that is not empty. The data channel needs none (pairing/rtcLink.ts uses
+# iceServers: []). Only the exact empty list passes. A list that a variable fills is flagged too.
+found=$(grep -rniE --include='*.ts' --include='*.tsx' -e "['\"\`](stuns?|turns?):" -e 'iceServers' "${paths[@]}" 2>/dev/null \
+  | grep -vE 'iceServers[[:space:]]*:[[:space:]]*\[[[:space:]]*\]' | grep -v 'claims-check:allow' || true)
 if [ -n "$found" ]; then
   echo "$found"
   hits=1

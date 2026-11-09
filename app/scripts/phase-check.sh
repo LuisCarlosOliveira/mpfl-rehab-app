@@ -13,8 +13,12 @@
 # F4b: also fails on an alias of acceptProposal, confirmByPerson or saveProtocol (import as, a destructure rename or a quoted member
 # name), a string table name (.table( or ['protocol']) outside storage/db.ts, a build of the text activePhase from string parts, and the
 # quoted text activePhase or a replace or JSON.parse line with activePhase outside src/lib/protocol/ and protocolGen/generate.ts.
+# F5a: also fails on a key built with fromCharCode, a table kept in a variable (const t = db.protocol), a destructured or bare
+# protocol table (const { protocol } = db, protocol.put(), only in a file that is not storage/db.ts), db.tables, a raw indexedDB or
+# Dexie use outside storage/db.ts, and a call that is split over two lines (acceptProposal, confirmByPerson, saveProtocol, and a
+# table method after a line break). The split call is found by joining each file into one line before the match.
 # HONEST LIMIT: this is a pattern match. No line of the source matches the patterns of this script. The check cannot prove that no
-# other code path exists. Runtime tests cover the real save path (tests/protocolAccept.test.ts and tests/ui/importGraph.test.ts).
+# other code path exists. Runtime tests cover the real save path (tests/protocolAccept.test.ts and tests/importGraph.test.ts).
 # Usage: phase-check.sh [folder]   (default: the src folder of the app)
 # A path that does not exist is an error (exit 2).
 set -u
@@ -78,6 +82,31 @@ for f in $save_files; do
     *) add "$f: saveProtocol is called outside the allowed files. Use acceptProposal for a generated protocol." ;;
   esac
 done
+
+# F5a: more save paths. A text pattern on one line of source.
+not_db='/lib/storage/db\.ts:[0-9]+:'
+add "$(scan -e 'fromCharCode' | grep -Ev '/lib/pairing/payload\.ts:[0-9]+:')"
+# A table kept in a variable or passed as a value: x.protocol followed by the end of a statement or an argument list.
+add "$(scan -e '(=|\(|,|return)[[:space:]]*([[:alnum:]_?!]+\.)*([[:alnum:]_]*[dD][bB]|store|dexie)\.protocol[[:space:]]*($|[;,)])' | grep -Ev "$not_db")"
+# A destructured protocol table, a destructured parameter and a bare write to a table named protocol.
+add "$(scan -e 'const[[:space:]]*\{[^}]*(^|[^[:alnum:]_])protocol[^}]*\}[[:space:]]*=[[:space:]]*([[:alnum:]_]+\.)*([[:alnum:]_]*[dD][bB]|store|dexie)[[:space:]]*(;|$)' \
+  -e '(^|[^.[:alnum:]_])protocol\.(put|add|update|bulkPut|bulkAdd|set|delete|clear)[[:space:]]*\(' | grep -Ev "$not_db")"
+add "$(scan -e '\.tables([^[:alnum:]_]|$)' | grep -Ev "$not_db")"
+add "$(scan -e 'indexedDB' -e 'new[[:space:]]+Dexie' -e "from[[:space:]]+['\"]dexie['\"]" -e "require\([[:space:]]*['\"]dexie['\"]" | grep -Ev "$not_db")"
+
+# F5a: a call that is split over two lines. Each file is read as one line, so a line break before ( or . does not hide the call.
+# The path list uses NUL separators. A file is named once for each rule that it breaks.
+joined_scan() {
+  local re="$1" msg="$2" skip="$3" f
+  while IFS= read -r -d '' f; do
+    if [ -n "$skip" ] && printf '%s' "$f" | grep -Eq "$skip"; then continue; fi
+    if grep -v 'claims-check:allow' "$f" | tr '\n' ' ' | grep -qE -e "$re"; then add "$f: $msg"; fi
+  done < <(find "$target" -type f \( -name '*.ts' -o -name '*.tsx' \) -print0 2>/dev/null)
+}
+joined_scan 'acceptProposal[[:space:]]*\(' 'acceptProposal is called outside accept.ts and ConfirmPlan.tsx (joined lines).' '/lib/protocol/accept\.ts$|/ui/ConfirmPlan\.tsx$'
+joined_scan 'confirmByPerson[[:space:]]*\(' 'confirmByPerson is called outside accept.ts and ConfirmPlan.tsx (joined lines).' '/lib/protocol/accept\.ts$|/ui/ConfirmPlan\.tsx$'
+joined_scan 'saveProtocol[[:space:]]*\(' 'saveProtocol is called outside the allowed files (joined lines).' '/lib/storage/db\.ts$|/lib/protocol/accept\.ts$|/ui/LoadProtocol\.tsx$'
+joined_scan '\.protocol[[:space:]]*\.[[:space:]]*(put|add|update|bulkPut|bulkAdd|set|delete|clear)[[:space:]]*\(' 'A write to the protocol table is outside storage/db.ts (joined lines).' '/lib/storage/db\.ts$'
 
 found=$(printf '%s\n' "$found" | sed '/^$/d')
 
