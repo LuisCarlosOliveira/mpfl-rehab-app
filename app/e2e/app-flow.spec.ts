@@ -156,24 +156,31 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
 
-  // The browser history cannot skip the check. The app pushes no history entry.
+  // The browser history cannot skip the check. A Back press stays inside the app and goes Home (F3).
+  // Forward does nothing. Home never leads into Setup without the check.
   await page.goto('about:blank');
   await page.goto('/');
   await expectScreen(page, 'Home');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
-  await page.goBack(); // to about:blank
-  await page.goForward(); // the app loads again from the start
+  await page.goBack(); // Back stays in the app: it goes Home, not to about:blank
+  await expectScreen(page, 'Home');
+  expect(page.url()).not.toBe('about:blank');
+  await page.goForward(); // Forward is undone at once
   await expectScreen(page, 'Home');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
+  await expectScreen(page, 'Check before you exercise'); // the check is asked again: no way around it
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
   // The same with history.back() called from the page.
-  await Promise.all([page.waitForURL('about:blank'), page.evaluate(() => history.back()).catch(() => undefined)]);
-  await page.goForward();
+  await page.evaluate(() => history.back());
   await expectScreen(page, 'Home');
-  // After the reload the first start still goes through the check.
+  await page.evaluate(() => history.forward());
+  await expectScreen(page, 'Home');
+  // After a reload the first start still goes through the check.
+  await page.reload();
+  await expectScreen(page, 'Home');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
 });

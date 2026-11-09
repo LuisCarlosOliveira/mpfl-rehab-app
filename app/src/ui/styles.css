@@ -2230,3 +2230,108 @@ main h3 {
   justify-content: center;
 }
 /* ===== W3 END ===== */
+
+/* ===== F3 START: fixes of the live test round 2. Appended block. Keep this block together at the end of the file. ===== */
+/* R2-04: while the app looks for the starting angle, one line and the progress sit on the camera picture, like .session-start.
+   They take no room, so the count and the angle stay above the fixed bar. */
+.capture-line {
+  position: absolute;
+  inset-inline: var(--s-2);
+  bottom: var(--s-2);
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-m);
+  background: var(--ink);
+  color: var(--bg);
+}
+.capture-line p {
+  max-width: none;
+  font-size: var(--step-m1);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.capture-line .capture-progress {
+  max-width: none;
+  height: 0.5rem;
+}
+/* R2-04 at 360 x 640: the picture is 1 rem lower, so the unit under the angle clears the fixed bar. */
+@media (max-width: 61.99rem) {
+  .session-grid .preview {
+    max-height: min(42svh, max(7rem, 100svh - 33rem));
+  }
+}
+/* L2-06 and L2-11 at 195 px (WCAG 1.4.10 asks 320 px, 195 px is the stretch goal). A grid or flex item shrinks to its box. */
+.setup-grid > *,
+.session-grid > *,
+.data-grid > *,
+.stats > *,
+.counters > *,
+.actions > * {
+  min-width: 0;
+}
+.frame,
+.preview {
+  max-width: 100%;
+}
+.stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+}
+.stat dt,
+.stat dd,
+.stat .detail {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 319px) {
+  :root {
+    --gutter: var(--s-3);
+  }
+  .steps {
+    flex-wrap: wrap;
+    gap: var(--s-2);
+  }
+  .step-line {
+    display: none;
+  }
+  .step,
+  .option {
+    min-width: 0;
+  }
+  .btn {
+    max-width: 100%;
+    white-space: normal;
+  }
+  .stat {
+    padding: var(--s-3);
+  }
+  /* The live numbers stack: a 72 px number needs more than half of a 195 px card. */
+  .counters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .counters > .readout:not(.readout-reps),
+  .counters > .readout + .readout {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .counters .readout-number {
+    min-width: 0;
+  }
+  /* The title keeps its words, and the mute button goes under it. A caption wraps at its spaces. */
+  .session-head {
+    flex-wrap: wrap;
+  }
+  .session-head h1 {
+    min-width: auto;
+    overflow-wrap: break-word;
+  }
+  .gauge-caption {
+    flex-wrap: wrap;
+    overflow-wrap: normal;
+  }
+  /* A row of the summary of answers puts the Change button under its text. */
+  .answer-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}
+/* ===== F3 END ===== */

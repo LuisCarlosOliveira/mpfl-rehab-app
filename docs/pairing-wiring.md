@@ -1,58 +1,60 @@
-# Pairing: what to wire into the app
+# Pairing: how the second camera is wired
 
-Task T12b. The pairing code is built and tested. No file of the app uses it yet. This note tells the main session what to add.
-The files `App.tsx`, `Setup.tsx`, `Home.tsx` and `appState.ts` are not changed by the pairing task.
+Task T12b and T25. The pairing code is built, tested and wired into Home, Setup and Session. This note was a list of steps to wire. On 2026-11-09 it describes what exists. The old step list is in the git history. A real phone has not run this code (UNPROVEN).
 
 ## What exists
 
 | Item | File | Use |
 |---|---|---|
-| `PairCompanion` | `src/ui/PairCompanion.tsx` | The screen for the phone. Props: `onExit`. |
-| `PairHost` | `src/ui/PairHost.tsx` | The screen for the laptop. Props: `pairing`, `view`, `onDone`, `onSkip`. |
-| `usePairing()` | `src/pairing/usePairing.ts` | Hook. Returns `{ pairing, view }`. |
-| `createPairing()` | `src/pairing/pairing.ts` | The same object without React. |
-| `pairing.source()` | `src/pairing/pairing.ts` | A `LandmarkSource` with `view: 'front'`. It gives frames only while the status is `connected`. |
-| `cameraSource(options)` | `src/pose/source.ts` | New options: `view`, `deviceId`, `facingMode`. The default is unchanged. |
+| `PairCompanion` | `src/ui/PairCompanion.tsx` | The screen for the phone. Screen id `companion`. Props: `onExit` |
+| `PairHost` | `src/ui/PairHost.tsx` | The screen for the laptop. Props: `pairing`, `view`, `onDone`, `onSkip` |
+| `CompanionEntry` | `src/ui/CompanionEntry.tsx` | The card with the button "Use this phone as the second camera". Home and the Load screen show it |
+| `usePairing()` | `src/pairing/usePairing.ts` | Hook. `App.tsx` calls it once, so one pairing lives from Setup to the end of the Session |
+| `createPairing()` | `src/pairing/pairing.ts` | The same object without React |
+| `pairing.source()` | `src/pairing/pairing.ts` | A `LandmarkSource` with `view: 'front'`. It gives frames only while the status is `connected` |
+| `cameraSource(options)` | `src/pose/source.ts` | Options `view`, `deviceId`, `facingMode`. The default is unchanged |
 
-Both screens import `src/pairing/pair.css` by themselves. No change to `styles.css` is needed.
+Both screens import `src/pairing/pair.css` by themselves.
 
-## 1. The phone screen
+## Wiring that exists now
 
-1. Add the screen id `pair-companion` to `SCREEN_IDS` in `src/lib/flow.ts`.
-2. In `resolve()` of `appState.ts`, return the target for `pair-companion` like for `privacy` and `load`. The phone has no protocol and no red-flag check. It only sends body points.
-3. In `App.tsx`, show `<PairCompanion onExit={() => dispatch({ type: 'open', screen: 'home' })} />` for this screen. If the phone has no protocol, use `load` as the exit.
-4. Add the button text `Use this phone as the second camera`. Put it on the Home screen and on the Load protocol screen. A new phone has no protocol, so it must also be on the Load screen.
-5. The screen has its own `h1`. The shell already moves the focus to `main h1` when the screen changes.
+1. The screen id `companion` is in `SCREEN_IDS` (`src/lib/flow.ts`). `resolve()` in `appState.ts` returns it like `privacy` and `load`. The phone has no protocol and no red-flag check. It only sends body points.
+2. A new phone has no protocol, so the Load screen shows the button too.
+3. Setup has three steps: `guide`, `pair` and `camera`. The step `pair` is optional. The button is "Add a second camera (optional)". It shows `PairHost`. The step list shows the pair step only after the person opened it.
+4. `Skip` and `Back` in the pair step stop the pairing. A connected phone stays connected for the camera step and for the Session.
+5. `Session` takes an optional `second` prop with the source, the status and the message. The second source starts after the first camera and has its own effect, so a link change never restarts the main camera.
+6. The second view is for the clinician record only. The Session shows one status chip "Second camera connected" and no live cue from the front view.
+7. When the phone stops, the Session shows "The second camera stopped. The session continues with one camera." once.
+8. The session record has `secondView: front`, `frontReps` and `frontChangeDeg`. The value is the median change of at least 3 reps, inward positive (`src/lib/views.ts`, FR24). Fewer reps give no value.
 
-## 2. The laptop step in Setup
+## The ready message and the clock
 
-The step is optional. It comes before the camera step, because the scan uses the same camera layer (`src/pose/camera.ts`). The layer keeps one active stream.
+- The laptop sends `{"type":"ready"}` when its own end of the data channel opens. The phone sends its `hello` only after `ready`. The message was added in commit 939d096.
+- The time limits of the link use `performance.now()`, a clock that never steps. `Date.now()` can step back or forward when a device syncs its time, and the state machine then ended a good pairing. The test machine showed `Date.now()` going back by 9.09 s about every 5.5 s while `performance.now()` did not (comment in `tests/pairing-ui/rtcLink.test.ts`).
+- The main session reported 3 failures in 30 runs and 2 failures in 30 runs before the two fixes, and 0 failures after them. No report file in the repo holds these runs. I did not re-run them (not re-run).
+- Limits of the link: the offer is valid for 120 seconds and the hello must come within 15 seconds (PROPOSAL values). The phone sends at most 15 messages each second. A message has at most 4,096 bytes.
 
-1. Create the pairing once for the setup flow: `const { pairing, view } = usePairing();` in `App.tsx`, or in a small parent of `Setup`. The pairing must live longer than the step, because the Session screen reads from it.
-2. On the position guide step of `Setup`, add the button `Add a second camera`. Show it only when the exercise can use the front view (the plan decides which). Show it with the text `Optional`.
-3. The button sets a new step `pair`. This step shows `<PairHost pairing={pairing} view={view} onDone={goToCameraStep} onSkip={goToCameraStep} />`.
-4. `onDone` and `onSkip` both go to the camera step. The camera step starts the main camera as before.
-5. If the patient leaves Setup without a connected phone, call `pairing.close()`. If the status is `connected`, keep it open until the session ends.
+## The Wake Lock on the phone
 
-## 3. The second view in the Session screen
+- The phone screen asks for a screen Wake Lock when the person starts the link. It asks again when the page is visible again and no lock is held. Every way out releases the lock.
+- A phone with no Wake Lock, or a refusal, shows the text `Your screen could turn off. Turn off the screen timeout in your phone settings while the phone works as the second camera.` The text `The screen stays on while the phone works.` shows only when the browser granted the lock. Live test 3 found that the old text was not always true (L3-04). The fix is in commit 6264037.
+- A real Wake Lock request has not run. Headless Chromium rejected the request (live test 3, checks 32 and 33). A page on an address that is not a secure context has no Wake Lock (L3-04).
 
-1. `Session` takes one `source` today. Add an optional prop `second?: LandmarkSource`. Pass `pairing.source()` when `view.status === 'connected'`, and nothing otherwise.
-2. When `second` exists, call `second.start(handler)` after the first source starts. The handler gets the 33 landmarks of the phone and the time of the laptop clock.
-3. Use the values only for the clinician record. Use `pairReps` and `frontKneeInward` from `src/lib/views.ts` (FR24). Show no live cue from the front view.
-4. Call `second.stop()` when the session ends. Then call `pairing.close()`. The close sends a `bye` to the phone, and the phone stops its camera.
-5. If the link fails during a session, `view.status` becomes `failed`. The session continues with one camera. Show the text of `view.message` once.
-
-## 4. The `view` field of the session record
-
-`SourceView` is now the type `View` (`side` or `front`). The side source has the tag `side`. The phone source has the tag `front`. Write the tag of each source into the session record and the export, as T9c asks. The default is `side`.
-
-## 5. Limits that the wiring must keep
+## Limits that the wiring keeps
 
 - Do not add `getUserMedia`, a video element or an image of the phone to the laptop. The laptop gets numbers only.
-- Do not call `pairing.begin()` before the patient presses `Start pairing`.
-- Do not show the status words as a verdict. The screens use only: Waiting for the phone, Connecting to the phone, Connected, Could not pair, Stopped.
+- Do not call `pairing.begin()` before the person presses `Start pairing`.
+- Do not show the status words as a verdict. The screens use only: `Waiting for the phone`, `Connecting to the phone`, `Connected`, `Could not pair` and `Stopped`.
 - The text `Could not pair. The app continues with one camera.` is fixed. Do not change it.
 
-## 6. The test route that is not in the CI pipeline
+## Known limits of the second camera
 
-The browser specs of the pairing use their own config: `e2e/pairing/playwright.config.ts`. Run: `PAIR_OUT=<folder> npx playwright test -c e2e/pairing/playwright.config.ts --workers=1`. The config has two projects, `pairing` and `pairing-ip`. Add a step to the pipeline for it, or merge its projects into `playwright.config.ts`. The test pages are in `e2e/pairing/`. They are never shipped.
+- Two phones, one offer: when two phones take the same offer, the first answer connected in 1 of 4 runs. In 3 runs the laptop stayed on "Connecting to the phone" and closed after about 18 seconds (live test 3, L3-02, LOW). The result is safe and the person can try again. No recorded re-run exists after the ready message, so it is UNPROVEN whether the message changes this.
+- Pairing over a tailnet with no shared LAN: UNPROVEN. IPv6-only phones: UNPROVEN, because IPv6 and tcp candidates are dropped.
+- The real phone (Redmi A3), real Android Chrome, real QR scan with a phone camera and the real tailnet address `100.77.0.108` have not run. `TASKS.md` says to set two Chrome flags on the phone. No document names them (PENDING). The pairing browser tests use `--disable-features=WebRtcHideLocalIpsWithMdns` on the PC browser in tests only.
+- Live test 3 ran two Chromium browsers on one machine with real video. It found 40 PASS, 2 FAIL and 6 NOT RUN in 48 checks. The tree was commit b451206, before the fixes above.
+- The care team column header reads "Front-view change (degrees)". The exact label "Front-view change, estimated, not a medical measurement" sits in the note above the table (L3-03). No fix is recorded.
+
+## The test route that is not in the pipeline
+
+The browser specs of the pairing use their own config: `e2e/pairing/playwright.config.ts`. Run `npm run e2e:pairing`, or `PAIR_OUT=<folder> npx playwright test -c e2e/pairing/playwright.config.ts --workers=1`. The config has two projects, `pairing` and `pairing-ip`. The spec `e2e/pairing-app.spec.ts` runs the wired screens in the main config. The test pages are in `e2e/pairing/`. They are never shipped. The main session reported 18 tests and three passes in a row (not re-run by me).

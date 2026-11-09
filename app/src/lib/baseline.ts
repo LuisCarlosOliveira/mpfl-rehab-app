@@ -43,23 +43,23 @@ export function restingBaseline(
 // ---- In-place capture (F1) -------------------------------------------------------------------
 // Session uses this when Setup gave no resting angle. It runs the same still rule on the live samples.
 // If the person never holds still, the person can choose the lowest steady angle. The app never takes it alone.
+// The lowest steady angle is the lowest plateau of the whole capture so far (F3). It does not depend on the moment of the press.
 
 /** Where the starting angle came from: a still window (the rule of Setup), or the choice of the person. */
 export type BaselineSource = 'still' | 'lowest';
 
 export interface CaptureConfig {
   limitMs: number; // time with no still window after which the choice shows
-  lowestWindowMs: number; // the angles of this last span count for the lowest steady angle
-  lowestFraction: number; // the share of the lowest angles that the median is taken of
+  plateauMs: number; // the knee must stay at or below one angle for this long to make a plateau
   minLowestSamples: number; // fewer angles than this give no lowest steady angle
 }
 
 // ENGINEERING values, not clinical. No source exists. They only decide when the app offers a choice
 // and which angles it reads. The clips (docs/accuracy.md): a heel slide cycle takes about 4 s, so 15 s hold several cycles.
+// plateauMs 0.5 s: shorter than one pause at the bottom of a rep, longer than a frame glitch.
 export const CAPTURE_CONFIG: CaptureConfig = {
   limitMs: 15000,
-  lowestWindowMs: 15000,
-  lowestFraction: 0.25,
+  plateauMs: 500,
   minLowestSamples: 20,
 };
 
@@ -75,10 +75,38 @@ export interface CaptureState {
   tooBent: boolean;
 }
 
-/** The median of the lowest `fraction` of the angles. One outlier frame does not move it. */
-export function lowestSteadyAngle(flexions: number[], fraction: number): number {
-  const sorted = [...flexions].sort((a, b) => a - b);
-  return median(sorted.slice(0, Math.max(1, Math.round(sorted.length * fraction))));
+interface Sample {
+  tMs: number;
+  flexion: number;
+}
+
+/**
+ * Keeps the newest samples of one unbroken run, enough to cover `plateauMs`, and the lowest plateau seen so far.
+ * A plateau is a window of at least `plateauMs` with no break. Its level is the highest angle in the window.
+ * The lowest plateau is the window with the lowest level. Its value is the median of the angles in that window.
+ * A lost leg breaks the run, so two short dips never join. The lowest plateau only goes down while the capture runs.
+ */
+export function createLowestPlateau(plateauMs: number) {
+  let run: Sample[] = [];
+  let lowest: { level: number; value: number } | null = null;
+  return {
+    push(tMs: number, flexion: number) {
+      run.push({ tMs, flexion });
+      // Keep one sample at or before the window start, so the window is fully covered.
+      while ((run[1]?.tMs ?? Infinity) <= tMs - plateauMs) run.shift();
+      if (tMs - (run[0] as Sample).tMs < plateauMs) return;
+      const values = run.map((r) => r.flexion);
+      const level = Math.max(...values);
+      if (lowest === null || level < lowest.level) lowest = { level, value: median(values) };
+    },
+    /** A lost leg: the next samples start a new run. */
+    breakRun() {
+      run = [];
+    },
+    get value(): number | null {
+      return lowest?.value ?? null;
+    },
+  };
 }
 
 /**
@@ -97,7 +125,8 @@ export function createBaselineCapture(
   config: CaptureConfig = CAPTURE_CONFIG,
 ) {
   let history: SetupSample[] = [];
-  const angles: { tMs: number; flexion: number }[] = [];
+  const plateau = createLowestPlateau(config.plateauMs);
+  let seen = 0; // angles with the whole leg in view
   let startMs: number | null = null;
   let chosen: { baselineDeg: number; source: BaselineSource } | null = null;
   let tooBent = false;
@@ -108,7 +137,7 @@ export function createBaselineCapture(
     progress: chosen ? 1 : progress,
     baselineDeg: chosen?.baselineDeg ?? null,
     source: chosen?.source ?? null,
-    canUseLowest: angles.length >= config.minLowestSamples,
+    canUseLowest: seen >= config.minLowestSamples,
     tooBent: tooBent || lowestRefused,
   });
 
@@ -121,13 +150,14 @@ export function createBaselineCapture(
       if (chosen) return state(tMs, 1);
       if (landmarks === null || flexionDeg === null) {
         history = [];
+        plateau.breakRun();
         lastProgress = 0;
         tooBent = false;
         lowestRefused = false;
         return state(tMs, 0);
       }
-      angles.push({ tMs, flexion: flexionDeg });
-      while (angles[0] && angles[0].tMs < tMs - config.lowestWindowMs) angles.shift();
+      seen++;
+      plateau.push(tMs, flexionDeg);
       history = calmRun([...history, { tMs, landmarks }], side, aspect, still.stillMaxMove);
       // Keep one sample at or before the window start, so the window is fully covered.
       while ((history[1]?.tMs ?? Infinity) <= tMs - still.stillWindowMs) history.shift();
@@ -141,11 +171,11 @@ export function createBaselineCapture(
       }
       return state(tMs, lastProgress);
     },
-    /** The person pressed "use my lowest steady angle". Returns null when too few angles were seen or the lowest angle is a bent knee. */
+    /** The person pressed "use my lowest steady angle". Returns null when too few angles were seen, no plateau exists yet, or the lowest angle is a bent knee. */
     useLowest(): CaptureState | null {
       if (chosen) return state(lastMs, 1);
-      if (angles.length < config.minLowestSamples) return null;
-      const lowest = lowestSteadyAngle(angles.map((a) => a.flexion), config.lowestFraction);
+      const lowest = plateau.value;
+      if (seen < config.minLowestSamples || lowest === null) return null;
       if (lowest >= startBelowDeg) {
         lowestRefused = true;
         return null;

@@ -1,7 +1,7 @@
 # Lighthouse audit
 
 This file shows how to measure the Lighthouse scores of the app. It also holds the first result.
-The target is 95 or more in each category (NFR5 and section 7 of `MPFL_APP_PLAN.md`).
+The target is 95 or more in Performance, Accessibility and Best practices (NFR5 and section 7 of `MPFL_APP_PLAN.md`). The SEO target is dropped (see "SEO decision" below). The older text "each category" is superseded.
 
 ## First result
 
@@ -32,7 +32,7 @@ SEO is 82 on every screen, so the target of 95 is not met.
 6. Performance `render-blocking-insight`: `assets/index-*.css` (2.9 kB) blocks the first paint for about 150 ms.
 7. Agentic browsing `llms-txt` (score 67): the server answers `/llms.txt` with `index.html`. This category is not part of the target.
 
-### Proposed fixes (not done, `src` is not changed by this work)
+### Proposed fixes (not done at the time, `src` was not changed by this work). Status on 2026-11-09 is in the next sections.
 
 1. Add `<meta name="description" content="...">` to `index.html`. Use neutral text that does not claim a medical use.
 2. Add `public/robots.txt`. A valid file is `User-agent: *` and `Disallow: /`. This is right for a private tool.
@@ -41,6 +41,33 @@ SEO is 82 on every screen, so the target of 95 is not met.
 5. Measure the chunk with a source map before the split, to find the large modules.
 6. Optional: inline the 2.9 kB CSS, or accept the 150 ms.
 7. Optional: add `public/llms.txt` with one `# Title` line and one link. This is not needed for the target.
+
+## Second result (live test 4, commit b451206)
+
+Source: `docs/live-test/performance.md`, round 1. Date: 2026-11-08 and 2026-11-09. Lighthouse 13.6.0. Median of three runs. The machine was shared, so the timing is noisy. Status of the proposed fixes above: items 1, 2 and 3 are done and the audits `meta-description`, `robots-txt` and the favicon error pass. Items 4 and 5 (the chunk split) were not done at this commit.
+
+| Screen | Form factor | Performance (runs) | Accessibility | Best practices | SEO |
+|---|---|---|---|---|---|
+| Privacy | mobile | 97 (97, 99, 97) | 100 | 100 | 63 |
+| Privacy | desktop | 100 | 100 | 100 | 63 |
+| Load protocol | mobile | 99 (99, 99, 99) | 100 | 100 | 63 |
+| Load protocol | desktop | 100 | 100 | 100 | 63 |
+| Home with protocol | mobile | 92 (98, 92, 90) | 100 | 100 | 63 |
+| Home with protocol | desktop | 100 | 100 | 100 | 63 |
+
+Accessibility was 100 in all 18 runs. A plan screen was not audited, because Lighthouse reloads the root URL (check C07, NOT RUN). The main chunk then had 749 kB (235 kB gzip), so Home on mobile fell below 95.
+
+## After the first-load split (W3)
+
+The screens Setup, Session, Summary, the plan screens and the phone screen now load on demand (commit 8a148dd). The test `tests/ui/bundleSize.test.ts` measures the first-load JavaScript. At the commit that added it, the first load had 172,736 bytes of gzip JavaScript (entry chunk 314,359 bytes raw). The limit in the test is 185,000 bytes gzip. This value comes from the test file and not from a Lighthouse run.
+
+The main session reported a median Lighthouse mobile Performance of 95 on Home after this split. No report file in the repo holds that run, and I did not re-run it (not re-run). Accessibility and Best practices after the split are not in any report that I read (PENDING).
+
+## SEO decision
+
+The SEO score is 63, not 95. The cause is `public/robots.txt`, which holds `User-agent: *` and `Disallow: /`. Lighthouse then reports the page as not crawlable (audit `is-crawlable`, live test 4, L4-01). The old SEO failures (meta description, `robots-txt`) are fixed.
+
+Decision, 2026-11-09, relayed by the main session (the exact words of the user are not preserved): the SEO target is dropped on purpose. The app is a private tool and a prototype, so the file keeps `Disallow: /` and the page stays out of search engines. The plan target for this category is removed. The targets for Performance, Accessibility and Best practices stay at 95 or more. The decision is open to a change by the user. With `Allow: /` the live test expects a score of about 100.
 
 ## Limits of the local server
 

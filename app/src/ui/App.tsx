@@ -9,7 +9,7 @@ import { hasSeenPrivacyNotice, loadStoredProtocol, type MpflDb, type SessionReco
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
-import { appReducer, initialAppState } from './appState';
+import { appReducer, backStep, initialAppState } from './appState';
 import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
 import { Home } from './Home';
@@ -22,6 +22,7 @@ import { createSound, type Sound } from './sound';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
+import { useBackButton } from './useBackButton';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
 // A chunk that cannot load shows the message of LoadError, and a new try asks for it again (L2-02).
@@ -162,6 +163,32 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     initialAppState,
   );
 
+  // F3: the Back button of the browser acts like the Back, Cancel or Stop button of the screen (appState.backStep).
+  // The Session registers its Stop here, so a Back press ends the session and the camera.
+  const stateNow = useRef(state);
+  const stopSession = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    stateNow.current = state;
+  });
+  useBackButton(state.screen, backStep(state) === null, () => {
+    const now = stateNow.current;
+    const step = backStep(now);
+    if (step === 'stop-session') {
+      // The Session is not on screen yet (its code still loads): no camera runs, so Back goes Home like Cancel.
+      if (stopSession.current === null) {
+        dispatch({ type: 'open', screen: 'home' });
+        return { landed: 'home', root: true };
+      }
+      stopSession.current();
+      return { landed: 'summary', root: false };
+    }
+    if (step === 'stay') return { landed: now.screen, root: false };
+    if (step === null) return { landed: now.screen, root: true };
+    dispatch(step);
+    const next = appReducer(now, step);
+    return { landed: next.screen, root: backStep(next) === null };
+  });
+
   // The second camera (T12b). One pairing lives from Setup to the end of the Session, so the Session can read it.
   // It stops when the person leaves Setup and Session by any way: Cancel, Stop, "Knee gave way or hurts", or a new screen.
   const { pairing, view: pairingView } = usePairing(pairingDeps);
@@ -252,6 +279,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               second={{ source: pairing.source(), status: pairingView.status, message: pairingView.message }}
               sound={sound}
               painPauseThreshold={protocol.painPauseThreshold}
+              stopRef={stopSession}
               onEnd={(reason, summary) => dispatch({ type: 'session-end', reason, summary })}
             />
           );

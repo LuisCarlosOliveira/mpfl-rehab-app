@@ -1,6 +1,6 @@
 // F1: the in-place capture of the starting angle in Session.
 // It uses the same still rule as Setup. The lowest steady angle is taken only after a press.
-import { CAPTURE_CONFIG, createBaselineCapture, lowestSteadyAngle } from '../src/lib/baseline';
+import { CAPTURE_CONFIG, createBaselineCapture, createLowestPlateau } from '../src/lib/baseline';
 import { SETUP_CONFIG } from '../src/lib/setupRules';
 import { flexion, kneeAngle, selectLeg } from '../src/lib/angle';
 import { legLandmarks } from './helpers/leg';
@@ -92,7 +92,7 @@ describe('createBaselineCapture: the lowest steady angle', () => {
     expect(s.source).toBeNull();
   });
 
-  it('takes the median of the lowest quarter of the angles seen, and only when pressed', () => {
+  it('takes the lowest plateau of the angles seen, and only when pressed', () => {
     const c = make();
     run(c, 0, 20000, heelSlideCycle);
     const pressed = c.useLowest();
@@ -103,12 +103,11 @@ describe('createBaselineCapture: the lowest steady angle', () => {
     expect(c.push(leg(30), 20100, 30).baselineDeg).toBe(pressed!.baselineDeg);
   });
 
-  it('uses only the last 15 seconds of angles', () => {
+  it('keeps an old low plateau: the press moment does not change the value (F3)', () => {
     const c = make();
     run(c, 0, 10000, () => 2, (i) => 0.3 + i * 0.002); // old and low. The hip drifts, so no still baseline sets.
     run(c, 10100, 40000, (i) => 40 + 35 * (1 - Math.cos((2 * Math.PI * i) / 40)));
-    const v = c.useLowest()!.baselineDeg as number;
-    expect(v).toBeGreaterThan(38);
+    expect(c.useLowest()!.baselineDeg).toBeCloseTo(2, 0);
   });
 
   it('refuses when too few angles were seen', () => {
@@ -119,10 +118,21 @@ describe('createBaselineCapture: the lowest steady angle', () => {
     expect(c.push(leg(30), 16100, 30).canUseLowest).toBe(false);
   });
 
-  it('lowestSteadyAngle is the median of the lowest quarter', () => {
-    const v = Array.from({ length: 100 }, (_, i) => i); // 0 to 99
-    expect(lowestSteadyAngle(v, 0.25)).toBe(12); // the lowest 25 values are 0 to 24
-    expect(lowestSteadyAngle([50, 1, 3, 2, 80, 90, 70, 60], 0.25)).toBe(1.5);
+  it('createLowestPlateau gives the median of the lowest window that holds for the plateau time', () => {
+    const p = createLowestPlateau(500);
+    expect(p.value).toBeNull();
+    for (let t = 0; t <= 2000; t += 100) p.push(t, 50);
+    for (let t = 2100; t <= 2800; t += 100) p.push(t, t === 2400 ? 11 : 10);
+    for (let t = 2900; t <= 5000; t += 100) p.push(t, 60);
+    expect(p.value).toBe(10);
+  });
+
+  it('createLowestPlateau starts a new run after a break', () => {
+    const p = createLowestPlateau(500);
+    for (let t = 0; t <= 300; t += 100) p.push(t, 3);
+    p.breakRun();
+    for (let t = 400; t <= 700; t += 100) p.push(t, 3);
+    expect(p.value).toBeNull();
   });
 });
 

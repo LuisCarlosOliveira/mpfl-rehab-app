@@ -93,6 +93,9 @@ export const CAPTURE_TEXT = {
   stuck: 'The app has not found a still moment. Hold your leg still a little longer. Or let the app use your lowest steady angle as the start.',
   // The knee is as bent as the start of a rep, held still or at its lowest. The person can follow this in place.
   bent: 'Your knee stays bent. Straighten your leg as far as your care team allows, then hold still.',
+  // One line each, for the camera picture (R2-04). The full texts above sit in the card under the numbers.
+  bentShort: 'Your knee stays bent. Straighten it, then hold still.',
+  chooseShort: 'No still moment yet. See the button under the numbers.',
   lowestButton: 'Use my lowest steady angle as the start',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
   startingAngle: (deg: number) => `Starting angle: ${deg} degrees (estimated)`,

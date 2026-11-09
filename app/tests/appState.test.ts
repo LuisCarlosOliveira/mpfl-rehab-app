@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appReducer, initialAppState, type AppState, type PlanDraft, type RunResult } from '../src/ui/appState';
+import { appReducer, backStep, initialAppState, type AppState, type PlanDraft, type RunResult } from '../src/ui/appState';
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { startSets } from '../src/lib/sets';
 import type { Summary } from '../src/lib/exercises';
@@ -399,5 +399,52 @@ describe('plan generator flow', () => {
     s = appReducer(s, { type: 'plan-accepted' });
     expect(appReducer(s, { type: 'open', screen: 'setup' }).screen).toBe('redflag');
     expect(appReducer(s, { type: 'open', screen: 'session' }).screen).toBe('redflag');
+  });
+});
+
+describe('Back of the browser (F3, L2-10)', () => {
+  const at = (screen: AppState['screen'], over: Partial<AppState> = {}): AppState => ({ ...home(), screen, ...over });
+  /** The screen after the Back step. A step that is not an action is named by its own word. */
+  const landed = (state: AppState) => {
+    const step = backStep(state);
+    return step === null || typeof step === 'string' ? step : appReducer(state, step).screen;
+  };
+
+  it('goes Home from the screens that the person opens from Home', () => {
+    for (const screen of ['redflag', 'dashboard', 'data', 'companion', 'update', 'onboarding'] as const) expect(landed(at(screen))).toBe('home');
+  });
+
+  it('never goes to Setup, Session or the red-flag screen', () => {
+    const cleared = { redFlagCleared: true, exercise: 'heel-slide' as const };
+    for (const screen of ['home', 'load', 'redflag', 'setup', 'dashboard', 'data', 'clinician', 'companion', 'privacy', 'update', 'onboarding'] as const) {
+      const step = landed(at(screen, cleared));
+      expect(['setup', 'redflag']).not.toContain(step);
+      expect(step).not.toBe('session');
+    }
+  });
+
+  it('Setup and the red-flag check go Home, like their Cancel button', () => {
+    expect(landed(at('setup', { redFlagCleared: true, exercise: 'heel-slide' }))).toBe('home');
+    expect(landed(at('redflag', { exercise: 'heel-slide' }))).toBe('home');
+    expect(backStep(at('setup'))).toEqual({ type: 'open', screen: 'home' });
+  });
+
+  it('Session ends like the Stop button and the Summary stays until the person acts', () => {
+    expect(backStep(at('session'))).toBe('stop-session');
+    expect(backStep(at('summary'))).toBe('stay');
+  });
+
+  it('goes to the file screen when no protocol is stored', () => {
+    const none = (screen: AppState['screen']) => at(screen, { hasProtocol: false });
+    expect(landed(none('companion'))).toBe('load');
+    expect(backStep(none('load'))).toBeNull();
+    expect(backStep(none('privacy'))).toBeNull();
+    expect(backStep(at('home'))).toBeNull();
+  });
+
+  it('goes back one step in the plan flow, with the same action as the on-screen button', () => {
+    expect(backStep(at('clinician'))).toEqual({ type: 'open', screen: 'data' });
+    expect(backStep(at('plan'))).toEqual({ type: 'open', screen: 'onboarding' });
+    expect(backStep(at('confirm'))).toEqual({ type: 'plan-kept' });
   });
 });

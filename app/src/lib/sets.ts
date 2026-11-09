@@ -106,3 +106,6 @@ export function repsLabel(state: SetsState, unit: 'reps' | 'holds' = 'reps'): st
   if (state.phase === 'no-prescription') return null;
   return `${unit === 'holds' ? 'Holds' : 'Reps'} in this set: ${state.repsInSet} of ${state.prescription.reps}`;
 }
+
+/** The word for a count: "rep" for 1, "reps" for any other number (also 0 and null). Every word here is regular. */
+export const plural = (n: number | null, one: string): string => (n === 1 ? one : `${one}s`);

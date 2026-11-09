@@ -8,6 +8,7 @@ import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';
 import { setupText } from '../../src/lib/setupRules';
 import { CAPTURE_TEXT, LEG_TEXT } from '../../src/ui/setupView';
 import { HEEL_SLIDE, audioHarness, freshDb, mockSource, playRep, protocolText, readyLegOf, twoLegs, type MockSource } from './helpers';
+import { legLandmarks } from '../helpers/leg';
 import type { Exercise } from '../../src/lib/protocol';
 import { flexion, kneeAngle, selectLeg, type Side } from '../../src/lib/angle';
 
@@ -271,7 +272,9 @@ describe('Session: counting notices', () => {
 
   it('finds the starting angle in place when Setup measured none, and counts no rep until it has one', () => {
     const { source } = session({ baselineDeg: null });
-    expect(screen.getByText(CAPTURE_TEXT.title)).toBeInTheDocument();
+    act(() => source.emit(legLandmarks('left', 30), 0));
+    tick();
+    expect(screen.getByText(CAPTURE_TEXT.hold)).toBeInTheDocument();
     playRep(source, 'left', 70);
     tick();
     expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('0');
@@ -280,7 +283,7 @@ describe('Session: counting notices', () => {
   it('shows no counting notice when both values are present, and counts the rep', () => {
     const { source } = session({ baselineDeg: 20 });
     expect(screen.queryByText(LEG_TEXT.noReturnValue)).toBeNull();
-    expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
+    expect(screen.queryByText(CAPTURE_TEXT.hold)).toBeNull();
     playRep(source, 'left', 70); // the rep returns to 0, which is within 18 of the baseline of 20
     tick();
     expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('1');

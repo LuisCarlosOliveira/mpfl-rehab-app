@@ -142,3 +142,39 @@ describe('styles.css, long text and narrow screens', () => {
     expect(block).toMatch(/@media \(max-width: 319px\)/);
   });
 });
+
+// F3: the last block of the file. R2-04 (the capture line sits on the camera picture) and the fixes at 195 px (L2-06, L2-11).
+describe('styles.css, the F3 block', () => {
+  const start = css.indexOf('===== F3 START');
+  const end = css.indexOf('===== F3 END');
+  const block = css.slice(start, end).replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('is one marked block at the very end of the file', () => {
+    expect(start).toBeGreaterThan(css.indexOf('LONG TEXT AND NARROW SCREENS (F2a)'));
+    expect(end).toBeGreaterThan(start);
+    expect(css.indexOf('===== F3 START', start + 1)).toBe(-1);
+    expect(css.slice(end).replace(/={3,}[\s\S]*$/, '').trim()).toBe('');
+    expect(css.slice(end).split('\n').filter((l) => l.trim() !== '').length).toBe(1);
+  });
+
+  it('puts the capture line on the camera picture, so it takes no room above the numbers', () => {
+    expect(block).toMatch(/\.capture-line\s*\{[^}]*position:\s*absolute/);
+    expect(block).not.toMatch(/\.capture-line\s*\{[^}]*(animation|transition)/);
+  });
+
+  it('lets the grid and flex children of Setup, Session, My data and the stats shrink', () => {
+    for (const selector of ['.setup-grid > *', '.session-grid > *', '.data-grid > *', '.stats > *']) expect(block, selector).toContain(selector);
+    expect(block).toMatch(/min-width:\s*0/);
+  });
+
+  it('wraps the steps and stacks the live numbers below 320 px', () => {
+    const narrow = block.slice(block.indexOf('@media (max-width: 319px)'));
+    expect(narrow).toMatch(/\.steps\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(narrow).toMatch(/\.counters\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)\s*;/);
+    expect(narrow).toMatch(/\.session-head\s*\{[^}]*flex-wrap:\s*wrap/);
+  });
+
+  it('keeps the picture low enough at 640 px height for the unit under the angle', () => {
+    expect(block).toMatch(/\.session-grid \.preview\s*\{[^}]*100svh - 33rem/);
+  });
+});

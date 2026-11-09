@@ -10,7 +10,7 @@ import type { Exercise, Protocol } from '../lib/protocol';
 import { MARGIN_DEG, MARGIN_SOURCE } from '../lib/margin';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
-import { summarySets } from '../lib/sets';
+import { plural, summarySets } from '../lib/sets';
 import { saveSession, type MpflDb, type SessionInput } from '../lib/storage';
 import type { RunResult } from './appState';
 import { Icon } from './Icon';
@@ -120,7 +120,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   }
 
   const top = topAngleText(summary.topFlexion);
-  const unit = summary.holds === null ? 'reps' : 'holds';
+  const unit = summary.holds === null ? 'rep' : 'hold';
 
   return (
     <section aria-labelledby="summary-title" className="narrow">
@@ -145,7 +145,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Reps counted</dt>
               <dd>
-                <span className="num">{summary.reps}</span> reps
+                <span className="num">{summary.reps}</span> {plural(summary.reps, 'rep')}
               </dd>
             </div>
           )}
@@ -153,7 +153,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Holds counted</dt>
               <dd>
-                <span className="num">{summary.holds}</span> holds
+                <span className="num">{summary.holds}</span> {plural(summary.holds, 'hold')}
               </dd>
             </div>
           )}
@@ -161,7 +161,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Highest knee bend</dt>
               <dd>
-                <span className="num">{Math.round(summary.peakFlexion)}</span> degrees
+                <span className="num">{Math.round(summary.peakFlexion)}</span> {plural(Math.round(summary.peakFlexion), 'degree')}
                 <span className="detail">({ANGLE_LABEL})</span>
               </dd>
             </div>
@@ -173,7 +173,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <ul className="set-list" aria-label="Reps in each set">
             {sets.repsPerSet.map((n, i) => (
               <li key={i}>
-                Set {i + 1}: <span className="num">{n}</span> {unit}
+                Set {i + 1}: <span className="num">{n}</span> {plural(n, unit)}
               </li>
             ))}
           </ul>

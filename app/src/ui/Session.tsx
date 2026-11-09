@@ -20,7 +20,7 @@
 // of the current hold as a plain timer (U6). A status line names the camera start step (U10). Notices that need
 // attention sit above the camera, so the fixed bar never covers them (L3-06). A hidden tab ends the camera: the screen says so
 // and the person restarts it with a press (L3-07).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
 import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
@@ -30,7 +30,7 @@ import { createIdentityWatcher, otherLegConfirmed, type MovingLeg } from '../lib
 import { SETUP_CONFIG } from '../lib/setupRules';
 import { createFrontRecorder, type FrontRecorder } from '../lib/views';
 import { PAUSE_MESSAGE } from '../lib/safety';
-import { SET_TEXT, countRep, finish, nextSet, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
+import { SET_TEXT, countRep, finish, nextSet, plural, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
 import type { Exercise } from '../lib/protocol';
 import type { PairingStatus } from '../pairing/pairing';
 import type { LandmarkSource } from '../pose/source';
@@ -127,7 +127,6 @@ const START_TEXT = {
   ready: 'Ready. Step into the view.',
 } as const;
 const BACKGROUND_TEXT = 'The camera stopped when this page went to the background. Press the button to start it again.';
-const plural = (n: number | null, one: string, many: string) => (n === 1 ? one : many);
 
 interface Props {
   exercise: Exercise;
@@ -143,10 +142,12 @@ interface Props {
   sound: Sound;
   /** The pain value from the protocol (`painPauseThreshold`). Missing means that no answer stops the session. The app sets no default. */
   painPauseThreshold?: number;
+  /** The shell calls this when the Back button of the browser is pressed. It does what the Stop button does. */
+  stopRef?: MutableRefObject<(() => void) | null>;
   onEnd: (reason: EndReason, summary: RunSummary) => void;
 }
 
-export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, onEnd }: Props) {
+export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, stopRef, onEnd }: Props) {
   const setup = counterSetup(exercise);
   const ready = setup.ok;
   // Setup gave no resting angle and the protocol has a return value: Session finds the angle in place.
@@ -401,6 +402,15 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     applySets(countRep(setsRef.current));
   }
 
+  // The Back button of the browser stops the session like the Stop button (F3). The ref clears when the screen goes.
+  useEffect(() => {
+    if (!stopRef) return;
+    stopRef.current = () => end('stop');
+    return () => {
+      stopRef.current = null;
+    };
+  });
+
   // The person pressed the button. Only now does the app take the lowest steady angle.
   function useLowestAngle() {
     const chosen = capture.current?.useLowest();
@@ -432,6 +442,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const repsText = repsLabel(sets, countUnit);
   const holdTotal = isHold ? (exercise.holdSeconds ?? null) : null; // the clinician hold time. The app has no number of its own.
   const resting = sets.phase === 'set-complete';
+  const captureOn = needsCapture && found === null; // the app looks for the starting angle
   const startText = view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
   const cameraTrouble = view.stale || cameraError !== null || backgrounded;
 
@@ -532,21 +543,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 </div>
               )}
 
-              {needsCapture && found === null && (
-                <section className="card capture stack-s" aria-labelledby="capture-title">
-                  <h2 id="capture-title">{CAPTURE_TEXT.title}</h2>
-                  <p>{view.capture?.tooBent ? CAPTURE_TEXT.bent : view.capture?.phase === 'choose' ? CAPTURE_TEXT.stuck : CAPTURE_TEXT.hold}</p>
-                  <progress className="capture-progress" max={100} value={view.capture?.progress ?? 0} aria-label={CAPTURE_TEXT.progress} />
-                  {view.capture?.phase === 'choose' && (
-                    <div className="stack-s">
-                      <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
-                        {CAPTURE_TEXT.lowestButton}
-                      </button>
-                      {!view.capture.canUseLowest && <p className="detail">{CAPTURE_TEXT.lowestNeedsLeg}</p>}
-                    </div>
-                  )}
-                </section>
-              )}
               {!resting && (
                 <div className="card counters">
                   {(label !== null || repsText !== null) && (
@@ -558,7 +554,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   <div className="readout">
                     <p className="readout-label">Angle</p>
                     <p className="readout-line">
-                      <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree', 'degrees')}</span>
+                      <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree')}</span>
                     </p>
                     <p className="detail">Knee bend: {ANGLE_LABEL}</p>
                     {limit !== undefined && (
@@ -579,12 +575,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     <p className="readout-label">{isHold ? 'Holds' : 'Reps'}</p>
                     <p className="readout-line" aria-live="polite">
                       <span className="num readout-number">{sets.repsInSet}</span>{' '}
-                      <span className="unit">{isHold ? plural(sets.repsInSet, 'hold', 'holds') : plural(sets.repsInSet, 'rep', 'reps')}</span>
+                      <span className="unit">{plural(sets.repsInSet, isHold ? 'hold' : 'rep')}</span>
                     </p>
                     {holdTotal !== null && (
                       <div className="hold-meter">
                         <p className="hold-text">
-                          <span className="num">{view.holdSec}</span> of <span className="num">{holdTotal}</span> {plural(holdTotal, 'second', 'seconds')}
+                          <span className="num">{view.holdSec}</span> of <span className="num">{holdTotal}</span> {plural(holdTotal, 'second')}
                         </p>
                         <progress className="hold-bar" max={holdTotal} value={view.holdSec} aria-hidden="true" />
                       </div>
@@ -594,6 +590,20 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 </div>
               )}
 
+              {captureOn && (view.capture?.phase === 'choose' || view.capture?.tooBent) && (
+                <section className="card capture stack-s" aria-labelledby="capture-title">
+                  <h2 id="capture-title">{CAPTURE_TEXT.title}</h2>
+                  <p>{view.capture.tooBent ? CAPTURE_TEXT.bent : CAPTURE_TEXT.stuck}</p>
+                  {view.capture.phase === 'choose' && (
+                    <div className="stack-s">
+                      <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
+                        {CAPTURE_TEXT.lowestButton}
+                      </button>
+                      {!view.capture.canUseLowest && <p className="detail">{CAPTURE_TEXT.lowestNeedsLeg}</p>}
+                    </div>
+                  )}
+                </section>
+              )}
               {block !== null && (
                 <Notice icon="ruler">
                   <p>{LEG_TEXT.noReturnValue}</p>
@@ -629,6 +639,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
             <div className="frame">
               <video ref={videoRef} className="preview" muted playsInline aria-label="Camera view" />
+              {/* R2-04: while the app looks for the starting angle, one line and the progress sit on the picture. They take no room. */}
+              {captureOn && view.capture && (
+                <div className="capture-line">
+                  <p role="status">{view.capture.tooBent ? CAPTURE_TEXT.bentShort : view.capture.phase === 'choose' ? CAPTURE_TEXT.chooseShort : CAPTURE_TEXT.hold}</p>
+                  <progress className="capture-progress" max={100} value={view.capture.progress} aria-label={CAPTURE_TEXT.progress} />
+                </div>
+              )}
               <p role="status" className="session-start">
                 {startText}
               </p>

@@ -59,13 +59,33 @@ const reps = () => screen.getByText(/^reps?$/).previousElementSibling as HTMLEle
 const lowestButton = () => screen.queryByRole('button', { name: CAPTURE_TEXT.lowestButton });
 
 describe('Session with no baseline: the finding state', () => {
-  it('starts in "Find your starting angle" with a hold-still text, a progress bar and no verdict', () => {
-    open();
-    expect(screen.getByText(CAPTURE_TEXT.title)).toBeInTheDocument();
+  it('starts with a one-line hold-still text and a progress bar on the camera picture, and no verdict', () => {
+    const { source } = open();
+    moveAll(source, 0, 300);
     expect(screen.getByText(CAPTURE_TEXT.hold)).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: CAPTURE_TEXT.progress })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/stop, then start again/i);
     expect(lowestButton()).toBeNull();
+  });
+
+  // R2-04: the card took room above the numbers, so a phone showed the angle and the count under the bar.
+  it('takes no room between the camera and the numbers: the text sits on the camera picture, and no card shows yet', () => {
+    const { source } = open();
+    moveAll(source, 0, 300);
+    const frame = document.querySelector('.frame')!;
+    expect(frame).toContainElement(screen.getByText(CAPTURE_TEXT.hold));
+    expect(frame).toContainElement(screen.getByRole('progressbar'));
+    expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
+    expect(document.querySelector('.capture')).toBeNull();
+  });
+
+  it('puts the choice card after the numbers in the page, so the numbers stay above the fixed bar', () => {
+    const { source } = open();
+    moveAll(source, 0, 16000);
+    const card = document.querySelector('.capture')!;
+    expect(card).toHaveTextContent(CAPTURE_TEXT.title);
+    expect(document.querySelector('.counters')!.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(CAPTURE_TEXT.chooseShort)).toBeInTheDocument();
   });
 
   it('shows the progress while the leg holds still', () => {
@@ -168,6 +188,7 @@ describe('Session with no baseline: a hold at the bottom of a rep', () => {
     holdStill(source, 70, 0, 3000);
     expect(screen.queryByText(/Resting angle:/)).toBeNull();
     expect(screen.getByText(CAPTURE_TEXT.bent)).toBeInTheDocument();
+    expect(screen.getByText(CAPTURE_TEXT.bentShort)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/stop, then start again/i);
   });
 });
@@ -189,7 +210,7 @@ describe('Session with no baseline: the lowest angle is a bent knee', () => {
 describe('Session when no capture is needed', () => {
   it('shows no capture state when Setup measured a baseline, and records the source as still', () => {
     const { source, onEnd } = open({ baselineDeg: 5 });
-    expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
+    expect(screen.queryByText(CAPTURE_TEXT.hold)).toBeNull();
     expect(screen.queryByRole('progressbar')).toBeNull();
     playRep(source, 'left', 70);
     tick();

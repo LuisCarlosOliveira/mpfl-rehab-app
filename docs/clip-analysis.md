@@ -90,6 +90,20 @@ The text summary shows a warning when the other leg is found in more than 25 per
 
 Count the reps in the clip by eye. Compare this count with `summary.reps`.
 
+## The resting angle in the tool and in the app
+
+The tool takes the resting angle with `restingBaseline` and the still rule of Setup (`src/lib/still.ts`). It does not run the in-place capture of the Session screen (`createBaselineCapture` in `src/lib/baseline.ts`, F1). So the tool and the app can differ for a clip in which the person never holds still.
+
+The app has three sources of the resting angle:
+
+1. Setup: the leg holds still for 2 seconds (0.02 of the frame height). The resting angle is the median flexion of that window.
+2. Session, in place: when Setup gave none, Session runs the same still rule on the live samples. A still window at or above the angle where a rep starts (0.8 of the target) is a hold and not a start. The capture refuses it (the "bent knee" guard). The person lies or sits still to give a window.
+3. Session, by choice: after 15 seconds with no still window, the person can press the lowest-angle button. The app then takes the median of the lowest 25 percent of the angles of the last 15 seconds. The app never takes this value alone. The numbers 15 s and 25 percent are ENGINEERING values and need clinician review.
+
+The tool options `--baseline <deg>` and `--baseline-from <s>-<s>` stand in for source 1. The tool has no option for sources 2 and 3. A clip with `no-steady-window` shows the case in which the app asks the person to capture in place.
+
+Live test 1 (round 1, commit b451206) ran 8 clips as the fake webcam. No clip of the heel slide or the mini squat gave a resting angle. So the app counted 0 reps on every such run (`docs/live-test/exercise-flows.md`, checks 14, 18 and 50). The in-place capture is the fix. Its run on a real clip is PENDING (the re-test).
+
 ## Limits
 
 - One clip is a smoke test. It is not validation. It cannot give a margin.
@@ -125,9 +139,11 @@ Use them in `chromium.launch({ args: [...] })`. The page must also have the perm
 What Chromium does with the file:
 
 - The picture has the size of the file. A test run with a 640 x 360 file gave a video of 640 x 360 in the page. Chromium did not change it to the size that the page asks for.
-- Chromium plays the file again from the start when it ends. This is the documented behavior of the fake camera. The test runs did not check the restart.
+- Chromium plays the file again from the start when it ends. This is the documented behavior of the fake camera. The live tests of 2026-11-08 saw it. A 60 second run shows a clip about two times. The restart causes a gap of about 5 seconds in the message log (`docs/live-test/exercise-flows.md`, `docs/live-test/pairing.md`).
 - An MJPEG file has no rotation flag. The script makes the picture upright first, with `ffmpeg`.
 - An MJPEG file holds no frame rate. Chromium plays it at 30 frames each second. The script sets 30 frames each second.
 - The stream has no sound. The app asks for video only.
-- The file is a recording of a person. Keep it out of the repository.
+- The file is a recording of a person. Keep it out of the repository. The privacy rule holds for every output: frames, stills and clips stay in the scratch folder.
+- How the live tests used it: Playwright with the three launch arguments and the permission `camera`. Each run had a fresh profile and used the built app in `dist`. The app asked for video only and made no request to another origin (`docs/live-test/exercise-flows.md`, privacy inspection).
+- The picture is not the same as a phone picture. The clips are studio recordings of a person who is far from the camera. The setup check reached the countdown in 1 of 3 runs on clip 04 and in no run on the other clips. A recording by the product owner at 2 to 2.5 m can behave in another way (PENDING).
 - The live angle in the app comes from live detection, with real time and dropped frames. It can differ from the offline numbers of Method A. See [accuracy](accuracy.md).

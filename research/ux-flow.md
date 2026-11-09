@@ -238,7 +238,7 @@ The check uses the pose loop (`src/pose/loop.ts`). It runs in the Setup screen a
 | 2 | Hip, knee or ankle of the operated side has visibility below 0.5 (the gate of FR7), and the other side is clearer | "Turn so your operated leg faces the camera." |
 | 3 | Same as 2, and the other side is not clearer | "Your hip, knee and ankle must show. Remove anything that covers your leg." |
 | 4 | A leg landmark or the foot is within 5 percent of a frame edge (PROPOSAL) | "Move back. Show your whole leg." |
-| 5 | Leg length is less than 30 percent of the long frame side (PROPOSAL) | "Move closer." |
+| 5 | Leg length is less than 30 percent of the frame extent along the direction of the leg, which is the width for a lying leg and the height for a standing leg (PROPOSAL, changed on 2026-11-09, the old base was the long frame side) | "Move closer." |
 | 6 | Hips are not one above the other in the image: not side-on (PROPOSAL, needs T13) | "Turn side-on to the camera." |
 | 7 | Hip, knee and ankle move more than 2 percent of frame height in 2 seconds (PROPOSAL) | "Hold still for 2 seconds." |
 | 8 | All rules pass | "The camera sees your hip, knee and ankle." Then a timer of 5 seconds starts. |

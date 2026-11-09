@@ -182,3 +182,38 @@ export function appReducer(state: AppState, action: Action): AppState {
       };
   }
 }
+
+/** What the Back button of the browser does. A reducer action, or one of two words: the Session stops, or nothing happens. null: no screen is behind. */
+export type BackStep = Action | 'stop-session' | 'stay' | null;
+
+const HOME: Action = { type: 'open', screen: 'home' };
+
+/**
+ * F3: the Back button of the browser acts like the Back, Cancel or Stop button of the screen. It never opens a new path.
+ * So it never opens Setup, Session or the red-flag screen (FR5). The app keeps no data in the history.
+ * The Summary stays: a Back press must not drop a session that the person has not saved yet.
+ */
+export function backStep(state: AppState): BackStep {
+  switch (state.screen) {
+    case 'home':
+      return null;
+    case 'load':
+    case 'privacy':
+      return state.hasProtocol ? (state.screen === 'load' ? HOME : { type: 'privacy-seen' }) : null;
+    case 'session':
+      return 'stop-session';
+    case 'summary':
+      return 'stay';
+    case 'clinician':
+      return { type: 'open', screen: 'data' };
+    case 'plan':
+      return { type: 'open', screen: 'onboarding' };
+    case 'confirm':
+      return { type: 'plan-kept' };
+    case 'onboarding':
+    case 'referral':
+      return state.hasProtocol ? HOME : { type: 'open', screen: 'load' };
+    default:
+      return HOME; // redflag, setup, dashboard, data, companion, update
+  }
+}
