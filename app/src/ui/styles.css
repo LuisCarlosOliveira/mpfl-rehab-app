@@ -1921,3 +1921,312 @@ main h3 {
 .capture-progress::-moz-progress-bar {
   background: var(--primary);
 }
+
+/* ===== W1: Session screen (UI study U3, U4, U6, U8, U10, U17, L3-06). Appended block. Reuses .counters, .readout, .notice and .capture-progress. ===== */
+/* U17: one set of motion tokens. No bounce. Nothing is longer than 300 ms. */
+:root {
+  --dur-press: 120ms;
+  --dur-swap: 160ms;
+  --dur-dialog: 200ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* U4: the live numbers keep one width, so the digits and the unit do not move. */
+.readout-number {
+  min-width: 3ch;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.readout-label {
+  max-width: none;
+  color: var(--muted);
+  font-size: var(--step-m1);
+  font-weight: 600;
+  line-height: 1.2;
+}
+/* U10: a button keeps its width when the label changes. */
+.session-swap {
+  min-width: 9.5rem;
+}
+/* L3-06: the fixed bar can hold two rows, so the page leaves room for both. */
+.session {
+  padding-bottom: 11rem;
+}
+.session-notices {
+  margin-bottom: var(--s-4);
+}
+/* U3: on a phone the camera is first. The count is on the left and the angle on the right, in one card. */
+@media (max-width: 61.99rem) {
+  .session-grid .frame {
+    order: -1;
+  }
+  /* The picture takes 42 percent of the height, and less on a short screen, so the count and the angle stay above the bar. */
+  .session-grid .preview {
+    max-height: min(42svh, max(7rem, 100svh - 32rem));
+  }
+}
+@media (max-width: 39.99rem) {
+  .counters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .counters > .readout + .readout {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+  .counters > .counters-head {
+    order: -2;
+  }
+  .counters > .readout-reps {
+    order: -1;
+    border-top: 0;
+    border-left: 0;
+  }
+  .counters > .readout {
+    padding: var(--s-3);
+  }
+  /* The unit sits under the number here, so the number starts at the left edge with the unit. */
+  .counters .readout-number {
+    text-align: start;
+  }
+  .counters > .readout:not(.readout-reps) {
+    border-left: 1px solid var(--line);
+  }
+}
+/* U10: the start step sits on the camera picture, so it takes no room and nothing below it moves. */
+.session-start {
+  position: absolute;
+  inset-inline: var(--s-3);
+  bottom: var(--s-3);
+  max-width: none;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-m);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--step-m1);
+  font-weight: 600;
+  text-align: center;
+}
+.session-start:empty {
+  display: none;
+}
+/* U6: the hold timer is a thin bar and a text. It has no goal marker and no colour change. */
+.hold-meter {
+  display: grid;
+  gap: var(--s-2);
+}
+.hold-text {
+  max-width: none;
+  font-size: var(--step-1);
+  font-weight: 650;
+}
+.hold-bar {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  appearance: none;
+  border: 0;
+  border-radius: var(--r-s);
+  background: var(--sunken);
+  overflow: hidden;
+}
+.hold-bar::-webkit-progress-bar {
+  background: var(--sunken);
+}
+.hold-bar::-webkit-progress-value {
+  background: var(--primary);
+}
+.hold-bar::-moz-progress-bar {
+  background: var(--primary);
+}
+/* U8: the rest panel replaces the live card. It fades in with opacity only. */
+.rest-title {
+  margin: 0;
+}
+.rest-title:focus {
+  outline: none; /* the focus moves here only to announce the panel. The title is not a control. */
+}
+.rest-panel {
+  transition: opacity var(--dur-swap) var(--ease-out);
+  @starting-style {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-panel {
+    transition: opacity 120ms linear !important;
+  }
+}
+/* ===== end of W1 ===== */
+
+/* ===== W2 START: Setup start steps, body map, numbered guide. Appended block. Keep this block together. ===== */
+/* The Start camera button keeps its width when the label changes (Start camera, Starting the camera, Try again). */
+.btn-swap {
+  min-width: calc(20ch + 2.5rem + var(--s-2) + 3.5rem);
+}
+.start-status {
+  display: grid;
+  gap: var(--s-1);
+  font-weight: 650;
+}
+.load-progress {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: 0.75rem;
+  appearance: none;
+  border: 1px solid var(--edge);
+  border-radius: var(--r-s);
+  background: var(--sunken);
+  overflow: hidden;
+}
+.load-progress::-webkit-progress-bar {
+  background: var(--sunken);
+}
+.load-progress::-webkit-progress-value {
+  background: var(--primary);
+}
+.load-progress::-moz-progress-bar {
+  background: var(--primary);
+}
+
+/* The body map lies on the camera picture. It has the same box and the same mirror as the picture. No transition: a point moves with the data. */
+.body-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.mirrored {
+  scale: -1 1;
+}
+.body-map line,
+.body-map path,
+.body-map circle {
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bm-soft-line {
+  stroke: #ffffffb3;
+  stroke-width: 1.5px;
+}
+.bm-halo {
+  stroke: #120b0ab3;
+  fill: none;
+}
+.bm-core {
+  stroke: #ffffff;
+  fill: none;
+}
+.bm-halo.bm-chosen,
+.bm-halo.bm-arc {
+  stroke-width: 10px;
+}
+.bm-core.bm-chosen {
+  stroke-width: 4px;
+}
+.bm-halo.bm-other {
+  stroke-width: 6px;
+  opacity: 0.7;
+}
+.bm-core.bm-other {
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+  opacity: 0.7;
+}
+.bm-arc.bm-core {
+  stroke-width: 3px;
+}
+.bm-joint {
+  stroke: #120b0ab3;
+  stroke-width: 3px;
+  fill: #ffffff;
+}
+.bm-joint.bm-other {
+  opacity: 0.7;
+}
+.bm-knee {
+  fill: #007e8f;
+  stroke: #ffffff;
+  stroke-width: 3px;
+}
+.bm-label {
+  fill: #ffffff;
+  stroke: #120b0a; /* the width of the outline is an svg attribute, set from the size of the picture */
+  paint-order: stroke;
+  font-family: var(--font-text);
+  font-weight: 700;
+}
+.body-map-switch {
+  min-height: 48px;
+  width: fit-content;
+}
+/* Numbered labels in the guide drawings and the numbers of the guide steps (U13, U14). */
+.fg-mark-line {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+.fg-mark-dot {
+  fill: var(--fig-accent);
+}
+.fg-mark-text {
+  fill: var(--raised);
+  font-family: var(--font-num);
+  font-weight: 750;
+}
+.guide-num {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--chart);
+  color: var(--raised);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+/* ===== W2 END ===== */
+
+/* ===== W3 START: tap target of the notices link, import drop area states, fixed-width buttons, chart bits. Appended block. Keep this block together. ===== */
+/* L3-05: a link that stands alone in a row has a target of 48 px. */
+.tap-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* U12: the drop area changes its border and its fill between states. No green and no red. */
+.dropzone[data-state='over'] {
+  background: var(--primary-soft);
+  border: 2px solid var(--primary);
+}
+.dropzone[data-state='reading'] {
+  border-style: solid;
+}
+.dropzone[data-state='refused'] {
+  border: 2px solid var(--accent-ink);
+}
+.dropzone .drop-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  margin: 0;
+  max-width: none;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+.dropzone {
+  transition:
+    background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* U9: an export button keeps its width while its label changes (Export JSON file, Exporting, Done). */
+.btn-keep {
+  min-width: 14rem;
+  justify-content: center;
+}
+/* ===== W3 END ===== */

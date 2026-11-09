@@ -65,7 +65,8 @@ async function newPage(browser: Browser, baseURL: string): Promise<{ page: Page;
 
 const PHONE_BUTTON = 'Use this phone as the second camera';
 const OPEN_STEP = 'Add a second camera (optional)';
-const status = (page: Page) => page.getByRole('status');
+// The Wake Lock notice is also a status. Headless Chromium has no Wake Lock, so it shows there.
+const status = (page: Page) => page.getByRole('status').filter({ hasNotText: /screen/i });
 
 /** The laptop opens the step, starts pairing and returns the offer text from the paste field. */
 async function laptopOffer(a: Page) {

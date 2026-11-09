@@ -96,7 +96,7 @@ describe('Dashboard', () => {
     expect(container.querySelector('[style]:not(.recharts-wrapper):not(.recharts-surface)')).toBeNull();
     expect(container.querySelector('.recharts-line-curve')).not.toBeNull();
     const source = readFileSync('src/ui/Dashboard.tsx', 'utf8');
-    expect(source.match(/isAnimationActive=\{false\}/g)).toHaveLength(2);
+    expect(source.match(/isAnimationActive=\{false\}/g)).toHaveLength(3);
     expect(source).not.toMatch(/style=/);
   });
 

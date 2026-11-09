@@ -13,6 +13,9 @@ vi.mock('../../src/ui/Dashboard', () => {
 vi.mock('../../src/ui/DataScreen', () => {
   throw new Error('chunk DataScreen');
 });
+vi.mock('../../src/ui/Onboarding', () => {
+  throw new Error('chunk Onboarding');
+});
 
 beforeEach(() => {
   localStorage.clear();
@@ -41,5 +44,17 @@ describe('lazy screens that fail to load', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
     expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+  });
+});
+
+describe('the plan questions screen that fails to load', () => {
+  it('shows the same message, and Back to Home goes to the load screen when no protocol is stored', async () => {
+    markPrivacyNoticeSeen();
+    render(<App db={freshDb()} mode="demo" source={mockSource()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Create my plan' }));
+    expect(await screen.findByText('This screen could not load. Check your connection and try again.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to Home' })).toBeInTheDocument();
   });
 });

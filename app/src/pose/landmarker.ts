@@ -16,6 +16,21 @@ export interface Landmarker {
 let installed: typeof fetch | undefined;
 let original: typeof fetch | undefined;
 let users = 0;
+/** The byte counter of the load that runs now. Missing means no counting. */
+let onBytes: ((bytes: number) => void) | undefined;
+
+/** Count the bytes of a response body as they arrive. The response stays usable (headers, status, body). */
+function counted(res: Response): Response {
+  const report = onBytes;
+  if (!report || !res.ok || !res.body) return res;
+  const counter = new TransformStream<Uint8Array, Uint8Array>({
+    transform(chunk, controller) {
+      report(chunk.byteLength);
+      controller.enqueue(chunk);
+    },
+  });
+  return new Response(res.body.pipeThrough(counter), { status: res.status, statusText: res.statusText, headers: res.headers });
+}
 
 /**
  * MediaPipe sends usage metrics to odml.pa.googleapis.com with fetch (on close and every 60 s).
@@ -36,7 +51,7 @@ export function blockForeignFetch(): void {
       // A bad URL fails closed, as a rejected promise like fetch does.
       return Promise.reject(err instanceof TypeError ? err : new TypeError('Blocked: bad URL'));
     }
-    return real(input, init);
+    return real(input, init).then(counted);
   };
   globalThis.fetch = installed;
 }
@@ -49,9 +64,11 @@ function releaseFetchGuard() {
   original = undefined;
 }
 
-export async function createLandmarker(): Promise<Landmarker> {
+/** `onProgress` is optional. It gets the size of each chunk of the files that load from the own origin. */
+export async function createLandmarker(onProgress?: (bytes: number) => void): Promise<Landmarker> {
   users += 1;
   blockForeignFetch();
+  onBytes = onProgress;
   let pose: PoseLandmarker;
   try {
     const fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
@@ -61,9 +78,11 @@ export async function createLandmarker(): Promise<Landmarker> {
       numPoses: 1,
     });
   } catch (err) {
+    onBytes = undefined;
     releaseFetchGuard();
     throw err;
   }
+  onBytes = undefined;
   // MediaPipe needs strictly increasing timestamps in VIDEO mode.
   let lastTs = -1;
   let closed = false;

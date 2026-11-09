@@ -11,6 +11,10 @@ export type SourceView = View;
 
 export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number) => void;
 
+/** The step of the start that runs now. The model step carries the bytes that came in so far. */
+export type StartProgress = { step: 'camera' } | { step: 'model'; loadedBytes: number };
+export type ProgressHandler = (progress: StartProgress) => void;
+
 export type StartResult = { ok: true } | { ok: false; error: CameraError };
 
 export interface LandmarkSource {
@@ -19,8 +23,9 @@ export interface LandmarkSource {
    * Start the camera (if it does not run yet) and call `onFrame` for each frame.
    * A second call while the source runs only replaces the handler and the preview element.
    * Pass a video element to show the preview. Without one, the source uses a hidden element.
+   * `onProgress` is optional. It names each start step that runs (the camera, then the model).
    */
-  start(onFrame: FrameHandler, preview?: HTMLVideoElement | null): Promise<StartResult>;
+  start(onFrame: FrameHandler, preview?: HTMLVideoElement | null, onProgress?: ProgressHandler): Promise<StartResult>;
   /** Stop the loop and every camera track. It is safe to call at any time. */
   stop(): void;
   /** Width divided by height of the video. The angle function needs it. */
@@ -33,6 +38,7 @@ const MODEL_ERROR: CameraError = {
 };
 const STOPPED: CameraError = { kind: 'other', message: 'The camera was stopped.' };
 const DEFAULT_ASPECT = 16 / 9;
+const REPORT_EVERY_MS = 200; // the screen gets the byte count at most 5 times each second
 
 export interface CameraSourceOptions extends CameraOptions {
   /** The view tag of this camera. The default is the side view. */
@@ -66,12 +72,13 @@ export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOp
 
   return {
     view,
-    async start(onFrame, preview) {
+    async start(onFrame, preview, onProgress) {
       const mine = ++generation;
       stopLoop();
       // The camera layer can end the tracks alone (tab hidden, device removed). Then ask again.
       if (stream && stream.getTracks().every((t) => t.readyState === 'ended')) stream = null;
       if (!stream) {
+        onProgress?.({ step: 'camera' });
         const camera = await startCamera(options);
         if (mine !== generation) {
           if (camera.ok) camera.stream.getTracks().forEach((t) => t.stop());
@@ -83,7 +90,19 @@ export function cameraSource({ view = 'side', ...cameraOptions }: CameraSourceOp
       if (!landmarker) {
         try {
           const { createLandmarker } = await import('./landmarker');
-          const made = await createLandmarker();
+          onProgress?.({ step: 'model', loadedBytes: 0 });
+          let loaded = 0;
+          let lastReport = performance.now();
+          const made = await createLandmarker(
+            onProgress &&
+              ((bytes) => {
+                loaded += bytes;
+                const now = performance.now();
+                if (now - lastReport < REPORT_EVERY_MS) return;
+                lastReport = now;
+                onProgress({ step: 'model', loadedBytes: loaded });
+              }),
+          );
           if (mine !== generation) {
             made.close();
             return { ok: false, error: STOPPED };

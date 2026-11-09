@@ -46,7 +46,7 @@ describe('Session sets: display', () => {
     expect(screen.queryByText(/^Set \d/)).toBeNull();
     expect(screen.queryByText(/Reps in this set/)).toBeNull();
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('reps')).toBeInTheDocument();
+    expect(screen.getByText(/^reps?$/)).toBeInTheDocument();
   });
 });
 
@@ -56,7 +56,7 @@ describe('Session sets: labels in the counter header', () => {
     const card = document.querySelector('.counters')!;
     const setLabel = screen.getByText('Set 1 of 2');
     const repsLabel = screen.getByText('Reps in this set: 0 of 2');
-    const repNumber = screen.getByText('reps').previousElementSibling!;
+    const repNumber = screen.getByText(/^reps?$/).previousElementSibling!;
     for (const label of [setLabel, repsLabel]) {
       expect(card.contains(label)).toBe(true);
       expect(Boolean(label.compareDocumentPosition(repNumber) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
@@ -83,7 +83,7 @@ describe('Session sets: pause between sets', () => {
     const { source, audio } = setup(TWO_BY_TWO);
     const t = playRep(source, 'left', 60);
     playRep(source, 'left', 60, t);
-    const notice = screen.getByText(SET_TEXT.setComplete).closest('.notice')!;
+    const notice = screen.getByText('Set 1 done. Rest when you are ready.').closest('.notice')!;
     expect(notice).not.toHaveClass('notice-strong');
     expect(notice).toHaveAttribute('role', 'status');
     expect(document.querySelector('[role="alert"]')).toBeEmptyDOMElement();
@@ -109,7 +109,7 @@ describe('Session sets: pause between sets', () => {
     press('Start next set');
     expect(screen.getByText('Set 2 of 2')).toBeInTheDocument();
     expect(screen.getByText('Reps in this set: 0 of 2')).toBeInTheDocument();
-    expect(screen.queryByText(SET_TEXT.setComplete)).toBeNull();
+    expect(screen.queryByText('Set 1 done. Rest when you are ready.')).toBeNull();
     noButton('Start next set');
   });
 
@@ -189,7 +189,7 @@ describe('Session: the Count this rep button (PROPOSAL)', () => {
     press('Count this rep');
     expect(screen.getByText('Reps in this set: 1 of 2')).toBeInTheDocument();
     press('Count this rep');
-    expect(screen.getByText(SET_TEXT.setComplete)).toBeInTheDocument();
+    expect(screen.getByText('Set 1 done. Rest when you are ready.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Count this rep' })).toBeDisabled();
     press('Start next set');
     press('Count this rep');

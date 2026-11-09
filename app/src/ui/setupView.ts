@@ -34,6 +34,32 @@ export function ruleRows(current: SetupRuleId): RuleRowState[] {
   }));
 }
 
+/** The same chips as ruleRows. The rules that are not seen come first, so the person reads what to fix at the top (U19). */
+export function orderedRuleRows(current: SetupRuleId): RuleRowState[] {
+  const rows = ruleRows(current);
+  return [...rows.filter((r) => r.word === 'not seen'), ...rows.filter((r) => r.word === 'seen')];
+}
+
+/**
+ * Bytes that the model load fetches: the WASM file and the model file of public/models.
+ * A test reads both files and keeps this number equal to their size.
+ */
+export const MODEL_BYTES = 20_381_100;
+const megabytes = (bytes: number) => (bytes / 1e6).toFixed(1);
+
+// Texts of the start steps (U10). Plain and neutral. The model step shows the real bytes when the loader reports them.
+export const startText = {
+  camera: 'Asking for the camera',
+  model: (loadedBytes: number) =>
+    loadedBytes > 0
+      ? `Loading the pose model, ${megabytes(loadedBytes)} of ${megabytes(MODEL_BYTES)} MB`
+      : `Loading the pose model, ${megabytes(MODEL_BYTES)} MB`,
+  cameraOn: 'The camera is on. The pose model is loading.',
+  ready: 'Ready',
+  slow: 'This takes longer than usual. Keep this page open.',
+  progress: 'Pose model download',
+} as const;
+
 /** Whole seconds left, rounded up, or null when no countdown runs. */
 export function countdownSeconds(leftMs: number | null): number | null {
   return leftMs === null ? null : Math.ceil(leftMs / 1000);

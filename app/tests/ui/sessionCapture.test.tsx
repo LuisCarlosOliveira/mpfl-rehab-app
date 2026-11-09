@@ -55,7 +55,7 @@ function moveAll(source: MockSource, from: number, ms: number): number {
 
 // The angle that the app reads from the synthetic leg at the aspect of the mock source (16:9).
 const rest = (f: number) => Math.round(flexion(kneeAngle(...selectLeg(legLandmarks('left', f, { hip: { x: 0.5, y: 0.3 } }), 'left'), 16 / 9)) as number);
-const reps = () => screen.getByText('reps').previousElementSibling as HTMLElement;
+const reps = () => screen.getByText(/^reps?$/).previousElementSibling as HTMLElement;
 const lowestButton = () => screen.queryByRole('button', { name: CAPTURE_TEXT.lowestButton });
 
 describe('Session with no baseline: the finding state', () => {

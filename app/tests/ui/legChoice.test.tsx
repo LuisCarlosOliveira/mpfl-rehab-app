@@ -262,7 +262,7 @@ describe('Session: counting notices', () => {
     expect(screen.getByText(LEG_TEXT.noReturnValue)).toBeInTheDocument();
     playRep(source, 'left', 70);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('0');
     expect(screen.getByText('degrees').previousElementSibling).not.toHaveTextContent('--');
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(onEnd.mock.calls[0]![1]).toMatchObject({ reps: 0 });
@@ -274,7 +274,7 @@ describe('Session: counting notices', () => {
     expect(screen.getByText(CAPTURE_TEXT.title)).toBeInTheDocument();
     playRep(source, 'left', 70);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('0');
   });
 
   it('shows no counting notice when both values are present, and counts the rep', () => {
@@ -283,7 +283,7 @@ describe('Session: counting notices', () => {
     expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
     playRep(source, 'left', 70); // the rep returns to 0, which is within 18 of the baseline of 20
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('1');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('1');
   });
 });
 
@@ -292,14 +292,14 @@ describe('Session: the chosen leg and the far leg note', () => {
     const { source } = session({ side: 'right' });
     playRep(source, 'right', 70);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('1');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('1');
   });
 
   it('does not count the movement of the other leg', () => {
     const { source } = session({ side: 'right' });
     playRep(source, 'left', 70);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('0');
   });
 
   it('shows the far leg note when the chosen leg is on the far side', () => {
@@ -376,7 +376,7 @@ describe('Session: the moving-leg note', () => {
     expect(screen.getByText(LEG_TEXT.identity)).toBeInTheDocument();
     playRep(source, 'left', 70, t);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('1');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('1');
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     expect(onEnd.mock.calls[0]![1].reps).toBe(1);
   });
@@ -386,7 +386,7 @@ describe('Session: the moving-leg note', () => {
     const t = run(source, () => 0, (i) => swing(i), 0, 13);
     playRep(source, 'right', 70, t);
     tick();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('0');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('0');
   });
 
   it('says what to do and uses no verdict word', () => {
@@ -432,7 +432,7 @@ describe('App: the choice reaches the pipeline and the record', () => {
     playRep(source, 'right', 70, 10000); // only the chosen leg moves. The protocol leg is left, so a pipeline on the protocol leg counts 0.
     act(() => void vi.advanceTimersByTime(250));
     vi.useRealTimers();
-    expect(screen.getByText('reps').previousElementSibling).toHaveTextContent('1');
+    expect(screen.getByText(/^reps?$/).previousElementSibling).toHaveTextContent('1');
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
     await screen.findByRole('heading', { level: 1, name: 'Summary' });
     fireEvent.click(screen.getByRole('radio', { name: '1' }));

@@ -43,7 +43,7 @@ describe('pain question between sets', () => {
     const { source } = setup(THREE_BY_ONE);
     expect(radios()).toHaveLength(0);
     oneRep(source);
-    expect(screen.getByText(SET_TEXT.setComplete)).toBeInTheDocument();
+    expect(screen.getByText('Set 1 done. Rest when you are ready.')).toBeInTheDocument();
     expect(screen.getByText(question)).toBeInTheDocument();
     expect(radios()).toHaveLength(11);
     expect(screen.getByRole('group', { name: question })).toBeInTheDocument();

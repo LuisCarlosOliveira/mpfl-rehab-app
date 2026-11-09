@@ -52,6 +52,17 @@ while IFS= read -r hit; do
   hits=1
 done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.json' --include='*.html' -e 'getImageData' "${paths[@]}" 2>/dev/null)
 
+# Frame drawing: a canvas, getContext and drawImage are banned in every file except
+# pairing/qrReader.ts. A screen (the body map for example) draws from landmark numbers as SVG and
+# never draws a frame. The marker does not help outside the reader.
+while IFS= read -r hit; do
+  [ -z "$hit" ] && continue
+  file="${hit%%:*}"
+  if reader_ok "$file"; then continue; fi
+  echo "$hit"
+  hits=1
+done < <(grep -rHniE --include='*.ts' --include='*.tsx' --include='*.html' -e 'drawImage' -e "createElement\(['\"]canvas" -e '<canvas' -e 'getContext\(' "${paths[@]}" 2>/dev/null)
+
 # Patient text: the word ban applies to the files that hold text a patient reads:
 # any file under a ui folder, cues.ts, redflags.ts and camera.ts.
 words='correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone'

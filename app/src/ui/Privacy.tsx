@@ -33,7 +33,7 @@ export function Privacy({ onDone }: { onDone: () => void }) {
       </ul>
       {/* A fixed same-origin link. The text and the target never come from file data (NFR10). The file is in public/. */}
       <p className="mt">
-        <a href="/THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener noreferrer">
+        <a className="tap-link" href="/THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener noreferrer">
           Third-party software notices (opens in a new tab)
         </a>
       </p>

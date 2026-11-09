@@ -50,7 +50,7 @@ test('My data exports JSON with the method of the angle, and CSV', async ({ page
   expect(parsed.schemaVersion).toBe(1);
   expect(parsed.sessions).toHaveLength(1);
   expect(JSON.stringify(parsed)).not.toMatch(/data:image|blob:/);
-  await expect(page.getByRole('status')).toContainText('The file is ready.');
+  await expect(page.getByRole('status')).toContainText(/The file is ready: mpfl-sessions-\d{4}-\d{2}-\d{2}\.json\./);
 
   const csv = await downloadOf(page, 'Export CSV file');
   expect(csv.name).toMatch(/^mpfl-sessions-\d{4}-\d{2}-\d{2}\.csv$/);

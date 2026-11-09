@@ -118,11 +118,11 @@ test.beforeEach(async ({ page }) => {
 test('Create my plan: questions, plan, Why this plan, a real click on Confirm, and Home shows the plan', async ({ page }) => {
   await toLoad(page);
   await press(page, 'Create my plan');
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'Did your care team give you a written rehab plan?' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Did your care team give you a written rehab plan?' });
   await expect(page.getByText('Question 1 of 11')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
   await radio(page, 'No'); await next(page);
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'Which operation did you have?' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Which operation did you have?' });
   await page.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'No', exact: true })).toBeChecked();
   await next(page);
@@ -138,13 +138,13 @@ test('Create my plan: questions, plan, Why this plan, a real click on Confirm, a
   await expect(page.getByRole('checkbox')).toHaveCount(9);
   await next(page);
   await radio(page, '2'); await radio(page, 'No swelling'); await next(page);
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'Check your answers' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Check your answers' });
   // Nothing is stored before Confirm.
   expect(await readStore(page, 'protocol')).toHaveLength(0);
   expect(await readInputs(page)).toHaveLength(0);
 
   await press(page, 'Make my plan');
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'Your plan' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Your plan' });
   await expect(page.getByText(GENERATED_BANNER)).toBeVisible();
   await page.getByRole('heading', { name: 'Why this plan' }).click();
   const rules = page.getByRole('list', { name: 'Rules behind your plan' });
@@ -157,7 +157,7 @@ test('Create my plan: questions, plan, Why this plan, a real click on Confirm, a
   expect(await readStore(page, 'protocol')).toHaveLength(0);
 
   await press(page, 'Use this plan');
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'Confirm your plan' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Confirm your plan' });
   expect(await readStore(page, 'protocol')).toHaveLength(0);
   await press(page, 'Confirm'); // a real click: Playwright sends a trusted event
   await expectScreen(page, 'Home');
@@ -184,7 +184,7 @@ test('a combined operation shows the refusal at once and stores nothing', async 
   await radio(page, 'No'); await next(page);
   await radio(page, 'MPFL reconstruction with another procedure'); await next(page);
   await expectScreen(page, 'No plan from the app');
-  expect(await focused(page)).toMatchObject({ tag: 'H1', text: 'No plan from the app' });
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'No plan from the app' });
   await expect(page.getByText(/MPFL reconstruction with no other procedure/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Use this plan' })).toHaveCount(0);
   expect(await readStore(page, 'protocol')).toHaveLength(0);

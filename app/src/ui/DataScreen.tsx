@@ -8,6 +8,7 @@ import { Notice } from './Notice';
 import './dashboard.css';
 
 const REVOKE_DELAY_MS = 1000;
+const DONE_LABEL_MS = 2500; // how long an export button shows "Done" before it shows its first label again
 
 interface Props {
   db: MpflDb;
@@ -31,15 +32,34 @@ function download(text: string, filename: string, type: string) {
 
 type Notice = { kind: 'status' | 'alert'; text: string } | null;
 
+/** The steps of the import drop area (U12). The text of a refusal and the name of the file come as plain text. */
+type Drop =
+  | { kind: 'idle' }
+  | { kind: 'reading'; file: string }
+  | { kind: 'refused'; text: string }
+  | { kind: 'imported'; text: string };
+
+const sizeText = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
+const fileText = (file: File) => `${file.name} (${sizeText(file.size)})`;
+const isJsonFile = (file: File) => /\.json$/i.test(file.name) || file.type === 'application/json';
+const DROP_TEXT = { idle: 'Drop the session file here, or choose a file', over: 'Drop to open' } as const;
+
 export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
   const [count, setCount] = useState<number | null>(null);
   const [lastExport, setLastExport] = useState(getLastExport());
   const [notice, setNotice] = useState<Notice>(null);
+  const [drop, setDrop] = useState<Drop>({ kind: 'idle' });
+  const [over, setOver] = useState(false);
+  const [exporting, setExporting] = useState<'json' | 'csv' | null>(null);
+  const [exported, setExported] = useState<'json' | 'csv' | null>(null);
+  const doneTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [eraseError, setEraseError] = useState(false);
   const [erasing, setErasing] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const eraseButton = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => () => clearTimeout(doneTimer.current), []);
 
   const refreshCount = () => db.sessions.count().then(setCount, () => setCount(0));
   useEffect(() => {
@@ -54,39 +74,57 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
   }, [db]);
 
   async function exportAs(kind: 'json' | 'csv') {
+    const day = new Date().toISOString().slice(0, 10);
+    const filename = `mpfl-sessions-${day}.${kind}`;
+    setExporting(kind);
+    setNotice(null);
     try {
-      const day = new Date().toISOString().slice(0, 10);
-      if (kind === 'json') download(await exportJson(db), `mpfl-sessions-${day}.json`, 'application/json');
-      else download(await exportCsv(db), `mpfl-sessions-${day}.csv`, 'text/csv');
+      if (kind === 'json') download(await exportJson(db), filename, 'application/json');
+      else download(await exportCsv(db), filename, 'text/csv');
     } catch {
+      setExporting(null);
       setNotice({ kind: 'alert', text: 'The export did not work. Try again.' });
       return;
     }
     markExported(new Date());
     setLastExport(getLastExport());
-    setNotice({ kind: 'status', text: 'The file is ready. Look in your downloads folder.' });
+    setExporting(null);
+    setExported(kind);
+    doneTimer.current = setTimeout(() => setExported(null), DONE_LABEL_MS);
+    setNotice({ kind: 'status', text: `The file is ready: ${filename}. Look in your downloads folder.` });
   }
 
-  async function importFile(input: HTMLInputElement) {
-    const file = input.files?.[0];
-    input.value = ''; // the same file can be picked again
-    if (!file) return;
+  async function importFrom(file: File) {
     if (file.size > MAX_IMPORT_BYTES) {
-      setNotice({ kind: 'alert', text: 'The file is larger than 5 MB.' });
+      setDrop({ kind: 'refused', text: `The file is larger than 5 MB. File: ${fileText(file)}.` });
       return;
     }
+    if (!isJsonFile(file)) {
+      setDrop({ kind: 'refused', text: `The app opens JSON session files only. File: ${fileText(file)}.` });
+      return;
+    }
+    setDrop({ kind: 'reading', file: fileText(file) });
     try {
       const result = await importSessions(db, await file.text());
       if (result.ok) {
-        setNotice({ kind: 'status', text: `Imported ${result.imported} ${result.imported === 1 ? 'session' : 'sessions'}.` });
+        setDrop({ kind: 'imported', text: `Imported ${result.imported} ${result.imported === 1 ? 'session' : 'sessions'}. File: ${fileText(file)}.` });
         void refreshCount();
       } else {
-        setNotice({ kind: 'alert', text: result.error.message });
+        setDrop({ kind: 'refused', text: `${result.error.message} File: ${fileText(file)}.` });
       }
     } catch {
-      setNotice({ kind: 'alert', text: 'The app cannot read or save this file on this device. Try again.' });
+      setDrop({ kind: 'refused', text: 'The app cannot read or save this file on this device. Try again.' });
     }
   }
+
+  function importChosen(input: HTMLInputElement) {
+    const file = input.files?.[0];
+    input.value = ''; // the same file can be picked again
+    if (file) void importFrom(file);
+  }
+
+  const reading = drop.kind === 'reading';
+  const state = reading ? 'reading' : over ? 'over' : drop.kind;
 
   function openDialog() {
     setEraseError(false);
@@ -109,6 +147,8 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
   }
 
   const noSessions = count === null || count === 0;
+  const busy = exporting !== null || exported !== null;
+  const exportLabel = (kind: 'json' | 'csv') => (exporting === kind ? 'Exporting' : exported === kind ? 'Done' : `Export ${kind.toUpperCase()} file`);
 
   return (
     <section aria-labelledby="data-title">
@@ -150,13 +190,13 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
               </li>
             </ul>
             <div className="actions">
-              <button type="button" className="btn btn-primary" disabled={noSessions} onClick={() => void exportAs('json')}>
-                <Icon name="download" size={18} />
-                Export JSON file
+              <button type="button" className="btn btn-primary btn-keep" disabled={noSessions || busy} onClick={() => void exportAs('json')}>
+                <Icon name={exported === 'json' ? 'check' : 'download'} size={18} />
+                {exportLabel('json')}
               </button>
-              <button type="button" className="btn" disabled={noSessions} onClick={() => void exportAs('csv')}>
-                <Icon name="download" size={18} />
-                Export CSV file
+              <button type="button" className="btn btn-keep" disabled={noSessions || busy} onClick={() => void exportAs('csv')}>
+                <Icon name={exported === 'csv' ? 'check' : 'download'} size={18} />
+                {exportLabel('csv')}
               </button>
             </div>
             <p className="detail">The JSON file can be imported again. The CSV file is for reading in a spreadsheet.</p>
@@ -165,12 +205,42 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician }: Props) {
           <section className="card stack-s" aria-labelledby="import-title">
             <h2 id="import-title">Import</h2>
             <p>Import adds the sessions of a file to this device. It stops and adds nothing if any session is already stored.</p>
-            <div className="dropzone field">
+            <div
+              className="dropzone field"
+              data-state={state}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (!reading) setOver(true);
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setOver(false);
+                const file = e.dataTransfer.files[0];
+                if (file && !reading) void importFrom(file);
+              }}
+            >
               <span className="drop-icon">
                 <Icon name="upload" size={26} />
               </span>
               <label htmlFor="import-file">Import a session file (.json)</label>
-              <input id="import-file" type="file" accept=".json,application/json" onChange={(e) => void importFile(e.target)} />
+              <input id="import-file" type="file" accept=".json,application/json" disabled={reading} onChange={(e) => importChosen(e.target)} />
+              {drop.kind === 'refused' && !over ? (
+                <p className="drop-line" role="alert">
+                  <Icon name="triangle-alert" size={20} />
+                  {drop.text}
+                </p>
+              ) : drop.kind === 'imported' && !over ? (
+                <p className="drop-line" role="status">
+                  <Icon name="check" size={20} />
+                  {drop.text}
+                </p>
+              ) : (
+                <p className="drop-line">{over ? DROP_TEXT.over : drop.kind === 'reading' ? `Reading ${drop.file}` : DROP_TEXT.idle}</p>
+              )}
             </div>
           </section>
 

@@ -34,8 +34,21 @@ describe('public/_headers', () => {
     expect(block('/index.html')).toContain('Cache-Control: no-cache');
   });
 
-  it('checks the model file on every load, because its name has no hash', () => {
-    expect(block('/models/*')).toContain('Cache-Control: no-cache');
+  it('keeps the model files for one day and then asks the host again, because their names have no hash (L4-10)', () => {
+    const rule = block('/models/*');
+    expect(rule).toContain('Cache-Control: public, max-age=86400, must-revalidate');
+    expect(rule).not.toContain('immutable');
+  });
+
+  it('parses: each path line starts with a slash, each other line is indented, comments start with a hash (L4-10)', () => {
+    const lines = headers.split('\n').filter((l) => l.trim() !== '');
+    for (const l of lines) {
+      if (/^\S/.test(l)) expect(l, `path or comment line: ${l}`).toMatch(/^(\/\S*|#.*)$/);
+      else expect(l, `header line: ${l}`).toMatch(/^\s+[A-Za-z][A-Za-z-]*: \S/);
+    }
+    const paths = lines.filter((l) => l.startsWith('/'));
+    expect(new Set(paths).size).toBe(paths.length);
+    expect(paths).toEqual(['/*', '/', '/index.html', '/assets/*', '/models/*']);
   });
 
   it('has no rewrite rule, because the app has no URL routes', () => {

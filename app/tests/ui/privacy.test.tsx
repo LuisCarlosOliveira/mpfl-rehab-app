@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Privacy } from '../../src/ui/Privacy';
 
@@ -28,6 +29,26 @@ describe('Privacy screen, notices link (finding S-04)', () => {
     for (const svg of container.querySelectorAll('svg')) expect(svg).toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByRole('button', { name: 'I understand' })).toHaveClass('btn-lg');
     expect(container.querySelector('[style]')).toBeNull();
+  });
+});
+
+describe('Privacy screen, the notices link target (L3-05)', () => {
+  it('uses the tap-link class and is a keyboard stop in the page order', () => {
+    render(<Privacy onDone={vi.fn()} />);
+    const link = screen.getByRole('link', { name: /third-party software notices/i });
+    expect(link).toHaveClass('tap-link');
+    expect(link).not.toHaveAttribute('tabindex', '-1');
+    const stops = screen.getAllByRole('link').concat(screen.getAllByRole('button'));
+    expect(stops).toContain(link);
+  });
+
+  it('the tap-link rule in styles.css gives a height and a width of at least 48 px', () => {
+    const css = readFileSync('src/ui/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const rule = /\.tap-link\s*\{([^}]*)\}/.exec(css);
+    expect(rule, 'a .tap-link rule exists').not.toBeNull();
+    expect(rule![1]).toMatch(/min-height:\s*48px/);
+    expect(rule![1]).toMatch(/min-width:\s*48px/);
+    expect(rule![1]).toMatch(/display:\s*inline-flex/);
   });
 });
 

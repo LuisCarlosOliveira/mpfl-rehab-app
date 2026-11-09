@@ -68,6 +68,40 @@ function Label({ label, size, className = 'fg-text' }: { label: Pick<FigureLabel
   );
 }
 
+/** A numbered label of a guide step. It sits on a thin leader line next to the part of the drawing that the step names. */
+export interface Mark {
+  n: number;
+  at: Joint | 'arrow' | 'lens';
+  /** Where the circle sits from the point, in label sizes. The default is straight up. */
+  dx?: number;
+  dy?: number;
+}
+
+/** The number in a circle, with a leader line to the point. The circle stays inside the box. */
+function Marks({ marks, where, box, size }: { marks: Mark[]; where: (at: Mark['at']) => Point; box: Box; size: number }) {
+  const r = size * 0.75;
+  return (
+    <>
+      {marks.map(({ n, at, dx = 0, dy = -2.4 }) => {
+        const p = where(at);
+        const c = {
+          x: Math.min(box.x + box.w - r - 1, Math.max(box.x + r + 1, p.x + size * dx)),
+          y: Math.min(box.y + box.h - r - 1, Math.max(box.y + r + 1, p.y + size * dy)),
+        };
+        return (
+          <g key={n}>
+            <line className="fg-mark-line" x1={num(p.x)} y1={num(p.y)} x2={num(c.x)} y2={num(c.y)} />
+            <circle className="fg-mark-dot" cx={num(c.x)} cy={num(c.y)} r={num(r)} />
+            <text className="fg-mark-text" x={num(c.x)} y={num(c.y)} fontSize={num(size * 1.1)} textAnchor="middle" dominantBaseline="central">
+              {n}
+            </text>
+          </g>
+        );
+      })}
+    </>
+  );
+}
+
 interface Props {
   kind: GuideKind;
   frame: FigureFrame;
@@ -78,9 +112,11 @@ interface Props {
   kneeDeg?: number;
   /** "chosen" when the drawn leg is not the operated leg. The legend then says "Your chosen leg". */
   legend?: LegLegend;
+  /** Numbered labels of the guide steps. Without marks the drawing has no number. */
+  marks?: Mark[];
 }
 
-export function GuideFigure({ kind, frame, side, description, kneeDeg, legend }: Props) {
+export function GuideFigure({ kind, frame, side, description, kneeDeg, legend, marks }: Props) {
   const fig = figureFor(kind, frame, side, kneeDeg, legend);
   const arc = frame === 'end' ? arcPath(fig.kneeArc) : null;
   const byKey = (key: FigureLabel['key']) => fig.labels.find((l) => l.key === key)!;
@@ -113,6 +149,7 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg, legend }:
       <circle className="fg-knee-mark" cx={fig.legendRing.center.x} cy={fig.legendRing.center.y} r={fig.legendRing.r} />
       <Label label={byKey('operatedLeg')} size={size} />
       {fig.kneeArc.label && <Label label={fig.kneeArc.label} size={size} className="fg-text-accent" />}
+      {marks && <Marks marks={marks} box={view} size={size} where={(at) => (at === 'arrow' ? fig.arrow.to : at === 'lens' ? fig.points.hip : fig.points[at])} />}
     </svg>
   );
 }
@@ -124,10 +161,12 @@ interface CameraProps {
   description: string;
   /** "chosen" when the drawn leg is not the operated leg. */
   legend?: LegLegend;
+  /** Numbered labels of the guide steps. */
+  marks?: Mark[];
 }
 
 /** The camera placement drawing: the person in profile, the phone on a stand at knee height, the view cone and the distance. */
-export function CameraFigure({ view, kind, description, legend }: CameraProps) {
+export function CameraFigure({ view, kind, description, legend, marks }: CameraProps) {
   const plan = cameraPlan(view, kind, legend);
   const { figure: f, phone, distance } = plan;
   const size = plan.labelSize;
@@ -162,6 +201,7 @@ export function CameraFigure({ view, kind, description, legend }: CameraProps) {
       <Label label={label('operatedLeg')} size={size} />
       <line className="fg-level" x1={plan.legendLevel.from.x} y1={plan.legendLevel.from.y} x2={plan.legendLevel.to.x} y2={plan.legendLevel.to.y} />
       <Label label={label('height')} size={size} />
+      {marks && <Marks marks={marks} box={plan.box} size={size} where={(at) => (at === 'lens' ? phone.lens : at === 'arrow' ? distance.to : f.points[at])} />}
     </svg>
   );
 }

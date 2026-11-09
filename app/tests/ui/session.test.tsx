@@ -31,14 +31,14 @@ function riseAboveLimit(source: MockSource): number {
 }
 
 const polite = () => document.querySelector('[role="status"][aria-live="polite"]')!;
-const alertRegion = () => document.querySelector('[role="alert"]')!;
+const alertRegion = () => document.querySelector('.cue-alert')!;
 
 describe('Session screen', () => {
   it('shows the angle label and the unit next to the number', () => {
     setup();
     expect(screen.getByText(/estimated angle, not a medical measurement/)).toBeInTheDocument();
     expect(screen.getByText('degrees')).toBeInTheDocument();
-    expect(screen.getByText('reps')).toBeInTheDocument();
+    expect(screen.getByText(/^reps?$/)).toBeInTheDocument();
   });
 
   it('starts the source once with a frame handler', () => {
@@ -88,7 +88,7 @@ describe('Session screen', () => {
     playRep(source, 'left', 60);
     tick();
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('reps')).toBeInTheDocument();
+    expect(screen.getByText(/^reps?$/)).toBeInTheDocument();
   });
 
   it('an in-range rep shows no message', () => {
@@ -318,7 +318,7 @@ describe('Session camera loss', () => {
 
   it('keeps the plain waiting text as a status, with no retry button', () => {
     setup();
-    expect(document.querySelector('.notice[role="status"]')).toHaveTextContent('Waiting for the camera.');
+    expect(document.querySelector('.session-start')).toHaveTextContent('Asking for the camera and loading the pose model.');
     expect(screen.queryByRole('button', { name: 'Try the camera again' })).toBeNull();
   });
 });

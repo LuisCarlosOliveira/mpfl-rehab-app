@@ -168,7 +168,8 @@ async function openScreens(browser: Browser, role: 'host' | 'companion', options
 }
 
 const textOf = (page: Page, label: string) => page.getByLabel(label, { exact: true }).inputValue();
-const status = (page: Page) => page.getByRole('status');
+// The Wake Lock notice is also a status. Headless Chromium has no Wake Lock, so it shows there.
+const status = (page: Page) => page.getByRole('status').filter({ hasNotText: /screen/i });
 
 /** The host shows its code. The phone reads it from pasted text. The phone shows its code. The host reads it. */
 async function pairBoth(host: Page, phone: Page, tamper?: (text: string) => Promise<string>) {

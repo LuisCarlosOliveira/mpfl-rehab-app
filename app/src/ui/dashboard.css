@@ -20,8 +20,31 @@
   color: var(--muted);
   font-size: var(--step-m1);
 }
+.dash-range {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step-m1);
+}
+.dash-last {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
 .dash-chart-box {
   padding-top: var(--s-2);
+}
+/* The camera error band: the chart colour at a low opacity. No border, no line, never a range to reach. */
+.dash-chart-box .recharts-area-area {
+  fill: var(--chart);
+  fill-opacity: 0.12;
+  stroke: none;
+}
+.dash-band-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step-m1);
 }
 /* The chart has a fixed size and scales down with its box. The numbers are in the table. */
 .dash-chart-box .recharts-wrapper {

@@ -18,16 +18,17 @@ import { guideFor, type GuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
 import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
-import type { FrameHandler, LandmarkSource } from '../pose/source';
+import type { FrameHandler, LandmarkSource, StartProgress } from '../pose/source';
 import { ASK_SURGEON_TEXT } from './askSurgeon';
-import { CameraFigure, GuideFigure } from './GuideFigure';
+import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
+import { CameraFigure, GuideFigure, type Mark } from './GuideFigure';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
-import { CAPTURE_TEXT, LEG_TEXT, countdownSeconds, ruleRows } from './setupView';
+import { CAPTURE_TEXT, LEG_TEXT, MODEL_BYTES, countdownSeconds, orderedRuleRows, startText } from './setupView';
 import type { Sound } from './sound';
 
-type Camera = { kind: 'idle' } | { kind: 'starting' } | { kind: 'running' } | { kind: 'error'; message: string };
+type Camera = { kind: 'idle' } | { kind: 'starting'; progress: StartProgress; slow: boolean } | { kind: 'running' } | { kind: 'error'; message: string };
 
 interface Live {
   rule: SetupRuleId;
@@ -58,6 +59,11 @@ const CAMERA_CAPTION: Record<CameraView, string> = {
   side: `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`,
   front: `Camera in front of you, at knee height, ${distanceText()} away.`,
 };
+const SLOW_START_MS = 8000;
+// The numbers in the drawings match the six notes of the guide: 1 start position, 2 leg and camera, 3 hands, 4 range, 5 speed, 6 what the camera must see.
+const START_MARKS: Mark[] = [{ n: 1, at: 'hip', dx: 1, dy: -2.6 }, { n: 2, at: 'knee', dx: -0.5, dy: -2.8 }, { n: 3, at: 'hand', dx: 0, dy: -2.6 }];
+const END_MARKS: Mark[] = [{ n: 4, at: 'knee', dx: 3, dy: -3 }, { n: 5, at: 'arrow', dx: 0, dy: -2.6 }];
+const CAMERA_MARKS: Mark[] = [{ n: 6, at: 'lens', dx: -2.4, dy: 2.4 }];
 const SIDES: Side[] = ['left', 'right'];
 const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
 
@@ -92,6 +98,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const [confirmedOther, setConfirmedOther] = useState(false);
   const baseline = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const map = useRef<BodyMapHandle>(null);
   const handedOff = useRef(false);
   const lastKey = useRef('');
   const announced = useRef('');
@@ -118,6 +125,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
+    map.current?.update(landmarks, timeMs, source.aspect()); // svg attributes only, no React state
     const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: doneLying(kind) ? 'lying' : 'upright' }, timeMs);
     if (out.announce !== null) announced.current = out.announce;
     baseline.current = out.baselineDeg;
@@ -138,10 +146,20 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   async function startCamera() {
     sound.unlock(); // inside the press, so the browser allows audio later
-    setCamera({ kind: 'starting' });
-    const result = await source.start(onFrame, videoRef.current);
+    setCamera({ kind: 'starting', progress: { step: 'camera' }, slow: false });
+    const result = await source.start(onFrame, videoRef.current, (progress) =>
+      setCamera((c) => (c.kind === 'starting' ? { ...c, progress } : c)),
+    );
     setCamera(result.ok ? { kind: 'running' } : { kind: 'error', message: result.error.message });
   }
+
+  // After 8 seconds on one start step, one plain sentence tells the person to wait.
+  const startStep = camera.kind === 'starting' ? camera.progress.step : null;
+  useEffect(() => {
+    if (!startStep) return;
+    const timer = setTimeout(() => setCamera((c) => (c.kind === 'starting' ? { ...c, slow: true } : c)), SLOW_START_MS);
+    return () => clearTimeout(timer);
+  }, [startStep]);
 
   // The pairing is stopped on every way out of this step. A connected phone stays on for the camera step and the Session.
   const stopPairing = () => {
@@ -186,7 +204,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   ];
   const cameraGuide = cameraViews.map((view) => (
     <figure key={view} className="figure-card camera-guide">
-      <CameraFigure view={view} kind={kind} legend={legend} description={CAMERA_CAPTION[view]} />
+      <CameraFigure view={view} kind={kind} legend={legend} marks={step === 'guide' ? CAMERA_MARKS : undefined} description={CAMERA_CAPTION[view]} />
       <figcaption>{CAMERA_CAPTION[view]}</figcaption>
     </figure>
   ));
@@ -307,8 +325,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           </fieldset>
           <h2>Position guide</h2>
           <div className="guide-figures">
-            <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
-            <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} description={`End position. ${guide.range}`} />
+            <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} marks={START_MARKS} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
+            <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />
             {cameraGuide}
           </div>
           <div className="stack-s">
@@ -319,9 +337,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           </div>
           {returnNotice}
           <dl className="guide-notes">
-            {notes.map((n) => (
+            {notes.map((n, i) => (
               <div key={n.label} className="guide-note">
                 <dt>
+                  <span className="guide-num">{i + 1}</span>
                   <Icon name={n.icon} size={22} />
                   {n.label}
                 </dt>
@@ -358,7 +377,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
         <div className="setup-grid">
           <div className="stack">
             <div className="frame">
-              <video ref={videoRef} className="preview" hidden={!running} muted playsInline aria-label="Camera view" />
+              <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
+              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} />}
               {!running && (
                 <div className="frame-empty">
                   <Icon name="camera" size={44} />
@@ -366,6 +386,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 </div>
               )}
             </div>
+            {running && <BodyMapSwitch />}
 
             {running && (
               <div className="stack-s">
@@ -392,7 +413,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                   </Notice>
                 )}
                 <ul className="rule-list" aria-label="Camera check">
-                  {ruleRows(live?.rule ?? 'no-pose').map((row) => {
+                  {orderedRuleRows(live?.rule ?? 'no-pose').map((row) => {
                     const seen = row.word === 'seen';
                     return (
                       <li key={row.label} className={seen ? 'rule rule-seen' : 'rule rule-missing'}>
@@ -413,6 +434,26 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
             <p role="status" aria-live="polite" className="visually-hidden">
               {live?.announced}
             </p>
+
+            {camera.kind === 'starting' && (
+              <div className="start-status" role="status">
+                <p>{camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}</p>
+                {camera.progress.step === 'model' && (
+                  <>
+                    <p className="detail">{startText.cameraOn}</p>
+                    {camera.progress.loadedBytes > 0 && (
+                      <progress className="load-progress" max={MODEL_BYTES} value={camera.progress.loadedBytes} aria-label={startText.progress} />
+                    )}
+                  </>
+                )}
+                {camera.slow && <p className="detail">{startText.slow}</p>}
+              </div>
+            )}
+            {running && (
+              <p className="start-status" role="status">
+                {startText.ready}
+              </p>
+            )}
 
             {camera.kind === 'error' && (
               <Notice role="alert" icon="triangle-alert">
@@ -449,7 +490,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 </button>
               </>
             ) : (
-              <button type="button" className="btn btn-primary btn-lg" disabled={camera.kind === 'starting'} onClick={() => void startCamera()}>
+              <button type="button" className="btn btn-primary btn-lg btn-swap" disabled={camera.kind === 'starting'} onClick={() => void startCamera()}>
                 <Icon name={camera.kind === 'error' ? 'refresh-cw' : 'camera'} size={20} />
                 {camera.kind === 'error' ? 'Try again' : camera.kind === 'starting' ? 'Starting the camera' : 'Start camera'}
               </button>

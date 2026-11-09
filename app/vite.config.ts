@@ -19,6 +19,15 @@ const headers = Object.fromEntries(
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Zod and its setup (src/zodConfig.ts) share one chunk. The setup turns the eval test of zod off. A schema that
+        // loads before the setup would run the test, and the CSP reports that as an issue (L4-02 split side effect).
+        codeSplitting: { groups: [{ name: 'zod', test: /node_modules\/zod\/|src\/zodConfig\.ts/, priority: 20 }] },
+      },
+    },
+  },
   preview: { headers },
   test: {
     environment: 'jsdom',

@@ -39,6 +39,36 @@ describe('startPoseLoop with requestVideoFrameCallback', () => {
     expect(stats.medianDetectMs()).toBeGreaterThanOrEqual(0);
   });
 
+  it('gives detect and onFrame the exact frame time of each video frame, in order', () => {
+    const f = fakeVideo(true);
+    const detectTimes: number[] = [];
+    const frameTimes: number[] = [];
+    startPoseLoop({
+      video: f.video,
+      detect: (_v, t) => (detectTimes.push(t), null),
+      onFrame: (_lm, t) => void frameTimes.push(t),
+      onError: vi.fn(),
+    });
+    for (const t of [1000, 1042.5, 1075, 1200]) f.fire(t);
+    expect(detectTimes).toEqual([1000, 1042.5, 1075, 1200]);
+    expect(frameTimes).toEqual(detectTimes);
+  });
+
+  it('asks for the next frame only after detect ended, so late frames are skipped and never queued', () => {
+    const f = fakeVideo(true);
+    const pendingDuringDetect: number[] = [];
+    startPoseLoop({
+      video: f.video,
+      detect: () => (pendingDuringDetect.push(f.pending()), null),
+      onFrame: vi.fn(),
+      onError: vi.fn(),
+    });
+    f.fire(10);
+    f.fire(20);
+    expect(pendingDuringDetect).toEqual([0, 0]);
+    expect(f.pending()).toBe(1);
+  });
+
   it('stop cancels the next callback', () => {
     const f = fakeVideo(true);
     const detect = vi.fn(() => null);

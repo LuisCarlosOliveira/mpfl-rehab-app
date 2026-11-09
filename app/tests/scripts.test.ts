@@ -280,6 +280,53 @@ describe('claims-check.sh: pixel read only in the QR reader (T12b)', () => {
   });
 });
 
+// Live test follow-up: the body map and any other screen must draw from numbers, never from pixels.
+// A frame must never be drawn to a canvas outside the QR reader.
+describe('claims-check.sh: no frame drawing outside the QR reader', () => {
+  const drawLine = 'ctx.drawImage(video, 0, 0);';
+
+  it('fails on drawImage in a screen file', () => {
+    put('ui/BodyMap.tsx', `const x = 1;\n${drawLine}\n`);
+    const r = run(claims, dir);
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain('BodyMap.tsx');
+  });
+
+  it('fails on drawImage even with the allow marker outside the reader', () => {
+    put('ui/BodyMap.tsx', `${drawLine} // claims-check:allow`);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('fails on a created canvas, a canvas tag and getContext outside the reader', () => {
+    for (const line of ["const c = document.createElement('canvas');", 'return <canvas />;', "const g = c.getContext('2d');"]) {
+      put('ui/Other.tsx', line);
+      expect(run(claims, dir).status, line).toBe(1);
+    }
+  });
+
+  it('fails in a file named qrReader.ts that sits in another folder', () => {
+    put('lib/pairing/qrReader.ts', drawLine);
+    expect(run(claims, dir).status).toBe(1);
+  });
+
+  it('passes for the drawing lines of pairing/qrReader.ts', () => {
+    put(
+      'pairing/qrReader.ts',
+      `const c = document.createElement('canvas');\nconst g = c.getContext('2d');\ng.drawImage(video, 0, 0);\n`,
+    );
+    expect(run(claims, dir).status).toBe(0);
+  });
+
+  it('accepts a single reader file', () => {
+    const file = put('pairing/qrReader.ts', drawLine);
+    expect(run(claims, file).status).toBe(0);
+  });
+
+  it('passes on the real source of the app', () => {
+    expect(run(claims, resolve(here, '../src')).status).toBe(0);
+  });
+});
+
 // T23b: the patterns that keep the save path of a generated plan to one place (FR4, FR30, FR31).
 describe('phase-check.sh: patterns for the confirm-before-save path', () => {
   describe('object key activePhase with a value', () => {

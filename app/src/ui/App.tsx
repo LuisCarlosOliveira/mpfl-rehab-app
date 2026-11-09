@@ -12,30 +12,37 @@ import type { LandmarkSource } from '../pose/source';
 import { appReducer, initialAppState } from './appState';
 import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
-import { ConfirmPlan } from './ConfirmPlan';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadError, retryableLazy } from './LoadError';
 import { LoadProtocol } from './LoadProtocol';
 import { Notice } from './Notice';
-import { Onboarding } from './Onboarding';
-import { PairCompanion } from './PairCompanion';
-import { PlanResult } from './PlanResult';
 import { Privacy } from './Privacy';
 import { createSound, type Sound } from './sound';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
-import { Session } from './Session';
-import { Setup } from './Setup';
 import { Brand, LoadingScreen } from './Shell';
-import { Summary } from './Summary';
-import { UpdatePlan } from './UpdatePlan';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
 // A chunk that cannot load shows the message of LoadError, and a new try asks for it again (L2-02).
 const Dashboard = retryableLazy(() => import('./Dashboard').then((m) => ({ default: m.Dashboard })));
 const DataScreen = retryableLazy(() => import('./DataScreen').then((m) => ({ default: m.DataScreen })));
 const ClinicianView = retryableLazy(() => import('./ClinicianView').then((m) => ({ default: m.ClinicianView })));
+
+// The plan generator, the exercise flow (the pose code starts only when a session starts) and the phone screen of the
+// second camera (QR code, jsQR) are not on the first screens either (L4-02). They load by the same rule.
+const ConfirmPlan = retryableLazy(() => import('./ConfirmPlan').then((m) => ({ default: m.ConfirmPlan })));
+const Onboarding = retryableLazy(() => import('./Onboarding').then((m) => ({ default: m.Onboarding })));
+const PairCompanion = retryableLazy(() => import('./PairCompanion').then((m) => ({ default: m.PairCompanion })));
+const PlanResult = retryableLazy(() => import('./PlanResult').then((m) => ({ default: m.PlanResult })));
+const Session = retryableLazy(() => import('./Session').then((m) => ({ default: m.Session })));
+const Setup = retryableLazy(() => import('./Setup').then((m) => ({ default: m.Setup })));
+const Summary = retryableLazy(() => import('./Summary').then((m) => ({ default: m.Summary })));
+const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ default: m.UpdatePlan })));
+
+// The screens that load on demand. The shell cannot move the focus to their heading while the chunk loads,
+// so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
+const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']);
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
@@ -272,19 +279,17 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         return <Progress db={db} onBack={() => dispatch({ type: 'open', screen: 'home' })} />;
       case 'data':
         return (
-          <FocusHeading key="data">
-            <DataScreen
-              db={db}
-              onBack={() => dispatch({ type: 'open', screen: 'home' })}
-              onErased={() => {
-                // Nothing of the old protocol stays in memory.
-                setProtocol(null);
-                setBootError(null);
-                dispatch({ type: 'erased' });
-              }}
-              onOpenClinician={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'clinician' }) : undefined}
-            />
-          </FocusHeading>
+          <DataScreen
+            db={db}
+            onBack={() => dispatch({ type: 'open', screen: 'home' })}
+            onErased={() => {
+              // Nothing of the old protocol stays in memory.
+              setProtocol(null);
+              setBootError(null);
+              dispatch({ type: 'erased' });
+            }}
+            onOpenClinician={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'clinician' }) : undefined}
+          />
         );
       case 'onboarding':
         return (
@@ -348,9 +353,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         return <PairCompanion onExit={() => dispatch({ type: 'open', screen: 'home' })} />;
       case 'clinician':
         return (
-          <FocusHeading key="clinician">
-            <ClinicianView mode={mode} now={now} onBack={() => dispatch({ type: 'open', screen: 'data' })} />
-          </FocusHeading>
+          <ClinicianView mode={mode} now={now} onBack={() => dispatch({ type: 'open', screen: 'data' })} />
         );
     }
     return (
@@ -384,7 +387,9 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
       <Brand />
       <main ref={main}>
         <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
-          <Suspense fallback={<LoadingScreen />}>{screen}</Suspense>
+          <Suspense fallback={<LoadingScreen />}>
+            {LAZY_SCREENS.has(state.screen) ? <FocusHeading key={state.screen}>{screen}</FocusHeading> : screen}
+          </Suspense>
         </LoadError>
       </main>
     </div>
