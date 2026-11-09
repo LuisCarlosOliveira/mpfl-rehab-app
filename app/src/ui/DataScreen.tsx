@@ -248,7 +248,6 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
           {onOpenPrivacy && (
             <section className="card stack-s" aria-labelledby="privacy-link-title">
               <h2 id="privacy-link-title">Privacy</h2>
-              <p>Read what the app stores and what it never sends.</p>
               <div className="actions">
                 <button type="button" className="btn" onClick={onOpenPrivacy}>
                   <Icon name="lock" size={18} />

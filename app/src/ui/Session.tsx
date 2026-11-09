@@ -480,7 +480,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const limit = exercise.maxFlexion;
   const scaleEnd = Math.max(120, limit === undefined ? 0 : Math.ceil((limit + 30) / 10) * 10);
   const at = (deg: number) => 3 + (Math.min(Math.max(deg, 0), scaleEnd) / scaleEnd) * 94;
-  // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It is a scale, not a goal.
+  // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It only shows the scale.
   const ticks = Array.from({ length: scaleEnd / 5 + 1 }, (_, i) => i * 5);
 
   return (

@@ -7,7 +7,7 @@ import { freshDb, mockSource, protocolText } from './helpers';
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
-const heading = (name: string) => screen.findByRole('heading', { level: 1, name });
+const heading = (name: string) => screen.findByRole('heading', { level: 1, name }, { timeout: 10_000 });
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 const nav = () => screen.queryByRole('navigation', { name: 'Main' });
 

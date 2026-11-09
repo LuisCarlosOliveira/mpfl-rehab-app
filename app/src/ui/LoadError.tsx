@@ -22,7 +22,7 @@ function Failed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), []);
   return (
-    <section aria-labelledby="load-error-title" className="narrow">
+    <section aria-labelledby="load-error-title" className="narrow error-screen">
       <header className="page-head">
         <h1 id="load-error-title" tabIndex={-1} ref={heading}>
           Screen not loaded
