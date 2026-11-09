@@ -109,7 +109,7 @@ describe('RedFlag screen', () => {
     expect(props.onCancel).toHaveBeenCalled();
   });
 
-  it('shows the block as a strong notice inside the alert region, and scrolls it into view', () => {
+  it('shows the block as a strong notice inside the alert region, in the sticky bar, and does not scroll', () => {
     const scroll = vi.fn();
     Element.prototype.scrollIntoView = scroll;
     setup();
@@ -117,7 +117,8 @@ describe('RedFlag screen', () => {
     const alert = screen.getByRole('alert');
     expect(within(alert).getByText(MESSAGES[RED_FLAGS[0]!.group])).toHaveClass('notice-title');
     expect(alert.querySelector('.notice-strong')).not.toBeNull();
-    expect(scroll).toHaveBeenCalledWith({ block: 'center' }); // no smooth scroll: nothing moves
+    expect(alert.closest('.action-bar')).not.toBeNull(); // the bar is sticky, so the block is always in view (D6)
+    expect(scroll).not.toHaveBeenCalled();
     delete (Element.prototype as Partial<Element>).scrollIntoView;
   });
 

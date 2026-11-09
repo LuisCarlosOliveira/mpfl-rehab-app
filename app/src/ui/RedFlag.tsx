@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, evaluateRedFlags, type RedFlagGroup } from '../lib/redflags';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
+import './flowV2.css';
 
 const GROUPS: { id: RedFlagGroup; legend: string; icon: IconName }[] = [
   { id: 'emergency', legend: 'Call emergency services if any of these is true', icon: 'siren' },
@@ -24,7 +25,6 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
 
   // Count one block for each visit, not one for each tick.
   const counted = useRef(false);
-  const notice = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (result.blocked && !counted.current) {
       counted.current = true;
@@ -32,13 +32,8 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
     }
   }, [result.blocked, onBlocked]);
 
-  // A sighted person who ticks a box far from the message must see it. No smooth scroll: nothing moves.
-  useEffect(() => {
-    if (result.blocked) notice.current?.scrollIntoView?.({ block: 'center' });
-  }, [result.blocked]);
-
   return (
-    <section aria-labelledby="redflag-title" className="narrow">
+    <section aria-labelledby="redflag-title" className="narrow v2-flow v2-redflag">
       <header className="page-head">
         <h1 id="redflag-title" tabIndex={-1}>
           Check before you exercise
@@ -73,7 +68,19 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
           </fieldset>
         ))}
 
-        <div role="alert" ref={notice}>
+      </div>
+
+      {/* The block lives in the sticky bar, so a person sees it at any scroll position. The disabled continue button stays in the page. */}
+      {result.blocked && (
+        <div className="redflag-after">
+          <button type="button" className="btn btn-primary btn-lg" disabled>
+            None of these apply. Continue
+          </button>
+        </div>
+      )}
+
+      <div className="action-bar" data-blocked={result.blocked ? 'true' : undefined}>
+        <div role="alert" className="redflag-block">
           {result.blocked && (
             <Notice tone="strong" icon="triangle-alert" title={result.message}>
               <p className="detail">{GENERAL_GUIDANCE_NOTE}</p>
@@ -81,12 +88,11 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
             </Notice>
           )}
         </div>
-      </div>
-
-      <div className="action-bar">
-        <button type="button" className="btn btn-primary btn-lg" disabled={result.blocked} onClick={onClear}>
-          None of these apply. Continue
-        </button>
+        {!result.blocked && (
+          <button type="button" className="btn btn-primary btn-lg" onClick={onClear}>
+            None of these apply. Continue
+          </button>
+        )}
         <button type="button" className="btn btn-lg" onClick={onCancel}>
           <Icon name="arrow-left" size={18} />
           Back to Home

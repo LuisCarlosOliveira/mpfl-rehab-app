@@ -51,39 +51,47 @@ describe('Setup, position guide step (FR28)', () => {
     const { source } = setup();
     expect(screen.getByRole('heading', { level: 1, name: 'Set up the camera' })).toBeInTheDocument();
     const guide = guideFor('heel-slide');
+    // B3: one step at a time. The six texts show one after the other, and all at once under "Show all steps".
     expect(screen.getByText(guide.startPosition)).toBeInTheDocument();
-    expect(screen.getByText(guide.legFacingCamera)).toBeInTheDocument();
-    expect(screen.getByText(guide.handsAndSupport)).toBeInTheDocument();
-    expect(screen.getByText(guide.range)).toBeInTheDocument();
-    expect(screen.getByText(guide.speed)).toBeInTheDocument();
-    expect(screen.getByText(guide.cameraMustSee)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show all steps' }));
+    for (const text of [guide.legFacingCamera, guide.handsAndSupport, guide.range, guide.speed, guide.cameraMustSee]) expect(screen.getByText(text)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Start camera' })).toBeNull();
     expect(source.start).not.toHaveBeenCalled();
   });
 
-  it('draws a start, an end and a camera figure as plain svg images with a text alternative', () => {
+  it('draws the start, the end and the camera figure as plain svg images with a text alternative, one at a time', () => {
     const { container } = setup();
     const guide = guideFor('heel-slide');
-    const images = screen.getAllByRole('img');
-    expect(images).toHaveLength(3);
-    expect(images[0]).toHaveAccessibleName(expect.stringContaining(guide.startPosition));
-    expect(images[1]).toHaveAccessibleName(expect.stringContaining(guide.range));
-    expect(images[2]).toHaveAccessibleName(/camera at the side of your chosen leg, at knee height, 2 to 2\.5 m away/i);
-    images.forEach((img) => expect(img.tagName.toLowerCase()).toBe('svg'));
+    const step = (n: number) => fireEvent.click(screen.getByRole('button', { name: new RegExp(`^Step ${n},`) }));
+    const only = () => {
+      const images = screen.getAllByRole('img');
+      expect(images).toHaveLength(1);
+      expect(images[0]!.tagName.toLowerCase()).toBe('svg');
+      return images[0]!;
+    };
+    expect(only()).toHaveAccessibleName(expect.stringContaining(guide.startPosition));
+    step(4);
+    expect(only()).toHaveAccessibleName(expect.stringContaining(guide.range));
+    step(6);
+    expect(only()).toHaveAccessibleName(/camera at the side of your chosen leg, at knee height, 2 to 2\.5 m away/i);
     expect(container.querySelector('foreignObject, image')).toBeNull();
   });
 
   it('shows the side view of the camera guide only, until a second view is decided', () => {
     setup();
+    fireEvent.click(screen.getByRole('button', { name: /^Step 6,/ }));
     expect(screen.getAllByText(/side view/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/front view/i)).toBeNull();
   });
 
   it('draws the end figure with the target of the exercise, and no number without a target', () => {
-    const { container } = setup(mockSource(), { targetFlexion: 75 });
-    expect(container.textContent).toContain(`75${String.fromCharCode(176)}`);
+    const endStep = () => fireEvent.click(screen.getByRole('button', { name: /^Step 4,/ }));
+    const withTarget = setup(mockSource(), { targetFlexion: 75 });
+    endStep();
+    expect(withTarget.container.textContent).toContain(`75${String.fromCharCode(176)}`);
     cleanup();
     const none = setup();
+    endStep();
     expect(none.container.textContent).not.toMatch(/\d\d${String.fromCharCode(176)}/);
   });
 
@@ -99,6 +107,7 @@ describe('Setup, position guide step (FR28)', () => {
 
   it('writes the six notes as a description list with a term and a description in each card', () => {
     const { container } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Show all steps' }));
     const list = container.querySelector('dl.guide-notes')!;
     const cards = [...list.children];
     expect(cards).toHaveLength(6);

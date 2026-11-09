@@ -10,13 +10,17 @@ import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, 
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
-import { CompanionEntry } from './CompanionEntry';
+import { COMPANION_BUTTON } from './CompanionEntry';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { notReadyText } from './notReady';
 import type { ExerciseKind } from './appState';
+import './flowV2.css';
+
+// The words of the phone card, now one row of the facts list. They stay as they were.
+const COMPANION_TEXT = 'This phone can be the second camera of the app on your laptop. It sends body points only. It records nothing and counts nothing.';
 
 const SURGEON_LABELS: Record<SurgeonField, string> = {
   brace: 'Brace',
@@ -103,7 +107,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
 
   return (
-    <section aria-labelledby="home-title">
+    <section aria-labelledby="home-title" className="v2-flow v2-home">
       <header className="page-head">
         <h1 id="home-title" tabIndex={-1}>
           Home
@@ -163,9 +167,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
               const featured = i === 0 && ready;
               return (
                 <li key={e.kind} className={featured ? 'exercise exercise-featured' : 'exercise'}>
-                  <span className="exercise-icon">
-                    <Icon name={EXERCISE_ICONS[e.kind]} size={featured ? 36 : 28} />
-                  </span>
+                  {featured && (
+                    <span className="exercise-icon">
+                      <Icon name={EXERCISE_ICONS[e.kind]} size={28} />
+                    </span>
+                  )}
                   <div className="exercise-body">
                     <h3 className="exercise-name">{name}</h3>
                     <ul className="chips">
@@ -231,6 +237,18 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                 <dt>Active phase</dt>
                 <dd>{phase ? `${phase.id}, ${phase.name}` : activePhase}</dd>
               </div>
+              {onOpenCompanion && (
+                <div className="fact-row fact-action">
+                  <dt>Second camera</dt>
+                  <dd>
+                    <button type="button" className="btn" onClick={onOpenCompanion}>
+                      <Icon name="phone" size={18} />
+                      {COMPANION_BUTTON}
+                    </button>
+                    <span className="detail">{COMPANION_TEXT}</span>
+                  </dd>
+                </div>
+              )}
             </dl>
             <div className="actions">
               {madeByApp && onUpdatePlan && !review && (
@@ -293,7 +311,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
             )}
           </section>
 
-          {onOpenCompanion && <CompanionEntry onOpen={onOpenCompanion} />}
         </div>
       </div>
     </section>
