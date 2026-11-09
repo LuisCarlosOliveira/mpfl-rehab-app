@@ -134,22 +134,25 @@
   padding-top: var(--s-3);
 }
 /* The second camera is one row of the facts list. */
-.v2-home .fact-action {
+.v2-home .facts .fact-row {
+  padding-block: var(--s-2);
+}
+.v2-home .facts .fact-action {
   flex-direction: column;
   align-items: stretch;
   gap: var(--s-2);
 }
-.v2-home .fact-action dd {
+.v2-home .facts .fact-action dd {
   display: grid;
   gap: var(--s-2);
   text-align: left;
 }
-.v2-home .fact-action .btn {
+.v2-home .facts .fact-action .btn {
   justify-content: flex-start;
   border: 1.5px solid var(--edge);
   background: var(--raised);
 }
-.v2-home .fact-action .detail {
+.v2-home .facts .fact-action .detail {
   font-weight: 500;
 }
 .v2-home .home-grid .disclosure > summary {
@@ -315,7 +318,33 @@
 
 /* ===== Setup guide (B3) ===== */
 .v2-setup {
-  gap: var(--s-4);
+  gap: var(--s-3);
+}
+.v2-setup .seg-cell,
+.v2-setup .seg-track[data-count='3'] .seg-cell {
+  min-height: 3.5rem;
+  padding-inline: var(--s-2);
+}
+.v2-setup .seg-hint {
+  margin-top: 0;
+  font-size: 0.8125rem;
+  line-height: 1.15;
+}
+.v2-setup .notice {
+  padding: var(--s-2) var(--s-3);
+}
+.v2-setup .notice > svg {
+  margin-top: 0.1rem;
+}
+.v2-setup .disclosure > summary {
+  min-height: 3.25rem;
+  padding-block: var(--s-1);
+}
+.v2-setup .disclosure > summary h2 {
+  font-size: var(--step-0);
+}
+.v2-setup .card-flat p {
+  margin: 0;
 }
 .v2-setup .disclosure,
 .v2-setup .card-flat {
@@ -367,7 +396,15 @@
 .v2-guide .guide-text {
   margin: 0;
   max-width: 60ch;
-  min-height: 3.2em;
+  min-height: 3.1em; /* two lines, so the buttons below do not jump from one step to the next */
+}
+.v2-guide .guide-figure {
+  display: grid;
+  gap: var(--s-1);
+}
+.v2-guide .guide-figure .detail {
+  margin: 0;
+  font-size: var(--step-m1);
 }
 .v2-guide .guide-nav {
   display: grid;
@@ -375,7 +412,7 @@
   gap: var(--s-3);
 }
 .v2-guide .guide-nav .btn {
-  min-height: var(--row);
+  min-height: var(--touch);
   font-size: var(--step-0);
 }
 .v2-guide .guide-dots {

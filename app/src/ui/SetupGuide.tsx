@@ -76,7 +76,12 @@ export function SetupGuide({
   );
   const endFigure = <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />;
   // Steps 1 to 3 name the start drawing, steps 4 and 5 the end drawing, step 6 the camera drawing.
-  const figureFor = (step: number) => (step <= 3 ? startFigure : step <= 5 ? endFigure : <div className="guide-camera">{cameraGuide}</div>);
+  const figureFor = (step: number) => (
+    <>
+      {step <= 3 ? startFigure : step <= 5 ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
+      <p className="detail">The drawing shows the movement. It is not your limit.</p>
+    </>
+  );
   return (
     <div className="stack v2-flow v2-setup">
       <Segmented
@@ -108,12 +113,9 @@ export function SetupGuide({
         )}
       </Segmented>
       <StepGuide steps={notes} figure={figureFor} />
-      <div className="stack-s">
-        <p className="detail">The drawing shows the movement. It is not your limit.</p>
-        <Notice icon="ruler">
-          <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
-        </Notice>
-      </div>
+      <Notice icon="ruler">
+        <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
+      </Notice>
       {returnNotice}
       <details className="card disclosure technique">
         <summary>
