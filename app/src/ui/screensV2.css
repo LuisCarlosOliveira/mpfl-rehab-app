@@ -25,10 +25,12 @@
   background: var(--ink);
 }
 .v2-screens .step-track-named {
+  flex-wrap: wrap; /* with big text a name needs its own row, and a word never breaks inside */
   gap: var(--s-2);
   align-items: flex-start;
 }
 .v2-screens .step-track-named .step-mark {
+  flex-basis: 5rem;
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -60,7 +62,7 @@
   background: var(--ink);
 }
 .v2-screens .step-mark-name {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* ---------- C1 question screens: one question, big, with full-width answer rows ---------- */

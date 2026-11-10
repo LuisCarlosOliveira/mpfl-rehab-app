@@ -283,16 +283,15 @@
 .v2-seg legend + * {
   clear: both;
 }
+/* The cells share the row. With big text each cell needs 7 rem, so they go one under the other and nothing clips. A 2 px gap shows the dividers. */
 .v2-seg .seg-track {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+  gap: 2px;
   overflow: hidden;
-  background: var(--raised);
+  background: var(--ink);
   border: 2px solid var(--ink);
   border-radius: var(--r-s);
-}
-.v2-seg .seg-track[data-count='3'] {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .v2-seg .seg-cell {
   position: relative;
@@ -303,13 +302,12 @@
   text-align: center;
   font-weight: 700;
   line-height: 1.2;
+  background: var(--raised);
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 .v2-seg .seg-track[data-count='3'] .seg-cell {
   min-height: 4rem;
-}
-.v2-seg .seg-cell + .seg-cell {
-  border-left: 2px solid var(--ink);
 }
 .v2-seg .seg-cell input {
   position: absolute;
