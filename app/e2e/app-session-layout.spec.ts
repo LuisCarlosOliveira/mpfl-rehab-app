@@ -228,6 +228,39 @@ for (const size of SIZES) {
   });
 }
 
+// V4: the unit of each number (degrees, reps) is fully inside the card that holds it and sits next to its number.
+// At 320 x 568 the angle unit may wrap under its number, but it stays inside the card.
+for (const size of [...SIZES, { width: 320, height: 568 }, { width: 1280, height: 800 }]) {
+  test(`V4 at ${size.width} x ${size.height}: the units are not clipped and sit next to their numbers`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+    const m = await page.evaluate(() => {
+      const card = document.querySelector(".counters")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".counters .readout")].map((readout) => {
+        // The digits, not the box: the box keeps a minimum width, so the digits can sit away from the unit.
+        const range = document.createRange();
+        range.selectNodeContents(readout.querySelector(".readout-number")!);
+        const num = range.getBoundingClientRect();
+        const unit = readout.querySelector(".unit")!;
+        const u = unit.getBoundingClientRect();
+        const text = unit.textContent ?? "";
+        return { text, unitLeft: u.left, unitRight: u.right, cardLeft: card.left, cardRight: card.right, gap: u.left - num.right, sameLine: u.top < num.bottom - 2, clippedByBox: unit.scrollWidth > unit.clientWidth + 1 };
+      });
+    });
+    expect(m).toHaveLength(2);
+    for (const u of m) {
+      expect(u.unitRight, `"${u.text}" ends inside the card`).toBeLessThanOrEqual(u.cardRight + 0.5);
+      expect(u.unitLeft, `"${u.text}" starts inside the card`).toBeGreaterThanOrEqual(u.cardLeft - 0.5);
+      expect(u.clippedByBox).toBe(false);
+      if (size.width !== 320) {
+        expect(u.sameLine, `"${u.text}" is on the line of its number`).toBe(true);
+        expect(u.gap, `"${u.text}" is next to its number`).toBeLessThanOrEqual(24);
+      }
+    }
+  });
+}
+
 // R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {
   test.use({ viewport: SIZES[0] });

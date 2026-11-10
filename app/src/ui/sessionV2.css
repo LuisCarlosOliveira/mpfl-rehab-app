@@ -160,6 +160,7 @@ body:has(.v2-session) main {
 .v2-session .readout-number {
   font-weight: 800;
   line-height: 1;
+  text-align: end; /* the digits sit next to the unit, and the box keeps its width so nothing jumps */
 }
 .v2-session .readout .unit {
   font-size: var(--step-m1);
@@ -198,7 +199,7 @@ body:has(.v2-session) main {
 }
 @media (max-width: 39.99rem) {
   .v2-session .counters {
-    grid-template-columns: minmax(0, 1fr) 8rem; /* the count has a fixed column, so a long text never squeezes the angle */
+    grid-template-columns: minmax(0, 1fr) 9rem; /* the count has a fixed column, so a long text never squeezes the angle */
   }
   .v2-session .counters > .readout {
     padding: var(--s-1) 0;
@@ -236,6 +237,9 @@ body:has(.v2-session) main {
 }
 /* The numbers stay 72 px (--step-hero). Only on a short phone under 32 rem wide they are 56 px (3.5 rem), never smaller, so the unit stays on the line of the number and the block fits above the bar. */
 @media (max-width: 31.99rem) and (max-height: 41rem) {
+  .v2-session .counters {
+    grid-template-columns: minmax(0, 1fr) 8rem;
+  }
   .v2-session .readout-number {
     font-size: 3.5rem;
   }
