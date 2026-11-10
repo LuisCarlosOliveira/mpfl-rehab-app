@@ -113,7 +113,11 @@ describe('clean chart cards (U15)', () => {
 
   it('says that a chart without a value has no last value', () => {
     const { container } = render(<DashboardCharts sessions={[session({ peakFlexion: null, reps: null })]} />);
-    expect(section(container, 'Peak knee bend').querySelector('.dash-last')).toHaveTextContent('No values.');
+    // The words show once, in the summary line. The last-value line stays empty.
+    const card = section(container, 'Peak knee bend');
+    expect(card.querySelector('.dash-last')).toBeEmptyDOMElement();
+    expect(card.querySelector('.dash-note')).toHaveTextContent('No values.');
+    expect(card.textContent!.match(/No values\./g)).toHaveLength(1);
   });
 
   it('keeps the text of the summary for a screen reader, and hides the repeat of the last value', () => {
@@ -141,5 +145,21 @@ describe('clean chart cards (U15)', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
     const ticks = [...section(container, 'Peak knee bend, mini squat').querySelectorAll('.recharts-cartesian-axis-tick-value')].map((t) => t.textContent!).filter((t) => /[A-Z][a-z]{2}$/.test(t));
     expect(ticks).toEqual(['1 Nov', '8 Nov']);
+  });
+});
+
+describe('the words of a chart summary', () => {
+  it('says 1 value, not 1 values', () => {
+    const { container } = render(<DashboardCharts sessions={[session({ peakFlexion: 62, reps: 8, pain: 3 })]} />);
+    for (const card of container.querySelectorAll<HTMLElement>('section.dash-chart')) {
+      expect(card.querySelector('.dash-note')!.textContent).toMatch(/^1 value\. /);
+    }
+  });
+
+  it('shows the straight leg raise chart with the angle at the top', () => {
+    const { container } = render(<DashboardCharts sessions={[session({ exercise: 'straight-leg-raise', peakFlexion: 4, topFlexion: 22, reps: 5, pain: 1 })]} />);
+    const card = section(container, 'Angle at the top, straight leg raise');
+    expect(card.querySelector('.dash-last')).toHaveTextContent('22 degrees');
+    expect(container.textContent).not.toContain('Peak knee bend, straight leg raise');
   });
 });

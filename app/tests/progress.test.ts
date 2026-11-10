@@ -59,20 +59,25 @@ describe('buildProgressSeries', () => {
     expect(s.peakFlexion[0]?.points[0]?.degrees).toBeNull();
   });
 
-  // Audit 3 and live test R2-08: a straight leg raise peak above the plausible limit is a camera misread. The chart and
-  // its table must not plot it as a knee bend. The stored value in the record stays as it is.
-  it('plots no peak for a straight leg raise above the plausible limit, and keeps a plausible one', () => {
+  // Audit 3 and live test R2-08: a straight leg raise value above the plausible limit is a camera misread. The chart and
+  // its table must not plot it. The stored value in the record stays as it is.
+  // The straight leg raise chart shows the angle at the top (the app shows and stores it). Its knee bend stays near straight and says little.
+  it('plots the angle at the top for a straight leg raise, plots nothing above the plausible limit, and titles the series for that', () => {
     const list = [
-      session({ exercise: 'straight-leg-raise', peakFlexion: 165, date: '2026-11-01T10:00:00.000Z' }),
-      session({ exercise: 'straight-leg-raise', peakFlexion: 12, date: '2026-11-02T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 12, topFlexion: 165, date: '2026-11-01T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 165, topFlexion: 12, date: '2026-11-02T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 5, topFlexion: null, date: '2026-11-03T10:00:00.000Z' }),
       session({ exercise: 'mini-squat', peakFlexion: 90, date: '2026-11-01T10:00:00.000Z' }),
     ];
     const s = buildProgressSeries(list);
     const slr = s.peakFlexion.find((x) => x.exercise === 'straight-leg-raise')!;
-    expect(slr.points.map((p) => p.degrees)).toEqual([null, 12]);
+    expect(slr.points.map((p) => p.degrees)).toEqual([null, 12, null]);
+    expect(slr.title).toBe('Angle at the top, straight leg raise, in degrees (estimated angle, not a medical measurement)');
     const squat = s.peakFlexion.find((x) => x.exercise === 'mini-squat')!;
     expect(squat.points.map((p) => p.degrees)).toEqual([90]);
-    expect(list[0]!.peakFlexion).toBe(165);
+    expect(squat.title).toContain('Peak knee bend, mini squat');
+    expect(list[0]!.topFlexion).toBe(165);
+    expect(list[1]!.peakFlexion).toBe(165);
   });
 
   it('does not change the input list', () => {

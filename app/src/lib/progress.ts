@@ -5,7 +5,7 @@
 // colour, no status and no trend field (guardrails skill, section Wording).
 
 import type { SessionRecord } from './storage';
-import { peakUnreadable } from './cues';
+import { peakUnreadable, topUnreadable } from './cues';
 
 export const EXERCISE_LABEL = {
   'heel-slide': 'heel slide',
@@ -30,7 +30,11 @@ export function exerciseLabel(kind: string): string {
 
 /** Series titles. Units sit next to the numbers. The angle label is the one in the guardrails skill. */
 export const SERIES_TITLE = {
-  peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
+  // The straight leg raise keeps the knee near straight, so its knee bend says little. The app shows the angle at the top while the person exercises, and stores it, so the chart shows that.
+  peakFlexion: (exercise: ExerciseKind) =>
+    exercise === 'straight-leg-raise'
+      ? `Angle at the top, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`
+      : `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
   repsPerDay: 'Reps for each day, in reps',
   pain: 'Pain after each session, from 0 to 10',
 } as const;
@@ -79,8 +83,9 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
   const byExercise = new Map<ExerciseKind, PeakPoint[]>();
   for (const s of sorted) {
     const points = byExercise.get(s.exercise) ?? [];
-    // A straight leg raise peak above the plausible limit is a camera misread: the chart plots no value for it (audit 3, M8).
-    points.push({ sessionId: s.id, date: s.date, degrees: peakUnreadable(s.exercise, s.peakFlexion) ? null : s.peakFlexion });
+    // A straight leg raise plots the angle at the top. A value above the plausible limit is a camera misread: the chart plots no value for it (audit 3, M8).
+    const degrees = s.exercise === 'straight-leg-raise' ? (topUnreadable(s.topFlexion) ? null : s.topFlexion) : peakUnreadable(s.exercise, s.peakFlexion) ? null : s.peakFlexion;
+    points.push({ sessionId: s.id, date: s.date, degrees });
     byExercise.set(s.exercise, points);
   }
 

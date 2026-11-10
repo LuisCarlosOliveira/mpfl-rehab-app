@@ -117,7 +117,7 @@ function summaryText(rows: TableRow[]): string {
   const known = rows.filter((r) => r.value !== null);
   if (known.length === 0) return 'No values.';
   const byValue = [...known].sort((a, b) => (a.value as number) - (b.value as number));
-  return `${known.length} values. Lowest ${shown(byValue[0]!.valueText)}. Highest ${shown(byValue[byValue.length - 1]!.valueText)}. Last ${shown(known[known.length - 1]!.valueText)}.`;
+  return `${known.length} ${known.length === 1 ? 'value' : 'values'}. Lowest ${shown(byValue[0]!.valueText)}. Highest ${shown(byValue[byValue.length - 1]!.valueText)}. Last ${shown(known[known.length - 1]!.valueText)}.`;
 }
 
 /** A table box that a keyboard user can scroll. */
@@ -176,7 +176,7 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
         </p>
       )}
       <p className="dash-last" aria-hidden="true">
-        {lastKnown ? <data value={typeof lastKnown.value === 'number' && Number.isFinite(lastKnown.value) ? lastKnown.value : undefined}>{shown(lastKnown.valueText)}</data> : 'No values.'}
+        {lastKnown ? <data value={typeof lastKnown.value === 'number' && Number.isFinite(lastKnown.value) ? lastKnown.value : undefined}>{shown(lastKnown.valueText)}</data> : null}
       </p>
       {lastKnown && (
         <p className="dash-readout" aria-live="polite">
