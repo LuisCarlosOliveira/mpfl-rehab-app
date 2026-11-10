@@ -1,5 +1,5 @@
 import { MARGIN_SOURCE } from '../src/lib/margin';
-import { buildProgressSeries, toTableRows, type ProgressSeries } from '../src/lib/progress';
+import { buildProgressSeries, exerciseLabel, toTableRows, type ProgressSeries } from '../src/lib/progress';
 import type { SessionRecord } from '../src/lib/storage';
 
 let nextId = 1;
@@ -117,5 +117,31 @@ describe('toTableRows', () => {
     expect(rows.some((r) => r.valueText === '10 (0 to 10)')).toBe(true);
     expect(rows.some((r) => r.valueText === 'no value')).toBe(true);
     expect(series.peakFlexion[0]?.title).toContain('estimated angle, not a medical measurement');
+  });
+});
+
+describe('chart titles for a corrupt exercise name', () => {
+  const corrupt = (name: string) => session({ exercise: name as unknown as SessionRecord['exercise'] });
+
+  it.each(['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'prototype'])('reads %s as plain text, never as [object Object]', (name) => {
+    const series = buildProgressSeries([corrupt(name)]);
+    const title = series.peakFlexion[0]?.title ?? '';
+    expect(title).not.toContain('[object');
+    expect(title).not.toContain('function');
+    expect(title).toContain(name);
+    expect(toTableRows(series).every((r) => !r.series.includes('[object'))).toBe(true);
+  });
+
+  it('keeps the known labels', () => {
+    expect(exerciseLabel('heel-slide')).toBe('heel slide');
+    expect(exerciseLabel('seated-extension-hold')).toBe('seated extension hold');
+  });
+
+  it('gives a plain fallback for an empty, long or non-text name and removes control characters', () => {
+    expect(exerciseLabel('')).toBe('unknown exercise');
+    expect(exerciseLabel(undefined as unknown as string)).toBe('unknown exercise');
+    expect(exerciseLabel({} as unknown as string)).toBe('unknown exercise');
+    expect(exerciseLabel('a\u0000b\nc')).toBe('a b c');
+    expect(exerciseLabel('x'.repeat(200)).length).toBeLessThanOrEqual(61);
   });
 });

@@ -16,9 +16,21 @@ export const EXERCISE_LABEL = {
 
 type ExerciseKind = SessionRecord['exercise'];
 
+/**
+ * The plain name of an exercise for a title. A stored name that is not one of the four known kinds (a corrupt file, or a key such as
+ * `__proto__`) shows as short plain text. It never reads a property of the label table, so it never shows "[object Object]".
+ */
+export function exerciseLabel(kind: string): string {
+  if (typeof kind === 'string' && Object.hasOwn(EXERCISE_LABEL, kind)) return EXERCISE_LABEL[kind as keyof typeof EXERCISE_LABEL];
+  if (typeof kind !== 'string') return 'unknown exercise';
+  const text = kind.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  if (text === '') return 'unknown exercise';
+  return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+}
+
 /** Series titles. Units sit next to the numbers. The angle label is the one in the guardrails skill. */
 export const SERIES_TITLE = {
-  peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${EXERCISE_LABEL[exercise]}, in degrees (estimated angle, not a medical measurement)`,
+  peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
   repsPerDay: 'Reps for each day, in reps',
   pain: 'Pain after each session, from 0 to 10',
 } as const;
