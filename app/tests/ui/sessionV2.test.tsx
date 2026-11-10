@@ -88,9 +88,13 @@ describe('A1: the CSS file keeps its own scope', () => {
     expect(rules).toMatch(/body:has\(\.v2-session\) \.topbar\s*\{[^}]*display:\s*none/);
   });
 
-  it('gives the camera a height of at most min(75vw, 300px) and at least 150 px on a short phone', () => {
+  it('gives the camera a height of at most min(70vw, 300px) and at least 150 px on a short phone', () => {
     expect(rules).toMatch(/\.viewfinder \.preview\s*\{[^}]*max-height:\s*max\(9\.4rem,/);
-    expect(rules).toMatch(/min\(75vw, 300px/);
+    expect(rules).toMatch(/min\(70vw, 300px, 100svh - 33rem\)/);
+  });
+
+  it('keeps the numbers at 56 px (3.5 rem) under 32 rem wide, never smaller', () => {
+    expect(rules).toMatch(/@media \(max-width: 31\.99rem\)\s*\{\s*\.v2-session \.readout-number\s*\{\s*font-size:\s*3\.5rem/);
   });
 
   it('puts the camera on the left and the readings on the right on a wide screen (7fr, 5fr)', () => {

@@ -164,6 +164,69 @@ test.describe("V2: the ruler at 390 x 844", () => {
   });
 });
 
+// V3: everything the person reads is inside the viewport above the bar, with 2 bar buttons (Heel slide) and 3 bar buttons (Straight leg raise),
+// also in the capture "choose" state (the extra button sits in the status slot). The unit stays on the line of the angle number.
+// The numbers are 56 px or more. The camera is 150 px or more.
+async function readLayout(page: Page) {
+  return page.evaluate(() => {
+    const r = (sel: string) => {
+      const el = document.querySelector(sel);
+      if (el === null) return null;
+      const b = el.getBoundingClientRect();
+      return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, height: b.height };
+    };
+    const num = document.querySelector(".readout:not(.readout-reps) .readout-number") as HTMLElement | null;
+    return {
+      bar: r(".session-bar"),
+      video: r("video.preview"),
+      slot: r(".status-slot"),
+      lowest: r(".status-slot > .btn"),
+      angle: r(".readout:not(.readout-reps) .readout-line"),
+      count: r(".readout-reps .readout-line"),
+      num: r(".readout:not(.readout-reps) .readout-number"),
+      unit: r(".readout:not(.readout-reps) .unit"),
+      caption: r(".readout-caption"),
+      ruler: r(".readout-gauge"),
+      numberFont: num === null ? 0 : parseFloat(getComputedStyle(num).fontSize),
+      barButtons: document.querySelectorAll(".session-bar .btn").length,
+    };
+  });
+}
+type Layout = Awaited<ReturnType<typeof readLayout>>;
+function expectAboveBar(l: Layout, names: (keyof Layout)[], height: number) {
+  const barTop = l.bar!.top;
+  for (const n of names) {
+    const b = l[n] as { bottom: number } | null;
+    if (b === null) continue;
+    expect(b.bottom, `${String(n)} ends above the bar (bar top ${barTop})`).toBeLessThanOrEqual(barTop + 0.5);
+    expect(b.bottom, `${String(n)} is inside the viewport`).toBeLessThanOrEqual(height);
+  }
+  expect(l.unit!.top, "the unit is on the line of the angle number, not under it").toBeLessThan(l.num!.bottom - 2);
+  expect(l.numberFont, "the number is 56 px or more").toBeGreaterThanOrEqual(56);
+  expect(l.video!.height, "the camera is 150 px or more").toBeGreaterThanOrEqual(149.5);
+}
+for (const size of SIZES) {
+  test.describe(`V3 at ${size.width} x ${size.height}`, () => {
+    test.use({ viewport: size });
+
+    test("2 bar buttons, capture choose state: camera, slot, button, numbers, caption and ruler are above the bar", async ({ page }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.getByRole("button", { name: "Use my lowest steady angle as the start" })).toBeVisible({ timeout: 40_000 });
+      const l = await readLayout(page);
+      expect(l.barButtons).toBe(2);
+      expectAboveBar(l, ["video", "slot", "lowest", "angle", "count", "caption", "ruler"], size.height);
+    });
+
+    test("3 bar buttons: camera, slot, numbers and caption are above the bar", async ({ page }) => {
+      await toSessionOf(page, "Start Straight leg raise");
+      await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+      const l = await readLayout(page);
+      expect(l.barButtons).toBe(3);
+      expectAboveBar(l, ["video", "slot", "angle", "count", "caption"], size.height);
+    });
+  });
+}
+
 // R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {
   test.use({ viewport: SIZES[0] });
