@@ -47,6 +47,7 @@ async function connect(pairing: Pairing) {
   const offer = decodeOffer(pairing.getView().offerText!);
   if (!offer.ok) throw new Error('offer');
   const secret = offer.value.secret;
+  fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' })); // the paste field is in step 2
   fireEvent.change(screen.getByLabelText('Or paste the phone code'), { target: { value: answerText(secret) } });
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Use this code' })));
   act(() => lastPeer().channels[0]!.receive(JSON.stringify(makeHello(secret))));

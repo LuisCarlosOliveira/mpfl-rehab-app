@@ -154,15 +154,16 @@ describe('ConfirmPlan, a stored plan', () => {
 });
 
 describe('ConfirmPlan, an update', () => {
-  it('lists each change with its reason and the rule id', async () => {
+  it('lists each change with Before, After and its reason, and shows no internal rule code (D5)', async () => {
     const db = freshDb();
     const current = await stored(db);
     setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }), current, db);
     expect(screen.getByRole('heading', { level: 1, name: 'Confirm the change' })).toBeInTheDocument();
-    const line = screen.getByText(/Knee-bend limit in your plan/);
-    expect(line).toHaveTextContent('from 60 degrees to 50 degrees');
-    expect(line).toHaveTextContent('Reason');
-    expect(line).toHaveTextContent('RANGE_SURGEON');
+    const line = screen.getByText(/Knee-bend limit in your plan/).closest('li')!;
+    expect(line.querySelector('.before')).toHaveTextContent('60 degrees');
+    expect(line.querySelector('.after')).toHaveTextContent('50 degrees');
+    expect(line).toHaveTextContent('the limit from your surgeon');
+    expect(line.textContent).not.toMatch(/[A-Z]{3,}_[A-Z]{3,}/);
   });
 
   it('saves a lower limit after a click and keeps the other bytes of the plan', async () => {

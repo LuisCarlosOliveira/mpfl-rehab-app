@@ -5,6 +5,7 @@ import { MAX_FILE_BYTES, type Mode } from '../lib/protocol';
 import { saveProtocol, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
+import './screensV2.css';
 
 const ERROR_TITLES: Record<string, string> = {
   'too-large': 'File too large',
@@ -53,42 +54,60 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
   }
 
   return (
-    <section aria-labelledby="load-title" className="narrow">
+    <section
+      aria-labelledby="load-title"
+      className="narrow v2-screens v2-load"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        // A file that is dropped on the page works as the first row does.
+        e.preventDefault();
+        void onPick(e.dataTransfer.files[0]);
+      }}
+    >
       <header className="page-head">
         <h1 id="load-title" tabIndex={-1}>
           Load protocol file
         </h1>
       </header>
       <p className="lede">Your care team gives you a protocol file. Pick it once. The app keeps it on this device.</p>
-      <div className="dropzone field mt">
-        <span className="drop-icon">
-          <Icon name="file-up" size={30} />
-        </span>
-        <label htmlFor="protocol-file">Protocol file (.json)</label>
-        <input
-          id="protocol-file"
-          type="file"
-          accept=".json,application/json"
-          onChange={(e) => {
-            const input = e.target;
-            void onPick(input.files?.[0]).finally(() => {
-              input.value = ''; // the same file can be picked again after an error
-            });
-          }}
-        />
-      </div>
-      {mode === 'demo' && onCreatePlan && (
-        <section className="card stack-s mt" aria-labelledby="create-title">
-          <h2 id="create-title">No file from your care team?</h2>
-          <p>The app uses published protocols. No clinician checks this plan.</p>
-          <div className="actions">
-            <button type="button" className="btn" onClick={onCreatePlan}>
-              <Icon name="sliders-horizontal" size={18} />
-              Create my plan
+      <ul className="action-rows mt">
+        <li>
+          <label className="action-row" htmlFor="protocol-file">
+            <Icon name="file-up" size={24} />
+            <span className="row-title">Choose a file from your care team</span>
+            <Icon name="chevron-right" size={20} />
+            {/* The input fills the row, so a tap anywhere on the row opens the picker. It is invisible and 48 px high or more. */}
+            <input
+              id="protocol-file"
+              className="row-file-input"
+              type="file"
+              accept=".json,application/json"
+              aria-describedby="protocol-file-detail"
+              onChange={(e) => {
+                const input = e.target;
+                void onPick(input.files?.[0]).finally(() => {
+                  input.value = ''; // the same file can be picked again after an error
+                });
+              }}
+            />
+          </label>
+          <p className="row-detail row-detail-out" id="protocol-file-detail">
+            A .json file. You can also drop it on this page.
+          </p>
+        </li>
+        {mode === 'demo' && onCreatePlan && (
+          <li>
+            <button type="button" className="action-row" onClick={onCreatePlan} aria-describedby="create-plan-detail">
+              <Icon name="sliders-horizontal" size={24} />
+              <span className="row-title">Create my plan</span>
+              <Icon name="chevron-right" size={20} />
             </button>
-          </div>
-        </section>
-      )}
+            <p className="row-detail row-detail-out" id="create-plan-detail">
+              The app uses published protocols. No clinician checks this plan.
+            </p>
+          </li>
+        )}
+      </ul>
       {error && (
         <div className="stack-s mt-s">
           <Notice role="alert" icon="triangle-alert" title={error.title}>

@@ -11,6 +11,7 @@ import { ChoiceGroup, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO_UNKN
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
+import './screensV2.css';
 
 interface Props {
   db: MpflDb;
@@ -63,7 +64,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
 
   if (loaded.state === 'loading') {
     return (
-      <section aria-labelledby="update-title" className="narrow">
+      <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
         {head}
         <div className="skeleton" aria-hidden="true">
           <span />
@@ -75,7 +76,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
 
   if (loaded.state === 'missing') {
     return (
-      <section aria-labelledby="update-title" className="narrow">
+      <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
         {head}
         <Notice role="status" icon="info">
           <p>This device does not have your answers for the plan. Create the plan again to update it.</p>
@@ -128,7 +129,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
   }
 
   return (
-    <section aria-labelledby="update-title" className="narrow">
+    <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
       {head}
       <div className="stack">
         <p className="lede">The app checks your plan again from today&apos;s date. The app changes nothing until you press Confirm.</p>

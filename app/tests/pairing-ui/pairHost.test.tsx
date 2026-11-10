@@ -54,6 +54,13 @@ async function toOffer() {
   return s;
 }
 
+// The host shows one step at a time. Step 1 is the code of the laptop. The scan and the paste field are in step 2.
+async function toScan() {
+  const s = await toOffer();
+  press('Next: scan the phone code');
+  return s;
+}
+
 describe('PairHost', () => {
   // L3-02: a second phone that takes the same offer can stop the first pairing. The transport cannot ignore it, so the screen says it.
   it('tells the person to use one phone only, next to the laptop code', async () => {
@@ -73,14 +80,16 @@ describe('PairHost', () => {
   it('asks for the camera first, then shows the code and starts the scan', async () => {
     const { pairing } = await toOffer();
     expect(deps.startCamera).toHaveBeenCalledTimes(1);
-    expect(deps.startScan).toHaveBeenCalledTimes(1);
+    expect(deps.startScan).not.toHaveBeenCalled(); // the scan starts in step 2
     expect(screen.getByRole('status')).toHaveTextContent('Waiting for the phone');
     expect(screen.getByLabelText('Code as text')).toHaveValue(pairing.getView().offerText);
+    press('Next: scan the phone code');
+    expect(deps.startScan).toHaveBeenCalledTimes(1);
     expect(peersWhenCameraStarted).toBe(0); // the camera starts before the peer connection exists
   });
 
   it('pairs when the scan reads the code of the phone, then stops the scan and the camera', async () => {
-    const { pairing } = await toOffer();
+    const { pairing } = await toScan();
     const secret = secretOfOffer(pairing);
     await act(async () => onScanText(answerText(secret)));
     expect(screen.getByRole('status')).toHaveTextContent('Connecting to the phone');
@@ -96,6 +105,7 @@ describe('PairHost', () => {
     render(<Harness pairing={pairing} onDone={onDone} />);
     press('Start pairing');
     await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    press('Next: scan the phone code');
     expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
     const secret = secretOfOffer(pairing);
     await act(async () => onScanText(answerText(secret)));
@@ -105,7 +115,7 @@ describe('PairHost', () => {
   });
 
   it('takes the phone code from pasted text', async () => {
-    const { pairing } = await toOffer();
+    const { pairing } = await toScan();
     const box = screen.getByLabelText('Or paste the phone code');
     const use = screen.getByRole('button', { name: 'Use this code' });
     expect(use).toBeDisabled();
@@ -116,15 +126,16 @@ describe('PairHost', () => {
   });
 
   it('says that a code is not the phone code and keeps the offer', async () => {
-    await toOffer();
+    await toScan();
     fireEvent.change(screen.getByLabelText('Or paste the phone code'), { target: { value: 'hello' } });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Use this code' })));
     expect(screen.getByRole('alert')).toHaveTextContent(INVALID_CODE_TEXT);
+    press('Back to the code');
     expect(screen.getByRole('img', { name: 'Pairing code of this laptop' })).toBeInTheDocument();
   });
 
   it('shows the fixed text for a wrong secret and offers Try again and one camera', async () => {
-    await toOffer();
+    await toScan();
     await act(async () => onScanText(answerText(new Uint8Array(16).fill(5))));
     expect(screen.getByRole('alert')).toHaveTextContent(FALLBACK_TEXT);
     expect(screen.queryByRole('img', { name: 'Pairing code of this laptop' })).toBeNull();
@@ -141,6 +152,7 @@ describe('PairHost', () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10);
       });
+      press('Next: scan the phone code');
       await act(async () => onScanText(answerText(secretOfOffer(pairing)))); // a good answer, and no channel message follows
       expect(screen.getByRole('status')).toHaveTextContent('Connecting to the phone');
       await act(async () => {
@@ -155,7 +167,7 @@ describe('PairHost', () => {
   });
 
   it('starts again from the beginning on Try again', async () => {
-    await toOffer();
+    await toScan();
     await act(async () => onScanText(answerText(new Uint8Array(16).fill(5))));
     press('Try again');
     expect(screen.getByRole('button', { name: 'Start pairing' })).toBeInTheDocument();
@@ -169,6 +181,7 @@ describe('PairHost', () => {
     setup();
     press('Start pairing');
     await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    press('Next: scan the phone code'); // the camera message belongs to the scan step
     expect(screen.getByRole('alert')).toHaveTextContent('Camera access was blocked.');
     expect(deps.startScan).not.toHaveBeenCalled();
   });
@@ -182,6 +195,7 @@ describe('PairHost', () => {
     })();
     press('Start pairing');
     await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    press('Next: scan the phone code');
     press('Skip, use one camera');
     expect(onSkip).toHaveBeenCalledTimes(1);
     expect(pairing.getView().status).toBe('skipped');
@@ -200,7 +214,7 @@ describe('PairHost', () => {
   });
 
   it('stops the scan and the camera when the screen goes away', async () => {
-    const { unmount } = await toOffer();
+    const { unmount } = await toScan();
     unmount();
     expect(stopScan).toHaveBeenCalled();
     expect(deps.stopCamera).toHaveBeenCalled();
@@ -212,7 +226,7 @@ describe('PairHost', () => {
   });
 
   it('uses no verdict word, no inline style and labelled fields in every state', async () => {
-    const { container, pairing } = await toOffer();
+    const { container, pairing } = await toScan();
     const check = (where: string) => {
       const text = document.body.textContent ?? '';
       expect(hasVerdictWord(text), `${where}: ${text}`).toBeNull();
@@ -227,7 +241,7 @@ describe('PairHost', () => {
   });
 
   it('shows a video element for the scan only, with a label and no controls', async () => {
-    const { container } = await toOffer();
+    const { container } = await toScan();
     const videos = container.querySelectorAll('video');
     expect(videos).toHaveLength(1);
     expect(videos[0]!.getAttribute('aria-label')).toBe('Camera view for the phone code');
@@ -235,7 +249,7 @@ describe('PairHost', () => {
   });
 
   it('shows the camera view in step 2 and scans from that same element, so the person can aim the phone screen', async () => {
-    await toOffer();
+    await toScan();
     const view = screen.getByLabelText('Camera view for the phone code') as HTMLVideoElement;
     expect(view.srcObject).toBe(stream);
     expect(deps.startScan.mock.calls[0]![0]).toBe(view);
@@ -246,6 +260,7 @@ describe('PairHost', () => {
     setup();
     press('Start pairing');
     await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    press('Next: scan the phone code');
     expect((screen.getByLabelText('Camera view for the phone code') as HTMLVideoElement).srcObject ?? null).toBeNull(); // jsdom has no srcObject until it is set
     expect(deps.startScan).not.toHaveBeenCalled();
   });

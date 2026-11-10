@@ -95,7 +95,7 @@ export async function toLoad(page: Page) {
 /** First launch to Home with the example protocol. */
 export async function toHome(page: Page) {
   await toLoad(page);
-  await page.getByLabel('Protocol file (.json)').setInputFiles(EXAMPLE);
+  await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
   await expectScreen(page, 'Home');
 }
 

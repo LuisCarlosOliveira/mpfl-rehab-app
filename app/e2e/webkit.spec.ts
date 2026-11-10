@@ -76,11 +76,11 @@ test('every screen without a camera has no violation, no console error and no fo
   await expectScreen(page, 'Load protocol file');
   await seen.expectClean('Load protocol');
 
-  await page.getByLabel('Protocol file (.json)').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
+  await page.getByLabel('Choose a file from your care team').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
   await expect(page.getByRole('alert')).toContainText('File not readable');
   await seen.expectClean('Load protocol with an error');
 
-  await page.getByLabel('Protocol file (.json)').setInputFiles(EXAMPLE);
+  await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
   await expectScreen(page, 'Home');
   await seen.expectClean('Home');
 
@@ -148,7 +148,7 @@ test('the first screen does not move the focus, and each change moves it to the 
   await page.getByRole('button', { name: 'I understand' }).click();
   await expectScreen(page, 'Load protocol file');
   await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Load protocol file' });
-  await page.getByLabel('Protocol file (.json)').setInputFiles(EXAMPLE);
+  await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
   await expectScreen(page, 'Home');
   await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Home' });
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
@@ -231,7 +231,7 @@ test('the erase dialog is a real dialog, Escape closes it, and erase clears the 
 test('the JSON export is a real download and the content parses', async ({ page }) => {
   await setup(page);
   await saveSessionAndOpenData(page);
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export JSON file' }).click()]);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /^Export .*as JSON$/ }).click()]);
   expect(download.suggestedFilename()).toMatch(/^mpfl-sessions-\d{4}-\d{2}-\d{2}\.json$/);
   const parsed = JSON.parse(readFileSync(await download.path(), 'utf8'));
   expect(parsed.schemaVersion).toBe(1);

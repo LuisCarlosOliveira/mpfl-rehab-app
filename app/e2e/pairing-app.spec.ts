@@ -110,6 +110,7 @@ test('the phone is the second camera of the laptop in the real app, and everythi
 
   const offer = await laptopOffer(a.page);
   const answer = await phoneAnswer(b.page, offer);
+  await a.page.getByRole('button', { name: 'Next: scan the phone code' }).click(); // step 2 holds the paste field
   await a.page.getByLabel('Or paste the phone code').fill(answer);
   await a.page.getByRole('button', { name: 'Use this code' }).click();
 
@@ -225,6 +226,7 @@ test('a hidden tab ends the pairing of the phone page', async ({ browser, baseUR
   const b = await newPage(browser, baseURL!);
   const offer = await laptopOffer(a.page);
   const answer = await phoneAnswer(b.page, offer);
+  await a.page.getByRole('button', { name: 'Next: scan the phone code' }).click(); // step 2 holds the paste field
   await a.page.getByLabel('Or paste the phone code').fill(answer);
   await a.page.getByRole('button', { name: 'Use this code' }).click();
   await expect(status(b.page)).toHaveText(/Connected|Sending/, { timeout: 20_000 });
@@ -322,7 +324,7 @@ test('Home has the phone button as a secondary action, and the phone screen open
   await installProbes(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'I understand' }).click();
-  await page.getByLabel('Protocol file (.json)').setInputFiles('src/lib/protocol/example-protocol.json');
+  await page.getByLabel('Choose a file from your care team').setInputFiles('src/lib/protocol/example-protocol.json');
   await expectScreen(page, 'Home');
   await expect(page.getByRole('button', { name: PHONE_BUTTON })).toBeVisible();
   await page.getByRole('button', { name: PHONE_BUTTON }).click();

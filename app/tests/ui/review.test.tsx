@@ -147,7 +147,7 @@ describe('start-up and file errors', () => {
     vi.spyOn(db.protocol, 'put').mockRejectedValue(new Error('quota'));
     render(<App db={db} mode="demo" source={mockSource()} />);
     await heading('Load protocol file');
-    fireEvent.change(screen.getByLabelText('Protocol file (.json)'), { target: { files: [fileOf(protocolText())] } });
+    fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [fileOf(protocolText())] } });
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not be read or saved/i);
   });
 });

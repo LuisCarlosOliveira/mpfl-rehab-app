@@ -7,6 +7,7 @@ import { createThrottle, landmarksMessage, SEND_HZ } from '../pairing/frameMessa
 import '../pairing/pair.css';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
+import './screensV2.css';
 import { PairSteps } from './PairSteps';
 import { QrCode } from '../pairing/qrCode';
 import { startQrScan } from '../pairing/qrReader';
@@ -215,7 +216,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
   const stepIndex = step === 'intro' ? 0 : step === 'scan' || step === 'answer' ? 1 : step === 'run' ? 2 : null;
 
   return (
-    <section className="pair-screen stack" aria-labelledby="pair-companion-title">
+    <section className="pair-screen stack v2-screens v2-pair" aria-labelledby="pair-companion-title">
       <header className="page-head">
         <h1 id="pair-companion-title" tabIndex={-1} ref={h1}>
           {COMPANION_TITLE}
@@ -231,7 +232,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'intro' && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <p className="pair-lead">This phone becomes the second camera of the app on your laptop. It sends body points only. It never sends video or pictures.</p>
           <p className="pair-lead">Put the phone upright in front of you, so that it sees your legs.</p>
           <div className="actions">
@@ -247,7 +248,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'scan' && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <p className="pair-lead">Point the rear camera at the code on the laptop screen.</p>
           <div className="frame pair-frame">
             <video ref={viewfinder} className="preview" muted playsInline aria-label="Camera view for the laptop code" />
@@ -273,7 +274,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'answer' && answer && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <p className="pair-lead">Show this code to the laptop. On the laptop, choose Scan the phone code.</p>
           <div className="pair-qr">
             <QrCode text={answer} label="Pairing code of this phone" />
@@ -294,7 +295,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'run' && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <Notice role="status" icon="phone">
             <p>{sending ? 'Sending' : 'Connected'}</p>
           </Notice>
@@ -309,7 +310,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'stopped' && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <Notice role="status" icon="info">
             <p>Stopped</p>
           </Notice>
@@ -323,7 +324,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       )}
 
       {step === 'failed' && (
-        <div className="card stack-s">
+        <div className="pair-step stack-s">
           <Notice role="alert" icon="triangle-alert">
             <p>{error ?? FALLBACK_TEXT}</p>
           </Notice>

@@ -122,7 +122,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
       lines.push(`${NAMES[e.kind]} added. Reason: ${ADDED_REASON(e, next)}.`);
     } else if (old.maxFlexion !== e.maxFlexion) {
       lines.push(
-        `Knee-bend limit in your plan: from ${limitText(old)} to ${limitText(e)}. Reason: the limit from your surgeon that you entered (${RULES.RANGE_SURGEON.id}).`,
+        `Knee-bend limit in your plan: from ${limitText(old)} to ${limitText(e)}. Reason: the knee-bend limit is the limit from your surgeon, as entered by you.`,
       );
     }
   }

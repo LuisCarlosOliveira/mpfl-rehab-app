@@ -1,22 +1,9 @@
-// The step indicator of the two pairing screens. It reuses the classes of the Setup indicator.
-// The words are the same on the laptop and on the phone, so each screen only says where it is.
-import { Fragment } from 'react';
-import { Icon } from './Icon';
+// The step track of the two pairing screens. The words are the same on the laptop and on the phone, so each screen only says where it is.
+// It is a position mark, with the name of each step inside its mark (see StepTrack).
+import { StepTrack } from './StepTrack';
 
 export const PAIR_STEPS = ['Start', 'Pair codes', 'Connected'] as const;
 
 export function PairSteps({ current }: { current: 0 | 1 | 2 }) {
-  return (
-    <ol className="steps" aria-label="Pairing steps">
-      {PAIR_STEPS.map((label, i) => (
-        <Fragment key={label}>
-          {i > 0 && <li className="step-line" aria-hidden="true" />}
-          <li className={i < current ? 'step step-done' : 'step'} aria-current={i === current ? 'step' : undefined}>
-            <span className="step-dot">{i < current ? <Icon name="check" size={14} /> : i + 1}</span>
-            {label}
-          </li>
-        </Fragment>
-      ))}
-    </ol>
-  );
+  return <StepTrack total={PAIR_STEPS.length} current={current} label="Pairing steps" names={PAIR_STEPS} />;
 }

@@ -137,32 +137,32 @@ describe('import drop area states (U12)', () => {
 describe('export buttons keep their width (U9)', () => {
   it('both export buttons use the width-keeping class, and its rule sets a minimum width', async () => {
     await open(true);
-    expect(screen.getByRole('button', { name: 'Export JSON file' })).toHaveClass('btn-keep');
-    expect(screen.getByRole('button', { name: 'Export CSV file' })).toHaveClass('btn-keep');
+    expect(screen.getByRole('button', { name: 'Export 1 session as JSON' })).toHaveClass('btn-keep');
+    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toHaveClass('btn-keep');
     const css = readFileSync('src/ui/styles.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(/\.btn-keep\s*\{[^}]*min-width:\s*1[2-9](\.\d+)?rem/.exec(css)).not.toBeNull();
   });
 
-  it('the label goes from Export JSON file to Exporting to Done and back, and the buttons stay off in between', async () => {
+  it('the label goes from Export 1 session as JSON to Exporting to Done and back, and the buttons stay off in between', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await open(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Export JSON file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as JSON' }));
     expect(screen.getByRole('button', { name: 'Exporting' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Export CSV file' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toBeDisabled();
     expect(await screen.findByRole('button', { name: 'Done' })).toBeDisabled();
     expect(screen.getByRole('status')).toHaveTextContent(/mpfl-sessions-\d{4}-\d{2}-\d{2}\.json/);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
-    expect(screen.getByRole('button', { name: 'Export JSON file' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Export CSV file' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export 1 session as JSON' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toBeEnabled();
   });
 
   it('the CSV button swaps its own label and leaves the JSON label alone', async () => {
     await open(true);
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as CSV' }));
     expect(screen.getByRole('button', { name: 'Exporting' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Export JSON file/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Export 1 session as JSON/ })).toBeInTheDocument();
     await screen.findByRole('button', { name: 'Done' });
   });
 
@@ -171,8 +171,8 @@ describe('export buttons keep their width (U9)', () => {
     vi.spyOn(db.sessions, 'orderBy').mockImplementation(() => {
       throw new Error('boom');
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Export JSON file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as JSON' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/export did not work/i);
-    expect(screen.getByRole('button', { name: 'Export JSON file' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export 1 session as JSON' })).toBeEnabled();
   });
 });

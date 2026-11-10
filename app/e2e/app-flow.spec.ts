@@ -46,7 +46,7 @@ test('Privacy shows once: a reload goes to the Load screen', async ({ page }) =>
 
 test('a bad file shows its named error as plain text', async ({ page }) => {
   await toLoad(page);
-  const input = page.getByLabel('Protocol file (.json)');
+  const input = page.getByLabel('Choose a file from your care team');
   await expectBanners(page, { example: false });
 
   await input.setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
@@ -70,7 +70,7 @@ test('a bad file shows its named error as plain text', async ({ page }) => {
 test('text from the protocol file shows as plain text', async ({ page }) => {
   await toLoad(page);
   const raw = { ...JSON.parse(readFileSync(EXAMPLE, 'utf8')), authoredBy: '<img src=x onerror="window.__pwned=1">' };
-  await page.getByLabel('Protocol file (.json)').setInputFiles({ name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(raw)) });
+  await page.getByLabel('Choose a file from your care team').setInputFiles({ name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(raw)) });
   await expectScreen(page, 'Home');
   await expect(page.getByText('<img src=x onerror="window.__pwned=1">')).toBeVisible();
   expect(await page.locator('main img').count()).toBe(0);
