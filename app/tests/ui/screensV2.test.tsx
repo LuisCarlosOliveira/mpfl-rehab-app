@@ -76,7 +76,8 @@ describe('C1 question screens', () => {
 describe('C2 plan as dose rows', () => {
   it('shows each exercise as a row with the name and the dose, and no card', () => {
     const { container } = render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
-    const rows = container.querySelectorAll('.dose-list .dose-row');
+    // The plan list only. The home exercise rows use the same classes, and one of them has the dose text 'How many: ask your care team' (no number).
+    const rows = container.querySelectorAll('[aria-label="Exercises in your plan"] .dose-row');
     expect(rows.length).toBeGreaterThan(0);
     expect(container.querySelector('.dose-list .card')).toBeNull();
     for (const row of rows) {
