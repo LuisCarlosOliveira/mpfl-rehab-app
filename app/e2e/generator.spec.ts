@@ -252,7 +252,9 @@ test('Keep my plan changes nothing, and Confirm saves a lower limit after a real
   await page.getByLabel('Limit in degrees').fill('50');
   await press(page, 'Check my plan');
   await expectScreen(page, 'Confirm the change');
-  await expect(page.getByText(/Knee-bend limit in your plan: from 60 degrees to 50 degrees/)).toBeVisible();
+  const row = page.locator('.change-row', { hasText: 'Knee-bend limit in your plan' });
+  await expect(row.locator('.before')).toHaveText('60 degrees');
+  await expect(row.locator('.after')).toHaveText('50 degrees');
   expect(((await readStore(page, 'protocol')) as { raw: string }[])[0]!.raw).toBe(before!.raw);
   await press(page, 'Keep my plan');
   await expectScreen(page, 'Home');

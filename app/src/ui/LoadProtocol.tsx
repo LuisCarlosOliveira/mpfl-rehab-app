@@ -74,19 +74,14 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
         <li>
           <label className="action-row" htmlFor="protocol-file">
             <Icon name="file-up" size={24} />
-            <span className="row-text">
-              <span className="row-title" id="protocol-file-name">
-                Choose a file from your care team
-              </span>
-              <span className="row-detail" id="protocol-file-detail" aria-hidden="true">A .json file. You can also drop it on this page.</span>
-            </span>
+            <span className="row-title">Choose a file from your care team</span>
             <Icon name="chevron-right" size={20} />
+            {/* The input fills the row, so a tap anywhere on the row opens the picker. It is invisible and 48 px high or more. */}
             <input
               id="protocol-file"
-              className="visually-hidden"
+              className="row-file-input"
               type="file"
               accept=".json,application/json"
-              aria-labelledby="protocol-file-name"
               aria-describedby="protocol-file-detail"
               onChange={(e) => {
                 const input = e.target;
@@ -96,19 +91,20 @@ export function LoadProtocol({ db, mode, onLoaded, initialError = null, onCancel
               }}
             />
           </label>
+          <p className="row-detail row-detail-out" id="protocol-file-detail">
+            A .json file. You can also drop it on this page.
+          </p>
         </li>
         {mode === 'demo' && onCreatePlan && (
           <li>
-            <button type="button" className="action-row" onClick={onCreatePlan} aria-labelledby="create-plan-name" aria-describedby="create-plan-detail">
+            <button type="button" className="action-row" onClick={onCreatePlan} aria-describedby="create-plan-detail">
               <Icon name="sliders-horizontal" size={24} />
-              <span className="row-text">
-                <span className="row-title" id="create-plan-name">
-                  Create my plan
-                </span>
-                <span className="row-detail" id="create-plan-detail" aria-hidden="true">The app uses published protocols. No clinician checks this plan.</span>
-              </span>
+              <span className="row-title">Create my plan</span>
               <Icon name="chevron-right" size={20} />
             </button>
+            <p className="row-detail row-detail-out" id="create-plan-detail">
+              The app uses published protocols. No clinician checks this plan.
+            </p>
           </li>
         )}
       </ul>

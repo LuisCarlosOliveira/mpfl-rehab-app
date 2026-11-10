@@ -251,27 +251,23 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
             <ul className="action-rows">
               {onOpenPrivacy && (
                 <li>
-                  <button type="button" className="action-row" onClick={onOpenPrivacy} aria-labelledby="privacy-row-name">
+                  <button type="button" className="action-row" onClick={onOpenPrivacy}>
                     <Icon name="lock" size={22} />
-                    <span className="row-title" id="privacy-row-name">
-                      Privacy notice
-                    </span>
+                    <span className="row-title">Privacy notice</span>
                     <Icon name="chevron-right" size={20} />
                   </button>
                 </li>
               )}
               {onOpenClinician && (
                 <li>
-                  <button type="button" className="action-row" onClick={onOpenClinician} aria-labelledby="care-row-name" aria-describedby="care-row-detail">
+                  <button type="button" className="action-row" onClick={onOpenClinician} aria-describedby="care-row-detail">
                     <Icon name="stethoscope" size={22} />
-                    <span className="row-text">
-                      <span className="row-title" id="care-row-name">
-                        Open a session file (care team)
-                      </span>
-                      <span className="row-detail" id="care-row-detail" aria-hidden="true">The app keeps the file in memory only.</span>
-                    </span>
+                    <span className="row-title">Open a session file (care team)</span>
                     <Icon name="chevron-right" size={20} />
                   </button>
+                  <p className="row-detail row-detail-out" id="care-row-detail">
+                    The app keeps the file in memory only.
+                  </p>
                 </li>
               )}
             </ul>

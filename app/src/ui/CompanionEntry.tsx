@@ -11,16 +11,14 @@ export function CompanionEntry({ onOpen }: { onOpen: () => void }) {
       <h2 id="companion-entry-title" className="visually-hidden">
         Second camera
       </h2>
-      <button type="button" className="action-row" onClick={onOpen} aria-labelledby="companion-button-name" aria-describedby="companion-button-detail">
+      <button type="button" className="action-row" onClick={onOpen} aria-describedby="companion-button-detail">
         <Icon name="phone" size={24} />
-        <span className="row-text">
-          <span className="row-title" id="companion-button-name">
-            {COMPANION_BUTTON}
-          </span>
-          <span className="row-detail" id="companion-button-detail" aria-hidden="true">It sends body points only. It records nothing and counts nothing.</span>
-        </span>
+        <span className="row-title">{COMPANION_BUTTON}</span>
         <Icon name="chevron-right" size={20} />
       </button>
+      <p className="row-detail row-detail-out" id="companion-button-detail">
+        It sends body points only. It records nothing and counts nothing.
+      </p>
     </section>
   );
 }

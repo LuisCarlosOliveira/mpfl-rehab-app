@@ -551,3 +551,21 @@
 .v2-load .lede {
   color: var(--muted);
 }
+
+/* The detail line sits under its row, outside the button, so the name of the button is its visible text. */
+.v2-screens .action-rows > li,
+.v2-screens .companion-entry {
+  position: relative;
+}
+.v2-screens .row-detail-out {
+  margin: calc(var(--s-2) * -1) 0 var(--s-3) calc(24px + var(--s-4));
+}
+.v2-screens .row-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
