@@ -246,6 +246,35 @@ describe('App flow', () => {
     expect(screen.queryByRole('heading', { name: 'Loading' })).toBeNull();
   });
 
+  it('Your sessions leaves out a stored row that fails the schema, says how many, and keeps the row', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    await db.sessions.add({ ...sessionInput(), date: '2026-11-01T10:00:00.000Z', schemaVersion: 1 } as never);
+    await db.sessions.add({ ...sessionInput(), date: 12345, schemaVersion: 1 } as never);
+    await db.sessions.add({ ...sessionInput(), date: '2026-11-02T10:00:00.000Z', peakFlexion: -5, reps: 1e21, schemaVersion: 1 } as never);
+    render(<App db={db} mode="demo" source={mockSource()} />);
+    await heading('Home');
+    click('Your sessions');
+    await heading('Your sessions');
+    expect(screen.queryByText(/Screen not loaded/)).toBeNull();
+    expect(screen.getByText('2 saved rows could not be read and are left out.')).toBeInTheDocument();
+    expect(screen.queryByText(/-5 degrees|1e\+21/)).toBeNull();
+    expect(await db.sessions.count()).toBe(3);
+  });
+
+  it('Your sessions shows no count line when every row is good', async () => {
+    const db = freshDb();
+    markPrivacyNoticeSeen();
+    await saveProtocol(db, protocolText(), 'demo');
+    await db.sessions.add({ ...sessionInput(), schemaVersion: 1 } as never);
+    render(<App db={db} mode="demo" source={mockSource()} />);
+    await heading('Home');
+    click('Your sessions');
+    await heading('Your sessions');
+    expect(screen.queryByText(/could not be read/)).toBeNull();
+  });
+
   it('keeps the banners above the new screens', async () => {
     const db = freshDb();
     markPrivacyNoticeSeen();

@@ -318,10 +318,12 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
 interface Props {
   sessions: readonly SessionRecord[];
   title?: string;
+  /** The number of stored rows that failed the schema and are left out. The line shows only when it is more than 0. */
+  skipped?: number;
   onBack: () => void;
 }
 
-export function Dashboard({ sessions, title = 'Your sessions', onBack }: Props) {
+export function Dashboard({ sessions, title = 'Your sessions', skipped = 0, onBack }: Props) {
   return (
     <section aria-labelledby="dashboard-title" className="v2-screens v2-sessions">
       <header className="page-head">
@@ -333,6 +335,11 @@ export function Dashboard({ sessions, title = 'Your sessions', onBack }: Props) 
           Back
         </button>
       </header>
+      {Number.isInteger(skipped) && skipped > 0 && (
+        <p className="detail" role="status">
+          {skipped === 1 ? '1 saved row could not be read and is left out.' : `${skipped} saved rows could not be read and are left out.`}
+        </p>
+      )}
       {sessions.length === 0 ? (
         <div className="empty">
           <Icon name="chart-line" size={44} />

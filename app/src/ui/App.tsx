@@ -5,7 +5,7 @@ import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
 import { selfProgressionOn } from '../lib/protocol/accept';
-import { hasSeenPrivacyNotice, loadStoredProtocol, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
+import { hasSeenPrivacyNotice, loadStoredProtocol, readValidRows, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
@@ -56,7 +56,7 @@ function FocusHeading({ children }: { children: ReactNode }) {
   return children;
 }
 
-type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[] };
+type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[]; skipped: number };
 
 /** Reads the sessions in the parent, so the dashboard stays a pure view (plan FR13). */
 function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
@@ -66,7 +66,11 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
     Promise.resolve()
       .then(() => db.sessions.orderBy('date').toArray())
       .then(
-        (sessions) => alive && setRows({ state: 'ready', sessions }),
+        // A stored row that fails the schema is left out and counted. It is not deleted.
+        (stored) => {
+          const { rows: sessions, skipped } = readValidRows(stored);
+          if (alive) setRows({ state: 'ready', sessions, skipped });
+        },
         () => alive && setRows({ state: 'error' }),
       );
     return () => {
@@ -96,7 +100,7 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
   }
   return (
     <FocusHeading>
-      <Dashboard sessions={rows.sessions} title="Your sessions" onBack={onBack} />
+      <Dashboard sessions={rows.sessions} skipped={rows.skipped} title="Your sessions" onBack={onBack} />
     </FocusHeading>
   );
 }

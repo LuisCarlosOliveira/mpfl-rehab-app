@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { version as APP_VERSION } from '../../../package.json';
 import { MAX_FILE_BYTES, describeFirstIssue, overByteCap } from '../protocol/loader';
 import { protocolIdSchema } from '../protocol/schema';
-import { loadGeneratorInputs, sessionSchema, storedInputsSchema, type MpflDb, type SessionData } from './db';
+import { loadGeneratorInputs, readValidRows, sessionSchema, storedInputsSchema, type MpflDb, type SessionData } from './db';
 import { adoptPseudonymId, getPseudonymId, storedPseudonymId } from './meta';
 
 export const ANGLE_METHOD = '2D webcam estimate, not a goniometer measurement';
@@ -35,7 +35,8 @@ const fail = (code: ExportErrorCode, message: string): { ok: false; error: { cod
 const SESSION_KEYS = Object.keys(sessionSchema.shape) as Array<keyof SessionData>;
 
 async function buildExport(db: MpflDb): Promise<ExportFile> {
-  const rows = await db.sessions.orderBy('date').toArray();
+  // A stored row that fails the schema is not written to the file. It stays in the database.
+  const rows = readValidRows(await db.sessions.orderBy('date').toArray()).rows;
   const sessions = rows.map((row) => Object.fromEntries(SESSION_KEYS.map((k) => [k, row[k]])) as SessionData);
   const generatorInputs = await loadGeneratorInputs(db);
   return {
@@ -118,7 +119,7 @@ const NO_ANSWER = 'no-answer';
 // Text cells are always quoted. A cell that starts with = + - @ tab or carriage
 // return, or with the wide form of one of the four signs, gets a leading single
 // quote, so a spreadsheet does not run it as a formula.
-function textCell(value: string): string {
+export function textCell(value: string): string {
   const safe = /^[=+\-@\t\r\uff1d\uff0b\uff0d\uff20]/.test(value) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
 }

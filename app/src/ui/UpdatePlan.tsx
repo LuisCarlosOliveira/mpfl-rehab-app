@@ -6,7 +6,7 @@ import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type A
 import { describeChanges, draftOf, eventsSince, gaveWaySince, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
-import { loadGeneratorInputs, type MpflDb, type StoredInputs } from '../lib/storage';
+import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
 import { ChoiceGroup, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO_UNKNOWN } from './answerControls';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
@@ -39,8 +39,9 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
   useEffect(() => {
     let alive = true;
     Promise.all([loadGeneratorInputs(db), db.sessions.toArray()]).then(
-      ([stored, sessions]) => {
+      ([stored, rows]) => {
         if (!alive) return;
+        const sessions = readValidRows(rows).rows; // a stored row that fails the schema cannot crash this screen
         if (stored === null) return setLoaded({ state: 'missing' });
         const since = protocol.generated?.on ?? '0000-00-00';
         setLoaded({ state: 'ready', stored, events: eventsSince(sessions, since, protocol.painPauseThreshold), gaveWay: gaveWaySince(sessions, since) });
