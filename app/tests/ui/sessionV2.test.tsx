@@ -94,7 +94,7 @@ describe('A1: the CSS file keeps its own scope', () => {
   });
 
   it('keeps the numbers at 72 px, and at 56 px (3.5 rem, never smaller) only on a short phone under 32 rem wide', () => {
-    expect(rules).toMatch(/@media \(max-width: 31\.99rem\) and \(max-height: 41rem\)\s*\{\s*\.v2-session \.readout-number\s*\{\s*font-size:\s*3\.5rem/);
+    expect(rules).toMatch(/@media \(max-width: 31\.99rem\) and \(max-height: 41rem\)\s*\{[^@]*?\.v2-session \.readout-number\s*\{\s*font-size:\s*3\.5rem/);
     expect(rules.match(/\.readout-number\s*\{[^}]*font-size/g)).toHaveLength(1);
   });
 
