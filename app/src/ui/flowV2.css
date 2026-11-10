@@ -161,10 +161,6 @@
     min-width: 14rem;
   }
 }
-.v2-home .plan-exercises .card {
-  border-top: 1px solid var(--line);
-  padding-top: var(--s-3);
-}
 /* The second camera is one row of the facts list. */
 .v2-home .facts .fact-row {
   padding-block: var(--s-2);

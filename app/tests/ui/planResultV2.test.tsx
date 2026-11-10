@@ -44,6 +44,23 @@ describe('PlanResult, home exercises and text lines', () => {
     expect(within(list).getAllByText(NOT_CHECKED)).toHaveLength(5);
   });
 
+  it('shows the home exercises as dose rows like the plan, with the same text and no cards', () => {
+    const { container } = render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
+    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
+    expect(list).toHaveClass('dose-list');
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows).toHaveLength(5);
+    for (const row of rows) {
+      expect(row).toHaveClass('dose-row');
+      expect(row).not.toHaveClass('card');
+      expect(row.querySelector('.dose-name')).not.toBeNull();
+      expect(row.querySelector('.dose')).not.toBeNull();
+      expect(within(row).getByText(NOT_CHECKED)).toHaveClass('dose-note');
+    }
+    expect(within(rows[0]!).getByText('Quadriceps set')).toBeInTheDocument();
+    expect(container.querySelectorAll('.plan-exercises .card')).toHaveLength(0);
+  });
+
   it('shows no Start button and no count for a home exercise', () => {
     render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });

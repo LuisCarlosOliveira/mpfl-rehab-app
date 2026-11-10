@@ -3,25 +3,23 @@
 import { HOME_NAMES, homeDose, NOT_CHECKED } from '../lib/planView';
 import type { HomeExercise, Protocol } from '../lib/protocol';
 import { RULES } from '../lib/protocolGen';
-import { Icon } from './Icon';
+import './screensV2.css';
 
 export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) {
   if (items.length === 0) return null;
+  // The same dose rows as the plan (C2): the name at the left, the dose at the right, the note under them. The wrapper gives the rows their styles.
   return (
-    <ul className="plan-exercises" aria-label="Exercises that the app does not check">
-      {items.map((h) => (
-        <li key={h.kind} className="card plan-exercise">
-          <p className="exercise-name">{HOME_NAMES[h.kind]}</p>
-          <ul className="chips">
-            <li className="chip">
-              <Icon name="list-checks" size={16} />
-              {homeDose(h)}
-            </li>
-          </ul>
-          <p className="detail">{NOT_CHECKED}</p>
-        </li>
-      ))}
-    </ul>
+    <div className="v2-screens">
+      <ul className="plan-exercises dose-list" aria-label="Exercises that the app does not check">
+        {items.map((h) => (
+          <li key={h.kind} className="dose-row">
+            <p className="exercise-name dose-name">{HOME_NAMES[h.kind]}</p>
+            <p className="dose">{homeDose(h)}</p>
+            <p className="detail dose-note">{NOT_CHECKED}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
