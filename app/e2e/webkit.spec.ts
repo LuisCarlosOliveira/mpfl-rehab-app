@@ -97,7 +97,7 @@ test('every screen without a camera has no violation, no console error and no fo
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
-  await expect(page.getByRole('heading', { name: 'Position guide' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Step 1 of 6/ })).toBeVisible();
   await seen.expectClean('Setup, position guide');
   expect(await gumCalls(page), 'no camera request on these screens').toBe(0);
 });

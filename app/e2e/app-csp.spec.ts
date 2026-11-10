@@ -48,7 +48,7 @@ test('every screen of the real app has no violation, no console error and no for
   await expectScreen(page, 'Check before you exercise');
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
-  await expect(page.getByRole('heading', { name: 'Position guide' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Step 1 of 6/ })).toBeVisible();
   await seen.expectClean('Setup, position guide');
 
   await page.getByRole('button', { name: 'Next: set up the camera' }).click();
