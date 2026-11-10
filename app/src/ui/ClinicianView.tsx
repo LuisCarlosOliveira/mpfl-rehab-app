@@ -40,13 +40,16 @@ function frontCell(s: SessionRecord): string {
   return s.secondView === undefined ? NOT_APPLICABLE : FRONT_NOT_ENOUGH;
 }
 
+/** One decimal for display, like Your sessions. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
+const oneDecimal = (value: number) => (Number.isFinite(value * 10) ? String(Math.round(value * 10) / 10) : NO_VALUE);
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
+const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : oneDecimal(value));
 
 /** The reps, with the note when the person counted them by hand. */
 const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
 
 /** The peak knee bend. A leg raise peak above the plausibility value shows a sentence. The file keeps the number (M8). */
-const peakCell = (s: SessionRecord) => (peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNone(s.peakFlexion));
+const peakCell = (s: SessionRecord) => (peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.peakFlexion));
 
 function Table({ label, head, children }: { label: string; head: ReactNode[]; children: ReactNode }) {
   return (
@@ -218,7 +221,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{repsCell(s)}</td>
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
-                  <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNone(s.topFlexion)}</td>
+                  <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.topFlexion)}</td>
                   <td className="num-cell">{s.pain === undefined ? NOT_ANSWERED : s.pain}</td>
                   <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}
