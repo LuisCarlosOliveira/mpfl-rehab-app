@@ -203,6 +203,7 @@ function expectAboveBar(l: Layout, names: (keyof Layout)[], height: number) {
   }
   expect(l.unit!.top, "the unit is on the line of the angle number, not under it").toBeLessThan(l.num!.bottom - 2);
   expect(l.numberFont, "the number is 56 px or more").toBeGreaterThanOrEqual(56);
+  if (height >= 800) expect(l.numberFont, "the number is 72 px on a tall phone").toBeGreaterThanOrEqual(72);
   expect(l.video!.height, "the camera is 150 px or more").toBeGreaterThanOrEqual(149.5);
 }
 for (const size of SIZES) {

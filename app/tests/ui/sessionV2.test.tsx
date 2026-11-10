@@ -93,8 +93,9 @@ describe('A1: the CSS file keeps its own scope', () => {
     expect(rules).toMatch(/min\(70vw, 300px, 100svh - 33rem\)/);
   });
 
-  it('keeps the numbers at 56 px (3.5 rem) under 32 rem wide, never smaller', () => {
-    expect(rules).toMatch(/@media \(max-width: 31\.99rem\)\s*\{\s*\.v2-session \.readout-number\s*\{\s*font-size:\s*3\.5rem/);
+  it('keeps the numbers at 72 px, and at 56 px (3.5 rem, never smaller) only on a short phone under 32 rem wide', () => {
+    expect(rules).toMatch(/@media \(max-width: 31\.99rem\) and \(max-height: 41rem\)\s*\{\s*\.v2-session \.readout-number\s*\{\s*font-size:\s*3\.5rem/);
+    expect(rules.match(/\.readout-number\s*\{[^}]*font-size/g)).toHaveLength(1);
   });
 
   it('puts the camera on the left and the readings on the right on a wide screen (7fr, 5fr)', () => {

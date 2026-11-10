@@ -208,11 +208,8 @@ body:has(.v2-session) main {
     padding-left: var(--s-3);
   }
 }
-/* Under 32 rem the numbers are 56 px (3.5 rem), never smaller, so the unit stays on the line of the number and the whole block fits above the bar. */
+/* Under 32 rem wide the status slot and the numbers header are tighter, and the count keeps its unit on its line. */
 @media (max-width: 31.99rem) {
-  .v2-session .readout-number {
-    font-size: 3.5rem;
-  }
   .v2-session .status-slot > .btn {
     min-height: 3rem;
     padding-block: var(--s-1);
@@ -235,6 +232,12 @@ body:has(.v2-session) main {
   }
   .v2-session .session-head {
     margin-block: var(--s-1) 0;
+  }
+}
+/* The numbers stay 72 px (--step-hero). Only on a short phone under 32 rem wide they are 56 px (3.5 rem), never smaller, so the unit stays on the line of the number and the block fits above the bar. */
+@media (max-width: 31.99rem) and (max-height: 41rem) {
+  .v2-session .readout-number {
+    font-size: 3.5rem;
   }
 }
 @media (max-width: 319px) {
