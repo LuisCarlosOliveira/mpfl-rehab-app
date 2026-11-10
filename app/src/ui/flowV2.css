@@ -461,17 +461,18 @@
   border-top: 1px solid var(--line);
   border-radius: 0;
 }
-/* The marks of the drawing: the mark of the current step has a 3 px stroke. The others fade to 50 percent. */
-.v2-guide .fg-mark {
-  opacity: 0.5;
+/* The marks of the drawing: the mark of the current step has a 3 px stroke and the blue dot. The others stay quiet:
+   a thin line and a grey dot, with no opacity, so the number keeps full contrast (4.5:1 text, 3:1 shapes). */
+.v2-guide .fg-mark-dot {
+  fill: var(--muted);
 }
-.v2-guide[data-step="1"] .fg-mark[data-n="1"],
-.v2-guide[data-step="2"] .fg-mark[data-n="2"],
-.v2-guide[data-step="3"] .fg-mark[data-n="3"],
-.v2-guide[data-step="4"] .fg-mark[data-n="4"],
-.v2-guide[data-step="5"] .fg-mark[data-n="5"],
-.v2-guide[data-step="6"] .fg-mark[data-n="6"] {
-  opacity: 1;
+.v2-guide[data-step="1"] .fg-mark[data-n="1"] .fg-mark-dot,
+.v2-guide[data-step="2"] .fg-mark[data-n="2"] .fg-mark-dot,
+.v2-guide[data-step="3"] .fg-mark[data-n="3"] .fg-mark-dot,
+.v2-guide[data-step="4"] .fg-mark[data-n="4"] .fg-mark-dot,
+.v2-guide[data-step="5"] .fg-mark[data-n="5"] .fg-mark-dot,
+.v2-guide[data-step="6"] .fg-mark[data-n="6"] .fg-mark-dot {
+  fill: var(--chart);
 }
 .v2-guide[data-step="1"] .fg-mark[data-n="1"] .fg-mark-line,
 .v2-guide[data-step="2"] .fg-mark[data-n="2"] .fg-mark-line,
