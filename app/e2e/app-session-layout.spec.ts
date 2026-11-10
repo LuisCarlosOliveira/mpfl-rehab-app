@@ -261,6 +261,49 @@ for (const size of [...SIZES, { width: 320, height: 568 }, { width: 1280, height
   });
 }
 
+// V5: text at 200 percent (root font 200 percent) on a tall phone. The title keeps its words, Stop stays a pill,
+// the counters card does not clip, and the numbers can be scrolled above the bar.
+test.describe("V5: Session with text at 200 percent, 390 x 844", () => {
+  test.use({ viewport: SIZES[0] });
+  test("title in whole words, Stop is a pill, no clip, numbers reachable", async ({ page }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+    await page.evaluate(() => document.documentElement.style.setProperty("font-size", "200%", "important"));
+    await page.waitForTimeout(400);
+    const m = await page.evaluate(() => {
+      const h1 = document.querySelector(".session-head h1") as HTMLElement;
+      const lineHeight = parseFloat(getComputedStyle(h1).lineHeight) || parseFloat(getComputedStyle(h1).fontSize) * 1.2;
+      const stop = document.querySelector(".btn-stop")!.getBoundingClientRect();
+      const card = document.querySelector(".counters") as HTMLElement;
+      return {
+        titleLines: Math.round(h1.getBoundingClientRect().height / lineHeight),
+        stopW: stop.width,
+        stopH: stop.height,
+        clipX: card.scrollWidth - card.clientWidth,
+        clipY: card.scrollHeight - card.clientHeight,
+        scrollW: document.documentElement.scrollWidth,
+      };
+    });
+    expect(m.titleLines, "Heel slide fits in one or two lines, so no word breaks inside").toBeLessThanOrEqual(2);
+    expect(m.stopW, "Stop is wider than it is high").toBeGreaterThan(m.stopH);
+    expect(m.clipX).toBeLessThanOrEqual(1);
+    expect(m.clipY).toBeLessThanOrEqual(1);
+    expect(m.scrollW).toBeLessThanOrEqual(390);
+    // The numbers scroll into view above the bar.
+    await page.locator(".readout:not(.readout-reps) .readout-number").scrollIntoViewIfNeeded();
+    const room = await page.evaluate(() => {
+      const bar = document.querySelector(".session-bar")!.getBoundingClientRect().top;
+      const num = document.querySelector(".readout:not(.readout-reps) .readout-number")!.getBoundingClientRect();
+      const reps = document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect();
+      return { bar, angleBottom: num.bottom, repsBottom: reps.bottom };
+    });
+    expect(room.angleBottom).toBeLessThanOrEqual(room.bar + 0.5);
+    await page.locator(".readout-reps .readout-number").scrollIntoViewIfNeeded();
+    const reps = await page.evaluate(() => ({ bar: document.querySelector(".session-bar")!.getBoundingClientRect().top, bottom: document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect().bottom }));
+    expect(reps.bottom).toBeLessThanOrEqual(reps.bar + 0.5);
+  });
+});
+
 // R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {
   test.use({ viewport: SIZES[0] });

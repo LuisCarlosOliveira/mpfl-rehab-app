@@ -17,6 +17,13 @@ body:has(.v2-session) main {
 }
 .v2-session .session-head {
   margin-block: var(--s-1) var(--s-2);
+  flex-wrap: wrap; /* with big text the mute button goes under the title */
+}
+/* The title breaks only between words. A word breaks inside only when it is wider than the line. */
+.v2-session .session-head h1 {
+  min-width: auto;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 /* ---------- A4: the status chip. One shape and one word. ---------- */
@@ -198,8 +205,20 @@ body:has(.v2-session) main {
   line-height: 1.2;
 }
 @media (max-width: 39.99rem) {
+  /* The angle and the count sit in one row. With big text the count goes under the angle, and each keeps its width. */
   .v2-session .counters {
-    grid-template-columns: minmax(0, 1fr) 9rem; /* the count has a fixed column, so a long text never squeezes the angle */
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .v2-session .counters > :not(.readout) {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .v2-session .counters > .readout:not(.readout-reps) {
+    flex: 1 1 10rem;
+  }
+  .v2-session .counters > .readout-reps {
+    flex: 0 0 9rem; /* the count has a fixed width, so a long text never squeezes the angle */
   }
   .v2-session .counters > .readout {
     padding: var(--s-1) 0;
@@ -237,8 +256,11 @@ body:has(.v2-session) main {
 }
 /* The numbers stay 72 px (--step-hero). Only on a short phone under 32 rem wide they are 56 px (3.5 rem), never smaller, so the unit stays on the line of the number and the block fits above the bar. */
 @media (max-width: 31.99rem) and (max-height: 41rem) {
-  .v2-session .counters {
-    grid-template-columns: minmax(0, 1fr) 8rem;
+  .v2-session .counters > .readout:not(.readout-reps) {
+    flex-basis: 9rem;
+  }
+  .v2-session .counters > .readout-reps {
+    flex-basis: 8rem;
   }
   .v2-session .readout-number {
     font-size: 3.5rem;
@@ -259,6 +281,13 @@ body:has(.v2-session) main {
 }
 .v2-session .session-bar .btn {
   border-radius: var(--r-full);
+  min-height: min(4.5rem, 12svh); /* with big text the buttons do not grow with the root size */
+}
+/* Each button has at least 9 rem. With big text they go one under the other, and Stop keeps its pill shape. */
+@media (max-width: 39.99rem) {
+  .v2-session .session-bar-inner {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  }
 }
 .v2-session .session-bar .btn-gave-way {
   padding-inline: var(--s-2);
