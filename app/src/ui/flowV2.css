@@ -110,6 +110,38 @@
   min-width: 6rem;
   border-radius: var(--r-full);
 }
+/* On a narrow screen the icon sits above the text, so big text keeps the full width. Long words and dose lines wrap. */
+.v2-home .exercise-body,
+.v2-home .exercise-body .chip {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 39.99rem) {
+  .v2-home .exercise-featured,
+  .v2-home .exercise:not(.exercise-featured) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .v2-home .exercise-featured .exercise-icon {
+    flex: none;
+  }
+  .v2-home .exercise-body {
+    flex: 1 1 10rem;
+  }
+  .v2-home .exercise-featured .exercise-go {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .v2-home .exercise-go .btn {
+    max-width: 100%;
+    padding-inline: var(--s-3);
+  }
+  .v2-home .exercise:not(.exercise-featured) .exercise-go {
+    flex: none;
+    align-self: center;
+  }
+}
 @media (min-width: 40rem) {
   .v2-home .exercise-featured {
     grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
@@ -417,7 +449,7 @@
 }
 .v2-guide .guide-dots {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--touch), 100%), 1fr));
   gap: var(--s-1);
 }
 .v2-guide .guide-dot {
@@ -491,11 +523,6 @@
 .v2-guide[data-step="6"] .fg-mark[data-n="6"] .fg-mark-dot {
   stroke: var(--ink);
   stroke-width: 3;
-}
-@media (max-width: 21.5rem) {
-  .v2-guide .guide-dots {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 /* ===== Summary (B4, B6, B7) ===== */
@@ -580,8 +607,10 @@
   font-size: var(--step-1);
   font-weight: 700;
 }
+/* The scale wraps onto more rows when the text is big. Each box stays 48 px or more wide (and 56 px high), so nothing shrinks and nothing runs off the screen. */
 .v2-pain .scale {
   gap: var(--s-1);
+  grid-template-columns: repeat(auto-fit, minmax(max(var(--touch), 8%), 1fr));
 }
 .v2-pain .scale-item {
   min-height: 3.5rem;
@@ -592,14 +621,14 @@
 .v2-pain .scale-item:has(input:checked) {
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 5px var(--ink);
 }
-@media (max-width: 21.25rem) {
+@media (max-width: 40rem) {
   .v2-pain .scale {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(max(var(--touch), 15%), 1fr));
   }
 }
-@media (max-width: 15rem) {
+@media (max-width: 21.25rem) {
   .v2-pain .scale {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(max(var(--touch), 23%), 1fr));
   }
 }
 
@@ -610,7 +639,7 @@
 .v2-nav .nav-ico {
   display: grid;
   place-items: center;
-  width: 3.5rem;
+  width: min(3.5rem, 100%);
   height: 2rem;
   border-radius: var(--r-full);
 }

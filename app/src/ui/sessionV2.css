@@ -399,6 +399,10 @@ body:has(.v2-session) main {
 }
 .v2-setup .rule-missing {
   flex: 1 1 100%;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-height: 3rem;
   padding: var(--s-2) var(--s-4);
   border: 1.5px solid var(--accent-ink);

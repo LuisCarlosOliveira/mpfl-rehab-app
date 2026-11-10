@@ -34,4 +34,16 @@ describe('flowV2.css', () => {
     expect(css).toMatch(/\.v2-pain \.scale-item\s*\{[^}]*min-height:\s*3\.5rem/);
     expect(css).toMatch(/\.v2-seg \.seg-cell\s*\{[^}]*min-height:\s*3\.5rem/);
   });
+
+  // Pain scale safety: 11 radios, each 48 px or more. A grid with a fixed count of shrinking columns would squeeze them at big text.
+  it('lets the pain scale and the guide step buttons wrap, never shrink under 48 px', () => {
+    const blocks = [...css.matchAll(/\.v2-pain \.scale\s*\{([^}]*)\}/g)].map((m) => m[1]!);
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const b of blocks) {
+      const cols = b.match(/grid-template-columns:\s*([^;]+);/);
+      if (cols) expect(cols[1], b).toMatch(/auto-fit,\s*minmax\(max\(var\(--touch\)/);
+    }
+    expect(css).toMatch(/\.v2-pain \.scale-item\s*\{[^}]*min-width:\s*var\(--touch\)/);
+    expect(css).toMatch(/\.v2-guide \.guide-dots\s*\{[^}]*auto-fit,\s*minmax\(min\(var\(--touch\)/);
+  });
 });

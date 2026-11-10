@@ -343,6 +343,7 @@ main {
 }
 .disclosure > summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-3);
   min-height: 4rem;
@@ -354,7 +355,9 @@ main {
   display: none;
 }
 .disclosure > summary h2 {
-  flex: 1;
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: var(--step-1);
 }
