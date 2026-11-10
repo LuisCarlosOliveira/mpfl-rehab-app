@@ -1,5 +1,6 @@
 // The bottom bar of the three main screens: Home, Your sessions and My data. It never shows on a flow screen (Red flag, Setup, Session, Summary).
 import { Icon, type IconName } from './Icon';
+import './flowV2.css';
 
 export type NavScreen = 'home' | 'dashboard' | 'data';
 
@@ -18,7 +19,7 @@ interface Props {
 
 export function BottomNav({ current, onOpen }: Props) {
   return (
-    <nav className="bottom-nav" aria-label="Main">
+    <nav className="bottom-nav v2-nav" aria-label="Main">
       <ul>
         {ITEMS.map((item) => (
           <li key={item.screen}>
@@ -28,7 +29,9 @@ export function BottomNav({ current, onOpen }: Props) {
               aria-current={item.screen === current ? 'page' : undefined}
               onClick={() => item.screen !== current && onOpen(item.screen)}
             >
-              <Icon name={item.icon} size={22} />
+              <span className="nav-ico">
+                <Icon name={item.icon} size={22} />
+              </span>
               <span>{item.label}</span>
             </button>
           </li>

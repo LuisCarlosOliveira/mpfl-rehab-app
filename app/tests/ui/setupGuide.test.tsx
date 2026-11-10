@@ -11,9 +11,12 @@ afterEach(cleanup);
 const open = (side: 'left' | 'right' = 'left') =>
   render(<Setup kind="heel-slide" side={side} exerciseName="Heel slide" source={mockSource()} sound={audioHarness().sound} onReady={vi.fn()} onCancel={vi.fn()} />);
 
+const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
 describe('numbered guide steps (U13)', () => {
-  it('numbers the six notes from 1 to 6 and keeps the clinical text of the guide', () => {
+  it('numbers the six notes from 1 to 6 under Show all steps and keeps the clinical text of the guide', () => {
     const { container } = open();
+    fireEvent.click(screen.getByRole('button', { name: 'Show all steps' }));
     const cards = [...container.querySelectorAll('dl.guide-notes > div')];
     expect(cards.map((c) => c.querySelector('dt .guide-num')?.textContent)).toEqual(['1', '2', '3', '4', '5', '6']);
     const guide = guideFor('heel-slide');
@@ -21,13 +24,18 @@ describe('numbered guide steps (U13)', () => {
     cards.forEach((c) => expect([...c.children].map((x) => x.tagName)).toEqual(['DT', 'DD']));
   });
 
-  it('draws numbered labels in the start, end and camera drawings that match the steps', () => {
+  it('draws the numbered labels of the current drawing: 1 to 3 at the start, 4 and 5 at the end, 6 at the camera', () => {
     const { container } = open();
-    const marks = (i: number) => [...container.querySelectorAll('svg.fig')[i]!.querySelectorAll('.fg-mark-text')].map((t) => t.textContent);
-    expect(marks(0)).toEqual(['1', '2', '3']);
-    expect(marks(1)).toEqual(['4', '5']);
-    expect(marks(2)).toEqual(['6']);
-    expect(container.querySelectorAll('svg.fig .fg-mark-line').length).toBe(6);
+    const marks = () => [...container.querySelectorAll('svg.fig .fg-mark-text')].map((t) => t.textContent);
+    const lines = () => container.querySelectorAll('svg.fig .fg-mark-line').length;
+    expect(marks()).toEqual(['1', '2', '3']);
+    expect(lines()).toBe(3);
+    next(); next(); next();
+    expect(marks()).toEqual(['4', '5']);
+    expect(lines()).toBe(2);
+    next(); next();
+    expect(marks()).toEqual(['6']);
+    expect(lines()).toBe(1);
   });
 
   it('draws no number in a figure that gets no marks (other screens keep their drawing)', () => {
@@ -42,14 +50,19 @@ describe('legend of the chosen leg (U14)', () => {
   it('keeps the legend "chosen leg" in every drawing when the other leg is chosen, and the numbers too', () => {
     const { container } = open('left');
     fireEvent.click(screen.getAllByRole('radio', { name: /^Right/ })[0]!);
-    const texts = [...container.querySelectorAll('svg.fig')].map((s) => s.textContent);
-    texts.forEach((t) => expect(t).toMatch(/chosen leg/i));
-    expect(container.querySelectorAll('.fg-mark-text').length).toBe(6);
+    for (let i = 0; i < 6; i++) {
+      container.querySelectorAll('svg.fig').forEach((s) => expect(s.textContent).toMatch(/chosen leg/i));
+      expect(container.querySelectorAll('.fg-mark-text').length).toBeGreaterThan(0);
+      if (i < 5) next();
+    }
   });
 
   it('keeps the legend "Operated leg" when the plan leg is chosen', () => {
     const { container } = open('left');
-    [...container.querySelectorAll('svg.fig')].forEach((s) => expect(s.textContent).toContain('Operated leg'));
+    for (let i = 0; i < 6; i++) {
+      container.querySelectorAll('svg.fig').forEach((s) => expect(s.textContent).toContain('Operated leg'));
+      if (i < 5) next();
+    }
   });
 
   it('gives the numbers a name that the screen reader does not repeat: the drawing stays one image', () => {

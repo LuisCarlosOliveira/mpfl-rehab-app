@@ -9,7 +9,10 @@ import { ASK_SURGEON_TEXT } from './askSurgeon';
 import { GuideFigure, type Mark } from './GuideFigure';
 import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
+import { Segmented } from './Segmented';
+import { StepGuide } from './StepGuide';
 import { LEG_TEXT } from './setupView';
+import './flowV2.css';
 
 const SECOND_CAMERA_BUTTON = 'Add a second camera (optional)';
 const SECOND_CAMERA_TEXT = 'A phone can be a second camera in front of you. It sends body points only, no video.';
@@ -68,21 +71,26 @@ export function SetupGuide({
     { icon: 'clock', label: 'Speed', text: guide.speed },
     { icon: 'video-off', label: 'What the camera must see', text: guide.cameraMustSee },
   ];
+  const startFigure = (
+    <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} marks={START_MARKS} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
+  );
+  const endFigure = <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />;
+  // Steps 1 to 3 name the start drawing, steps 4 and 5 the end drawing, step 6 the camera drawing.
+  const figureFor = (step: number) => (
+    <>
+      {step <= 3 ? startFigure : step <= 5 ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
+      <p className="detail">The drawing shows the movement. It is not your limit.</p>
+    </>
+  );
   return (
-    <div className="stack">
-      <fieldset className="choices">
-        <legend>{LEG_TEXT.legQuestion}</legend>
-        <div className="options">
-          {SIDES.map((value) => (
-            <label key={value} className="option">
-              <input type="radio" name="exercise-leg" value={value} checked={leg === value} onChange={() => onLegChange(value)} />
-              <span>
-                {SIDE_WORD[value]}
-                {value === side && <span className="option-hint">{LEG_TEXT.planLeg}</span>}
-              </span>
-            </label>
-          ))}
-        </div>
+    <div className="stack v2-flow v2-setup">
+      <Segmented
+        name="exercise-leg"
+        legend={LEG_TEXT.legQuestion}
+        value={leg}
+        options={SIDES.map((value) => ({ value, label: SIDE_WORD[value], hint: value === side ? LEG_TEXT.planLeg : undefined }))}
+        onChange={onLegChange}
+      >
         {otherLegChosen && (
           <div className="stack-s leg-note" id="other-leg-note">
             <Notice icon="info">
@@ -95,49 +103,20 @@ export function SetupGuide({
             )}
           </div>
         )}
-      </fieldset>
-      <fieldset className="choices">
-        <legend>{LEG_TEXT.cameraQuestion}</legend>
-        <div className="options">
-          {SIDES.map((value) => (
-            <label key={value} className="option">
-              <input type="radio" name="camera-side" value={value} checked={cameraSide === value} onChange={() => onCameraSideChange(value)} />
-              <span>{SIDE_WORD[value]}</span>
-            </label>
-          ))}
-        </div>
+      </Segmented>
+      <Segmented name="camera-side" legend={LEG_TEXT.cameraQuestion} value={cameraSide} options={SIDES.map((value) => ({ value, label: SIDE_WORD[value] }))} onChange={onCameraSideChange}>
         <p className="detail">{LEG_TEXT.cameraHint}</p>
         {cameraSide !== leg && (
           <Notice icon="info">
             <p>{LEG_TEXT.farLeg}</p>
           </Notice>
         )}
-      </fieldset>
-      <h2>Position guide</h2>
-      <div className="guide-figures">
-        <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} marks={START_MARKS} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
-        <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />
-        {cameraGuide}
-      </div>
-      <div className="stack-s">
-        <p className="detail">The drawing shows the movement. It is not your limit.</p>
-        <Notice icon="ruler">
-          <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
-        </Notice>
-      </div>
+      </Segmented>
+      <StepGuide steps={notes} figure={figureFor} />
+      <Notice icon="ruler">
+        <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
+      </Notice>
       {returnNotice}
-      <dl className="guide-notes">
-        {notes.map((n, i) => (
-          <div key={n.label} className="guide-note">
-            <dt>
-              <span className="guide-num">{i + 1}</span>
-              <Icon name={n.icon} size={22} />
-              {n.label}
-            </dt>
-            <dd>{n.text}</dd>
-          </div>
-        ))}
-      </dl>
       <details className="card disclosure technique">
         <summary>
           <h2>How the sources describe this exercise</h2>

@@ -334,7 +334,8 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
     swell(/more than before/i);
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
     expect(screen.getByText(/swelling: more than before/i)).toBeInTheDocument();
-    expect(screen.queryByText(/out of 10/i)).toBeNull();
+    // The pause line about pain is gone. The read-out of the chosen value (3 out of 10) stays, so the test names the pause line.
+    expect(screen.queryByText(/You reported pain/)).toBeNull();
   });
 
   it('moves focus to the saved message after Save', async () => {

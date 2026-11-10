@@ -1,0 +1,619 @@
+/* UI redesign v2, package B: Home, Red flag, Setup guide, Summary, the pain question and the bottom bar.
+   Every rule sits under one root class (.v2-flow, .v2-seg, .v2-guide, .v2-pain, .v2-nav), so it wins over styles.css without !important.
+   Only tokens of styles.css are used. No colour of its own, no green and no red. Nothing moves unless the person acts. */
+
+/* ===== Home (B1) ===== */
+.v2-home .page-head {
+  margin-block: var(--s-2) var(--s-4);
+}
+.v2-home .home-grid {
+  gap: var(--s-5);
+}
+.v2-home .home-grid .stack {
+  gap: var(--s-4);
+}
+/* A thick ink rule opens each block. It replaces the card and the stack of boxes. */
+.v2-home .home-grid .card,
+.v2-home section.stack-s {
+  border-top: 3px solid var(--ink);
+  padding: var(--s-3) 0 0;
+}
+.v2-home .home-grid .disclosure {
+  border-top: 3px solid var(--ink);
+  border-bottom: 0;
+}
+.v2-home .home-grid .card > h2,
+.v2-home section.stack-s > h2 {
+  margin: 0 0 var(--s-2);
+  font-size: var(--step-1);
+  font-weight: 800;
+}
+.v2-home .exercise-list {
+  gap: 0;
+}
+/* The first exercise is one tinted card: name, dose lines and a wide Start. */
+.v2-home .exercise-featured {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'icon text'
+    'go go';
+  align-items: start;
+  gap: var(--s-3) var(--s-4);
+  margin-bottom: var(--s-2);
+  padding: var(--s-5);
+  background: var(--primary-soft);
+  border: 0;
+  border-radius: var(--r-m);
+}
+.v2-home .exercise-featured .exercise-icon {
+  grid-area: icon;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--r-s);
+}
+.v2-home .exercise-featured .exercise-body {
+  grid-area: text;
+}
+.v2-home .exercise-featured .exercise-go {
+  grid-area: go;
+}
+.v2-home .exercise-featured .exercise-figure {
+  display: none;
+}
+.v2-home .exercise-featured .exercise-name {
+  margin: 0 0 var(--s-2);
+  font-size: var(--step-3);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.v2-home .exercise-featured .chips {
+  flex-direction: column;
+  gap: 0;
+}
+.v2-home .exercise-featured .chip {
+  min-height: 1.75rem;
+  padding: 0;
+  background: transparent;
+  font-size: var(--step-0);
+  font-weight: 650;
+}
+.v2-home .exercise-featured .exercise-go .btn {
+  width: 100%;
+}
+/* The other exercises are list rows: name and dose at the left, a 48 px Start pill at the right. */
+.v2-home .exercise:not(.exercise-featured) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-3) 0;
+}
+.v2-home .exercise:not(.exercise-featured) .exercise-name {
+  margin: 0 0 var(--s-1);
+  font-size: var(--step-0);
+  font-weight: 750;
+}
+.v2-home .exercise:not(.exercise-featured) .chips {
+  gap: 0 var(--s-3);
+}
+.v2-home .exercise:not(.exercise-featured) .chip {
+  min-height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--step-m1);
+}
+.v2-home .exercise:not(.exercise-featured) .exercise-go {
+  grid-column: auto;
+}
+.v2-home .exercise:not(.exercise-featured) .exercise-go .btn {
+  width: auto;
+  min-width: 6rem;
+  border-radius: var(--r-full);
+}
+@media (min-width: 40rem) {
+  .v2-home .exercise-featured {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
+    grid-template-areas:
+      'icon figure'
+      'text figure'
+      'go figure';
+  }
+  .v2-home .exercise-featured .exercise-figure {
+    display: block;
+    grid-area: figure;
+    align-self: center;
+    margin: 0;
+  }
+  .v2-home .exercise-featured .exercise-go .btn {
+    width: auto;
+    min-width: 14rem;
+  }
+}
+.v2-home .plan-exercises .card {
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-3);
+}
+/* The second camera is one row of the facts list. */
+.v2-home .facts .fact-row {
+  padding-block: var(--s-2);
+}
+.v2-home .facts .fact-action {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2);
+}
+.v2-home .facts .fact-action dd {
+  display: grid;
+  gap: var(--s-2);
+  text-align: left;
+}
+.v2-home .facts .fact-action .btn {
+  justify-content: flex-start;
+  border: 1.5px solid var(--edge);
+  background: var(--raised);
+}
+.v2-home .facts .fact-action .detail {
+  font-weight: 500;
+}
+.v2-home .home-grid .disclosure > summary {
+  min-height: 3.5rem;
+}
+
+/* ===== Red flag (B2) ===== */
+.v2-redflag .choices {
+  padding-top: var(--s-3);
+  border-top: 3px solid var(--ink);
+}
+.v2-redflag .choice {
+  min-height: var(--row);
+  padding-inline: var(--s-3);
+  font-weight: 600;
+}
+.v2-redflag .choice input {
+  width: 1.875rem;
+  height: 1.875rem;
+}
+/* A ticked row has a bar at its edge and a bold sentence. The colour is the indigo of the attention block. */
+.v2-redflag .choice:has(input:checked) {
+  background: var(--accent-soft);
+  box-shadow: inset 5px 0 0 var(--accent);
+  font-weight: 750;
+}
+.v2-redflag .choice input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.v2-redflag .action-bar {
+  flex-wrap: wrap;
+}
+/* The live region stays in the page without taking room while it is empty. */
+.v2-redflag .redflag-block:empty {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.v2-redflag .redflag-block {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.v2-redflag .action-bar[data-blocked] {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: var(--s-3);
+  background: var(--accent);
+  border-top: 0;
+}
+.v2-redflag .action-bar[data-blocked] .notice {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+.v2-redflag .action-bar[data-blocked] .notice-title {
+  font-size: var(--step-1);
+  line-height: 1.2;
+}
+.v2-redflag .action-bar[data-blocked] .notice p:not(.notice-title) {
+  font-size: var(--step-m1);
+}
+.v2-redflag .action-bar[data-blocked] .btn {
+  background: var(--on-accent);
+  border-color: var(--on-accent);
+  color: var(--accent);
+}
+.v2-redflag .redflag-after {
+  margin-top: var(--s-5);
+}
+.v2-redflag .redflag-after .btn {
+  width: 100%;
+}
+
+/* ===== Segmented control (B3 leg questions, B6 swelling) ===== */
+.v2-seg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+.v2-seg legend {
+  float: left;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  margin-bottom: var(--s-2);
+  padding: 0;
+  font-size: var(--step-0);
+  font-weight: 750;
+  line-height: 1.25;
+}
+.v2-seg legend svg {
+  flex: none;
+  color: var(--accent-ink);
+}
+.v2-seg legend + * {
+  clear: both;
+}
+.v2-seg .seg-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  background: var(--raised);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-s);
+}
+.v2-seg .seg-track[data-count='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.v2-seg .seg-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 3.5rem;
+  padding: var(--s-2) var(--s-3);
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.v2-seg .seg-track[data-count='3'] .seg-cell {
+  min-height: 4rem;
+}
+.v2-seg .seg-cell + .seg-cell {
+  border-left: 2px solid var(--ink);
+}
+.v2-seg .seg-cell input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.v2-seg .seg-cell:has(input:checked) {
+  background: var(--ink);
+  color: var(--bg);
+}
+.v2-seg .seg-cell:has(input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: -6px;
+}
+.v2-seg .seg-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: var(--step-m1);
+  font-weight: 600;
+}
+.v2-seg .detail {
+  margin-top: var(--s-2);
+}
+.v2-seg .notice {
+  margin-top: var(--s-2);
+}
+.v2-seg .leg-note {
+  margin-top: var(--s-2);
+}
+
+/* ===== Setup guide (B3) ===== */
+.v2-setup {
+  gap: var(--s-3);
+}
+.v2-setup .seg-cell,
+.v2-setup .seg-track[data-count='3'] .seg-cell {
+  min-height: 3.5rem;
+  padding-inline: var(--s-2);
+}
+.v2-setup .seg-hint {
+  margin-top: 0;
+  font-size: 0.8125rem;
+  line-height: 1.15;
+}
+.v2-setup .notice {
+  padding: var(--s-2) var(--s-3);
+}
+.v2-setup .notice > svg {
+  margin-top: 0.1rem;
+}
+.v2-setup .disclosure > summary {
+  min-height: 3.25rem;
+  padding-block: var(--s-1);
+}
+.v2-setup .disclosure > summary h2 {
+  font-size: var(--step-0);
+}
+.v2-setup .card-flat p {
+  margin: 0;
+}
+.v2-setup .disclosure,
+.v2-setup .card-flat {
+  border-radius: var(--r-s);
+}
+.v2-setup .card-flat {
+  padding: var(--s-3) var(--s-4);
+}
+.v2-setup .card-flat > h2 {
+  margin-bottom: var(--s-1);
+  font-size: var(--step-0);
+}
+.v2-setup .card-flat .actions {
+  margin-top: var(--s-2);
+}
+.v2-guide {
+  display: grid;
+  gap: var(--s-3);
+}
+.v2-guide .guide-figure .fig {
+  max-width: 24rem;
+}
+.v2-guide .guide-camera {
+  display: grid;
+  gap: var(--s-2);
+}
+.v2-guide .guide-camera .figure-card {
+  margin: 0;
+}
+.v2-guide .guide-title {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.v2-guide .guide-title:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: var(--r-xs);
+}
+.v2-guide .guide-count {
+  display: block;
+  color: var(--muted);
+  font-size: var(--step-m1);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.v2-guide .guide-text {
+  margin: 0;
+  max-width: 60ch;
+  min-height: 3.1em; /* two lines, so the buttons below do not jump from one step to the next */
+}
+.v2-guide .guide-figure {
+  display: grid;
+  gap: var(--s-1);
+}
+.v2-guide .guide-figure .detail {
+  margin: 0;
+  font-size: var(--step-m1);
+}
+.v2-guide .guide-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.v2-guide .guide-nav .btn {
+  min-height: var(--touch);
+  font-size: var(--step-0);
+}
+.v2-guide .guide-dots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+.v2-guide .guide-dot {
+  min-width: var(--touch);
+  min-height: var(--touch);
+  font: inherit;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--raised);
+  border: 2px solid var(--edge);
+  border-radius: var(--r-s);
+  cursor: pointer;
+}
+.v2-guide .guide-dot[aria-current='step'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.v2-guide .guide-dot:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.v2-guide .guide-all {
+  justify-self: start;
+  padding-inline: 0;
+  background: transparent;
+  border-color: transparent;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.v2-guide .guide-notes {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+}
+.v2-guide .guide-note {
+  padding: var(--s-3) 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+/* The marks of the drawing: the mark of the current step has a 3 px stroke. The others fade to 50 percent. */
+.v2-guide .fg-mark {
+  opacity: 0.5;
+}
+.v2-guide[data-step="1"] .fg-mark[data-n="1"],
+.v2-guide[data-step="2"] .fg-mark[data-n="2"],
+.v2-guide[data-step="3"] .fg-mark[data-n="3"],
+.v2-guide[data-step="4"] .fg-mark[data-n="4"],
+.v2-guide[data-step="5"] .fg-mark[data-n="5"],
+.v2-guide[data-step="6"] .fg-mark[data-n="6"] {
+  opacity: 1;
+}
+.v2-guide[data-step="1"] .fg-mark[data-n="1"] .fg-mark-line,
+.v2-guide[data-step="2"] .fg-mark[data-n="2"] .fg-mark-line,
+.v2-guide[data-step="3"] .fg-mark[data-n="3"] .fg-mark-line,
+.v2-guide[data-step="4"] .fg-mark[data-n="4"] .fg-mark-line,
+.v2-guide[data-step="5"] .fg-mark[data-n="5"] .fg-mark-line,
+.v2-guide[data-step="6"] .fg-mark[data-n="6"] .fg-mark-line {
+  stroke: var(--primary);
+  stroke-width: 3;
+}
+.v2-guide[data-step="1"] .fg-mark[data-n="1"] .fg-mark-dot,
+.v2-guide[data-step="2"] .fg-mark[data-n="2"] .fg-mark-dot,
+.v2-guide[data-step="3"] .fg-mark[data-n="3"] .fg-mark-dot,
+.v2-guide[data-step="4"] .fg-mark[data-n="4"] .fg-mark-dot,
+.v2-guide[data-step="5"] .fg-mark[data-n="5"] .fg-mark-dot,
+.v2-guide[data-step="6"] .fg-mark[data-n="6"] .fg-mark-dot {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+@media (max-width: 21.5rem) {
+  .v2-guide .guide-dots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ===== Summary (B4, B6, B7) ===== */
+.v2-summary .stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-5);
+}
+.v2-summary .stat {
+  padding: var(--s-3) 0 0;
+  background: transparent;
+  border: 0;
+  border-top: 3px solid var(--ink);
+  border-radius: 0;
+}
+.v2-summary .stat dt {
+  color: var(--muted);
+  font-size: var(--step-m1);
+  font-weight: 650;
+}
+.v2-summary .stat .num {
+  font-size: var(--step-4);
+  font-weight: 800;
+}
+.v2-summary .stat .unit {
+  color: var(--muted);
+  font-size: var(--step-0);
+  font-weight: 650;
+}
+.v2-summary .stat .detail {
+  font-size: var(--step-m1);
+}
+.v2-summary .set-list {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--sunken);
+  border: 0;
+  border-radius: var(--r-s);
+}
+.v2-summary .set-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-height: 3rem;
+  padding: var(--s-3) var(--s-4);
+}
+.v2-summary .set-list li + li {
+  border-top: 1px solid var(--edge);
+}
+.v2-summary .set-count {
+  font-weight: 750;
+}
+.v2-summary .action-bar .btn {
+  flex: 1 1 0;
+}
+.v2-summary .save-btn {
+  min-width: 0;
+}
+
+/* ===== Pain question (B5) ===== */
+.v2-pain .pain-readout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  min-height: 3.5rem;
+  margin: 0 0 var(--s-2);
+}
+.v2-pain .pain-readout .num {
+  font-size: var(--step-4);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.v2-pain .pain-of {
+  color: var(--muted);
+  font-size: var(--step-1);
+  font-weight: 650;
+}
+.v2-pain .pain-none {
+  color: var(--muted);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+.v2-pain .scale {
+  gap: var(--s-1);
+}
+.v2-pain .scale-item {
+  min-height: 3.5rem;
+  min-width: var(--touch);
+  font-size: var(--step-2);
+  font-weight: 800;
+}
+.v2-pain .scale-item:has(input:checked) {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 5px var(--ink);
+}
+@media (max-width: 21.25rem) {
+  .v2-pain .scale {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 15rem) {
+  .v2-pain .scale {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ===== Bottom bar ===== */
+.v2-nav .bottom-nav-item[aria-current='page']::before {
+  display: none;
+}
+.v2-nav .nav-ico {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 2rem;
+  border-radius: var(--r-full);
+}
+.v2-nav .bottom-nav-item[aria-current='page'] .nav-ico {
+  background: var(--ink);
+  color: var(--bg);
+}

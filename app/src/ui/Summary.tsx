@@ -17,8 +17,10 @@ import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
+import { Segmented } from './Segmented';
 import { runToSessionInput } from './sessionRecord';
 import type { SessionRunSummary } from './Session';
+import './flowV2.css';
 
 const SWELLING: { value: SwellingAnswer; text: string }[] = [
   { value: 'none', text: 'No swelling' },
@@ -45,6 +47,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [pain, setPain] = useState<number | null>(null);
   const [swelling, setSwelling] = useState<SwellingAnswer | null>(null);
   const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false); // the write is running: the button says Saving
   const [discarded, setDiscarded] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [recordFailed, setRecordFailed] = useState(false); // the write at the end of the run did not work
@@ -79,6 +82,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   async function save() {
     if (pain === null || swelling === null || saving.current) return;
     saving.current = true;
+    setSaveBusy(true);
     try {
       // The run was saved when it ended: add the answers to that record. With no record, write the whole run once.
       const id = await run.record?.catch(() => undefined);
@@ -90,6 +94,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       setSaveError(true);
       saving.current = false;
     }
+    setSaveBusy(false);
   }
 
   // No write. The run is already saved, without the answers. The pause message stays when the answers trigger it (FR12), so Done shows after it.
@@ -102,7 +107,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const unit = summary.holds === null ? 'rep' : 'hold';
 
   return (
-    <section aria-labelledby="summary-title" className="narrow">
+    <section aria-labelledby="summary-title" className="narrow v2-flow v2-summary">
       <header className="page-head">
         <div className="stack-s">
           <h1 id="summary-title" tabIndex={-1}>
@@ -124,7 +129,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Reps counted</dt>
               <dd>
-                <span className="num">{summary.reps}</span> {plural(summary.reps, 'rep')}
+                <span className="num">{summary.reps}</span> <span className="unit">{plural(summary.reps, 'rep')}</span>
               </dd>
             </div>
           )}
@@ -132,7 +137,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Holds counted</dt>
               <dd>
-                <span className="num">{summary.holds}</span> {plural(summary.holds, 'hold')}
+                <span className="num">{summary.holds}</span> <span className="unit">{plural(summary.holds, 'hold')}</span>
               </dd>
             </div>
           )}
@@ -144,7 +149,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
                 <dd>{PEAK_UNREADABLE_TEXT}</dd>
               ) : (
                 <dd>
-                  <span className="num">{Math.round(summary.peakFlexion)}</span> {plural(Math.round(summary.peakFlexion), 'degree')}
+                  <span className="num">{Math.round(summary.peakFlexion)}</span> <span className="unit">{plural(Math.round(summary.peakFlexion), 'degree')}</span>
                   <span className="detail">({ANGLE_LABEL})</span>
                 </dd>
               )}
@@ -157,7 +162,10 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <ul className="set-list" aria-label="Reps in each set">
             {sets.repsPerSet.map((n, i) => (
               <li key={i}>
-                Set {i + 1}: <span className="num">{n}</span> {plural(n, unit)}
+                <span>Set {i + 1}:</span>{' '}
+                <span className="set-count">
+                  <span className="num">{n}</span> {plural(n, unit)}
+                </span>
               </li>
             ))}
           </ul>
@@ -169,20 +177,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <>
             <PainScale name="pain" value={pain} onChange={setPain} />
 
-            <fieldset className="choices">
-              <legend>
-                <Icon name="stethoscope" size={22} />
-                Is your knee swollen?
-              </legend>
-              <div className="options">
-                {SWELLING.map((s) => (
-                  <label key={s.value} className="option">
-                    <input type="radio" name="swelling" checked={swelling === s.value} onChange={() => setSwelling(s.value)} />
-                    <span>{s.text}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <Segmented name="swelling" legend="Is your knee swollen?" icon="stethoscope" value={swelling} options={SWELLING.map((o) => ({ value: o.value, label: o.text }))} onChange={setSwelling} />
 
             {recordFailed && (
               <Notice role="alert" icon="triangle-alert">
@@ -207,18 +202,20 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       </div>
 
       <div className="action-bar">
-        {!saved && !discarded ? (
-          <>
-            <button type="button" className="btn btn-primary btn-lg" disabled={pain === null || swelling === null} onClick={() => void save()}>
-              Save
-            </button>
-            <button type="button" className="btn btn-lg" onClick={skipQuestions}>
-              Skip the questions
-            </button>
-          </>
-        ) : (
+        {/* One button swaps its label: Save, Saving, Saved. The status line above repeats it for a screen reader. */}
+        {!discarded && (
+          <button type="button" className={saved ? 'btn btn-lg save-btn' : 'btn btn-primary btn-lg save-btn'} disabled={saved || saveBusy || pain === null || swelling === null} onClick={() => void save()}>
+            {saved && <Icon name="check" size={20} />}
+            {saved ? 'Saved' : saveBusy ? 'Saving' : 'Save'}
+          </button>
+        )}
+        {saved || discarded ? (
           <button type="button" className="btn btn-primary btn-lg" onClick={onDone}>
             Done
+          </button>
+        ) : (
+          <button type="button" className="btn btn-lg" onClick={skipQuestions}>
+            Skip the questions
           </button>
         )}
       </div>

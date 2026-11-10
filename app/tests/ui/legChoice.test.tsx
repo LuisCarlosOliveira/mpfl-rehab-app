@@ -416,8 +416,9 @@ describe('App: the choice reaches the pipeline and the record', () => {
 
   it('passes the target flexion of the protocol to the position drawings', async () => {
     await toSetup();
-    // The drawing of the end position shows the knee angle of the target (60 degrees in the example).
-    expect(document.querySelector('.guide-figures')!.textContent).toContain(`60${String.fromCharCode(176)}`);
+    // The drawing of the end position (step 4 of the guide) shows the knee angle of the target (60 degrees in the example).
+    fireEvent.click(screen.getByRole('button', { name: /^Step 4,/ }));
+    expect(document.querySelector('.v2-guide .guide-figure')!.textContent).toContain(`60${String.fromCharCode(176)}`);
   });
 
   it('tracks and saves the unoperated leg when the person chooses it, and leaves the phase and protocol alone', async () => {
