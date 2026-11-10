@@ -184,6 +184,21 @@ describe('Setup with the optional second camera step', () => {
     expect(pairing.getView().status).toBe('closed');
   });
 
+  it('shows one step indicator on the laptop pairing step: the list of Setup, not a second track', async () => {
+    setup();
+    press(OPEN);
+    expect(screen.getAllByRole('list', { name: /steps/i })).toHaveLength(1);
+    press('Start pairing');
+    await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    expect(screen.getByRole('list', { name: 'Steps' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pairing steps' })).toBeNull();
+    // The headings still name the two pairing steps.
+    expect(screen.getByRole('heading', { level: 2, name: /^Step 1\./ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' }));
+    expect(screen.getAllByRole('list', { name: /steps/i })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: /^Step 2\./ })).toBeInTheDocument();
+  });
+
   it('Back returns to the guide and closes the link', async () => {
     const { pairing } = setup();
     press(OPEN);

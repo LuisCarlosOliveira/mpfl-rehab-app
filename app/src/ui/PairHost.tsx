@@ -47,9 +47,11 @@ interface Props {
   /** The patient chose one camera, or pairing failed and the patient goes on. */
   onSkip: () => void;
   deps?: Partial<HostDeps>;
+  /** Setup shows its own list of steps, so it asks for no second track. The headings "Step 1" and "Step 2" still name the pairing steps. */
+  hideTrack?: boolean;
 }
 
-export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Props) {
+export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTrack = false }: Props) {
   const depsRef = useRef<HostDeps>({ ...defaultDeps, ...override });
   depsRef.current = { ...defaultDeps, ...override };
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -153,7 +155,7 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override }: Prop
 
       {active && (
         <>
-          <StepTrack total={HOST_STEPS.length} current={hostStep === 'code' ? 0 : 1} label="Pairing steps" names={HOST_STEPS} />
+          {!hideTrack && <StepTrack total={HOST_STEPS.length} current={hostStep === 'code' ? 0 : 1} label="Pairing steps" names={HOST_STEPS} />}
           <p className="status-chip" role="status">
             <Icon name="info" size={18} />
             {STATUS_TEXT[status]}

@@ -222,7 +222,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     return (
       <div className="stack">
         {stepList}
-        <PairHost pairing={pair.pairing} view={pair.view} onDone={() => setStep('camera')} onSkip={() => setStep('camera')} />
+        <PairHost hideTrack pairing={pair.pairing} view={pair.view} onDone={() => setStep('camera')} onSkip={() => setStep('camera')} />
         <div className="actions">
           <button
             type="button"
