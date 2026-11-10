@@ -25,6 +25,7 @@ import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
 import { BottomNav, isNavScreen, type NavScreen } from './BottomNav';
 import { useBackButton } from './useBackButton';
+import { useBarHeight } from '../lib/useBarHeight';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
 // A chunk that cannot load shows the message of LoadError, and a new try asks for it again (L2-02).
@@ -115,6 +116,7 @@ export interface AppProps {
 type Boot = { ready: false } | { ready: true; protocol: Protocol | null; error: { title: string; message: string } | null };
 
 export function App({ db, mode, source, now = () => new Date(), sound, pairingDeps }: AppProps) {
+  useBarHeight();
   const [soundInUse] = useState(() => sound ?? createSound());
   const [boot, setBoot] = useState<Boot>({ ready: false });
 

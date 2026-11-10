@@ -549,6 +549,10 @@ main {
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
+/* With big text the bar would take too much of the screen. It then sits at the end of the content (set by useBarHeight). */
+.action-bar[data-static] {
+  position: static;
+}
 .action-bar .btn-primary {
   flex: 1 1 auto;
 }
@@ -973,8 +977,9 @@ input[type='file']::file-selector-button {
 }
 
 /* ---------- Bottom bar: Home, Your sessions, My data. Three items, labels always visible. ---------- */
+/* --bar-h is the real height of the tallest bar that sticks to the bottom (src/lib/useBarHeight.ts). A focused control scrolls above it. */
 html {
-  scroll-padding-bottom: calc(var(--row) + var(--s-5) + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(var(--bar-h, var(--row)) + var(--s-6));
 }
 .bottom-nav {
   position: fixed;
