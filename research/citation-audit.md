@@ -334,4 +334,6 @@ Method: P1, P2 and P3 were downloaded as PDF files and read as text. N3 and S1 c
 
 Result of section 9: 25 rows. 24 EXACT. 1 PARAPHRASED (V118). 0 WRONG. 0 NOT READABLE. 0 NOT FOUND. V119 is a new row.
 
+Note, 2026-11-11 (rows V95 and V105): the exact quotes stay as evidence. They no longer make an automatic number in a plan. The generator no longer puts the squat depth 50 or the hold arc end 40 in a plan. No audit grade changed.
+
 What this audit does not cover: the quotes of SH (Sanford) and BM (Ben Mayo) in `docs/generator-v2-design.md`. They stay unaudited and drive no value. The claim "no clinician reviewed these rows" stays true.

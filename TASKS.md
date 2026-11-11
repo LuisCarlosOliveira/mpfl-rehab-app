@@ -137,10 +137,43 @@ Report: `docs/live-test/retest3.md`. 16 changes checked in the real build: 14 ve
 - [ ] No user test of how a person reads the live note.
 
 
+## UI redesign (2026-11)
+Skills used: break-ui, web-design-guidelines, frontend-design, apple-design, modern-web-guidance, dataviz, a11y-debugging, skill-creator, simple-english, model-routing.
+
+Status: the branch `ui-redesign` is not merged yet. Another step merges it. Test counts: counts: see docs/test-results.md after the merge.
+
+What was done:
+- [x] A survey of designeer.xyz: 53 pages, 24 kept and 29 dropped. 8 entries were studied frame by frame (`docs/ui-redesign-survey/`).
+- [x] The redesign was built in four passes. Then three packages: A (Session and Setup camera), B (Home and flow), C (onboarding, pairing, dashboard, data). The packages were merged.
+- [x] An agent that did not build the redesign made an independent audit. Fixes followed.
+- [x] Fixed: the red flag focus was hidden by the sticky bar. The Session units were clipped. The page broke at 200 percent text. Stored rows on "Your sessions" were unchecked.
+- [x] Removed: the straight leg raise chart. The 30 degree plausibility limit has no source. The plain line "The angle at the top of a straight leg raise is saved for your care team. The app does not draw it." replaces the chart.
+- [x] The offline message now has its own text.
+
+Open for a clinician:
+- [ ] Is any limit for the top angle of the straight leg raise valid? Is a chart useful?
+- [ ] The hold-still progress bar needs a human tick. It is a process indicator and not a score.
+- [ ] Every clinical value.
+
+Not tested by anyone:
+- [ ] Live cues and rep counting with a real person.
+- [ ] A real phone (Redmi A3).
+- [ ] Safari and Firefox.
+- [ ] A real screen reader.
+- [ ] Patient mode.
+
+Documents:
+- Brief: `docs/ui-redesign-brief.md`
+- Decisions: `docs/ui-redesign-decisions.md`
+- Version 2 spec: `docs/ui-redesign-v2-spec.md`
+- Audit plans: `docs/ui-audit-a11y-plan.md`, `docs/ui-audit-honesty-plan.md`, `docs/ui-audit-security-plan.md`
+- Survey: `docs/ui-redesign-survey/`
+
+
 ## T43: generator version 2 (2026-11-09)
-- [x] Step A: five home exercises (`app/src/lib/protocol/schema.ts` `homeExercises`, `app/src/lib/protocolGen/generate.ts`, `app/src/ui/HomeExercises.tsx`), dose 2 x 10, heel slide in phase 2 for an unknown limit. Lines ROM_CHECK and PT_VISITS. Tests: `app/tests/protocolHomeExercises.test.ts`, `app/tests/protocolGenV2.test.ts`, `app/tests/ui/planResultV2.test.tsx`.
-- [x] Step B: seated hold after the reported clearance, arc end 40, no hold time. The hold counter refuses to run with no hold time (test in `app/tests/protocolGenV2.test.ts`).
-- [x] Step C: quotes read again (`research/citation-audit.md` section 9, 24 rows, all EXACT). Mini squat with ceiling 50, two answers, removal after a knee gave way press (`app/tests/ui/updatePlanV2.test.tsx`). Guardrails skill changed with skill-creator (`skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-5/`).
+- [x] Step A: five home exercises (`app/src/lib/protocol/schema.ts` `homeExercises`, `app/src/lib/protocolGen/generate.ts`, `app/src/ui/HomeExercises.tsx`), dose 2 x 10 (superseded 2026-11-11, see the decision at the end of T42). Heel slide in phase 2 for an unknown limit. Lines ROM_CHECK and PT_VISITS. Tests: `app/tests/protocolHomeExercises.test.ts`, `app/tests/protocolGenV2.test.ts`, `app/tests/ui/planResultV2.test.tsx`.
+- [x] Step B: seated hold after the reported clearance, arc end 40 (superseded 2026-11-11), no hold time. The hold counter refuses to run with no hold time (test in `app/tests/protocolGenV2.test.ts`).
+- [x] Step C: quotes read again (`research/citation-audit.md` section 9, 24 rows, all EXACT). Mini squat with ceiling 50 (superseded 2026-11-11), two answers, removal after a knee gave way press (`app/tests/ui/updatePlanV2.test.tsx`). Guardrails skill changed with skill-creator (`skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-5/`).
 - [x] Questions of the person: walking, leg raise and seated hold answers, in the questions screen and in "Update my plan".
 - [ ] A clinician reviews the audit rows V95 to V118 and every new rule text.
 - [ ] A live run of a plan with a mini squat or a seated hold. The full e2e suite and the pairing suite did not run on this change.
@@ -159,4 +192,5 @@ Report: `docs/live-test/retest3.md`. 16 changes checked in the real build: 14 ve
 - Note: `bash app/scripts/claims-check.sh src` failed once on lines 24 and 25 of `app/src/lib/protocolGen/inputs.ts` (the word "milestone" in comments). This is from another change in the working tree and not from T42.
 
 - [x] Held back behind a flag, and why. The audit `docs/audit-generator-v2.md` says that the rule "add the mini squat ONLY IF the guidelines recommend it" is not cleanly met. The mini squat, the seated hold and the phase 2 heel slide for an unknown limit are off unless `VITE_GENERATOR_EXTENDED` is the text "true" (`app/src/lib/mode.ts`). Tests for both states: `app/tests/protocolGenV2.test.ts`, `app/tests/onboardingModel.test.ts`, `app/tests/ui/updatePlanV2.test.tsx`, `app/tests/ui/planResultV2.test.tsx`. Details are in `docs/generator-v2-design.md` section 10.
-- [ ] The user decides whether to revert the narrow exception in the guardrails skill. It has no effect while the flag is off.
+- [x] Closed 2026-11-11. The user decided to revert the narrow exception in the guardrails skill ("no squat exception, if the exercise recommend is squat, let it be"). The skill is reverted on master (commit `b6de159`, eval iteration 6 in `skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-6`, snapshot `v5-pre-revert`).
+- [ ] The user also approved reverting the generator code to match. The generator no longer puts the numbers 2 x 10, squat depth 50 and hold arc end 40 in a plan. They are surgeon or care-team fields. Status: in progress on branch `ui-redesign`.

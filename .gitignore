@@ -1,6 +1,55 @@
-node_modules
-dist
-playwright-report
-test-results
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+.vite/
+.vitest/
+coverage/
+
+# Test output (Playwright, Vitest)
+playwright-report/
+test-results/
+blob-report/
+
+# Local tool output: clips that the clip tool writes
+.clip-out/
+
+# Logs
 *.log
-.vitest
+npm-debug.log*
+
+# Secrets and local settings. Never commit these.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.npmrc.local
+
+# Claude Code: personal settings and worktrees stay local.
+# The project skills and agents in .claude/skills and .claude/agents ARE committed.
+.claude/settings.local.json
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
+# Git worktrees that sit inside this folder
+/mpfl-rehab-app-*/
+
+# Video, camera and recording files. The app never stores a frame or a video,
+# so a file like this in the repo is always a mistake.
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+*.m4v
+*.yuv
+
+# Operating system and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
