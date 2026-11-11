@@ -9,6 +9,7 @@ import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { prescription } from './Home';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
+import { SourceNote } from './SourceNote';
 import './screensV2.css';
 
 type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
@@ -136,6 +137,7 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
             })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
+          {made.some((e) => e.ruleId === 'DOSE') && <SourceNote rule="DOSE" label="Sets and reps" />}
           {!hasHeel && (
             <Notice role="note" icon="info">
               <p>{heelNote}</p>

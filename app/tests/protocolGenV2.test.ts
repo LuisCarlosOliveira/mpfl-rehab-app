@@ -41,17 +41,16 @@ const ex = (p: Protocol, id: number, kind: string) => phase(p, id)?.exercises.fi
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 afterEach(() => vi.unstubAllEnvs());
 
-describe('step A: home exercises (HOME, ANKLE, DOSE_NONE)', () => {
-  // Guardrail: the generator sets no dose. The plan says to ask the care team.
-  it.each([0, 3, 6])('adds the four home exercises and the ankle pump with no sets and no reps at week %i', (w) => {
+describe('step A: home exercises (HOME, ANKLE, DOSE)', () => {
+  it.each([0, 3, 6])('adds the four home exercises with 2 sets of 10 and ankle pumps with no dose at week %i', (w) => {
     const { protocol } = plan(at(w));
     expect(homeKinds(protocol, 1)).toEqual(['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
     for (const e of home(protocol, 1)) {
-      expect(e).not.toHaveProperty('sets');
-      expect(e).not.toHaveProperty('reps');
-      expect(e.source).toMatch(/No dose \(DOSE_NONE\)/);
+      if (e.kind === 'ankle-pump') expect(e).not.toHaveProperty('sets');
+      else expect(e).toMatchObject({ sets: 2, reps: 10 });
       expect(e.source).toMatch(/Not approved by a clinician/);
     }
+    for (const e of home(protocol, 1).filter((x) => x.kind !== 'ankle-pump')) expect(e.source).toMatch(/2 sets of 10 to 15, then 3 sets as tolerated/);
     expect(protocolSchema.safeParse(protocol).success).toBe(true);
   });
 
@@ -61,19 +60,27 @@ describe('step A: home exercises (HOME, ANKLE, DOSE_NONE)', () => {
     expect(homeKinds(protocol, 2)).toEqual(['quad-set', 'gluteal-set', 'leg-raise-side', 'leg-raise-back']);
   });
 
-  it('records HOME and ANKLE as generated and DOSE_NONE as refused, and never DOSE', () => {
+  it('records HOME, ANKLE and DOSE in the why list and the generated rule ids', () => {
     const r = plan(at(3));
-    for (const id of ['HOME', 'ANKLE'] as const) expect(r.why.find((w) => w.ruleId === id)).toMatchObject({ outcome: 'generated' });
-    expect(r.protocol.generated?.rules).toEqual(expect.arrayContaining(['HOME', 'ANKLE']));
-    expect(r.protocol.generated?.rules).not.toContain('DOSE');
-    expect(r.why.some((w) => (w.ruleId as string) === 'DOSE')).toBe(false);
-    expect(r.why.find((w) => w.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
+    for (const id of ['HOME', 'ANKLE', 'DOSE'] as const) expect(r.why.find((w) => w.ruleId === id)).toMatchObject({ outcome: 'generated' });
+    expect(r.protocol.generated?.rules).toEqual(expect.arrayContaining(['HOME', 'ANKLE', 'DOSE']));
+    const dose = r.why.find((w) => w.ruleId === 'DOSE')!;
+    expect(dose.applied.map((a) => a.path)).toEqual(
+      expect.arrayContaining(['phase1.straight-leg-raise.sets', 'phase1.quad-set.sets', 'phase1.gluteal-set.reps', 'phase1.leg-raise-side.reps', 'phase1.leg-raise-back.sets']),
+    );
+    expect(dose.applied.map((a) => a.path)).not.toContain('phase1.ankle-pump.sets');
   });
 
-  it('keeps the dose of every exercise as NONE', () => {
+  it('keeps the dose of the heel slide and the ankle pump as NONE', () => {
     expect(RULES.DOSE_NONE.kind).toBe('none');
-    expect(RULES.DOSE_NONE.text).toMatch(/no dose for any exercise/);
-    expect(RULES.DOSE_NONE.text).toMatch(/Ask your care team/);
+    expect(RULES.DOSE_NONE.text).toMatch(/heel slide/);
+    expect(RULES.DOSE_NONE.text).toMatch(/ankle pump/);
+    expect(plan(at(3)).why.find((w) => w.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
+  });
+
+  it('keeps the ages 8 to 25 visible in the dose text', () => {
+    expect(RULES.DOSE.text).toMatch(/ages 8 to 25/);
+    expect(RULES.DOSE.population).toMatch(/8 to 25/);
   });
 });
 
@@ -149,13 +156,12 @@ describe('what stays refused (design section 4)', () => {
 });
 
 describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_GATE)', () => {
-  it('adds the mini squat from week 7 only with clearance and both gate answers yes, with no dose and no depth', () => {
+  it('adds the mini squat from week 7 only with clearance and both gate answers yes, with the dose and no depth', () => {
     for (const w of [7, 9, 11]) {
       const r = plan(at(w, gates));
       const squat = ex(r.protocol, 2, 'mini-squat');
       expect(squat, `week ${w}`).toMatchObject({ targetFlexion: 2 * MARGIN_DEG, returnWithinDeg: MARGIN_DEG });
-      expect(squat).not.toHaveProperty('sets');
-      expect(squat).not.toHaveProperty('reps');
+      expect(squat).toMatchObject({ sets: 2, reps: 10 });
       expect(squat?.maxFlexion).toBeUndefined();
       expect(kinds(r.protocol, 1)).not.toContain('mini-squat');
       for (const id of ['SQUAT_P2', 'SQUAT_GATE'] as const) expect(r.why.find((x) => x.ruleId === id), id).toMatchObject({ outcome: 'generated' });

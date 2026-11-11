@@ -119,17 +119,16 @@ describe('week 0 to 6, phase 1', () => {
     expect(kinds(protocol, 1)).toEqual(['straight-leg-raise']);
   });
 
-  // Guardrail: no number from a published source goes into a plan. A dose is a clinical number, so the plan has none.
-  it.each([0, 3, 6])('gives the straight leg raise no sets and no reps at week %i, and says why', (w) => {
+  // User decision 2026-11-11: the app proposes the plan from the guidelines. The dose is P2 rec 26 (V49), shown as a whole range.
+  it.each([0, 3, 6])('gives the straight leg raise the start of the dose range of P2 at week %i, with the whole range in the source line', (w) => {
     const { protocol, why } = plan(at(w));
     const slr = exercise(protocol, 1, 'straight-leg-raise');
-    expect(slr).not.toHaveProperty('sets');
-    expect(slr).not.toHaveProperty('reps');
-    expect(slr?.source).toMatch(/No dose \(DOSE_NONE\)/);
+    expect(slr).toMatchObject({ sets: 2, reps: 10 });
+    expect(slr?.source).toMatch(/2 sets of 10 to 15, then 3 sets as tolerated/);
+    expect(slr?.source).toMatch(/OPINION \(level 5\)/);
+    expect(slr?.source).toMatch(/ages 8 to 25/);
     expect(slr?.source).toMatch(/Not approved by a clinician/);
-    expect(why.some((x) => (x.ruleId as string) === 'DOSE')).toBe(false);
-    expect(why.find((x) => x.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
-    expect(JSON.stringify(protocol)).not.toMatch(/"sets"|"reps"/);
+    expect(why.find((x) => x.ruleId === 'DOSE')).toMatchObject({ outcome: 'generated', grade: 'OPINION' });
   });
 
   it('never fills a hold time, a tempo, a top angle or a pain threshold', () => {
@@ -242,8 +241,7 @@ describe('what every generated plan carries', () => {
     const ids = r.protocol.generated?.rules ?? [];
     const made = r.why.filter((w) => w.outcome === 'generated').map((w) => w.ruleId);
     expect(ids).toEqual([...new Set(made)]);
-    expect(ids).not.toContain('DOSE');
-    expect(ids).toEqual(expect.arrayContaining(['W1', 'PH1', 'SLR', 'REVIEW', 'RANGE_SURGEON', 'HEEL', 'ENG_TARGET', 'ENG_RETURN']));
+    expect(ids).toEqual(expect.arrayContaining(['W1', 'PH1', 'SLR', 'DOSE', 'REVIEW', 'RANGE_SURGEON', 'HEEL', 'ENG_TARGET', 'ENG_RETURN']));
     for (const w of r.why.filter((x) => x.outcome === 'refused')) expect(ids).not.toContain(w.ruleId);
     expect(ids.length).toBeLessThanOrEqual(40);
   });
@@ -276,9 +274,11 @@ describe('what every generated plan carries', () => {
       expect(w.population.length).toBeGreaterThan(0);
       expect(w.label).toBe('Not approved by a clinician');
     }
-    const dose = why.find((w) => w.ruleId === 'DOSE_NONE');
-    expect(dose).toMatchObject({ grade: 'NONE', outcome: 'refused' });
-    expect(dose?.text).toMatch(/no dose for any exercise/);
+    const dose = why.find((w) => w.ruleId === 'DOSE');
+    expect(dose).toMatchObject({ grade: 'OPINION', outcome: 'generated' });
+    expect(dose?.sourceIds).toContain('P2');
+    expect(dose?.population).toMatch(/8 to 25/);
+    expect(dose?.text).toMatch(/2 sets of 10 to 15, then 3 sets as tolerated/);
   });
 
   it('says what it does not generate and asks for the surgeon or the care team', () => {

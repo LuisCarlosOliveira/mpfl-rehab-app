@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
+import { DOSE_SHOWN } from '../lib/protocolGen';
 import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
@@ -12,6 +13,7 @@ import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
 import { COMPANION_BUTTON } from './CompanionEntry';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
+import { SourceNote } from './SourceNote';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -48,7 +50,9 @@ export function prescription(e: Exercise, madeByApp = false): { text: string; ic
   const lines: { text: string; icon: IconName }[] = [];
   // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
   if (madeByApp && e.sets === undefined && e.holdSeconds === undefined) lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
-  if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
+  // The generator holds the start of the range of P2 in the field. The plan shows the whole range (DOSE_SHOWN).
+  if (madeByApp && e.sets !== undefined && e.reps !== undefined) lines.push({ text: DOSE_SHOWN, icon: 'list-checks' });
+  else if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
   if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
@@ -221,6 +225,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
             })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
+          {protocol.generated?.rules.includes('DOSE') === true && <SourceNote rule="DOSE" label="Sets and reps" />}
           <PlanLines protocol={protocol} />
         </section>
 

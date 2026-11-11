@@ -149,12 +149,12 @@ test('Create my plan: questions, plan, Why this plan, a real click on Confirm, a
   await page.getByRole('heading', { name: 'Why this plan' }).click();
   const rules = page.getByRole('list', { name: 'Rules behind your plan' });
   await expect(rules.getByRole('heading', { name: 'Straight leg raise' })).toBeVisible();
-  // The generator sets no dose, so the rule that shows a source and a population is the physiotherapy line (P2). The dose is not in the rules behind the plan.
-  await expect(rules.getByRole('heading', { name: 'Dose of the strengthening exercise' })).toHaveCount(0);
-  await rules.getByRole('heading', { name: 'Physiotherapy visits' }).click();
+  await rules.getByRole('heading', { name: 'Dose of the strengthening exercise' }).click();
   const open = page.locator('.why-details[open]');
   await expect(open.getByText('Expert opinion (OPINION)')).toBeVisible();
   await expect(open.getByText(/P2: Cincinnati/)).toBeVisible();
+  await expect(open.getByText(/2 sets of 10 to 15, then 3 sets as tolerated/).first()).toBeVisible();
+  await expect(open.getByText(/8 to 25/).first()).toBeVisible();
   await expect(page.getByRole('list', { name: 'Not in your plan, and why' }).getByRole('heading', { name: 'Mini squat' })).toBeVisible();
   expect(await readStore(page, 'protocol')).toHaveLength(0);
 

@@ -35,6 +35,19 @@ export interface Rule {
   /** Why an engineering value or a NONE value is built this way. */
   reason?: string;
   flag?: 'clinical-review-needed';
+  /** Rows of research/citation-audit.md (V ids, verdict EXACT) that hold the quote behind each number of `values`. */
+  auditRows?: readonly string[];
+  /** The words that the plan screens show next to a number from a published source. One place for each sentence. */
+  display?: {
+    /** The value as the guideline gives it. */
+    value: string;
+    /** Author, year and guideline, as the line "Source: ..." shows it. */
+    cite: string;
+    /** The evidence line, for example "OPINION (level 5)". */
+    evidence: string;
+    /** A source that disagrees. It shows on the same screen as the value. */
+    disagree?: string;
+  };
   /** One plain sentence for the screen "Why this plan". */
   text: string;
   referralText?: string;
@@ -47,12 +60,16 @@ export const REFERRAL_LINE = 'The app cannot make a plan for you.';
 const ADULT_ISO = 'Adults after a first, isolated MPFL reconstruction. The sources state no age limit.';
 const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not studied in adults after MPFL reconstruction.';
 
+/** The dose as P2 rec 26 gives it. The plan shows the whole range. */
+export const DOSE_SHOWN = '2 sets of 10 to 15, then 3 sets as tolerated';
+
 const defs = {
   // Structure
   W1: {
     title: 'Plan window',
     kind: 'structure',
     values: { firstWeek: 0, lastWeek: 11 },
+    auditRows: ['V3', 'V4'],
     sourceIds: ['S1', 'P3'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -63,6 +80,7 @@ const defs = {
     title: 'Phase 1',
     kind: 'structure',
     values: { firstWeek: 0, lastWeek: 6 },
+    auditRows: ['V3', 'V4'],
     sourceIds: ['S1', 'P1', 'P3'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -210,15 +228,32 @@ const defs = {
       'P3 lists mini squats in its second stage. P1 starts free squats at week 12. No source gives a depth or the answers for a mini squat in weeks 7 to 11.',
     text: 'The app adds no mini squat, no seated hold and no heel slide for an unknown limit. Ask your care team about these exercises.',
   },
+  DOSE: {
+    title: 'Dose of the strengthening exercise',
+    kind: 'generated',
+    values: { sets: 2, reps: 10 },
+    auditRows: ['V49'],
+    sourceIds: ['P2'],
+    grade: 'OPINION',
+    population: P2_POPULATION,
+    conservative:
+      'P2 gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated. The plan shows the whole range. The field in the plan holds the start of the range, 2 sets of 10. P2 is a guideline for ages 8 to 25 and not for adults.',
+    display: {
+      value: DOSE_SHOWN,
+      cite: "Cincinnati Children's Hospital Medical Center, 2015, Evidence-Based Care Guideline 46, rec 26",
+      evidence: 'OPINION (level 5)',
+    },
+    text: `Every strengthening exercise in your plan starts at ${DOSE_SHOWN} (P2). P2 says this dose applies to all strengthening exercises. P2 is a guideline for ages 8 to 25, not for adults.`,
+  },
   DOSE_NONE: {
-    title: 'Dose of every exercise',
+    title: 'Dose of the heel slide and the ankle pump',
     kind: 'none',
     values: {},
     sourceIds: ['P2', 'RR'],
     grade: 'NONE',
     population: 'Not applicable',
-    reason: 'A dose is a clinical number. The app puts no number from a published source into a plan. Only your care team sets sets, reps and hold times.',
-    text: 'The app sets no dose for any exercise. Ask your care team how many to do.',
+    reason: 'P2 gives a dose for strengthening exercises only. No source gives a dose for the heel slide or the ankle pump.',
+    text: 'The app sets no dose for the heel slide and the ankle pump. No number in the guideline. Ask your care team how many to do.',
   },
   // Range
   RANGE_NONE: {
@@ -271,6 +306,7 @@ const defs = {
     title: 'Review dates and checks',
     kind: 'generated',
     values: { phase1Weeks: 6, phase2Weeks: 12 },
+    auditRows: ['V3', 'V4'],
     sourceIds: ['S1'],
     grade: 'OPINION',
     population: ADULT_ISO,

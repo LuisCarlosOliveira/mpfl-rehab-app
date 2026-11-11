@@ -44,7 +44,15 @@ describe('describeNewPlan with home exercises', () => {
     }
     expect(lines.filter((l) => l.includes('How many'))).toEqual(['How many: ask your care team.']);
     expect(lines.filter((l) => l.includes('does not check'))).toEqual(['The app does not check the exercises at home.']);
-    expect(lines.join(' ')).not.toMatch(/sets of|undefined|NaN/);
+    expect(lines.join(' ')).not.toMatch(/undefined|NaN/);
+  });
+
+  it('shows the dose once, as the whole range of the guideline, with the population and the label', () => {
+    const lines = describeNewPlan(plan(3).protocol);
+    const dose = lines.filter((l) => l.includes('2 sets of 10 to 15, then 3 sets as tolerated'));
+    expect(dose).toHaveLength(1);
+    expect(dose[0]).toContain('ages 8 to 25, not for adults');
+    expect(dose[0]).toContain('Not approved by a clinician');
   });
 });
 
@@ -99,11 +107,13 @@ describe('the forward check', () => {
 });
 
 describe('whyView for the new values', () => {
-  it('shows no dose and no hold values, and shows the surgeon number for the mini squat with the words of the person', () => {
+  it('shows the dose as the start of the range, no hold values, and the surgeon number for the mini squat with the words of the person', () => {
     const r = plan(8, { ...gates, seatedHoldCleared: 'yes' });
-    expect(r.why.some((w) => ['DOSE', 'HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId))).toBe(false);
+    expect(r.why.some((w) => ['HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId))).toBe(false);
     const all = r.why.flatMap((w) => whyView(w).applied).join('\n');
-    expect(all).not.toMatch(/sets:|reps:|Seated knee extension hold|straightest knee angle/);
+    expect(all).toContain('Phase 2, Quadriceps set, sets, start of the range: 2');
+    expect(all).toContain('Phase 2, Quadriceps set, reps, start of the range 10 to 15: 10');
+    expect(all).not.toMatch(/Seated knee extension hold|straightest knee angle/);
     expect(all).toContain('Phase 2, Mini squat, knee-bend limit: 100 degrees (as entered by you)');
     expect(all).not.toMatch(/starts counting a rep at 58/);
   });

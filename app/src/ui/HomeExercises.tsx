@@ -1,17 +1,20 @@
 // The home exercises that the camera does not count, and the two text lines of a generated plan (generator v2, step A).
 // The list has no Start button and no count. The text comes from the rules, so one sentence has one place.
-import { ASK_HOW_MANY, HOME_NAMES, homeDose, NOT_CHECKED_GROUP } from '../lib/planView';
+import { ASK_HOW_MANY, HOME_NAMES, NOT_CHECKED_GROUP } from '../lib/planView';
 import type { HomeExercise, Protocol } from '../lib/protocol';
-import { RULES } from '../lib/protocolGen';
+import { DOSE_SHOWN, RULES } from '../lib/protocolGen';
 import './screensV2.css';
 
 /**
  * The home exercises as one quiet group under a heading. The camera exercises stay the prominent rows.
- * The two sentences that hold for every row show once for the group: how many, and that the app does not check them.
+ * The sentences that hold for every row show once for the group: how many, and that the app does not check them.
+ * The dose is the whole range of the guideline. The source of it shows once for the plan (SourceNote).
  */
 export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) {
   if (items.length === 0) return null;
-  const askDose = items.some((h) => h.sets === undefined || h.reps === undefined);
+  const hasDose = (h: HomeExercise) => h.sets !== undefined && h.reps !== undefined;
+  const askDose = items.some((h) => !hasDose(h));
+  const dosed = items.some(hasDose);
   return (
     <div className="v2-screens home-group">
       <h3 className="home-group-title">At home</h3>
@@ -19,11 +22,15 @@ export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) 
         {items.map((h) => (
           <li key={h.kind} className="home-row">
             <span className="home-name">{HOME_NAMES[h.kind]}</span>
-            {h.sets !== undefined && h.reps !== undefined && <span className="home-dose">{homeDose(h)}</span>}
           </li>
         ))}
       </ul>
-      {askDose && <p className="detail home-note">{ASK_HOW_MANY}.</p>}
+      {dosed && <p className="detail home-note">How many: {DOSE_SHOWN}.</p>}
+      {askDose && (
+        <p className="detail home-note">
+          {dosed ? `${items.filter((h) => !hasDose(h)).map((h) => HOME_NAMES[h.kind]).join(', ')}: ask your care team.` : `${ASK_HOW_MANY}.`}
+        </p>
+      )}
       <p className="detail home-note">{NOT_CHECKED_GROUP}</p>
     </div>
   );

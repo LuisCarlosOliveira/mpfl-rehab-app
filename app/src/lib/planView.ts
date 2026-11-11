@@ -3,7 +3,7 @@
 
 import { contactReason } from './contactCard';
 import type { Exercise, HomeExercise, Protocol } from './protocol';
-import { RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
+import { NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
 /**
@@ -60,9 +60,22 @@ export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 
-/** The dose of a home exercise as plain words. With no dose in the plan, the person asks the care team. */
-export const homeDose = (h: HomeExercise): string =>
-  h.sets !== undefined && h.reps !== undefined ? `${h.sets} sets of ${h.reps}` : ASK_HOW_MANY;
+/** The plain line for a value that the guideline does not give. */
+export const NO_NUMBER = 'No number in the guideline.';
+
+/** The rules whose number comes from a published source and shows with a source note. */
+export type SourceNoteId = 'DOSE';
+
+/**
+ * The lines of a source note, in the fixed order: the value, the source, the evidence, the population, the label of the app,
+ * and the source that disagrees. Every line comes from the rule, so one sentence has one place.
+ */
+export function sourceLines(id: SourceNoteId): string[] {
+  const r = RULES[id];
+  const d = r.display;
+  if (d === undefined) return [];
+  return [d.value, `Source: ${d.cite}`, `Evidence: ${d.evidence}`, `Population: ${r.population}`, `${NOT_APPROVED}. No clinician has reviewed this value.`, ...(d.disagree === undefined ? [] : [`Another source: ${d.disagree}`])];
+}
 
 /** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */
 export function localIsoDate(d: Date): string {
@@ -98,21 +111,27 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
-/** One plain line for each part of the new plan. One dose rule: a dose shows only when the plan holds it, and the missing dose is said once at the end. */
+/**
+ * One plain line for each part of the new plan. A dose shows once for the group, as the guideline gives it (the whole range, with the
+ * population and the label). The exercises without a dose in the guideline show the missing dose once, at the end.
+ */
 export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
+  const hasDose = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
+  const exercises = activeExercises(protocol);
+  const home = activeHome(protocol);
   let askDose = false;
-  for (const e of activeExercises(protocol)) {
-    const dose = e.sets !== undefined && e.reps !== undefined ? `${e.sets} sets of ${e.reps}` : e.holdSeconds !== undefined ? `hold ${e.holdSeconds} seconds` : null;
-    if (dose === null) askDose = true;
-    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...(dose === null ? [] : [dose])];
+  for (const e of exercises) {
+    if (!hasDose(e) && e.holdSeconds === undefined) askDose = true;
+    const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
+    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
   }
-  const home = activeHome(protocol);
   for (const h of home) {
-    if (h.sets === undefined || h.reps === undefined) askDose = true;
-    lines.push(`${HOME_NAMES[h.kind]}${h.sets !== undefined && h.reps !== undefined ? `, ${homeDose(h)}` : ''} (at home).`);
+    if (!hasDose(h)) askDose = true;
+    lines.push(`${HOME_NAMES[h.kind]} (at home).`);
   }
+  if ([...exercises, ...home].some(hasDose)) lines.push(`${RULES.DOSE.text} ${NOT_APPROVED}.`);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
   if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
@@ -242,8 +261,8 @@ const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
   maxFlexion: { label: 'knee-bend limit', unit: ' degrees' },
   minFlexion: { label: 'straightest knee angle', unit: ' degrees' },
   returnWithinDeg: { label: 'return within', unit: ' degrees' },
-  sets: { label: 'sets' },
-  reps: { label: 'reps' },
+  sets: { label: 'sets, start of the range' },
+  reps: { label: 'reps, start of the range 10 to 15' },
   reviewDate: { label: 'review date' },
 };
 

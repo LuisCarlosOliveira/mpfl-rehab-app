@@ -39,9 +39,10 @@ describe('PlanResult', () => {
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).getByText('Straight leg raise')).toBeInTheDocument();
     expect(within(list).getByText('Heel slide')).toBeInTheDocument();
-    // The generator sets no dose. The row says to ask the care team. The surgeon number is the limit.
-    expect(within(list).queryByText(/sets of/)).toBeNull();
-    expect(within(list).getAllByText('How many: ask your care team').length).toBe(2);
+    // The straight leg raise shows the whole dose range of P2. The heel slide has no dose in the guideline, so its row asks the care team.
+    expect(within(list).getAllByText('2 sets of 10 to 15, then 3 sets as tolerated')).toHaveLength(1);
+    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(1);
+    expect(list.textContent).not.toMatch(/undefined|NaN|2 sets of 10 reps/);
     expect(within(list).getByText('Limit 60 degrees')).toBeInTheDocument();
   });
 
@@ -146,7 +147,7 @@ describe('A-17: the chip of a rule that is not in the plan matches its own line'
     for (const title of ['Session frequency', 'Repetition tempo', 'Hold time']) expect(chipOf(title).chip, title).toBe('Ask your care team');
     expect(chipOf('Weight-bearing and brace').chip).toBe('Ask your surgeon');
     expect(chipOf('Knee-bend ceiling').chip).toBe('Ask your surgeon');
-    expect(chipOf('Dose of every exercise').chip).toBe('Ask your care team');
+    expect(chipOf('Dose of the heel slide and the ankle pump').chip).toBe('Ask your care team');
     const pause = chipOf('Pain and swelling pause');
     expect(pause.chip).toBeNull();
     expect(pause.entry).toHaveTextContent('The pause rule of the app stays');

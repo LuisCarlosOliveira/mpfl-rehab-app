@@ -214,15 +214,19 @@ describe('properties of the generator', () => {
           expect(e.holdSeconds).toBeUndefined();
           expect(e.minRepSeconds).toBeUndefined();
           expect(e.maxTopFlexion).toBeUndefined();
-          // Guardrail: no dose, no mini squat depth and no hold arc from a published source.
-          expect(e.sets, `seed ${seed}`).toBeUndefined();
-          expect(e.reps, `seed ${seed}`).toBeUndefined();
+          // The heel slide has no dose (DOSE_NONE). The other exercises start at the dose range of P2 rec 26 (DOSE, V49).
+          if (e.kind === 'heel-slide') {
+            expect(e.sets, `seed ${seed}`).toBeUndefined();
+            expect(e.reps, `seed ${seed}`).toBeUndefined();
+          } else {
+            expect(e, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
+          }
           expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
           expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
         }
         for (const h of ph.homeExercises ?? []) {
-          expect(h, `seed ${seed}`).not.toHaveProperty('sets');
-          expect(h, `seed ${seed}`).not.toHaveProperty('reps');
+          if (h.kind === 'ankle-pump') expect(h, `seed ${seed}`).not.toHaveProperty('sets');
+          else expect(h, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
         }
       }
     }
