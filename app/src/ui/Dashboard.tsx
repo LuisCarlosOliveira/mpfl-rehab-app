@@ -5,7 +5,6 @@
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.
 import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import { peakUnreadable } from '../lib/cues';
 import { buildProgressSeries, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
 import { MARGIN_DEG } from '../lib/margin';
 import type { SessionRecord } from '../lib/storage';
@@ -272,7 +271,8 @@ const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 /** The numbers above the charts. Every value comes from the stored sessions. No total and no word about a trend. */
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
-  const lastPeak = [...ordered].reverse().find((x) => typeof x.peakFlexion === 'number' && roundTo1(x.peakFlexion) !== '' && !peakUnreadable(x.exercise, x.peakFlexion));
+  // The straight leg raise has no angle chart, so its peak is not the last peak either.
+  const lastPeak = [...ordered].reverse().find((x) => x.exercise !== 'straight-leg-raise' && typeof x.peakFlexion === 'number' && roundTo1(x.peakFlexion) !== '');
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
   const last = days[days.length - 1];
@@ -296,7 +296,11 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
             <span className="stat-none">No value</span>
           </p>
         )}
-        {lastPeak && <p className="stat-note">{ANGLE_LABEL}</p>}
+        {lastPeak && (
+          <p className="stat-note">
+            {exerciseName(String(lastPeak.exercise))}. {ANGLE_LABEL}
+          </p>
+        )}
         <p className="stat-range">
           {plural(ordered.length, 'session')}
           {range}
