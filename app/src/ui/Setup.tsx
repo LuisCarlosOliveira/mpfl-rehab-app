@@ -26,7 +26,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, chipFor, countdownSeconds, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, chipFor, countdownSeconds, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -368,9 +368,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
             <div className="card card-flat stack-s">
               <h2>Before you start</h2>
               <p>
-                The app uses the camera to find your leg. It does not record or send video. Other people in the view are also
-                seen by the camera.
+                The app uses the camera to find your leg. It does not record or send video.
               </p>
+              <p>{CAMERA_PEOPLE_NOTE}</p>
               <p>
                 Put the camera at the side that you chose. Step back until your whole chosen leg shows. Hold still for 2 seconds.
               </p>

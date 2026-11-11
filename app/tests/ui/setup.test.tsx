@@ -160,7 +160,7 @@ describe('Setup, camera step', () => {
     const { source } = setup();
     toCamera();
     expect(screen.getByText(/does not record or send video/i)).toBeInTheDocument();
-    expect(screen.getByText(/other people in the view are also seen by the camera/i)).toBeInTheDocument();
+    expect(screen.getByText('Make sure that only you are in the camera view.')).toBeInTheDocument();
     expect(source.start).not.toHaveBeenCalled();
   });
 

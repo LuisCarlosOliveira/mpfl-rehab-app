@@ -3,7 +3,7 @@
 // This screen saves nothing. A change that moves forward needs VITE_SELF_PROGRESSION, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
-import { describeChanges, draftOf, eventsSince, gaveWaySince, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
+import { describeChanges, draftOf, eventsSince, gaveWaySince, HOLD_LIMIT, HOLD_NEXT_STAGE, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
@@ -26,8 +26,6 @@ interface Props {
   onCreate: () => void;
 }
 
-export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
-export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
 export const HOLD_EVENT = 'Contact your care team before the next stage. The app recorded a safety event after the date of your plan.';
 
 type Loaded = { state: 'loading' } | { state: 'missing' } | { state: 'ready'; stored: StoredInputs; events: number; gaveWay: boolean };
