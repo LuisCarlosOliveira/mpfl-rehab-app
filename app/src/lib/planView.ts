@@ -186,6 +186,17 @@ export function movesForward(current: Protocol, next: Protocol): boolean {
   return next.activePhase > current.activePhase || raisesLimit(current, next);
 }
 
+export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
+export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
+export const HOLD_PAIN_LIMIT = 'Your stored plan has a pain limit from your clinician. A new plan from your answers would remove or raise it. Ask your care team. The app keeps your plan.';
+
+/** The reason that the app offers no Confirm for a plan that moves forward, with the right words for the cause. */
+export function holdTextFor(current: Protocol, next: Protocol): string {
+  const painLimit = current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
+  if (painLimit) return HOLD_PAIN_LIMIT;
+  return raisesLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
+}
+
 /** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */
 export function eventsSince(sessions: readonly SessionRecord[], since: string, painPauseThreshold: number | undefined): number {
   return sessions.filter((s) => s.date.slice(0, 10) >= since && (s.redFlagBlocks > 0 || contactReason(s, painPauseThreshold) !== null)).length;

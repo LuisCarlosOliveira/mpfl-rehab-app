@@ -3,8 +3,8 @@
 // "Keep my plan" changes nothing. A plan that a clinician approved is never replaced without the warning on this screen.
 import { useRef, useState } from 'react';
 import type { Mode, Protocol } from '../lib/protocol';
-import { acceptProposal, confirmByPerson } from '../lib/protocol/accept';
-import { describeNewPlan, type PlanDraft } from '../lib/planView';
+import { acceptProposal, confirmByPerson, selfProgressionOn } from '../lib/protocol/accept';
+import { describeNewPlan, holdTextFor, movesForward, type PlanDraft } from '../lib/planView';
 import { saveGeneratorInputs, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
@@ -58,7 +58,10 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
   const update = draft.origin === 'update';
   const lines = update ? draft.changes : describeNewPlan(draft.protocol);
   const noChange = update && draft.changes.length === 0;
-  const canConfirm = draft.hold === null && !noChange;
+  // An update comes with its hold. A new plan over a stored plan gets the same hold here, before the person acts. The save step refuses the same cases.
+  const hold =
+    draft.hold ?? (!update && current !== null && movesForward(current, draft.protocol) && !selfProgressionOn() ? holdTextFor(current, draft.protocol) : null);
+  const canConfirm = hold === null && !noChange;
 
   async function onConfirm(event: React.MouseEvent<HTMLButtonElement>) {
     if (saving.current) return;
@@ -100,7 +103,7 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
             : 'You asked the app to make a plan from your answers. The app saves it on this device only when you press Confirm.'}
         </p>
 
-        {current?.approvedOn && (
+        {hold === null && current?.approvedOn && (
           <Notice tone="strong" role="alert" icon="triangle-alert" title="Your plan would be replaced">
             <p>
               Your stored plan was approved by a clinician on <span className="num">{current.approvedOn}</span>. If you confirm, the app replaces it with a plan that
@@ -108,19 +111,19 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
             </p>
           </Notice>
         )}
-        {current && !current.approvedOn && !update && (
+        {hold === null && current && !current.approvedOn && !update && (
           <Notice role="status" icon="info">
             <p>If you confirm, the plan that is stored on this device is replaced.</p>
           </Notice>
         )}
-        {draft.hold !== null && (
+        {hold !== null && (
           <Notice role="status" icon="phone">
-            <p>{draft.hold}</p>
+            <p>{hold}</p>
           </Notice>
         )}
 
         {/* A change on hold is not listed, because the app will not make it. */}
-        {draft.hold === null && (
+        {hold === null && (
           <section className="stack-s" aria-labelledby="confirm-what">
             <h2 id="confirm-what">{update ? 'What changes' : 'Your new plan'}</h2>
             {noChange ? (

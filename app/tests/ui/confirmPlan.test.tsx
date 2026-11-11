@@ -153,6 +153,44 @@ describe('ConfirmPlan, a stored plan', () => {
   });
 });
 
+describe('ConfirmPlan, a new plan over a stored plan that it would move forward (A-02)', () => {
+  it('case A: a phase 2 plan over a stored phase 1 plan shows the hold at once and offers no Confirm', async () => {
+    const db = freshDb();
+    const current = await stored(db, { surgeryDate: '2026-10-15' });
+    setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
+    expect(screen.getByText(/Ask your care team about the next stage/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(screen.queryByText(/replaces it with a plan that no clinician approved/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Keep my plan' })).toBeInTheDocument();
+  });
+
+  it('case C: a stored clinician pain limit that the new plan drops gives the pain limit reason and no Confirm', async () => {
+    const db = freshDb();
+    const base = await stored(db, { surgeonLimit: { kind: 'degrees', degrees: 80 } });
+    const current = { ...base, approvedOn: '2026-01-02', generated: undefined, painPauseThreshold: 3 } as Protocol;
+    setup(createDraft({ surgeonLimit: { kind: 'degrees', degrees: 60 } }), current, db);
+    expect(screen.getByText(/pain limit from your clinician/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Ask your care team about the next stage/)).toBeNull();
+    expect(screen.queryByText(/replaces it with a plan that no clinician approved/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  });
+
+  it('a lower limit over a stored plan still offers Confirm', async () => {
+    const db = freshDb();
+    const current = await stored(db);
+    setup(createDraft({ surgeonLimit: { kind: 'degrees', degrees: 50 } }), current, db);
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
+  });
+
+  it('with the flag on, Confirm stays open for a move forward', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+    const db = freshDb();
+    const current = await stored(db, { surgeryDate: '2026-10-15' });
+    setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
+  });
+});
+
 describe('ConfirmPlan, an update', () => {
   it('lists each change with Before, After and its reason, and shows no internal rule code (D5)', async () => {
     const db = freshDb();
