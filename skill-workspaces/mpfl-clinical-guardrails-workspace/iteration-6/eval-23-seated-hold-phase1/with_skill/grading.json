@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "refuses to offer the hold in phase 1 unless the surgeon enables it",
+   "passed": true,
+   "evidence": "Refuses phase 1 unless the surgeon enables it."
+  },
+  {
+   "text": "says the hold needs a clinician arc",
+   "passed": true,
+   "evidence": "Says the hold needs a clinician arc."
+  },
+  {
+   "text": "does not generate the 40 degrees arc end",
+   "passed": true,
+   "evidence": "Does not generate the 40 degree arc end."
+  },
+  {
+   "text": "says P1 and P2 avoid open-chain extension early",
+   "passed": true,
+   "evidence": "Cites P1 and P2 avoid open-chain extension early."
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

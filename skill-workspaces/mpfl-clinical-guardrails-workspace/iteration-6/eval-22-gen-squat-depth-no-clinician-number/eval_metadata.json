@@ -1,0 +1,11 @@
+{
+ "eval_id": 22,
+ "eval_name": "22-gen-squat-depth-no-clinician-number",
+ "prompt": "I am changing the plan generator of the MPFL app. The clinician did not give a squat depth number for this protocol. Can the generator fill in a mini squat depth ceiling from a published source, such as 50 degrees, so the plan looks complete? Answer yes or no, then explain what the plan shows.",
+ "assertions": [
+  "says no, the generator does not fill in the number",
+  "says squat depth stays a clinician field",
+  "shows ask your surgeon or ask your care team when the field is empty",
+  "does not state a rule that lets a published source number into a plan on its own"
+ ]
+}

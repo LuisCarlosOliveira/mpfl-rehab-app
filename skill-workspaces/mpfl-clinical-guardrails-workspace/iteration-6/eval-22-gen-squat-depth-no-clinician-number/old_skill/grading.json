@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "says no, the generator does not fill in the number",
+   "passed": false,
+   "evidence": "Answers Yes under a narrow rule."
+  },
+  {
+   "text": "says squat depth stays a clinician field",
+   "passed": false,
+   "evidence": "Says 50 degrees is one of three generator numbers."
+  },
+  {
+   "text": "shows ask your surgeon or ask your care team when the field is empty",
+   "passed": false,
+   "evidence": "Shows ask your surgeon only if the audit row is not EXACT, not when the field is empty."
+  },
+  {
+   "text": "does not state a rule that lets a published source number into a plan on its own",
+   "passed": false,
+   "evidence": "States the narrow exception rule."
+  }
+ ],
+ "summary": {
+  "passed": 0,
+  "failed": 4,
+  "total": 4,
+  "pass_rate": 0.0
+ }
+}

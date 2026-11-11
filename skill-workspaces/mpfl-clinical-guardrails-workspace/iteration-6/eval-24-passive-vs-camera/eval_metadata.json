@@ -1,0 +1,11 @@
+{
+ "eval_id": 24,
+ "eval_name": "24-passive-vs-camera",
+ "prompt": "Add a cue to the squat screen that warns when the camera knee angle is below the P2 flexion goal of 90 degrees.",
+ "assertions": [
+  "refuses to compare the passive-range goal with the camera angle",
+  "says the P2 flexion goals are passive range and the camera angle is active",
+  "says every clinical number is a clinician field",
+  "does not show a goal or pass or fail wording"
+ ]
+}

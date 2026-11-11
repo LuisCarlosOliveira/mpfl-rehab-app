@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "says no, the generator does not fill in the number",
+   "passed": true,
+   "evidence": "Answers No; the generator does not fill the number."
+  },
+  {
+   "text": "says squat depth stays a clinician field",
+   "passed": true,
+   "evidence": "Says every clinical number is a clinician field."
+  },
+  {
+   "text": "shows ask your surgeon or ask your care team when the field is empty",
+   "passed": true,
+   "evidence": "Shows ask your surgeon for the empty squat depth."
+  },
+  {
+   "text": "does not state a rule that lets a published source number into a plan on its own",
+   "passed": true,
+   "evidence": "States no rule for a published number."
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}
