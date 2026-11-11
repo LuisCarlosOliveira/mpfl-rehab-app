@@ -69,6 +69,43 @@ describe('cue gate', () => {
     expect(gate.allow('paused', 'p', 1100, false)).toBe(true);
   });
 
+  // B2-04: at a clip cut the cue blinked 5 times in 3 s. It needs the same 500 ms to hide as to show.
+  it('B2-04: the leg gate cue does not blink when pose and no pose alternate faster than 500 ms', () => {
+    const gate = createCueGate();
+    const visible: boolean[] = [];
+    for (let t = 0; t < 600; t += 33) {
+      gate.note('paused', t);
+      visible.push(gate.pausedVisible(t));
+    }
+    expect(visible.at(-1)).toBe(true); // lost for 500 ms: the cue shows
+    visible.length = 0;
+    for (let t = 600; t < 4000; t += 33) {
+      const seen = Math.floor((t - 600) / 200) % 2 === 1; // 200 ms seen, 200 ms lost, again and again
+      gate.note(seen ? null : 'paused', t);
+      visible.push(gate.pausedVisible(t));
+    }
+    expect(visible.every(Boolean)).toBe(true);
+  });
+
+  it('B2-04: the cue hides after the leg was seen for 500 ms, and needs 500 ms of no pose to show again', () => {
+    const gate = createCueGate();
+    for (let t = 0; t <= 600; t += 33) gate.note('paused', t);
+    expect(gate.pausedVisible(600)).toBe(true);
+    let t = 633;
+    for (; t < 1100; t += 33) {
+      gate.note(null, t);
+      expect(gate.pausedVisible(t)).toBe(true); // seen for less than 500 ms
+    }
+    for (; t < 1300; t += 33) gate.note(null, t);
+    expect(gate.pausedVisible(t)).toBe(false); // seen for 500 ms or more
+    for (const u of [t, t + 100, t + 200]) {
+      gate.note('paused', u);
+      expect(gate.pausedVisible(u)).toBe(false);
+    }
+    gate.note('paused', t + 600);
+    expect(gate.pausedVisible(t + 600)).toBe(true);
+  });
+
   it('never shows a storm: 1000 frames of mixed events give at most one non-safety cue each 3 s', () => {
     const gate = createCueGate();
     const events = ['too-fast', 'shallow', 'hold-restart'] as const;

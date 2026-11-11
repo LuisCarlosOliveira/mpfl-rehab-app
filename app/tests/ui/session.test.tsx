@@ -157,7 +157,7 @@ describe('Session screen', () => {
     expect(audio.oscillators.length).toBe(after + 1); // 8 s: the first beep, then one repeat at 5 s
   });
 
-  it('a missing leg shows "Show your whole leg." and shows it no more when the leg returns', () => {
+  it('a missing leg shows "Show your whole leg." and shows it no more after the leg was seen for 500 ms (B2-04)', () => {
     const { source } = setup();
     act(() => source.emit(legLandmarks('left', 20), 0));
     act(() => source.emit(null, 30));
@@ -167,6 +167,11 @@ describe('Session screen', () => {
     expect(polite()).toHaveTextContent('Show your whole leg.');
     expect(screen.getByText('--')).toBeInTheDocument();
     act(() => source.emit(legLandmarks('left', 20), 700));
+    tick();
+    expect(polite()).toHaveTextContent('Show your whole leg.'); // seen for less than 500 ms: the cue stays
+    for (let t = 733; t < 1500; t += 33) act(() => source.emit(legLandmarks('left', 20), t));
+    tick(600);
+    act(() => source.emit(legLandmarks('left', 20), 1600));
     tick();
     expect(polite()).toBeEmptyDOMElement();
   });

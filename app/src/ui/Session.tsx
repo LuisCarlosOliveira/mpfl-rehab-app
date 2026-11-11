@@ -323,7 +323,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
           until: now + CUE_SHOW_MS,
         };
       } else if (state.cue?.paused && out.event !== 'paused') {
-        state.cue = null; // the leg is back in view
+        // The leg is back in view. The cue hides only after the gate hold of PAUSED_CUE_MS (B2-04).
+        if (gate.pausedVisible(now)) state.cue.until = now + CUE_SHOW_MS;
+        else state.cue = null;
       }
       // The alert stays while the knee stays past the limit plus the margin. The ceiling for a heel slide and a mini squat,
       // the arc end (minFlexion) for the seated hold. The timeout starts when the knee returns.
