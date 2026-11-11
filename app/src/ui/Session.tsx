@@ -263,10 +263,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
     // Runs at frame rate. It writes to refs only. It does not set state.
     const onFrame = (landmarks: Parameters<Pipeline['step']>[0], timeMs: number) => {
-      map.current?.update(landmarks, timeMs, source.aspect()); // svg attributes only, no React state, no frame read
       const p = getPipeline();
-      if (!p) return;
-      const out = p.step(landmarks, timeMs);
+      const out = p?.step(landmarks, timeMs);
+      // svg attributes only, no React state, no frame read. The angle text shows the same filtered number as the readout (B-05).
+      map.current?.update(landmarks, timeMs, source.aspect(), out === undefined ? null : out.flexion);
+      if (!p || !out) return;
       const now = performance.now();
       const state = live.current;
       if (needsCapture && foundRef.current === null) {

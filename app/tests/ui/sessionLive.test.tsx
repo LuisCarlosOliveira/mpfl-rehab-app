@@ -1,0 +1,47 @@
+// P-LIVE: the angle text on the body map and the readout show one value (B-05).
+import { act, cleanup, render } from '@testing-library/react';
+import { createRef } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { legLandmarks } from '../helpers/leg';
+import type { Exercise } from '../../src/lib/protocol';
+import { BodyMap, resetBodyMapHidden, type BodyMapHandle } from '../../src/ui/BodyMap';
+import { Session } from '../../src/ui/Session';
+import { audioHarness, mockSource } from './helpers';
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance', 'Date'] });
+});
+afterEach(() => {
+  cleanup();
+  resetBodyMapHidden();
+  vi.useRealTimers();
+});
+
+const SLR: Exercise = { kind: 'straight-leg-raise', sets: 2, reps: 2, source: 'test' };
+
+describe('B-05: one angle on the screen', () => {
+  it('the map angle text equals the readout number while the knee moves', () => {
+    const source = mockSource();
+    const audio = audioHarness();
+    const view = render(<Session exercise={SLR} side="left" baselineDeg={0} source={source} sound={audio.sound} onEnd={vi.fn()} />);
+    for (let i = 0; i < 5; i++) act(() => source.emit(legLandmarks('left', 5), i * 33));
+    // A fast jump: the filtered value lags behind the raw value.
+    act(() => source.emit(legLandmarks('left', 70), 200));
+    act(() => void vi.advanceTimersByTime(300));
+    const readout = view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+    const mapText = view.container.querySelector('[data-k="arc-text"] tspan')!.textContent!.trim();
+    expect(readout).not.toBe('--');
+    expect(mapText.replace('°', '').trim()).toBe(readout);
+  });
+
+  it('the map shows no angle text when the shown angle is null', () => {
+    const handle = createRef<BodyMapHandle>();
+    const v = render(<BodyMap ref={handle} leg="left" />);
+    const arc = () => v.container.querySelector('[data-k="arc-text"]') as SVGElement;
+    act(() => handle.current!.update(legLandmarks('left', 60), 0, 16 / 9, null));
+    expect(arc().getAttribute('display')).toBe('none');
+    act(() => handle.current!.update(legLandmarks('left', 60), 33, 16 / 9, 55));
+    expect(arc().getAttribute('display')).not.toBe('none');
+    expect(arc().textContent).toContain('55');
+  });
+});

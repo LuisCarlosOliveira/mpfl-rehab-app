@@ -24,8 +24,10 @@ export const PREVIEW_MIRRORED = false;
 export const mirrorClass = (mirrored: boolean): string => (mirrored ? 'mirrored' : '');
 
 export interface BodyMapHandle {
-  /** Draw the newest landmarks. Give null when no pose is found. `aspect` is video width divided by height. */
-  update(landmarks: Landmark[] | null, timeMs: number, aspect?: number): void;
+  /** Draw the newest landmarks. Give null when no pose is found. `aspect` is video width divided by height.
+   *  `shownAngle` is the number that the screen shows for the knee (the filtered angle). With a number, the angle text shows this number.
+   *  With null, the angle text is empty. Without it (Setup), the text shows the angle of these landmarks. */
+  update(landmarks: Landmark[] | null, timeMs: number, aspect?: number, shownAngle?: number | null): void;
 }
 
 interface Props {
@@ -132,7 +134,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   useImperativeHandle(
     ref,
     () => ({
-      update(input, timeMs, aspectNow = DEFAULT_ASPECT) {
+      update(input, timeMs, aspectNow = DEFAULT_ASPECT, shownAngle) {
         let landmarks = input;
         const e = els.current;
         const root = svg.current;
@@ -320,7 +322,8 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         const arcOn = bend !== null && bend >= 1;
         show('arc-core', arcOn);
         show('arc-halo', arcOn);
-        show('arc-text', arcOn);
+        const textValue = shownAngle === undefined ? bend : shownAngle;
+        show('arc-text', arcOn && textValue !== null);
         if (arcOn) {
           const k = at(knee);
           const r = 34 * px;
@@ -332,7 +335,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           e['arc-halo']!.setAttribute('d', d);
           const inward = innerSide('arc', k.x);
           // A8: two lines, the number and then the words. The text is clamped to the picture, so the right edge never cuts it.
-          const first = `${Math.round(bend)}° `;
+          const first = textValue === null ? '' : `${Math.round(textValue)}° `;
           const second = 'estimated angle';
           const sizeA = 20 * px;
           const sizeB = 14 * px;
