@@ -181,6 +181,31 @@ describe('Onboarding, the date, the knee and the limit', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });
 
+  it('A-06: a limit of 200, -5 or 90.5 gets a plain message and aria-invalid, and a good number clears both', () => {
+    setup();
+    referralQuestions();
+    type('Date of surgery', '2026-10-15'); next();
+    choose('Left'); next();
+    choose(/Yes, my limit is/);
+    const field = () => screen.getByLabelText('Limit in degrees');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('alert')).toBeNull();
+    for (const bad of ['200', '-5', '90.5']) {
+      type('Limit in degrees', bad);
+      expect(field()).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole number of degrees from 0 to 180.');
+      expect(field()).toHaveAccessibleDescription(/Enter a whole number of degrees from 0 to 180/);
+      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    }
+    type('Limit in degrees', '');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    type('Limit in degrees', '0');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    type('Limit in degrees', '180');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('says that the heel slide needs a number from the surgeon when the answer is no limit', () => {
     setup();
     referralQuestions();

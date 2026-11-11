@@ -1,6 +1,6 @@
 // The questionnaire model: the order of the questions, when a question is answered, the early referral, and the inputs.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { answered, earlyReferral, emptyAnswers, fromInputs, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
+import { answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, limitProblem, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
 import { inputsSchema } from '../src/lib/protocolGen';
 
 // The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
@@ -119,6 +119,19 @@ describe('answered', () => {
     expect(answered('today', full({ pain: null }))).toBe(false);
     expect(answered('today', full({ swelling: null }))).toBe(false);
     expect(answered('today', full({ pain: 0 }))).toBe(true);
+  });
+});
+
+describe('the limit field (A-06)', () => {
+  it('takes only whole degrees from 0 to 180', () => {
+    for (const ok of ['0', '45', '180', ' 60 ']) expect(limitNumber(ok), ok).not.toBeNull();
+    for (const bad of ['', '181', '200', '-5', '90.5', 'abc', '1e1']) expect(limitNumber(bad), bad).toBeNull();
+  });
+
+  it('gives a message for a value outside the rule, and none for an empty or good value', () => {
+    expect(limitProblem('')).toBeNull();
+    expect(limitProblem('60')).toBeNull();
+    for (const bad of ['200', '-5', '90.5', 'abc']) expect(limitProblem(bad), bad).toBe('Enter a whole number of degrees from 0 to 180.');
   });
 });
 

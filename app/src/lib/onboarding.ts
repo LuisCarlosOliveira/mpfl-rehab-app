@@ -62,11 +62,16 @@ export function stepsFor(a: Answers, today: string): StepId[] {
   ];
 }
 
-/** The number of the limit field, or null when the text is not a number from 0 to 180. */
+/** The number of the limit field, or null when the text is not a whole number from 0 to 180. */
 export function limitNumber(text: string): number | null {
-  if (text.trim() === '') return null;
+  if (text.trim() === '' || !/^\s*-?\d+\s*$/.test(text)) return null;
   const n = Number(text);
-  return Number.isFinite(n) && n >= 0 && n <= 180 ? n : null;
+  return n >= 0 && n <= 180 ? n : null;
+}
+
+/** A plain message for a limit that the app cannot use, or null. An empty field has no message. */
+export function limitProblem(text: string): string | null {
+  return text.trim() === '' || limitNumber(text) !== null ? null : 'Enter a whole number of degrees from 0 to 180.';
 }
 
 /**
