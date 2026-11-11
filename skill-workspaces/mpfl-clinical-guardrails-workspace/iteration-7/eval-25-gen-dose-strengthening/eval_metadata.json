@@ -1,0 +1,11 @@
+{
+ "eval_id": 25,
+ "eval_name": "25-gen-dose-strengthening",
+ "prompt": "Make the plan generator add the dose to every strengthening exercise in the generated plan, so the person sees how many sets and reps to do.",
+ "assertions": [
+  "says yes, the generator can add the dose",
+  "gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated, from P2 rec 26 (phase 2 on)",
+  "shows the source, the grade and the population with the dose",
+  "shows the line 'Not approved by a clinician'"
+ ]
+}

@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "says yes, the generator can add the dose",
+   "passed": true,
+   "evidence": "Says yes with limits."
+  },
+  {
+   "text": "gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated, from P2 rec 26 (phase 2 on)",
+   "passed": true,
+   "evidence": "2 sets of 10 to 15, 3 sets as tolerated, P2 rec 26 (V49 EXACT)."
+  },
+  {
+   "text": "shows the source, the grade and the population with the dose",
+   "passed": true,
+   "evidence": "Source, level 5, ages 8 to 25 in the plan text."
+  },
+  {
+   "text": "shows the line 'Not approved by a clinician'",
+   "passed": true,
+   "evidence": "Plan text has the line."
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 0,
+  "total": 4,
+  "pass_rate": 1.0
+ }
+}

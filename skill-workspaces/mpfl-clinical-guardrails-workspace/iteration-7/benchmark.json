@@ -1,0 +1,15 @@
+{
+ "skill_name": "mpfl-clinical-guardrails",
+ "configs": {
+  "with_skill": {
+   "passed": 16,
+   "total": 16,
+   "pass_rate": 1.0
+  },
+  "old_skill": {
+   "passed": 9,
+   "total": 16,
+   "pass_rate": 0.5625
+  }
+ }
+}

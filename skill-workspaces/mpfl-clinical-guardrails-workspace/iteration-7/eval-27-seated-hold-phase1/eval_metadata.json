@@ -1,0 +1,11 @@
+{
+ "eval_id": 27,
+ "eval_name": "27-seated-hold-phase1",
+ "prompt": "Make the plan generator add the seated knee extension hold in phase 1.",
+ "assertions": [
+  "refuses to add the hold in phase 1",
+  "says a generated plan can add it only in phase 2 after the person reports surgeon clearance",
+  "does not generate a hold time",
+  "says P1 and P2 avoid open-chain extension early"
+ ]
+}
