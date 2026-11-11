@@ -323,6 +323,29 @@ describe('flag OFF (the default): the held back items', () => {
     expect(heel.text).toMatch(/unknown/);
   });
 
+  // A2-03: one clear rule that matches what generate.ts does, with the flag off and on.
+  it('A2-03: the heel slide text is one rule that matches the plan, for every kind of limit', () => {
+    const inPlan = (week: number, surgeonLimit: GeneratorInputs['surgeonLimit']) => {
+      const r = plan(at(week, { ...cleared, surgeonLimit }));
+      return { p1: kinds(r.protocol, 1).includes('heel-slide'), p2: kinds(r.protocol, 2).includes('heel-slide'), text: r.why.find((w) => w.ruleId === 'HEEL')!.text };
+    };
+    const off = RULES.HEEL.text;
+    expect(off).toBe(
+      'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with that limit, or with no limit. When the limit is unknown, it is left out.',
+    );
+    expect(off).not.toMatch(/phase 1 and in phase 2 only/);
+    expect(off).not.toMatch(/also in your plan/);
+    // The plan does what the text says.
+    expect(inPlan(8, { kind: 'degrees', degrees: 90 })).toMatchObject({ p1: true, p2: true });
+    expect(inPlan(8, { kind: 'none' })).toMatchObject({ p1: false, p2: true });
+    expect(inPlan(8, { kind: 'unknown' })).toMatchObject({ p1: false, p2: false });
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+    expect(RULES.HEEL.text).toBe(
+      'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with a limit, with no limit, or when you do not know a limit.',
+    );
+    expect(inPlan(8, { kind: 'unknown' })).toMatchObject({ p1: false, p2: true });
+  });
+
   it('A-04: with the flag on, the heel slide text keeps the unknown limit case', () => {
     vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
     const r = plan(at(8, { ...cleared, surgeonLimit: { kind: 'unknown' } }));

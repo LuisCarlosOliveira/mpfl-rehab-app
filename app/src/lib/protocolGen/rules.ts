@@ -121,7 +121,7 @@ const defs = {
     get text() {
       return generatorExtendedOn()
         ? 'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with a limit, with no limit, or when you do not know a limit.'
-        : 'The heel slide is in phase 1 and in phase 2 only with a knee-bend limit from your surgeon. In phase 2 it is also in your plan with no limit. When the limit is unknown, it is left out.';
+        : 'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with that limit, or with no limit. When the limit is unknown, it is left out.';
     },
   },
   HEEL_P2_UNKNOWN: {
