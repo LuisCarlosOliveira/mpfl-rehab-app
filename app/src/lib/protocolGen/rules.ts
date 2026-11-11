@@ -280,7 +280,7 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. Sanford gives 0 to 60 degrees and is not audited. The app takes 40 degrees, the more bent end. The knee never goes straight.',
+      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. The app takes 40 degrees, the more bent end. The knee never goes straight.',
     display: {
       value: 'Arc from 90 to 40 degrees of knee bend. The knee never goes straight. No hold time.',
       cite: 'Hospital for Special Surgery, 2024, P1 phase 2 (open chain strengthening in a limited arc of motion, 90-40 degrees)',
@@ -307,7 +307,7 @@ const defs = {
     values: { targetFlexion: 40 + 2 * MARGIN_DEG },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason:
       'The hold angle is the arc end of 40 degrees plus twice the camera margin. The schema needs a hold angle of more than the arc end plus one margin. It is not a range target.',
     flag: 'clinical-review-needed',
@@ -350,7 +350,7 @@ const defs = {
     grade: 'NONE',
     population: 'Not applicable',
     reason:
-      'The P2 values of 90 and 120 degrees are passive range targets. P1 has no explicit cap. S1 says "Typically" and describes practice. N3 gives passive flexion above 125 degrees. None of these is a ceiling for an active camera angle.',
+      'The P2 values of 90 and 120 degrees are passive range targets. P1 has no explicit cap. S1 says "Typically" and describes practice. None of these is a ceiling for an active camera angle.',
     display: {
       value: RANGE_REFERENCE,
       cite: 'Hsu CJ, Lee C, Christensen RS, Liu TY, 2025, S1, text of the protection phase',
@@ -376,7 +376,7 @@ const defs = {
     values: { targetFlexion: 2 * MARGIN_DEG, minLimit: 3 * MARGIN_DEG + 1 },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason:
       'Twice the camera margin is the smallest knee bend that the camera tells from rest. It is not a range target. The schema needs a limit of at least 3 margins plus 1 degree.',
     flag: 'clinical-review-needed',
@@ -388,7 +388,7 @@ const defs = {
     values: { returnWithinDeg: MARGIN_DEG },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason: 'A rep ends when the knee is back within the camera margin of the resting angle. A clinician must confirm that this is not a clinical value.',
     flag: 'clinical-review-needed',
     text: 'A heel slide rep ends when the knee is back within the camera margin of rest. It is an engineering value.',

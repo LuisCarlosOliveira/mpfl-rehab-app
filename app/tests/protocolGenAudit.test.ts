@@ -42,7 +42,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
   const strip = (t: string) => t.replace(/\b[A-Z]{1,3}\d+\b/g, '').replace(/\b[Pp]hase \d\b/g, '');
   const digits = (r: (typeof RULES)[keyof typeof RULES]) => {
     const d = r.display;
-    const parts = [r.text, r.conservative ?? '', r.reason ?? '', d?.value ?? '', d?.cite ?? '', d?.evidence ?? '', d?.disagree ?? ''];
+    const parts = [r.text, r.textRefused ?? '', r.conservative ?? '', r.reason ?? '', d?.value ?? '', d?.cite ?? '', d?.evidence ?? '', d?.disagree ?? ''];
     return parts.some((t) => /\d/.test(strip(t))) || Object.keys(r.values).length > 0;
   };
 
@@ -98,4 +98,21 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
   it('puts no number from a WRONG row in a text: the heel slide for an unknown limit names no knee angle', () => {
     expect(strip(RULES.HEEL_P2_UNKNOWN.text)).not.toMatch(/\d/);
   });
+
+  // A3-04: the caveat, the display and the guideline words are checked for numbers too (the digits helper above reads them).
+  it('reads the caveat, the disagreeing source and the reason of a rule with no value for numbers', () => {
+    const withNumbers = RULE_IDS.map((id) => RULES[id]).filter((r) => r.kind !== 'engineering' && r.kind !== 'referral' && r.appOwn !== true && digits(r));
+    expect(withNumbers.length).toBeGreaterThan(10);
+    for (const r of withNumbers) expect(r.auditRows?.length ?? 0, r.id).toBeGreaterThan(0);
+    expect(withNumbers.map((r) => r.id)).toEqual(expect.arrayContaining(['HOLD_P2', 'SQUAT_DEPTH', 'RANGE_NONE', 'NONE_HOLDTIME']));
+  });
+
+  it('puts no number of an unaudited source on a screen', () => {
+    const all = RULE_IDS.map((id) => RULES[id]).flatMap((r) => [r.text, r.conservative ?? '', r.display?.disagree ?? '', r.population]).join(' ');
+    expect(all).not.toMatch(/Sanford/);
+    expect(all).not.toMatch(/above 125 degrees/);
+    expect(all).not.toMatch(/20 healthy adults/);
+    expect(RULES.ENG_TARGET.population + RULES.ENG_RETURN.population + RULES.ENG_HOLD.population).not.toMatch(/\b20\b/);
+  });
 });
+
