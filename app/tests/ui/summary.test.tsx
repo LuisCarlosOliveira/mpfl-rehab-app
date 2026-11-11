@@ -58,7 +58,7 @@ describe('Summary, bends past the limit (AC4-02)', () => {
   it('says how many bends went past the limit and why no rep counted', () => {
     setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, eventCounts: { nearLimit: 0, overLimit: 7, tooFast: 0 } } } });
     expect(screen.getByText('Bends past your limit: 7.')).toBeInTheDocument();
-    expect(screen.getByText('No repetitions were counted. Each bend went past your limit.')).toBeInTheDocument();
+    expect(screen.getByText('No repetitions were counted. Bends past your limit do not count.')).toBeInTheDocument();
     expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
   });
 

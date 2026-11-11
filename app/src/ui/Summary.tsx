@@ -193,7 +193,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
         )}
         {overLimit > 0 && <p>{`Bends past your limit: ${overLimit}.`}</p>}
         {top && <p>{top}</p>}
-        {summary.reps === 0 && <p>{overLimit > 0 ? 'No repetitions were counted. Each bend went past your limit.' : 'No repetitions were counted.'}</p>}
+        {summary.reps === 0 && <p>{overLimit > 0 ? 'No repetitions were counted. Bends past your limit do not count.' : 'No repetitions were counted.'}</p>}
 
         {!saved && !discarded ? (
           <>

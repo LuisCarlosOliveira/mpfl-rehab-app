@@ -8,7 +8,7 @@ import {
 } from '../lib/onboarding';
 import { draftOf, type PlanDraft } from '../lib/planView';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
-import { ChoiceGroup, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
+import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
 import { Icon } from './Icon';
 import { PainScale } from './PainScale';
 import { StepTrack } from './StepTrack';
@@ -38,9 +38,9 @@ const TITLES: Record<StepId, string> = {
   redFlags: 'Do any of these apply today?',
   today: 'How is your knee today?',
   clearance: 'Has your surgeon or physiotherapist said that you can start the next stage?',
-  walking: 'Do you walk without crutches?',
-  legRaise: 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?',
-  seatedHold: 'Did your surgeon say that you can do knee straightening exercises while you sit?',
+  walking: GATE_QUESTIONS.walking,
+  legRaise: GATE_QUESTIONS.legRaise,
+  seatedHold: GATE_QUESTIONS.seatedHold,
   summary: 'Check your answers',
 };
 
