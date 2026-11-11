@@ -107,7 +107,8 @@ body:has(.v2-session) main {
   min-height: 5rem;
   padding: var(--s-2) var(--gutter);
 }
-.v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert),
+/* B-02: the alert comes first and shows. The lowest-angle button is the next step of the person, so it stays. */
+.v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert):not(button),
 .v2-session .status-slot:has(.capture-status) > .cue:not(.cue-alert) {
   display: none;
 }
