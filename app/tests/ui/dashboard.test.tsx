@@ -59,7 +59,8 @@ describe('Dashboard', () => {
       const expected = rows.filter((r) => r.series === title);
       const table = within(section as HTMLElement).getByRole('table');
       const cells = within(table).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[1]!.textContent);
-      expect(cells).toEqual(expected.map((r) => r.valueText));
+      // The table shows whole degrees. The series keeps the digits.
+      expect(cells).toEqual(expected.map((r) => r.valueText.replace(/-?\d+\.\d+/g, (m) => String(Math.round(Number(m))))));
       const marks = section.querySelectorAll('.recharts-dot, .recharts-bar-rectangle').length;
       expect(marks).toBe(expected.filter((r) => r.value !== null).length);
     }

@@ -5,7 +5,6 @@
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.
 import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import { peakUnreadable } from '../lib/cues';
 import { buildProgressSeries, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
 import { MARGIN_DEG } from '../lib/margin';
 import type { SessionRecord } from '../lib/storage';
@@ -20,6 +19,8 @@ const MARGIN = { top: 12, right: 28, bottom: 36, left: 40 };
 
 export interface ChartPoint {
   label: string;
+  /** The time of the point in milliseconds. The line charts place the point by this number. */
+  t: number;
   value: number | null;
   /** The value minus and plus the camera error of that session. Only angle charts have it. null when the value is missing. */
   band?: [number, number] | null;
@@ -41,6 +42,7 @@ export interface ChartSeries {
   data: ChartPoint[];
 }
 
+const DAY_MS = 86_400_000;
 const SESSIONS = { one: 'session', many: 'sessions' };
 const DAYS = { one: 'day', many: 'days' };
 
@@ -55,12 +57,12 @@ export function chartSeries(series: ProgressSeries, sessions: readonly SessionRe
   const peaks = series.peakFlexion.map<ChartSeries>((s) => {
     const data = s.points.map<ChartPoint>((p) => {
       const margin = sessions.find((x) => x.id === p.sessionId)?.marginDeg ?? MARGIN_DEG;
-      return { label: p.date.slice(0, 10), value: p.degrees, margin, band: p.degrees === null ? null : [Math.max(0, p.degrees - margin), p.degrees + margin] };
+      return { label: p.date.slice(0, 10), t: Date.parse(p.date), value: p.degrees, margin, band: p.degrees === null ? null : [Math.max(0, p.degrees - margin), p.degrees + margin] };
     });
     const top = axisTop(Math.max(0, ...data.map((d) => d.band?.[1] ?? 0)), 10);
     return { title: s.title, kind: 'line', yLabel: 'degrees', yDomain: [0, top], yTicks: threeTicks(top), whenHeader: 'Session (UTC)', noun: SESSIONS, angle: true, data };
   });
-  const repsData = series.repsPerDay.points.map((p) => ({ label: p.day, value: p.reps }));
+  const repsData = series.repsPerDay.points.map((p) => ({ label: p.day, t: Date.parse(p.day), value: p.reps }));
   const repsTop = axisTop(Math.max(0, ...known(repsData.map((d) => d.value))), 2);
   const reps: ChartSeries = {
     title: series.repsPerDay.title,
@@ -82,7 +84,7 @@ export function chartSeries(series: ProgressSeries, sessions: readonly SessionRe
     whenHeader: 'Session (UTC)',
     noun: SESSIONS,
     angle: false,
-    data: series.pain.points.map((p) => ({ label: p.date.slice(0, 10), value: p.pain })),
+    data: series.pain.points.map((p) => ({ label: p.date.slice(0, 10), t: Date.parse(p.date), value: p.pain })),
   };
   return [...peaks, reps, pain];
 }
@@ -95,11 +97,12 @@ const dayText = (iso: string, year = false) => {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}${year ? ` ${y}` : ''}`;
 };
 
-/** A number for display with one decimal at most, so a raw value like 126.199999 shows as 126.2. A value that is not a number gives an empty text. */
-export const roundTo1 = (n: number): string => (Number.isFinite(n * 10) ? String(Math.round(n * 10) / 10) : '');
+/** A number for display in whole degrees, as the Summary shows it, so a raw value like 141.1 shows as 141. A value that is not a number gives an empty text.
+ *  The stored value and the export keep their digits. */
+export const roundWhole = (n: number): string => (Number.isFinite(n) ? String(Math.round(n)) : '');
 
-/** The text of a table row for display. The numbers inside it get one decimal at most. */
-const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d{2,}/g, (m) => roundTo1(Number(m)));
+/** The text of a table row for display. The numbers inside it show as whole numbers. */
+const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d+/g, (m) => roundWhole(Number(m)));
 
 /** The camera errors that the sessions stored: "9", or "6 to 9". */
 function marginText(data: ChartPoint[]): string {
@@ -136,9 +139,18 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   const summaryId = `${id}-summary`;
   const labels = chart.data.map((d) => d.label);
   const ends = [...new Set([labels[0], labels[labels.length - 1]])].filter((l): l is string => l !== undefined);
-  const xAxis = (
-    <XAxis dataKey="label" ticks={ends} tickFormatter={(v: string) => dayText(v)} interval={0} label={{ value: 'Date', position: 'insideBottom', offset: -22 }} />
-  );
+  // A line chart places each point by its time, so a gap of 24 days looks 24 times wider than a gap of 1 day.
+  // The reps chart has one bar for each day that has a session, so its axis says so.
+  const times = chart.data.map((d) => d.t).filter(Number.isFinite);
+  const first = Math.min(...times);
+  const last = Math.max(...times);
+  const timeDomain: [number, number] = first === last ? [first - DAY_MS, last + DAY_MS] : [first, last];
+  const xAxis =
+    chart.kind === 'line' ? (
+      <XAxis dataKey="t" type="number" scale="time" domain={timeDomain} ticks={[...new Set([first, last])]} tickFormatter={(v: number) => dayText(new Date(v).toISOString().slice(0, 10))} interval={0} label={{ value: 'Date', position: 'insideBottom', offset: -22 }} />
+    ) : (
+      <XAxis dataKey="label" ticks={ends} tickFormatter={(v: string) => dayText(v)} interval={0} label={{ value: 'Days with sessions', position: 'insideBottom', offset: -22 }} />
+    );
   const yAxis = <YAxis domain={chart.yDomain} ticks={chart.yTicks} allowDecimals={false} label={{ value: chart.yLabel, angle: -90, position: 'insideLeft', offset: 8 }} />;
   // A tap on the chart picks one point. Before a tap, the read-out shows the last value.
   const lastIndex = rows.reduce((at, r, i) => (r.value !== null ? i : at), -1);
@@ -233,7 +245,7 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
                 <tr key={i}>
                   <td>{whenText(r.when)}</td>
                   <td className="num-cell">{shown(r.valueText)}</td>
-                  {chart.angle && <td className="num-cell">{band && roundTo1(band[0]) !== '' && roundTo1(band[1]) !== '' ? `${roundTo1(band[0])} to ${roundTo1(band[1])} degrees` : 'no value'}</td>}
+                  {chart.angle && <td className="num-cell">{band && roundWhole(band[0]) !== '' && roundWhole(band[1]) !== '' ? `${roundWhole(band[0])} to ${roundWhole(band[1])} degrees` : 'no value'}</td>}
                 </tr>
               );
             })}
@@ -272,7 +284,8 @@ const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 /** The numbers above the charts. Every value comes from the stored sessions. No total and no word about a trend. */
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
-  const lastPeak = [...ordered].reverse().find((x) => typeof x.peakFlexion === 'number' && roundTo1(x.peakFlexion) !== '' && !peakUnreadable(x.exercise, x.peakFlexion));
+  // The straight leg raise has no angle chart, so its peak is not the last peak either.
+  const lastPeak = [...ordered].reverse().find((x) => x.exercise !== 'straight-leg-raise' && typeof x.peakFlexion === 'number' && roundWhole(x.peakFlexion) !== '');
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
   const last = days[days.length - 1];
@@ -287,7 +300,7 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
         {lastPeak ? (
           <p className="stat-value">
             <data className="stat-number" value={lastPeak.peakFlexion as number}>
-              {roundTo1(lastPeak.peakFlexion as number)}
+              {roundWhole(lastPeak.peakFlexion as number)}
             </data>
             <span className="stat-unit">degrees</span>
           </p>
@@ -296,7 +309,11 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
             <span className="stat-none">No value</span>
           </p>
         )}
-        {lastPeak && <p className="stat-note">{ANGLE_LABEL}</p>}
+        {lastPeak && (
+          <p className="stat-note">
+            {exerciseName(String(lastPeak.exercise))}. {ANGLE_LABEL}
+          </p>
+        )}
         <p className="stat-range">
           {plural(ordered.length, 'session')}
           {range}
@@ -305,14 +322,11 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
       <ul className="legend-list" aria-label="Exercises in your sessions">
         {kinds.map((kind) => {
           const mine = ordered.filter((x) => String(x.exercise) === kind);
-          const withReps = mine.filter((x) => typeof x.reps === 'number' && Number.isFinite(x.reps));
-          const reps = withReps.reduce((sum, x) => sum + (x.reps as number), 0);
           return (
             <li key={kind} className="legend-row">
               <span className="legend-name">{exerciseName(kind)}</span>
               <span className="legend-count">
                 {plural(mine.length, 'session')}
-                {withReps.length > 0 && Number.isFinite(reps) ? `, ${plural(reps, 'rep')}` : ''}
               </span>
             </li>
           );
