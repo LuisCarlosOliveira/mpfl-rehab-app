@@ -78,7 +78,7 @@ describe('the questions of version 2 (mini squat and seated hold)', () => {
 
   it('round-trips through fromInputs', () => {
     const i = toInputs(asked({ walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'no' }), TODAY)!;
-    expect(toInputs(fromInputs(i), TODAY)).toEqual(i);
+    expect(toInputs(fromInputs(i, TODAY), TODAY)).toEqual(i);
   });
 });
 
@@ -147,7 +147,25 @@ describe('toInputs and fromInputs', () => {
 
   it('round-trips through fromInputs', () => {
     const inputs = toInputs(full({ limitKind: 'none', limitDegrees: '' }), TODAY)!;
-    expect(toInputs(fromInputs(inputs), TODAY)).toEqual(inputs);
+    expect(toInputs(fromInputs(inputs, TODAY), TODAY)).toEqual(inputs);
+  });
+});
+
+describe('fromInputs and the questions that are not asked (A-01)', () => {
+  it('gives null for the clearance and the gate answers when the date is before week 7', () => {
+    const inputs = toInputs(full(), TODAY)!;
+    expect(inputs.phaseClearance).toBe('no');
+    const a = fromInputs(inputs, TODAY);
+    expect(a.phaseClearance).toBeNull();
+    expect(a.walksWithoutCrutches).toBeNull();
+    expect(a.legRaiseStraight).toBeNull();
+    expect(a.seatedHoldCleared).toBeNull();
+  });
+
+  it('keeps the clearance answer when the question is asked', () => {
+    const gates = { walksWithoutCrutches: 'no', legRaiseStraight: 'no', seatedHoldCleared: 'no' } as const;
+    const inputs = toInputs(full({ surgeryDate: '2026-09-15', phaseClearance: 'yes', ...gates }), TODAY)!;
+    expect(fromInputs(inputs, TODAY)).toMatchObject({ phaseClearance: 'yes', ...gates });
   });
 });
 

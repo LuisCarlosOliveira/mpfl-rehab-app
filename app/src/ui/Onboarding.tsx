@@ -121,7 +121,7 @@ function valueText(step: Exclude<StepId, 'summary'>, a: Answers): string {
 }
 
 export function Onboarding({ today, initial = null, backRef, onDone, onCancel }: Props) {
-  const [answers, setAnswers] = useState<Answers>(() => (initial ? fromInputs(initial) : emptyAnswers()));
+  const [answers, setAnswers] = useState<Answers>(() => (initial ? fromInputs(initial, today) : emptyAnswers()));
   const [step, setStep] = useState<StepId>(initial ? 'summary' : 'writtenPlan');
   // After Change on the summary, Next goes back to the summary. A new question that the change opens comes first.
   const [fromSummary, setFromSummary] = useState(false);

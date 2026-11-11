@@ -340,6 +340,21 @@ describe('Onboarding, the summary and the plan', () => {
   });
 });
 
+describe('Onboarding, a date change that opens the clearance question (A-01)', () => {
+  it('asks the clearance question after the date moves from week 3 to week 8, and shows no answer for it before', () => {
+    const inputs: GeneratorInputs = {
+      writtenPlan: 'no', procedure: 'mpflr-only', ageBand: '18-plus', bothKnees: false, firstSurgery: 'yes', specialRules: 'no',
+      surgeryDate: '2026-10-15', side: 'left', surgeonLimit: { kind: 'degrees', degrees: 60 }, phaseClearance: 'no', redFlags: {}, pain: 1, swelling: 'none',
+    };
+    setup({ initial: inputs });
+    expect(screen.queryByText('Next stage said by your care team')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Change the date of surgery' }));
+    type('Date of surgery', '2026-09-10'); // week 8
+    next();
+    expect(h1()).toMatch(Q.clearance);
+  });
+});
+
 describe('Onboarding, markup and words', () => {
   it('has no inline style and no verdict word on any screen', () => {
     const { view } = setup();

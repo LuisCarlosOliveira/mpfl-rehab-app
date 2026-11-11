@@ -135,8 +135,13 @@ export function toInputs(a: Answers, today: string): GeneratorInputs | null {
   };
 }
 
-export function fromInputs(i: GeneratorInputs): Answers {
-  return {
+/**
+ * The answers for the questions of the stored inputs. The inputs hold a value for a question that was never asked
+ * (for example "no" for the clearance question before week 7). Such a value is not an answer of the person.
+ * So an answer of a step that `stepsFor` does not ask is null, and the question is asked when a change makes it open.
+ */
+export function fromInputs(i: GeneratorInputs, today: string): Answers {
+  const a: Answers = {
     writtenPlan: i.writtenPlan,
     procedure: i.procedure,
     ageBand: i.ageBand,
@@ -155,6 +160,14 @@ export function fromInputs(i: GeneratorInputs): Answers {
     legRaiseStraight: i.legRaiseStraight ?? null,
     seatedHoldCleared: i.seatedHoldCleared ?? null,
   };
+  const steps = stepsFor(a, today);
+  if (!steps.includes('clearance')) a.phaseClearance = null;
+  if (!steps.includes('walking')) {
+    a.walksWithoutCrutches = null;
+    a.legRaiseStraight = null;
+    a.seatedHoldCleared = null;
+  }
+  return a;
 }
 
 const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'];
