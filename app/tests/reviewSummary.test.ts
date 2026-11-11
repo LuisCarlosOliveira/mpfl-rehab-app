@@ -222,6 +222,12 @@ describe('header, events and tables', () => {
     expect(buildReviewSummary({ protocol: protocolWith([]), phaseId: 1, sessions: [none], lastExportAt: null, now: NOW }).painSwellingTable[0]?.painText).toBe('Not answered');
   });
 
+  it('shows a measured angle in whole degrees and keeps the raw median for the state', () => {
+    const row = firstRow([squat(1, 100.4), squat(2, 100.4), squat(3, 100.4)]);
+    expect(row.measuredText).toBe('100 degrees (estimated angle, not a medical measurement)');
+    expect(row.measured).toBe(100.4);
+  });
+
   it('fills the header from the caller values', () => {
     const s = buildReviewSummary({ protocol, phaseId: 1, sessions: [], lastExportAt: null, now: NOW, pseudonymId: 'abc-123' });
     expect(s.header).toMatchObject({

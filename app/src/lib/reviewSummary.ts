@@ -196,7 +196,7 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
     return { ...base, ...used, ...marginInfo, measured: null, measuredText: 'No value', state: STATE.cannotTell };
   }
   const measured = median(values as number[]);
-  return { ...base, ...used, ...marginInfo, measured, measuredText: `${measured} degrees (${ANGLE_LABEL})`, state: stateOf(measured, c.limit, widest.marginDeg) };
+  return { ...base, ...used, ...marginInfo, measured, measuredText: `${Math.round(measured)} degrees (${ANGLE_LABEL})`, state: stateOf(measured, c.limit, widest.marginDeg) };
 }
 
 function swellingRow(c: Extract<ReviewCriterion, { kind: 'swelling' }>, phaseSessions: SessionRecord[]): ReviewRow {

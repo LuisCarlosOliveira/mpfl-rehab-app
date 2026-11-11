@@ -39,14 +39,14 @@ async function readText(file: File, maxBytes: number): Promise<{ ok: true; text:
 
 /** The front-view cell: the median in degrees with the number of reps, or the reason that there is no value. */
 function frontCell(s: SessionRecord): string {
-  if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? String(s.frontChangeDeg) : `${s.frontChangeDeg} (${s.frontReps} reps)`;
+  if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? wholeDegrees(s.frontChangeDeg) : `${wholeDegrees(s.frontChangeDeg)} (${s.frontReps} reps)`;
   return s.secondView === undefined ? NOT_APPLICABLE : FRONT_NOT_ENOUGH;
 }
 
-/** One decimal for display, like Your sessions. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
-const oneDecimal = (value: number) => (Number.isFinite(value * 10) ? String(Math.round(value * 10) / 10) : NO_VALUE);
+/** Whole degrees for display, like the Summary. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
+const wholeDegrees = (value: number) => (Number.isFinite(value) ? String(Math.round(value)) : NO_VALUE);
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
-const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : oneDecimal(value));
+const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : wholeDegrees(value));
 
 /** The reps, with the note when the person counted them by hand. */
 const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
