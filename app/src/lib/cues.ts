@@ -143,7 +143,7 @@ export const topUnreadable = (topFlexion: number | null): boolean => topFlexion 
 
 /** The angle at the top of the straight leg raise, as a number with its label. Above the limit it shows the plain sentence. */
 export function topAngleText(topFlexion: number | null): string | null {
-  if (topUnreadable(topFlexion)) return PEAK_UNREADABLE_TEXT;
+  if (topUnreadable(topFlexion)) return PEAK_NO_VALUE_TEXT; // B2-06: neutral, because reps and a number can show next to it
   return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} ${plural(Math.round(topFlexion), 'degree')} (${LABEL}).`;
 }
 
