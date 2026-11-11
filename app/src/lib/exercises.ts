@@ -146,6 +146,8 @@ export interface StepOutput {
   repMs: number | null; // rep time when a rep was counted on this sample
   // True when the hip was far from the anchor for more than 4 s with hip, knee and ankle visible. The person moved, or the camera follows another person (B3-01).
   lockedOut?: boolean;
+  // True after a press when the hip is far from the start hip. The camera follows someone else, or the person moved far. No numbers show (B4-01).
+  otherPerson?: boolean;
 }
 
 export interface Pipeline {
@@ -206,6 +208,11 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   // The anchor is the hip of the person. It follows the accepted frames slowly and keeps its place through frames with no pose.
   // A hip far from the anchor reads as not seen. Only `followAgain()` (a press of the person) moves the anchor to another place.
   let anchor: Landmark | null = null;
+  // B4-01: the pose model returns ONE pose (numPoses 2 halves the detection rate, see the commit message). It can be another person.
+  // The first anchor is where the patient was at the start. A press never moves the anchor farther than HIP_JUMP_FRACTION from there.
+  // Then the pipeline reads every frame as not seen until the person starts again from Setup, which makes a new pipeline.
+  let startHip: Landmark | null = null;
+  let otherPerson = false;
   let latestHip: Landmark | null = null; // the newest visible hip, also when it was refused. `followAgain()` uses it.
   let farSince: number | null = null; // the time of the first refused frame of the present run
   const dist = (a: Landmark, b: Landmark) => Math.hypot(a.x - b.x, (a.y - b.y) / aspect);
@@ -214,6 +221,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     latestHip = hip;
     if (anchor === null) {
       anchor = hip;
+      startHip = hip;
       return false;
     }
     const d = dist(hip, anchor);
@@ -229,7 +237,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     pauseLift();
     if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
     else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
-    return { flexion: null, event: 'paused', repMs: null, lockedOut };
+    return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson, otherPerson };
   };
 
   return {
@@ -240,12 +248,17 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
       },
       followAgain() {
         if (latestHip === null) return;
+        if (startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) {
+          otherPerson = true;
+          return;
+        }
         anchor = latestHip;
         farSince = null;
       },
       step(landmarks, t) {
         if (landmarks === null) return unseen(t);
         const [hip, knee, ankle] = selectLeg(landmarks, side);
+        if (otherPerson) return unseen(t);
         if (hipIsOther(hip)) {
           farSince ??= t;
           return unseen(t, t - farSince > LOCKED_OUT_MS && visible(knee) && visible(ankle));

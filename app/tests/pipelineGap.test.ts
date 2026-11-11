@@ -75,3 +75,36 @@ describe('B-03: a second person takes over the hip', () => {
     }
   });
 });
+
+// B4-02: the over-limit alert fires once for each time the knee goes above the limit. A gap of no pose of 500 ms or more ends that time.
+describe('B4-02: the over-limit alert fires again after a gap of no pose', () => {
+  const make = () => {
+    const made = createPipeline(ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 10 } as never), 'right', 1, { baselineDeg: 5 });
+    if (!made.ok) throw new Error('setup');
+    return made.pipeline;
+  };
+  const run = (p: ReturnType<typeof make>, from: number, ms: number, deg: number | null, alerts: number[]) => {
+    let t = from;
+    for (; t < from + ms; t += 33) if (p.step(deg === null ? null : legLandmarks('right', deg), t).event === 'over-limit') alerts.push(t);
+    return t;
+  };
+  it('two alerts for above the limit, 2 s of no pose, above the limit again', () => {
+    const p = make();
+    const alerts: number[] = [];
+    let t = run(p, 0, 500, 5, alerts);
+    t = run(p, t, 1500, 120, alerts);
+    expect(alerts).toHaveLength(1); // not repeated while the knee stays above
+    t = run(p, t, 2000, null, alerts);
+    run(p, t, 1500, 120, alerts);
+    expect(alerts).toHaveLength(2);
+  });
+  it('a gap shorter than 500 ms gives no second alert', () => {
+    const p = make();
+    const alerts: number[] = [];
+    let t = run(p, 0, 500, 5, alerts);
+    t = run(p, t, 1000, 120, alerts);
+    t = run(p, t, 200, null, alerts);
+    run(p, t, 1000, 120, alerts);
+    expect(alerts).toHaveLength(1);
+  });
+});

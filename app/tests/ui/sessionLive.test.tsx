@@ -121,20 +121,60 @@ describe('B3-01: Follow me again', () => {
   };
   const readout = (view: ReturnType<typeof render>) => view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
 
-  it('shows nothing for a short lost time, then the text and a 48 px button, and a press clears it', () => {
+  const OTHER = 'The camera is following someone else. Make sure that only you are in the camera view, then stop and start again from Setup.';
+  const cue = (view: ReturnType<typeof render>) => view.container.querySelector('.status-slot .cue')!.textContent!.trim();
+
+  it('shows nothing for a short lost time, then the button first and the text, and no "Show your whole leg." cue (B4-03, B4-04)', () => {
     const { source, view } = open(5);
     let t = feedAt(source, 0.7, 0, 1000);
     t = feedAt(source, 0.4, t, 3000);
     expect(view.container.textContent).not.toContain(TEXT);
-    t = feedAt(source, 0.4, t, 2000);
+    feedAt(source, 0.4, t, 2000);
     expect(readout(view)).toBe('--');
     expect(view.container.textContent).toContain(TEXT);
+    expect(cue(view)).not.toContain('Show your whole leg.'); // B4-04: the lockout text replaces it
     const button = screen.getByRole('button', { name: 'Follow me again' });
-    expect(button.closest('[role="status"], .status-slot')).not.toBeNull();
+    const text = screen.getByText(TEXT);
+    expect(button.compareDocumentPosition(text) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // B4-03: the button is above the text
+    expect(button.closest('[role="status"]')).not.toBeNull();
     expect(view.container.querySelector('[role="alert"]')?.textContent ?? '').not.toContain('Follow me again');
-    fireEvent.click(button);
-    feedAt(source, 0.4, t, 600);
-    expect(readout(view)).not.toBe('--');
+  });
+
+  it('B4-01: a press far from the start hip shows the other-person text and no numbers, and no button', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 1000);
+    t = feedAt(source, 0.4, t, 5000);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    feedAt(source, 0.4, t, 1000);
+    expect(readout(view)).toBe('--');
+    expect(view.container.textContent).toContain(OTHER);
+    expect(screen.queryByRole('button', { name: 'Follow me again' })).toBeNull();
+    expect(cue(view)).not.toContain('Show your whole leg.');
+  });
+
+  it('B4-06: after the press the focus stays in the status text, not on the page body', () => {
+    const { source } = open(5);
+    let t = feedAt(source, 0.7, 0, 1000);
+    t = feedAt(source, 0.4, t, 5000);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    feedAt(source, 0.4, t, 1000);
+    const active = document.activeElement as HTMLElement;
+    expect(active).not.toBe(document.body);
+    expect(active.getAttribute('role')).toBe('status');
+    expect(active.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('B4-05: the text stays 500 ms after the lock ends, so a short blip never flashes it, and then it goes', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 1000);
+    t = feedAt(source, 0.4, t, 5000);
+    expect(view.container.textContent).toContain(TEXT);
+    // the hip comes back to the anchor place for 300 ms
+    for (let u = t + 300; t < u; t += 100) act(() => source.emit(at(0.7), t));
+    act(() => void vi.advanceTimersByTime(250));
+    expect(view.container.textContent).toContain(TEXT);
+    for (let u = t + 1000; t < u; t += 100) act(() => source.emit(at(0.7), t));
+    act(() => void vi.advanceTimersByTime(300));
     expect(view.container.textContent).not.toContain(TEXT);
   });
 
