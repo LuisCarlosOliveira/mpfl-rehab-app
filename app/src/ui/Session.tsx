@@ -263,10 +263,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
     // Runs at frame rate. It writes to refs only. It does not set state.
     const onFrame = (landmarks: Parameters<Pipeline['step']>[0], timeMs: number) => {
-      map.current?.update(landmarks, timeMs, source.aspect()); // svg attributes only, no React state, no frame read
       const p = getPipeline();
-      if (!p) return;
-      const out = p.step(landmarks, timeMs);
+      const out = p?.step(landmarks, timeMs);
+      // svg attributes only, no React state, no frame read. The angle text shows the same filtered number as the readout (B-05).
+      map.current?.update(landmarks, timeMs, source.aspect(), out === undefined ? null : out.flexion);
+      if (!p || !out) return;
       const now = performance.now();
       const state = live.current;
       if (needsCapture && foundRef.current === null) {
@@ -310,6 +311,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       });
       // A limit alert on screen blocks every other cue. A limit cue itself is never delayed (cue order, design 4.2).
       const alertOn = state.cue !== null && state.cue.alert && now < state.cue.until;
+      gate.note(out.event as CueEvent, now);
       if (text !== null && gate.allow(out.event as CueEvent, text, now, alertOn)) {
         state.cue = {
           text,

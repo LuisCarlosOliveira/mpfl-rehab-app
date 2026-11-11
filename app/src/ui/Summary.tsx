@@ -6,7 +6,7 @@
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
+import { PEAK_NO_VALUE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
@@ -98,9 +98,22 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   }
 
   // No write. The run is already saved, without the answers. The pause message stays when the answers trigger it (FR12), so Done shows after it.
-  function skipQuestions() {
-    if (verdict?.pause) setDiscarded(true);
-    else onDone();
+  // C-03: an answer that started the pause stays in the record, so the care team sees it. The questions left unanswered stay out.
+  async function skipQuestions() {
+    if (!verdict?.pause) return onDone();
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const answers = { pain: pain ?? undefined, swelling: swelling ?? undefined };
+      const id = await run.record?.catch(() => undefined);
+      if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), ...answers });
+      else await updateSessionAnswers(db, id, answers);
+      setSaveError(false);
+      setDiscarded(true);
+    } catch {
+      setSaveError(true); // the pause message stays on screen, because it comes from the live answers
+    }
+    saving.current = false;
   }
 
   const top = topAngleText(summary.topFlexion);
@@ -146,7 +159,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               <dt>Highest knee bend</dt>
               {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
               {peakUnreadable(exercise.kind, summary.peakFlexion) ? (
-                <dd>{PEAK_UNREADABLE_TEXT}</dd>
+                <dd>{PEAK_NO_VALUE_TEXT}</dd>
               ) : (
                 <dd>
                   <span className="num">{Math.round(summary.peakFlexion)}</span> <span className="unit">{plural(Math.round(summary.peakFlexion), 'degree')}</span>
@@ -214,7 +227,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             Done
           </button>
         ) : (
-          <button type="button" className="btn btn-lg" onClick={skipQuestions}>
+          <button type="button" className="btn btn-lg" onClick={() => void skipQuestions()}>
             Skip the questions
           </button>
         )}

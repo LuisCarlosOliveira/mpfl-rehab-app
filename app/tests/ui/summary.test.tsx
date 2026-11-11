@@ -4,10 +4,12 @@ import type { Summary as PlainSummary } from '../../src/lib/exercises';
 import { MARGIN_DEG } from '../../src/lib/margin';
 import { MESSAGES } from '../../src/lib/redflags';
 import { PAUSE_MESSAGE } from '../../src/lib/safety';
+import { contactReason } from '../../src/lib/contactCard';
+import { saveSession } from '../../src/lib/storage';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';
 import type { RunResult } from '../../src/ui/appState';
 import { Summary } from '../../src/ui/Summary';
-import { HEEL_SLIDE, freshDb, protocolText } from './helpers';
+import { HEEL_SLIDE, freshDb, protocolText, sessionInput } from './helpers';
 import { hasVerdictWord } from './verdict';
 
 afterEach(cleanup);
@@ -49,6 +51,7 @@ const answer = (pain: number, swelling: RegExp) => {
   fireEvent.click(screen.getByRole('radio', { name: String(pain) }));
   fireEvent.click(screen.getByRole('radio', { name: swelling }));
 };
+const painRadio = (n: number) => fireEvent.click(screen.getByRole('radio', { name: String(n) }));
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
 describe('Summary, where the starting angle came from (live test F1)', () => {
@@ -141,12 +144,47 @@ describe('Summary screen', () => {
     const { db, onDone } = setup();
     answer(8, /no swelling/i);
     fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
+    await screen.findByText('Session saved without answers.');
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onDone).toHaveBeenCalledTimes(1);
+    // C-03: the answers that the person gave are kept.
+    const rows = await db.sessions.toArray();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.pain).toBe(8);
+    expect(rows[0]!.swelling).toBe('none');
+  });
+
+  it('C-03: Skip after pain 7 keeps the pain answer and the Home contact card has a reason', async () => {
+    const { db } = setup();
+    painRadio(7);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
+    await screen.findByText('Session saved without answers.');
+    const row = (await db.sessions.toArray())[0]!;
+    expect(row.pain).toBe(7);
+    expect(row.swelling).toBeUndefined(); // the unanswered question stays out
+    expect(contactReason(row, undefined)).toMatchObject({ kind: 'pain' });
+  });
+
+  it('C-03: Skip with pain 3 keeps nothing, as before', async () => {
+    const { db, onDone } = setup();
+    painRadio(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(await db.sessions.count()).toBe(0);
+  });
+
+  it('C-03: Skip adds the pain answer to the record that the run already wrote', async () => {
+    const db = freshDb();
+    const id = await saveSession(db, sessionInput());
+    render(<Summary run={{ reason: 'stop', summary, record: Promise.resolve(id) }} exercise={HEEL_SLIDE} protocol={protocolWith()} activePhase={1} redFlagBlocks={0} db={db} now={() => new Date('2026-03-04T10:00:00.000Z')} onDone={vi.fn()} />);
+    painRadio(9);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
+    await screen.findByText('Session saved without answers.');
+    expect((await db.sessions.toArray())).toHaveLength(1);
+    expect((await db.sessions.get(id))!.pain).toBe(9);
   });
 
   it('has no Skip the questions button after the save', async () => {
@@ -329,7 +367,7 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
     await waitFor(() => expect(screen.getByText(/could not be saved/i)).toBeInTheDocument());
     pick(7);
     expect(reported(7)).toBeInTheDocument();
-    pick(3);
+    painRadio(3);
     expect(screen.queryByText(PAUSE_MESSAGE)).toBeNull();
     swell(/more than before/i);
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();

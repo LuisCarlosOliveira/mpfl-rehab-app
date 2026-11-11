@@ -47,6 +47,9 @@ export function chipFor(current: SetupRuleId): { text: string; seen: boolean } {
   return first ? { text: `${first.label}: not seen`, seen: false } : { text: 'Ready', seen: true };
 }
 
+// The camera note on the camera step (B-03). The pose model follows one person, so a second person in the view can take over the leg.
+export const CAMERA_PEOPLE_NOTE = 'Make sure that only you are in the camera view.';
+
 // The step card before the camera starts (A3). The words "Camera is off" and the help line are plain and neutral.
 export const IDLE_TEXT = {
   line: 'Camera is off',

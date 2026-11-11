@@ -107,7 +107,8 @@ body:has(.v2-session) main {
   min-height: 5rem;
   padding: var(--s-2) var(--gutter);
 }
-.v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert),
+/* B-02: the alert comes first and shows. The lowest-angle button is the next step of the person, so it stays. */
+.v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert):not(button),
 .v2-session .status-slot:has(.capture-status) > .cue:not(.cue-alert) {
   display: none;
 }
@@ -445,6 +446,14 @@ body:has(.v2-session) main {
 }
 .v2-setup .frame > .notice > svg {
   margin: 0;
+}
+/* B-04: the status chip sits in a strip under the picture, so it never covers a joint label. The map keeps the picture area only.
+   The strip is two chip lines high, because the longest chip text wraps on a narrow phone. */
+.v2-setup .frame:has(> .body-map) {
+  padding-bottom: 4rem;
+}
+.v2-setup .frame > .body-map {
+  height: calc(100% - 4rem);
 }
 .v2-setup .frame > .status-line {
   position: absolute;

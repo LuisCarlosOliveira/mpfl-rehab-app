@@ -24,8 +24,10 @@ export const PREVIEW_MIRRORED = false;
 export const mirrorClass = (mirrored: boolean): string => (mirrored ? 'mirrored' : '');
 
 export interface BodyMapHandle {
-  /** Draw the newest landmarks. Give null when no pose is found. `aspect` is video width divided by height. */
-  update(landmarks: Landmark[] | null, timeMs: number, aspect?: number): void;
+  /** Draw the newest landmarks. Give null when no pose is found. `aspect` is video width divided by height.
+   *  `shownAngle` is the number that the screen shows for the knee (the filtered angle). With a number, the angle text shows this number.
+   *  With null, the angle text is empty. Without it (Setup), the text shows the angle of these landmarks. */
+  update(landmarks: Landmark[] | null, timeMs: number, aspect?: number, shownAngle?: number | null): void;
 }
 
 interface Props {
@@ -132,7 +134,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   useImperativeHandle(
     ref,
     () => ({
-      update(input, timeMs, aspectNow = DEFAULT_ASPECT) {
+      update(input, timeMs, aspectNow = DEFAULT_ASPECT, shownAngle) {
         let landmarks = input;
         const e = els.current;
         const root = svg.current;
@@ -250,6 +252,54 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           text(`lost-${j}`, 14 * px, (26 + 22 * row++) * px, 'start');
         }
 
+        // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
+        const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
+        const thighOn = !lost[0] && !lost[1];
+        show('chosen-label', thighOn && !labels); // the joint chips name the leg on Setup
+
+        // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
+        const angle = kneeAngle(hip, knee, ankle, aspect.current);
+        const bend = angle === null ? null : flexion(angle);
+        const arcOn = bend !== null && bend >= 1;
+        show('arc-core', arcOn);
+        show('arc-halo', arcOn);
+        const textValue = shownAngle === undefined ? bend : shownAngle;
+        show('arc-text', arcOn && textValue !== null);
+        if (arcOn) {
+          const k = at(knee);
+          const r = 34 * px;
+          const thigh = Math.atan2((knee.y - hip.y) * H, (knee.x - hip.x) * W);
+          const shank = Math.atan2((ankle.y - knee.y) * H, (ankle.x - knee.x) * W);
+          const delta = ((shank - thigh + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
+          const d = `M ${r1(k.x + r * Math.cos(thigh))} ${r1(k.y + r * Math.sin(thigh))} A ${r1(r)} ${r1(r)} 0 0 ${delta > 0 ? 1 : 0} ${r1(k.x + r * Math.cos(shank))} ${r1(k.y + r * Math.sin(shank))}`;
+          e['arc-core']!.setAttribute('d', d);
+          e['arc-halo']!.setAttribute('d', d);
+          const inward = innerSide('arc', k.x);
+          // A8: two lines, the number and then the words. The text is clamped to the picture, so the right edge never cuts it.
+          const first = textValue === null ? '' : `${Math.round(textValue)}° `;
+          const second = 'estimated angle';
+          const sizeA = 20 * px;
+          const sizeB = 14 * px;
+          const w = Math.max(textWidth(first.length, sizeA), textWidth(second.length, sizeB));
+          const pad = 8 * px;
+          const anchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
+          let x = k.x + inward * (r + 12 * px);
+          if (anchor === 'start' && x + w > W - pad) x = Math.max(W - pad - w, pad);
+          if (anchor === 'end' && x - w < pad) x = Math.min(pad + w, W - pad);
+          const y = Math.min(Math.max(k.y + 4 * px, 24 * px), H - 24 * px);
+          text('arc-text', x, y, anchor, 14);
+          const lines = e['arc-text']!.children;
+          for (const [i, str, size] of [[0, first, sizeA], [1, second, sizeB]] as const) {
+            const el = lines[i];
+            if (!el) continue;
+            el.textContent = str;
+            el.setAttribute('x', String(r1(x)));
+            el.setAttribute('font-size', String(r1(size)));
+          }
+          lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
+          arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
+        } else arcBox.current = { left: 0, right: 0, top: 0, bottom: 0 }; // no angle text: nothing to keep off
+
         // A3: name chips with elbow leader lines (Setup only). A lost joint reads "<name> not seen" at its last place, with a dashed ring.
         if (labels) {
           type Chip = { j: number; pos: { x: number; y: number } | null; name: string; dir: -1 | 1; y: number; w: number };
@@ -270,17 +320,26 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
               chips.push({ j, pos, name, dir: pos.x < W / 2 ? -1 : 1, y: Math.max(pos.y - 18 * px, 30 * px), w });
             }
           }
-          // Two chips on the same side keep a gap, so they never lie on each other.
+          const pad = 12 * px;
+          const gap = 8 * px;
+          // Two chips on the same side keep a gap, so they never lie on each other. A chip also keeps off the angle text (B-04):
+          // it moves under the text, or above it when there is no room under it.
+          const arc = arcBox.current;
+          const onText = (c: Chip) => {
+            const left = (c.dir === -1 ? pad : W - pad - c.w) - gap;
+            return left < arc.right && arc.left < left + c.w + 2 * gap && c.y - 16 * px < arc.bottom && arc.top < c.y + 16 * px;
+          };
           for (const dir of [-1, 1] as const) {
             const same = chips.filter((c) => c.dir === dir).sort((a, b) => a.y - b.y);
             same.forEach((c, i) => {
               if (i > 0) c.y = Math.max(c.y, same[i - 1]!.y + 34 * px);
+              if (!onText(c)) return;
+              c.y = arc.bottom + 18 * px;
+              if (c.y + 16 * px > H) c.y = arc.top - 18 * px;
             });
           }
           const shownJ = new Set(chips.map((c) => c.j));
           for (let j = 0; j < 3; j++) show(`jl-${j}`, shownJ.has(j));
-          const pad = 12 * px;
-          const gap = 8 * px;
           for (const c of chips) {
             const x0 = c.dir === -1 ? pad : W - pad - c.w;
             const chip = e[`jl-${c.j}-r`];
@@ -307,53 +366,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
             const kneeX = c.dir === -1 ? Math.max(c.pos.x - rise, endX) : Math.min(c.pos.x + rise, endX);
             leader.setAttribute('points', `${r1(c.pos.x)},${r1(c.pos.y)} ${r1(kneeX)},${r1(c.y)} ${r1(endX)},${r1(c.y)}`);
           }
-        }
-
-        // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
-        const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
-        const thighOn = !lost[0] && !lost[1];
-        show('chosen-label', thighOn && !labels); // the joint chips name the leg on Setup
-
-        // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
-        const angle = kneeAngle(hip, knee, ankle, aspect.current);
-        const bend = angle === null ? null : flexion(angle);
-        const arcOn = bend !== null && bend >= 1;
-        show('arc-core', arcOn);
-        show('arc-halo', arcOn);
-        show('arc-text', arcOn);
-        if (arcOn) {
-          const k = at(knee);
-          const r = 34 * px;
-          const thigh = Math.atan2((knee.y - hip.y) * H, (knee.x - hip.x) * W);
-          const shank = Math.atan2((ankle.y - knee.y) * H, (ankle.x - knee.x) * W);
-          const delta = ((shank - thigh + 3 * Math.PI) % (2 * Math.PI)) - Math.PI;
-          const d = `M ${r1(k.x + r * Math.cos(thigh))} ${r1(k.y + r * Math.sin(thigh))} A ${r1(r)} ${r1(r)} 0 0 ${delta > 0 ? 1 : 0} ${r1(k.x + r * Math.cos(shank))} ${r1(k.y + r * Math.sin(shank))}`;
-          e['arc-core']!.setAttribute('d', d);
-          e['arc-halo']!.setAttribute('d', d);
-          const inward = innerSide('arc', k.x);
-          // A8: two lines, the number and then the words. The text is clamped to the picture, so the right edge never cuts it.
-          const first = `${Math.round(bend)}° `;
-          const second = 'estimated angle';
-          const sizeA = 20 * px;
-          const sizeB = 14 * px;
-          const w = Math.max(textWidth(first.length, sizeA), textWidth(second.length, sizeB));
-          const pad = 8 * px;
-          const anchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
-          let x = k.x + inward * (r + 12 * px);
-          if (anchor === 'start' && x + w > W - pad) x = Math.max(W - pad - w, pad);
-          if (anchor === 'end' && x - w < pad) x = Math.min(pad + w, W - pad);
-          const y = Math.min(Math.max(k.y + 4 * px, 24 * px), H - 24 * px);
-          text('arc-text', x, y, anchor, 14);
-          const lines = e['arc-text']!.children;
-          for (const [i, str, size] of [[0, first, sizeA], [1, second, sizeB]] as const) {
-            const el = lines[i];
-            if (!el) continue;
-            el.textContent = str;
-            el.setAttribute('x', String(r1(x)));
-            el.setAttribute('font-size', String(r1(size)));
-          }
-          lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
-          arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
         }
 
         if (thighOn) {
