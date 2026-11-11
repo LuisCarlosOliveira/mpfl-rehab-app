@@ -94,7 +94,7 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
     <section aria-labelledby="confirm-title" className="narrow v2-screens">
       <header className="page-head">
         <h1 id="confirm-title" tabIndex={-1}>
-          {update ? 'Confirm the change' : 'Confirm your plan'}
+          {update ? (canConfirm || noChange ? 'Confirm the change' : 'Change held') : 'Confirm your plan'}
         </h1>
       </header>
       <div className="stack">

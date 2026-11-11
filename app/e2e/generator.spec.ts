@@ -242,7 +242,7 @@ test('the clock moves and the phase stays 1 until Update my plan and Confirm, an
     await page.getByRole('group', { name: legend }).getByRole('radio', { name: 'Yes', exact: true }).check();
   }
   await press(page, 'Check my plan');
-  await expectScreen(page, 'Confirm the change');
+  await expectScreen(page, 'Change held');
   await expect(page.getByText('Ask your care team about the next stage.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0);
   await press(page, 'Keep my plan');

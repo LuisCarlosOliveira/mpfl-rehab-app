@@ -303,4 +303,16 @@ describe('ConfirmPlan, AC4-04 and AC4-05', () => {
     setup(createDraft({ surgeonLimit: { kind: 'none' }, surgeryDate: '2026-09-12', phaseClearance: 'yes' }), null);
     expect(screen.getByText('No knee-bend limit was given by your surgeon.')).toBeInTheDocument();
   });
+
+  it('AC4-04: a held change has the heading "Change held" and no Confirm button; a change that can be confirmed keeps "Confirm the change"', async () => {
+    const db = freshDb();
+    const current = await stored(db);
+    const held = 'Contact your care team before the next stage.';
+    const first = setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }, held), current, db);
+    expect(screen.getByRole('heading', { level: 1, name: 'Change held' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+    first.view.unmount();
+    setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }), current, db);
+    expect(screen.getByRole('heading', { level: 1, name: 'Confirm the change' })).toBeInTheDocument();
+  });
 });
