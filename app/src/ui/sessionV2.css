@@ -219,7 +219,8 @@ body:has(.v2-session) main {
     flex: 1 1 10rem;
   }
   .v2-session .counters > .readout-reps {
-    flex: 0 0 9rem; /* the count has a fixed width, so a long text never squeezes the angle */
+    flex: 0 0 auto; /* the count is as wide as its number and unit, at least 9 rem, so the unit is never cut (B3-04) */
+    min-width: 9rem;
   }
   .v2-session .counters > .readout {
     padding: var(--s-1) 0;
@@ -261,7 +262,7 @@ body:has(.v2-session) main {
     flex-basis: 9rem;
   }
   .v2-session .counters > .readout-reps {
-    flex-basis: 8rem;
+    min-width: 8rem;
   }
   .v2-session .readout-number {
     font-size: 3.5rem;

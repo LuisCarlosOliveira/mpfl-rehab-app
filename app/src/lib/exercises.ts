@@ -29,9 +29,14 @@ const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent o
 const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
 const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
 const LIFT_END_MS = 300; // ENGINEERING, not clinical. In clip 03 the shortest real return to rest lasted about 0.4 s, and a one-frame dip lasts 0.1 s or less.
-// ENGINEERING, not clinical. No source sets this value. A hip that is farther than this fraction of the picture width from the
-// last known hip of the person is read as another person (B-03, B2-02). A steady far hip is still another person.
+// ENGINEERING, not clinical. No source sets these values. They were tuned on the saved clips 02, 03, 04 and 05 (the rep counts stay).
+// A hip that is farther than HIP_JUMP_FRACTION of the picture width from the anchor hip is read as another person (B-03, B2-02).
+// The anchor follows an accepted hip by at most ANCHOR_STEP for each update (B3-01, B3-02). A person who moves slowly stays in view.
+// A short bad pose of 0.5 s drags the anchor by 0.075 at most, less than the limit, so the person is accepted again at once.
+// After LOCKED_OUT_MS of far hips with the whole leg visible the pipeline reports `lockedOut`. Only `followAgain()` re-anchors.
 const HIP_JUMP_FRACTION = 0.1;
+const ANCHOR_STEP = 0.005;
+const LOCKED_OUT_MS = 4000;
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
 // The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
 // spike counts none. A lift ends when the leg stays below the start height for LIFT_END_MS, so a short dip in a hold counts no
@@ -139,12 +144,16 @@ export interface StepOutput {
   flexion: number | null; // filtered, degrees
   event: string | null;
   repMs: number | null; // rep time when a rep was counted on this sample
+  // True when the hip was far from the anchor for more than 4 s with hip, knee and ankle visible. The person moved, or the camera follows another person (B3-01).
+  lockedOut?: boolean;
 }
 
 export interface Pipeline {
   step(landmarks: Landmark[] | null, tMs: number): StepOutput;
   /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
   setBaseline(deg: number): void;
+  /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
+  followAgain(): void;
   summary(): Summary;
 }
 
@@ -193,24 +202,34 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     if (lift !== null) lift.settleSince = null;
   };
 
-  // B-03, B2-02: the pose model follows one person. A second person can take the place of the first. The pipeline remembers the last
-  // known hip of the person. It keeps it through frames with no pose. A hip far from it is another body and counts as not seen.
-  // The memory ends only when the pipeline ends (the person starts again from Setup). A slow drift moves the memory with the person.
-  let knownHip: Landmark | null = null;
+  // B-03, B2-02, B3-01: the pose model follows one person. A second person can take the place of the first, or the person can move.
+  // The anchor is the hip of the person. It follows the accepted frames slowly and keeps its place through frames with no pose.
+  // A hip far from the anchor reads as not seen. Only `followAgain()` (a press of the person) moves the anchor to another place.
+  let anchor: Landmark | null = null;
+  let latestHip: Landmark | null = null; // the newest visible hip, also when it was refused. `followAgain()` uses it.
+  let farSince: number | null = null; // the time of the first refused frame of the present run
+  const dist = (a: Landmark, b: Landmark) => Math.hypot(a.x - b.x, (a.y - b.y) / aspect);
   const hipIsOther = (hip: Landmark): boolean => {
     if (!visible(hip)) return false;
-    if (knownHip !== null && Math.hypot(hip.x - knownHip.x, (hip.y - knownHip.y) / aspect) > HIP_JUMP_FRACTION) return true;
-    knownHip = hip;
+    latestHip = hip;
+    if (anchor === null) {
+      anchor = hip;
+      return false;
+    }
+    const d = dist(hip, anchor);
+    if (d > HIP_JUMP_FRACTION) return true;
+    const k = d > ANCHOR_STEP ? ANCHOR_STEP / d : 1;
+    anchor = { ...anchor, x: anchor.x + (hip.x - anchor.x) * k, y: anchor.y + (hip.y - anchor.y) * k };
     return false;
   };
 
   // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
-  const unseen = (t: number): StepOutput => {
+  const unseen = (t: number, lockedOut = false): StepOutput => {
     filter.reset();
     pauseLift();
     if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
     else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
-    return { flexion: null, event: 'paused', repMs: null };
+    return { flexion: null, event: 'paused', repMs: null, lockedOut };
   };
 
   return {
@@ -219,10 +238,19 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
       setBaseline(deg) {
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
+      followAgain() {
+        if (latestHip === null) return;
+        anchor = latestHip;
+        farSince = null;
+      },
       step(landmarks, t) {
         if (landmarks === null) return unseen(t);
         const [hip, knee, ankle] = selectLeg(landmarks, side);
-        if (hipIsOther(hip)) return unseen(t);
+        if (hipIsOther(hip)) {
+          farSince ??= t;
+          return unseen(t, t - farSince > LOCKED_OUT_MS && visible(knee) && visible(ankle));
+        }
+        farSince = null;
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) return unseen(t);
         const f = filter.filter(raw, t);
