@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, focused, heading, toHome } from './helpers/app';
 
 const SIZES = [
+  { width: 360, height: 640 },
   { width: 390, height: 844 },
   { width: 1280, height: 800 },
 ];
@@ -23,6 +24,11 @@ async function expectHeadingInView(page: Page, text: string) {
   });
   expect(box.top, "heading top is in the viewport").toBeGreaterThanOrEqual(-1);
   expect(box.bottom, 'heading bottom is in the viewport').toBeLessThanOrEqual(box.vh + 1);
+  // A new screen opens at the top of the page (final review C3-01).
+  expect(await page.evaluate(() => window.scrollY), 'the page scroll is at the top').toBe(0);
+  // The prototype banner stays visible after a screen change (final review C3-01).
+  const banner = await page.getByText('Prototype. Not for patient use.').first().evaluate((el) => el.getBoundingClientRect().top);
+  expect(banner, 'the prototype banner is in the viewport').toBeGreaterThanOrEqual(-1);
 }
 
 for (const size of SIZES) {

@@ -48,13 +48,14 @@ const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ def
 // so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
 const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']);
 
-/** Focuses a screen heading and scrolls it into view only when it is out of view (block nearest). A heading that is already in view
- * does not move the page, so the prototype banner above it stays visible. The scroll is instant (behavior auto), so it respects prefers-reduced-motion. */
+/** Focuses a screen heading. A new screen opens at the top of the page: the page scroll goes to 0, so the prototype banner above the
+ * heading stays visible and the heading is in view (final review A2-04 and C3-01). The scroll is instant, so it respects prefers-reduced-motion.
+ * It sets scrollTop and does not call window.scrollTo, so a test DOM that lacks scrollTo logs no error. */
 function focusHeading(h1: HTMLElement | null | undefined) {
   if (!h1) return;
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
   h1.focus({ preventScroll: true });
-  // An old browser or a test DOM can lack the method. The focus has moved, so the screen still works.
-  h1.scrollIntoView?.({ block: 'nearest', behavior: 'auto' });
 }
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
