@@ -119,7 +119,7 @@ describe('protocol and privacy', () => {
     expect(appReducer(s, { type: 'privacy-seen' }).screen).toBe('data');
   });
   it('the notice opened from Home returns to Home (A-13)', () => {
-    let s = appReducer(home(), { type: 'open', screen: 'privacy' });
+    const s = appReducer(home(), { type: 'open', screen: 'privacy' });
     expect(appReducer(s, { type: 'privacy-seen' }).screen).toBe('home');
   });
   it('Progress and My data open from Home', () => {
