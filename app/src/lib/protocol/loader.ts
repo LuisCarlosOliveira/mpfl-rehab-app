@@ -1,3 +1,4 @@
+import { stripHidden } from '../plainText';
 import { protocolSchema, type Protocol, type SurgeonField } from './schema';
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -14,9 +15,9 @@ type Issue = { path: ReadonlyArray<PropertyKey>; message: string; code?: string;
 
 const MAX_KEY_CHARS = 40;
 
-/** A key name from the file as plain text: control characters out, cut at 40 characters. React escapes it when it shows. */
+/** A key name from the file as plain text: control, zero-width and direction characters out, cut at 40 characters. React escapes it when it shows. */
 function plainKey(key: string): string {
-  const clean = key.replace(/[\u0000-\u001f\u007f-\u009f]/g, '');
+  const clean = stripHidden(key);
   return clean.length > MAX_KEY_CHARS ? `${clean.slice(0, MAX_KEY_CHARS)}...` : clean;
 }
 

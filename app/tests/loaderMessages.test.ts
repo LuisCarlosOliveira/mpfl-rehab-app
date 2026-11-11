@@ -55,6 +55,12 @@ describe('loader messages', () => {
     expect(m).toContain('...');
     expect(m.length).toBeLessThan(250);
   });
+  it('C3-03: an unknown key name has no direction or zero-width character, so the words after it read in order', () => {
+    const m = messageOf({ ['<b>x</b>\u202Eevil\u200B\u2066z']: 1 });
+    expect(m).not.toMatch(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069]/);
+    expect(m).toBe('The protocol is not valid in the file: the file has a key that the app does not know: "<b>x</b>evilz".');
+  });
+
   it('several unknown keys name the first and count the rest', () => {
     const m = messageOf({ aaa: 1, bbb: 2, ccc: 3 });
     expect(m).toContain('"aaa"');
