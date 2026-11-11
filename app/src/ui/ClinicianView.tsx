@@ -6,7 +6,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
-import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
+import { BANNER, buildReviewSummary, EVENT_LABEL, painText, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
 import { DashboardCharts, TableScroll } from './Dashboard';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
@@ -222,7 +222,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
                   <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.topFlexion)}</td>
-                  <td className="num-cell">{s.pain === undefined ? NOT_ANSWERED : s.pain}</td>
+                  <td className="num-cell">{painText(s)}</td>
                   <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}
                 </tr>

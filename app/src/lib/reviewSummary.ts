@@ -131,6 +131,19 @@ const stateOf = (value: number | null, limit: number, margin: number): SummarySt
 // Pain and session count have no camera error. Margin 0: equal is its own text, never a camera phrase.
 const exactStateOf = (value: number, limit: number): SummaryState => (value === limit ? STATE.equal : stateOf(value, limit, 0));
 
+/** The highest pain answer between sets, or null when no set was answered. */
+const betweenSetsMax = (s: SessionRecord): number | null => {
+  const answers = (s.setPain ?? []).filter((v): v is number => v !== null);
+  return answers.length ? Math.max(...answers) : null;
+};
+
+/** The pain text of a session: the end answer and the highest between-set answer, or "Not answered" when there is none. */
+export function painText(s: SessionRecord): string {
+  const between = betweenSetsMax(s);
+  const parts = [...(s.pain === undefined ? [] : [`${s.pain} (0 to 10)`]), ...(between === null ? [] : [`${between} (between sets)`])];
+  return parts.length ? parts.join(', ') : 'Not answered';
+}
+
 const dataText = (used: number, required: number) => `${used} of ${required} sessions`;
 
 function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): ReviewRow {
@@ -244,13 +257,13 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
     events: {
       redFlagBlocks: since.reduce((n, s) => n + s.redFlagBlocks, 0),
       gaveWayPresses: since.reduce((n, s) => n + s.gaveWayPresses, 0),
-      painAtPause: since.filter((s) => s.pain !== undefined && s.pain >= painThreshold).length,
+      painAtPause: since.filter((s) => [s.pain, betweenSetsMax(s)].some((v) => v != null && v >= painThreshold)).length,
       swellingMore: since.filter((s) => s.swelling === 'more').length,
     },
     rows,
     clinicianChecks: CLINICIAN_CHECKS.map((key) => ({ key, text: CHECK_TEXT[key], evidenceLabel: evidenceOf(key), answer: null })),
     painSwellingTable: phaseSessions.map((s) => ({
-      sessionId: s.id, date: s.date, exercise: exerciseLabel(s.exercise), painText: s.pain === undefined ? 'Not answered' : `${s.pain} (0 to 10)`, swelling: s.swelling,
+      sessionId: s.id, date: s.date, exercise: exerciseLabel(s.exercise), painText: painText(s), swelling: s.swelling,
     })),
   };
 }

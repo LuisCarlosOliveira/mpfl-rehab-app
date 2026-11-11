@@ -65,6 +65,14 @@ describe('ClinicianView session file', () => {
     expect(text).toContain('87.34567891');
   });
 
+  it('shows a pain answer between sets in the session list', async () => {
+    setup();
+    await loadFile(exportText([session({ date: day(1), pain: undefined, setPain: [8] })]));
+    const list = screen.getByRole('table', { name: /session list/i });
+    expect(within(list).getByText('8 (between sets)')).toBeInTheDocument();
+    expect(within(list).queryByText('Not answered', { selector: 'td.num-cell' })).toBeNull();
+  });
+
   it('shows the named error as plain text for each refused file', async () => {
     setup();
     pick(sessionPicker(), 'not json');
