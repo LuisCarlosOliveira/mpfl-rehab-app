@@ -129,8 +129,16 @@ function marginText(data: ChartPoint[]): string {
   return low === high ? `${high}` : `${low} to ${high}`;
 }
 
-/** A timestamp as "2026-11-01 10:00". A day stays a day. */
-const whenText = (when: string) => (when.length === 10 ? when : when.slice(0, 16).replace('T', ' '));
+/** A timestamp as "2026-11-01 10:00". A day stays a day. The date never breaks inside. A narrow cell can wrap between the date and the time. */
+function WhenCell({ when }: { when: string }) {
+  const [date, time] = (when.length === 10 ? when : when.slice(0, 16).replace('T', ' ')).split(' ');
+  return (
+    <>
+      <span className="no-break">{date}</span>
+      {time === undefined ? null : ` ${time}`}
+    </>
+  );
+}
 
 /** Facts only: how many values, the lowest, the highest and the last. No word about a trend. */
 function summaryText(rows: TableRow[]): string {
@@ -269,7 +277,9 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
               const band = chart.data[i]?.band;
               return (
                 <tr key={i}>
-                  <td>{whenText(r.when)}</td>
+                  <td>
+                    <WhenCell when={r.when} />
+                  </td>
                   <td className="num-cell">{shown(r.valueText)}</td>
                   {chart.angle && <td className="num-cell">{band && roundWhole(band[0]) !== '' && roundWhole(band[1]) !== '' ? `${roundWhole(band[0])} to ${roundWhole(band[1])} degrees` : 'no value'}</td>}
                 </tr>

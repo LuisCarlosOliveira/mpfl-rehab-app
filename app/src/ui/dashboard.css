@@ -99,6 +99,9 @@
 .table-scroll--natural {
   max-height: none; /* every row shows, only the sideways scroll stays */
 }
+.no-break {
+  white-space: nowrap;
+}
 .data-table {
   width: 100%;
   border-collapse: separate;
