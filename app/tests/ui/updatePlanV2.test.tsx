@@ -171,9 +171,11 @@ describe('UpdatePlan with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
 });
 
 describe('AC4-03: one wording for the three questions', () => {
-  it('the Update form uses the words of the onboarding questions', async () => {
-    const { GATE_QUESTIONS } = await import('../../src/ui/answerControls');
+  it('the onboarding takes the three question texts from GATE_QUESTIONS, so the Update form and the onboarding cannot differ', async () => {
     const onboarding = (await import('node:fs')).readFileSync('src/ui/Onboarding.tsx', 'utf8');
-    for (const q of Object.values(GATE_QUESTIONS)) expect(onboarding).toContain(q);
+    for (const key of ['walking', 'legRaise', 'seatedHold']) expect(onboarding).toContain(`GATE_QUESTIONS.${key}`);
+    const { GATE_QUESTIONS } = await import('../../src/ui/answerControls');
+    // No second copy of a question text is left in the onboarding file.
+    for (const q of Object.values(GATE_QUESTIONS)) expect(onboarding).not.toContain(q);
   });
 });
