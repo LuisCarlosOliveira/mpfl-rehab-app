@@ -132,6 +132,28 @@ describe('the reason for a removed seated hold (AC4-01)', () => {
   });
 });
 
+describe('the reason for a removed seated hold when the stage goes back (AC5-03)', () => {
+  const yes = { ...gates, seatedHoldCleared: 'yes' } as const;
+  const stored = () => plan(8, { ...yes, surgeonLimit: { kind: 'degrees', degrees: 90 } }).protocol;
+  const STAGE = 'the plan goes back to the first stage, and the seated hold is only in the second stage';
+  const removed = (over: Partial<GeneratorInputs>) => {
+    const inputs = { ...yes, ...over };
+    return describeChanges(stored(), plan(8, inputs).protocol, inputs).find((l) => l.startsWith('Seated knee extension hold removed'));
+  };
+
+  it('names the stage when the next stage answer is No and the limit stays at 90', () => {
+    const line = removed({ surgeonLimit: { kind: 'degrees', degrees: 90 }, phaseClearance: 'no' });
+    expect(line).toContain(STAGE);
+    expect(line).not.toContain('did not report');
+  });
+
+  it('names the stage first when the limit is also below the arc', () => {
+    const line = removed({ surgeonLimit: { kind: 'degrees', degrees: 60 }, phaseClearance: 'no' });
+    expect(line).toContain(STAGE);
+    expect(line).not.toContain('HOLD_ARC_LIMIT');
+  });
+});
+
 describe('the dose scope and the hold time line (A3-06, A3-07)', () => {
   const holdPlan = () => plan(8, { ...gates, seatedHoldCleared: 'yes' }).protocol;
 
