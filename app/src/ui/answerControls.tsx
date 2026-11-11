@@ -15,15 +15,17 @@ interface GroupProps {
   name: string;
   /** The question. It is read by a screen reader and hidden when a heading shows it. */
   legend: string;
+  /** True shows the legend as the visible question. The legend stays the one name of the group, so a screen reader reads it once. */
+  showLegend?: boolean;
   value: string | null;
   choices: readonly Choice[];
   onChange: (value: string) => void;
 }
 
-export function ChoiceGroup({ name, legend, value, choices, onChange }: GroupProps) {
+export function ChoiceGroup({ name, legend, showLegend = false, value, choices, onChange }: GroupProps) {
   return (
     <fieldset className="choices">
-      <legend className="visually-hidden">{legend}</legend>
+      <legend className={showLegend ? undefined : 'visually-hidden'}>{legend}</legend>
       <div className="options options-stack">
         {choices.map((c) => (
           <label key={c.value} className="option">
@@ -35,6 +37,13 @@ export function ChoiceGroup({ name, legend, value, choices, onChange }: GroupPro
     </fieldset>
   );
 }
+
+/** The three questions of the next exercises. Onboarding asks the same words (TITLES in Onboarding.tsx). A test pins the two to each other. */
+export const GATE_QUESTIONS = {
+  walking: 'Do you walk without crutches?',
+  legRaise: 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?',
+  seatedHold: 'Did your surgeon say that you can do knee straightening exercises while you sit?',
+} as const;
 
 export const YES_NO_UNKNOWN: readonly Choice[] = [
   { value: 'yes', label: 'Yes' },

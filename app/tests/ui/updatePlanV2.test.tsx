@@ -48,6 +48,20 @@ const legRaise = /Can you lift your leg with a straight knee/;
 const seated = /knee straightening exercises while you sit/;
 
 describe('UpdatePlan, the questions of version 2', () => {
+  it('AC4-03: shows each of the three questions as visible text, not only in a hidden legend', async () => {
+    await seed({});
+    await ready();
+    pick(clearance, 'Yes');
+    for (const q of [walking, legRaise, seated]) {
+      const legend = within(group(q)).getByText(q);
+      expect(legend.tagName).toBe('LEGEND');
+      expect(legend.closest('.visually-hidden')).toBeNull();
+      expect(legend).not.toHaveClass('visually-hidden');
+      expect(getComputedStyle(legend).display).not.toBe('none');
+      expect(screen.getAllByText(q)).toHaveLength(1); // no second copy: a screen reader reads it once
+    }
+  });
+
   it('asks the three questions only after the answer yes to the clearance question', async () => {
     await seed({});
     await ready();
@@ -153,5 +167,13 @@ describe('UpdatePlan with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
     pick(clearance, 'Yes');
     expect(screen.queryByRole('group', { name: walking })).toBeNull();
     expect(screen.getByRole('button', { name: 'Check my plan' })).toBeEnabled();
+  });
+});
+
+describe('AC4-03: one wording for the three questions', () => {
+  it('the Update form uses the words of the onboarding questions', async () => {
+    const { GATE_QUESTIONS } = await import('../../src/ui/answerControls');
+    const onboarding = (await import('node:fs')).readFileSync('src/ui/Onboarding.tsx', 'utf8');
+    for (const q of Object.values(GATE_QUESTIONS)) expect(onboarding).toContain(q);
   });
 });
