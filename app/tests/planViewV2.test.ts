@@ -79,13 +79,15 @@ describe('describeChanges with version 2 items', () => {
 
   it('names the dose that a plan from before the dose rule gets, once, with the range and the rule', () => {
     const next = plan(3).protocol;
+    const strip = <T extends { sets?: number; reps?: number }>(x: T): T => {
+      const copy = { ...x };
+      delete copy.sets;
+      delete copy.reps;
+      return copy;
+    };
     const withoutDose: Protocol = {
       ...next,
-      phases: next.phases.map((ph) => ({
-        ...ph,
-        exercises: ph.exercises.map(({ sets: _s, reps: _r, ...rest }) => rest),
-        homeExercises: ph.homeExercises?.map(({ sets: _s, reps: _r, ...rest }) => rest),
-      })),
+      phases: next.phases.map((ph) => ({ ...ph, exercises: ph.exercises.map(strip), homeExercises: ph.homeExercises?.map(strip) })),
     };
     const lines = describeChanges(withoutDose, next);
     const dose = lines.filter((l) => l.startsWith('Sets and reps added'));
