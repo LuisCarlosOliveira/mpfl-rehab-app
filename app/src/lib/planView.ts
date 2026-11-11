@@ -53,6 +53,8 @@ export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
   'leg-raise-back': 'Leg raise to the back',
 };
 export const NOT_CHECKED = 'The app does not check this exercise.';
+/** The same fact for the whole group of home exercises. The group shows it once. */
+export const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 /** The line for a dose that the plan does not hold. The generator sets no dose, so the person asks the care team. */
 export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
@@ -96,15 +98,23 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
-/** One plain line for each part of the new plan. */
+/** One plain line for each part of the new plan. One dose rule: a dose shows only when the plan holds it, and the missing dose is said once at the end. */
 export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
+  let askDose = false;
   for (const e of activeExercises(protocol)) {
-    lines.push(e.maxFlexion === undefined ? `${NAMES[e.kind]}.` : `${NAMES[e.kind]}, knee-bend limit ${e.maxFlexion} degrees.`);
+    const dose = e.sets !== undefined && e.reps !== undefined ? `${e.sets} sets of ${e.reps}` : e.holdSeconds !== undefined ? `hold ${e.holdSeconds} seconds` : null;
+    if (dose === null) askDose = true;
+    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...(dose === null ? [] : [dose])];
+    lines.push(`${parts.join(', ')}.`);
   }
-  for (const h of activeHome(protocol)) {
-    lines.push(h.sets !== undefined ? `${HOME_NAMES[h.kind]}, ${homeDose(h)}. ${NOT_CHECKED}` : `${HOME_NAMES[h.kind]}. ${homeDose(h)}. ${NOT_CHECKED}`);
+  const home = activeHome(protocol);
+  for (const h of home) {
+    if (h.sets === undefined || h.reps === undefined) askDose = true;
+    lines.push(`${HOME_NAMES[h.kind]}${h.sets !== undefined && h.reps !== undefined ? `, ${homeDose(h)}` : ''} (at home).`);
   }
+  if (askDose) lines.push(`${ASK_HOW_MANY}.`);
+  if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
 }
 

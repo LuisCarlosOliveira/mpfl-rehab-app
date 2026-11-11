@@ -37,12 +37,13 @@ const gates = { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 const old = (p: Protocol): Protocol => ({ ...p, phases: p.phases.map((ph) => ({ ...ph, homeExercises: undefined })) });
 
 describe('describeNewPlan with home exercises', () => {
-  it('lists each home exercise with "ask your care team" in place of a dose and says that the app does not check it', () => {
+  it('A-07: one dose rule for the camera and the home exercises, and each sentence once', () => {
     const lines = describeNewPlan(plan(3).protocol);
     for (const kind of ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const) {
-      expect(lines).toContain(`${HOME_NAMES[kind]}. How many: ask your care team. The app does not check this exercise.`);
+      expect(lines).toContain(`${HOME_NAMES[kind]} (at home).`);
     }
-    expect(lines.filter((l) => l.includes('The app does not check'))).toHaveLength(5);
+    expect(lines.filter((l) => l.includes('How many'))).toEqual(['How many: ask your care team.']);
+    expect(lines.filter((l) => l.includes('does not check'))).toEqual(['The app does not check the exercises at home.']);
     expect(lines.join(' ')).not.toMatch(/sets of|undefined|NaN/);
   });
 });
