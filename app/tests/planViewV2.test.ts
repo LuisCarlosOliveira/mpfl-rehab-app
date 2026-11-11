@@ -107,14 +107,16 @@ describe('the forward check', () => {
 });
 
 describe('whyView for the new values', () => {
-  it('shows the dose as the start of the range, no hold values, and the surgeon number for the mini squat with the words of the person', () => {
+  it('shows the dose as the start of the range, no hold values, and the depth of the mini squat with the words of the rule', () => {
     const r = plan(8, { ...gates, seatedHoldCleared: 'yes' });
-    expect(r.why.some((w) => ['HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId))).toBe(false);
+    expect(r.why.some((w) => ['HOLD_P2', 'ENG_HOLD'].includes(w.ruleId))).toBe(false);
     const all = r.why.flatMap((w) => whyView(w).applied).join('\n');
     expect(all).toContain('Phase 2, Quadriceps set, sets, start of the range: 2');
     expect(all).toContain('Phase 2, Quadriceps set, reps, start of the range 10 to 15: 10');
     expect(all).not.toMatch(/Seated knee extension hold|straightest knee angle/);
-    expect(all).toContain('Phase 2, Mini squat, knee-bend limit: 100 degrees (as entered by you)');
+    expect(all).toContain('Phase 2, Mini squat, knee-bend limit: 50 degrees');
+    const lower = plan(8, { ...gates, surgeonLimit: { kind: 'degrees', degrees: 40 } }).why.flatMap((w) => whyView(w).applied).join('\n');
+    expect(lower).toContain('Phase 2, Mini squat, knee-bend limit: 40 degrees (as entered by you)');
     expect(all).not.toMatch(/starts counting a rep at 58/);
   });
 });

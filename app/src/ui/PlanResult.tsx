@@ -130,6 +130,11 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
                       ))}
                     </ul>
                   )}
+                  {e.kind === 'mini-squat' && made.some((w) => w.ruleId === 'SQUAT_DEPTH') && (
+                    <div className="dose-note">
+                      <SourceNote rule="SQUAT_DEPTH" />
+                    </div>
+                  )}
                   {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">Hold time: ask your care team.</p>}
                   {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
                 </li>

@@ -101,6 +101,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   const lowestLimit = RULES.ENG_TARGET.values.minLimit;
 
   const doseApplied: Applied[] = [];
+  const squatApplied: Applied[] = [];
   const targetApplied: Applied[] = [];
   const returnApplied: Applied[] = [];
   const limitApplied: Applied[] = [];
@@ -153,22 +154,24 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     return { ...common, source: `Heel slide: S1 P3 P1 (HEEL). No limit entered. ${tail}` };
   };
 
-  // Mini squat (D1). From phase 2, with both answers yes and no knee gave way event. The app sets no depth.
-  // Only a limit from the surgeon, as entered by the person, is the ceiling.
+  // Mini squat (D1). From phase 2, with both answers yes and no knee gave way event. The ceiling is the lower of 50 and a surgeon number.
+  // A surgeon number only lowers the ceiling. It never raises it.
+  const squatMax = RULES.SQUAT_DEPTH.values.maxFlexion;
+  const squatCeiling = limit.kind === 'degrees' ? Math.min(squatMax, limit.degrees) : squatMax;
   const squatBuilt =
-    extended && phase2 && i.walksWithoutCrutches === 'yes' && i.legRaiseStraight === 'yes' && !i.kneeGaveWay && (limit.kind !== 'degrees' || limit.degrees >= lowestLimit);
+    extended && phase2 && i.walksWithoutCrutches === 'yes' && i.legRaiseStraight === 'yes' && !i.kneeGaveWay && squatCeiling >= lowestLimit;
   const miniSquat = (): Exercise => {
     const path = 'phase2.mini-squat';
     targetApplied.push({ path: `${path}.targetFlexion`, value: target, origin: 'rule' });
     returnApplied.push({ path: `${path}.returnWithinDeg`, value: back, origin: 'rule' });
-    if (limit.kind === 'degrees') limitApplied.push({ path: `${path}.maxFlexion`, value: limit.degrees, origin: 'person' });
+    squatApplied.push({ path: `${path}.maxFlexion`, value: squatCeiling, origin: limit.kind === 'degrees' && limit.degrees < squatMax ? 'person' : 'rule' });
     return {
       kind: 'mini-squat',
       ...dosed(path),
       targetFlexion: target,
-      ...(limit.kind === 'degrees' ? { maxFlexion: limit.degrees } : {}),
+      maxFlexion: squatCeiling,
       returnWithinDeg: back,
-      source: `Mini squat: P3 P2 N3 S1 (SQUAT_P2). Depth: your surgeon or none. Dose: ${DOSE_SHOWN} (DOSE). Count: ENGINEERING. ${NOT_APPROVED}.`,
+      source: `Mini squat: P3 P2 N3 S1 (SQUAT_P2). Depth: N3 S16 (SQUAT_DEPTH), P2 differs. Dose: ${DOSE_SHOWN} (DOSE). Count: ENGINEERING. ${NOT_APPROVED}.`,
     };
   };
 
@@ -218,6 +221,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     ...(limitApplied.length > 0 ? [why('RANGE_SURGEON', 'generated', limitApplied)] : []),
     ...(phase2 && !extended ? [why('EXTENDED_OFF', 'refused')] : []),
     ...(phase2 && extended ? [why('SQUAT_P2', squatBuilt ? 'generated' : 'refused'), why('SQUAT_GATE', squatBuilt ? 'generated' : 'refused')] : []),
+    ...(squatBuilt ? [why('SQUAT_DEPTH', 'generated', squatApplied)] : []),
     ...(targetApplied.length > 0 ? [why('ENG_TARGET', 'generated', targetApplied), why('ENG_RETURN', 'generated', returnApplied)] : []),
     why('REVIEW', 'generated', reviewApplied),
     ...(week <= RULES.PH1.values.lastWeek ? [why('ROM_CHECK', 'generated')] : []),

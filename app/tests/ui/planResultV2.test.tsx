@@ -113,26 +113,40 @@ describe('PlanResult, home exercises and text lines', () => {
 describe('PlanResult, the mini squat and the seated hold', () => {
   const gates = { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 
-  // Guardrail: no depth and no dose from a published source. Without a surgeon number the screen says to ask the surgeon.
-  it('shows the mini squat with the dose range and no limit, says ask your surgeon, and says that the answers are not checked', () => {
+  it('shows the mini squat with the limit of 50 degrees, the source note with the source that disagrees, and says that the answers are not checked', () => {
     render(<PlanResult draft={draftFor({ ...week8, ...gates })} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     const item = within(list).getByText('Mini squat').closest('li') as HTMLElement;
-    expect(item).not.toHaveTextContent(/Limit \d/);
-    expect(item).not.toHaveTextContent(/50 degrees/);
+    expect(item).toHaveTextContent('Limit 50 degrees');
     expect(item).toHaveTextContent('2 sets of 10 to 15, then 3 sets as tolerated');
-    expect(item).not.toHaveTextContent('How many: ask your care team');
-    expect(item).toHaveTextContent('Knee-bend limit: ask your surgeon');
-    expect(screen.queryByRole('heading', { name: 'Depth limit of the mini squat', level: 3 })).toBeNull();
+    expect(item).not.toHaveTextContent('Knee-bend limit: ask your surgeon');
+    // The source note of the depth shows in the row, in the fixed order, with the source that disagrees on the same screen.
+    const note = within(item).getByLabelText('Source of: SQUAT_DEPTH');
+    const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(lines[0]).toMatch(/^Source: Hysing-Dahl, 2024, N3/);
+    expect(lines[1]).toBe('Evidence: OPINION');
+    expect(lines[2]).toMatch(/^Population: N3: MPFL reconstruction, weeks 0 to 6\./);
+    expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
+    expect(lines[4]).toMatch(/^Another source: Cincinnati Children's, 2015, P2 starts wall squats at 45 degrees/);
+    expect(item.textContent).not.toMatch(/undefined|NaN/);
+    const entry = screen.getByRole('heading', { name: RULES.SQUAT_DEPTH.title, level: 3 }).closest('li') as HTMLElement;
+    expect(entry).toHaveTextContent('N3:');
+    expect(entry).toHaveTextContent(RULES.SQUAT_DEPTH.conservative as string);
     const gate = screen.getByRole('heading', { name: RULES.SQUAT_GATE.title, level: 3 }).closest('li') as HTMLElement;
     expect(gate).toHaveTextContent('Reported by you. Not checked by the app.');
   });
 
-  it('uses the surgeon number as the limit of the mini squat', () => {
-    render(<PlanResult draft={draftFor({ ...week8, ...gates, surgeonLimit: { kind: 'degrees', degrees: 80 } })} onUse={vi.fn()} onBack={vi.fn()} />);
-    const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Mini squat').closest('li') as HTMLElement;
-    expect(item).toHaveTextContent('Limit 80 degrees');
-    expect(item).not.toHaveTextContent('Knee-bend limit: ask your surgeon');
+  it('lowers the limit of the mini squat to the surgeon number and never raises it above 50', () => {
+    const limitOf = (degrees: number) => {
+      const { unmount } = render(<PlanResult draft={draftFor({ ...week8, ...gates, surgeonLimit: { kind: 'degrees', degrees } })} onUse={vi.fn()} onBack={vi.fn()} />);
+      const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Mini squat').closest('li') as HTMLElement;
+      const text = item.textContent ?? '';
+      unmount();
+      return text;
+    };
+    expect(limitOf(80)).toContain('Limit 50 degrees');
+    expect(limitOf(40)).toContain('Limit 40 degrees');
+    expect(limitOf(40)).not.toContain('Limit 50 degrees');
   });
 
   it('lists the mini squat among the refused rules when an answer is no', () => {
@@ -185,7 +199,8 @@ describe('Home, a plan with home exercises', () => {
     const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
     expect(screen.queryByRole('button', { name: 'Start Seated knee extension hold' })).toBeNull();
     const text = container.textContent ?? '';
-    expect(text).not.toMatch(/undefined|NaN|50 degrees|40 degrees/);
+    expect(text).not.toMatch(/undefined|NaN|40 degrees/);
+    expect(screen.getAllByText('Limit 50 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2 sets of 10 to 15, then 3 sets as tolerated').length).toBeGreaterThan(1);
     expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Knee-bend limit: ask your surgeon').length).toBeGreaterThan(0);

@@ -192,8 +192,28 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in weeks 7 to 11 and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise. The sources disagree on a depth and none gives one for weeks 7 to 11, so the app sets none. Only a limit from your surgeon, as entered by you, is the ceiling.',
-    text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. The app sets no depth limit. Ask your surgeon for one. P1 starts free squats later, at week 12.',
+      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in weeks 7 to 11 and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
+    text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. P1 starts free squats later, at week 12.',
+  },
+  SQUAT_DEPTH: {
+    title: 'Depth limit of the mini squat',
+    kind: 'generated',
+    values: { maxFlexion: 50 },
+    personEntered: ['maxFlexion'], // only a lower number from the surgeon, as entered by the person
+    auditRows: ['V95', 'V116'],
+    sourceIds: ['N3', 'S16', 'P2'],
+    grade: 'OPINION',
+    population: 'N3: MPFL reconstruction, weeks 0 to 6. S16: 18 healthy people, a lab study. The sources give no depth for weeks 7 to 11.',
+    conservative:
+      'N3 gives a mini squat range of 0 to 50 degrees in the first weeks and gives no depth later. S16 gives the same range for healthy people. P2 starts wall squats at 45 degrees and goes deeper later. The sources disagree and none gives a depth for weeks 7 to 11. The app takes 50 degrees. A limit from your surgeon can only lower it.',
+    display: {
+      value: 'Depth limit 50 degrees of estimated knee bend. A limit from your surgeon can only lower it.',
+      cite: 'Hysing-Dahl, 2024, N3 Table 1 (mini squats 0 to 50 degrees, weeks 0 to 6). Escamilla, 2009, S16 (0 to 50 degrees, healthy people)',
+      evidence: 'OPINION',
+      disagree:
+        "Cincinnati Children's, 2015, P2 starts wall squats at 45 degrees and goes to higher and lower levels of flexion. HSS, 2024, P1 starts free squats at week 12. No source gives a depth for weeks 7 to 11.",
+    },
+    text: 'The mini squat stops at 50 degrees of estimated knee bend (N3). A limit from your surgeon can only lower it.',
   },
   SQUAT_GATE: {
     title: 'Answers needed for the mini squat',

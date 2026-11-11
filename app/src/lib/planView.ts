@@ -64,7 +64,7 @@ export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 export const NO_NUMBER = 'No number in the guideline.';
 
 /** The rules whose number comes from a published source and shows with a source note. */
-export type SourceNoteId = 'DOSE';
+export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH';
 
 /**
  * The lines of a source note, in the fixed order: the value, the source, the evidence, the population, the label of the app,

@@ -155,17 +155,17 @@ describe('what stays refused (design section 4)', () => {
   });
 });
 
-describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_GATE)', () => {
-  it('adds the mini squat from week 7 only with clearance and both gate answers yes, with the dose and no depth', () => {
+describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)', () => {
+  it('adds the mini squat from week 7 only with clearance and both gate answers yes, with the dose and the depth of 50', () => {
     for (const w of [7, 9, 11]) {
       const r = plan(at(w, gates));
       const squat = ex(r.protocol, 2, 'mini-squat');
       expect(squat, `week ${w}`).toMatchObject({ targetFlexion: 2 * MARGIN_DEG, returnWithinDeg: MARGIN_DEG });
       expect(squat).toMatchObject({ sets: 2, reps: 10 });
-      expect(squat?.maxFlexion).toBeUndefined();
+      expect(squat?.maxFlexion).toBe(50);
+      expect(squat?.source).toMatch(/N3 S16 \(SQUAT_DEPTH\), P2 differs/);
       expect(kinds(r.protocol, 1)).not.toContain('mini-squat');
-      for (const id of ['SQUAT_P2', 'SQUAT_GATE'] as const) expect(r.why.find((x) => x.ruleId === id), id).toMatchObject({ outcome: 'generated' });
-      expect(r.why.some((x) => (x.ruleId as string) === 'SQUAT_DEPTH')).toBe(false);
+      for (const id of ['SQUAT_P2', 'SQUAT_DEPTH', 'SQUAT_GATE'] as const) expect(r.why.find((x) => x.ruleId === id), id).toMatchObject({ outcome: 'generated' });
       expect(protocolSchema.safeParse(r.protocol).success).toBe(true);
     }
   });
@@ -189,14 +189,22 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_GATE)', () => {
     expect(r.why.find((x) => x.ruleId === 'SQUAT_GATE')?.outcome).toBe('refused');
   });
 
-  // Guardrail: the depth of the squat is a surgeon number. No number from a published source.
-  it('sets no squat ceiling without a surgeon number, and uses the surgeon number as the ceiling', () => {
-    const squat = (surgeonLimit: GeneratorInputs['surgeonLimit']) => ex(plan(at(8, { ...gates, surgeonLimit })).protocol, 2, 'mini-squat');
-    expect(squat({ kind: 'unknown' })?.maxFlexion).toBeUndefined();
-    expect(squat({ kind: 'none' })?.maxFlexion).toBeUndefined();
-    for (const degrees of [40, 50, 90, 120]) expect(squat({ kind: 'degrees', degrees })?.maxFlexion, `${degrees}`).toBe(degrees);
-    const r = plan(at(8, { ...gates, surgeonLimit: { kind: 'degrees', degrees: 90 } }));
-    expect(r.why.find((x) => x.ruleId === 'RANGE_SURGEON')?.applied.map((a) => a.path)).toContain('phase2.mini-squat.maxFlexion');
+  it('sets the squat ceiling to 50, or to the lower surgeon number, and never above 50', () => {
+    const ceil = (surgeonLimit: GeneratorInputs['surgeonLimit']) => ex(plan(at(8, { ...gates, surgeonLimit })).protocol, 2, 'mini-squat')?.maxFlexion;
+    expect(ceil({ kind: 'unknown' })).toBe(RULES.SQUAT_DEPTH.values.maxFlexion);
+    expect(ceil({ kind: 'none' })).toBe(50);
+    expect(ceil({ kind: 'degrees', degrees: 120 })).toBe(50);
+    expect(ceil({ kind: 'degrees', degrees: 90 })).toBe(50);
+    expect(ceil({ kind: 'degrees', degrees: 50 })).toBe(50);
+    expect(ceil({ kind: 'degrees', degrees: 40 })).toBe(40);
+    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
+  });
+
+  it('records a surgeon number below 50 as the number of the person, and the value 50 as a value of the rule', () => {
+    const depth = (surgeonLimit: GeneratorInputs['surgeonLimit']) => plan(at(8, { ...gates, surgeonLimit })).why.find((x) => x.ruleId === 'SQUAT_DEPTH')!.applied;
+    expect(depth({ kind: 'degrees', degrees: 40 })).toEqual([{ path: 'phase2.mini-squat.maxFlexion', value: 40, origin: 'person' }]);
+    expect(depth({ kind: 'degrees', degrees: 90 })).toEqual([{ path: 'phase2.mini-squat.maxFlexion', value: 50, origin: 'rule' }]);
+    expect(depth({ kind: 'none' })).toEqual([{ path: 'phase2.mini-squat.maxFlexion', value: 50, origin: 'rule' }]);
   });
 
   it('leaves out the mini squat when the surgeon limit is below the camera minimum', () => {
@@ -206,11 +214,15 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_GATE)', () => {
     expect(squat(lowest)).toBe(true);
   });
 
-  it('shows the source that disagrees, says that the app sets no depth, and keeps the gate text', () => {
+  it('rests the depth on audited sources and shows the source that disagrees', () => {
+    expect(RULES.SQUAT_DEPTH.sourceIds).toEqual(expect.arrayContaining(['N3', 'S16', 'P2']));
+    expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116']);
+    expect(RULES.SQUAT_DEPTH.population).toMatch(/weeks 0 to 6/);
+    expect(RULES.SQUAT_DEPTH.population).toMatch(/healthy/);
+    expect(RULES.SQUAT_DEPTH.display?.disagree).toMatch(/45 degrees/);
+    expect(RULES.SQUAT_DEPTH.display?.disagree).toMatch(/week 12/);
     expect(RULES.SQUAT_P2.conservative).toMatch(/P1/);
     expect(RULES.SQUAT_P2.conservative).toMatch(/week 12/);
-    expect(RULES.SQUAT_P2.conservative).toMatch(/disagree/);
-    expect(RULES.SQUAT_P2.text).toMatch(/no depth limit/);
     expect(RULES.SQUAT_GATE.text).toMatch(/not checked/i);
   });
 });
@@ -281,7 +293,7 @@ describe('flag OFF (the default): the held back items', () => {
       const r = plan(at(w, { ...cleared, ...all }));
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('mini-squat');
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('seated-extension-hold');
-      for (const id of ['SQUAT_P2', 'SQUAT_GATE'] as const) {
+      for (const id of ['SQUAT_P2', 'SQUAT_GATE', 'SQUAT_DEPTH'] as const) {
         expect(r.protocol.generated?.rules, id).not.toContain(id);
       }
     }
@@ -321,9 +333,11 @@ describe('audit defects D3, D4, D5 and D2 (flag ON)', () => {
     expect(RULES.HEEL_P2_UNKNOWN.text).toMatch(/Ask your care team/);
   });
 
-  it('D2: the squat entry says that the sources disagree on a depth, so the app sets none', () => {
-    expect(RULES.SQUAT_P2.conservative).toMatch(/disagree/);
-    expect(RULES.SQUAT_P2.conservative).toMatch(/sets none/);
+  it('D2: the squat depth entry shows the P2 start of wall squats at 45 degrees and says that the sources disagree', () => {
+    expect(RULES.SQUAT_DEPTH.sourceIds).toContain('P2');
+    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/45 degrees/);
+    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/disagree/);
+    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
   });
 
   it('D5: the ankle pump rule says what P1 and P3 say and no more', () => {

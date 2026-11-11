@@ -232,9 +232,9 @@ describe('properties of the generator', () => {
     }
   });
 
-  it('gives a mini squat a ceiling only from the surgeon number, and never a squat without the gates', () => {
+  it('never gives a mini squat ceiling above 50, lowers it only with a surgeon number, and never gives a squat without the gates', () => {
     let squats = 0;
-    let withSurgeon = 0;
+    let lowered = 0;
     for (const seed of SEEDS) {
       const i = randomInputs(seed);
       const r = generateProtocol(i, TODAY);
@@ -244,18 +244,16 @@ describe('properties of the generator', () => {
         if (squat === undefined) continue;
         squats += 1;
         expect(ph.id, `seed ${seed}`).toBe(2);
-        if (i.surgeonLimit.kind === 'degrees') {
-          withSurgeon += 1;
-          expect(squat.maxFlexion, `seed ${seed}`).toBe(i.surgeonLimit.degrees);
-        } else {
-          expect(squat.maxFlexion, `seed ${seed}`).toBeUndefined();
-        }
+        expect(squat.maxFlexion, `seed ${seed}`).toBeLessThanOrEqual(RULES.SQUAT_DEPTH.values.maxFlexion);
+        const expected = i.surgeonLimit.kind === 'degrees' ? Math.min(50, i.surgeonLimit.degrees) : 50;
+        expect(squat.maxFlexion, `seed ${seed}`).toBe(expected);
+        if (expected < 50) lowered += 1;
         expect([i.walksWithoutCrutches, i.legRaiseStraight, i.phaseClearance], `seed ${seed}`).toEqual(['yes', 'yes', 'yes']);
         expect(i.kneeGaveWay, `seed ${seed}`).toBe(false);
       }
     }
     expect(squats).toBeGreaterThan(0);
-    expect(withSurgeon).toBeGreaterThan(0);
+    expect(lowered).toBeGreaterThan(0);
   });
 
   // Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, whatever the answers are.

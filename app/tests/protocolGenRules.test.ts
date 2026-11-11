@@ -108,10 +108,14 @@ describe('rules data', () => {
     expect(RULES.DOSE_NONE.text).toMatch(/No number in the guideline/);
   });
 
-  it('says that the app adds no seated hold and no mini squat depth', () => {
-    expect(RULES.HOLD.text).toMatch(/adds no seated knee hold/);
-    expect(RULES.SQUAT_P2.text).toMatch(/no depth limit/);
-    expect(RULES.SQUAT_P2.text).toMatch(/Ask your surgeon/);
+  it('gives the depth rule the depth 50, its sources, the audit rows V95 and V116, and the source that disagrees', () => {
+    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
+    expect(RULES.SQUAT_DEPTH.personEntered).toEqual(['maxFlexion']);
+    expect(RULES.SQUAT_DEPTH.sourceIds).toEqual(['N3', 'S16', 'P2']);
+    expect(RULES.SQUAT_DEPTH.grade).toBe('OPINION');
+    expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116']);
+    expect(RULES.SQUAT_DEPTH.text).toMatch(/A limit from your surgeon can only lower it/);
+    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/disagree/);
   });
 
   it('keeps the camera values labelled ENGINEERING', () => {
