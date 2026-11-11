@@ -156,10 +156,24 @@ describe('the words of a chart summary', () => {
     }
   });
 
-  it('shows the straight leg raise chart with the angle at the top', () => {
-    const { container } = render(<DashboardCharts sessions={[session({ exercise: 'straight-leg-raise', peakFlexion: 4, topFlexion: 22, reps: 5, pain: 1 })]} />);
-    const card = section(container, 'Angle at the top, straight leg raise');
-    expect(card.querySelector('.dash-last')).toHaveTextContent('22 degrees');
-    expect(container.textContent).not.toContain('Peak knee bend, straight leg raise');
+  const SLR_NOTE = 'The angle at the top of a straight leg raise is saved for your care team. The app does not draw it.';
+  const slr = () => session({ exercise: 'straight-leg-raise', peakFlexion: 4, topFlexion: 22, reps: 5, pain: 1 });
+
+  it('draws no chart for the straight leg raise, and says in one plain line that the angle is saved for the care team', () => {
+    const { container } = render(<Dashboard sessions={[slr(), ...list()]} onBack={() => undefined} />);
+    expect(container.textContent!.match(/The angle at the top of a straight leg raise is saved for your care team\. The app does not draw it\./g)).toHaveLength(1);
+    expect(container.textContent).not.toMatch(/Peak knee bend, straight leg raise|Angle at the top, straight leg raise/);
+    const line = [...container.querySelectorAll('p')].find((p) => p.textContent === SLR_NOTE)!;
+    expect(line.closest('section.dash-chart')).toBeNull();
+    expect(line.textContent).not.toMatch(/\d/);
+    expect(hasVerdictWord(line.textContent ?? '')).toBeNull();
+  });
+
+  it('shows no such line without a straight leg raise session, and not in the care team charts', () => {
+    const none = render(<Dashboard sessions={list()} onBack={() => undefined} />);
+    expect(none.container.textContent).not.toContain(SLR_NOTE);
+    none.unmount();
+    const care = render(<DashboardCharts sessions={[slr()]} />);
+    expect(care.container.textContent).not.toContain(SLR_NOTE);
   });
 });

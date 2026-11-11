@@ -244,15 +244,22 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   );
 }
 
-/** The charts with their tables, with no heading of their own. The care team view uses this part. */
-export function DashboardCharts({ sessions }: { sessions: readonly SessionRecord[] }) {
+/** Said in place of a chart for the straight leg raise. No number, no chart. The number stays in the record, the export and the care team view. */
+export const SLR_NOT_DRAWN = 'The angle at the top of a straight leg raise is saved for your care team. The app does not draw it.';
+
+/** The charts with their tables, with no heading of their own. The care team view uses this part.
+ *  `slrNote` puts one plain line where a straight leg raise chart would be (after the peak bend charts). Your sessions sets it. */
+export function DashboardCharts({ sessions, slrNote = false }: { sessions: readonly SessionRecord[]; slrNote?: boolean }) {
   const series = buildProgressSeries(sessions);
   const rows = toTableRows(series);
+  const charts = chartSeries(series, sessions);
+  const peaks = series.peakFlexion.length;
+  const block = (chart: ChartSeries) => <ChartBlock key={chart.title} chart={chart} rows={rows.filter((r) => r.series === chart.title)} />;
   return (
     <div className="chart-list">
-      {chartSeries(series, sessions).map((chart) => (
-        <ChartBlock key={chart.title} chart={chart} rows={rows.filter((r) => r.series === chart.title)} />
-      ))}
+      {charts.slice(0, peaks).map(block)}
+      {slrNote && <p className="detail">{SLR_NOT_DRAWN}</p>}
+      {charts.slice(peaks).map(block)}
     </div>
   );
 }
@@ -350,7 +357,7 @@ export function Dashboard({ sessions, title = 'Your sessions', skipped = 0, onBa
         <div className="stack">
           <StatStrip sessions={sessions} />
           <p className="lede dash-lede">These numbers are a webcam estimate. Send the file to your care team. They decide any change to your plan.</p>
-          <DashboardCharts sessions={sessions} />
+          <DashboardCharts sessions={sessions} slrNote={sessions.some((s) => s.exercise === 'straight-leg-raise')} />
         </div>
       )}
     </section>

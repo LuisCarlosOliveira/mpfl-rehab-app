@@ -59,24 +59,24 @@ describe('buildProgressSeries', () => {
     expect(s.peakFlexion[0]?.points[0]?.degrees).toBeNull();
   });
 
-  // Audit 3 and live test R2-08: a straight leg raise value above the plausible limit is a camera misread. The chart and
-  // its table must not plot it. The stored value in the record stays as it is.
-  // The straight leg raise chart shows the angle at the top (the app shows and stores it). Its knee bend stays near straight and says little.
-  it('plots the angle at the top for a straight leg raise, plots nothing above the plausible limit, and titles the series for that', () => {
+  // Clinical decision: the straight leg raise has no angle chart. No source sets the 30 degree plausibility limit (cues.ts),
+  // and a chart of the angle at the top would show a sensor fault as a trend. The stored values and the export keep the numbers.
+  it('draws no series for the straight leg raise and keeps the other series', () => {
     const list = [
-      session({ exercise: 'straight-leg-raise', peakFlexion: 12, topFlexion: 165, date: '2026-11-01T10:00:00.000Z' }),
-      session({ exercise: 'straight-leg-raise', peakFlexion: 165, topFlexion: 12, date: '2026-11-02T10:00:00.000Z' }),
-      session({ exercise: 'straight-leg-raise', peakFlexion: 5, topFlexion: null, date: '2026-11-03T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 12, topFlexion: 22, reps: 4, pain: 2, date: '2026-11-01T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 165, topFlexion: 12, reps: 6, pain: 1, date: '2026-11-02T10:00:00.000Z' }),
       session({ exercise: 'mini-squat', peakFlexion: 90, date: '2026-11-01T10:00:00.000Z' }),
     ];
     const s = buildProgressSeries(list);
-    const slr = s.peakFlexion.find((x) => x.exercise === 'straight-leg-raise')!;
-    expect(slr.points.map((p) => p.degrees)).toEqual([null, 12, null]);
-    expect(slr.title).toBe('Angle at the top, straight leg raise, in degrees (estimated angle, not a medical measurement)');
-    const squat = s.peakFlexion.find((x) => x.exercise === 'mini-squat')!;
-    expect(squat.points.map((p) => p.degrees)).toEqual([90]);
-    expect(squat.title).toContain('Peak knee bend, mini squat');
-    expect(list[0]!.topFlexion).toBe(165);
+    expect(s.peakFlexion.map((x) => x.exercise)).toEqual(['mini-squat']);
+    expect(s.peakFlexion[0]!.points.map((p) => p.degrees)).toEqual([90]);
+    expect(s.peakFlexion[0]!.title).toContain('Peak knee bend, mini squat');
+    expect(JSON.stringify(s)).not.toMatch(/straight leg raise|Angle at the top/);
+    // Reps per day and pain still count every session.
+    expect(s.repsPerDay.points.map((p) => p.reps)).toEqual([14, 6]);
+    expect(s.pain.points).toHaveLength(3);
+    // The input and the stored numbers do not change.
+    expect(list[0]!.topFlexion).toBe(22);
     expect(list[1]!.peakFlexion).toBe(165);
   });
 
