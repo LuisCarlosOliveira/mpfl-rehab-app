@@ -83,7 +83,7 @@ describe('B2 Red flag: the block is in the sticky bar', () => {
     expect(bar).not.toBeNull();
     expect(within(alert).getByText(MESSAGES.emergency)).toHaveClass('notice-title');
     expect(within(alert).getByText(GENERAL_GUIDANCE_NOTE)).toBeInTheDocument();
-    expect(within(alert).getByText(/go back to home to start again/i)).toBeInTheDocument();
+    expect(within(alert).queryByText(/start again/i)).toBeNull();
     fireEvent.click(within(bar as HTMLElement).getByRole('button', { name: /back to home/i }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

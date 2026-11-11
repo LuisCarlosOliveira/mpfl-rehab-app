@@ -12,6 +12,13 @@ const setup = () => {
 };
 
 describe('RedFlag screen', () => {
+  it.each(['emergency', 'care-team'] as const)('a %s block does not tell the person to start again (A-11)', (group) => {
+    setup();
+    fireEvent.click(screen.getByLabelText(RED_FLAGS.find((f) => f.group === group)!.text));
+    expect(screen.getByRole('alert')).toHaveTextContent(MESSAGES[group]);
+    expect(screen.queryByText(/start again/i)).toBeNull();
+  });
+
   it('lists every item of RED_FLAGS as a checkbox', () => {
     setup();
     expect(screen.getAllByRole('checkbox')).toHaveLength(RED_FLAGS.length);
@@ -85,13 +92,6 @@ describe('RedFlag screen', () => {
     fireEvent.click(screen.getByLabelText(emergency.text));
     expect(screen.getByText(MESSAGES.emergency)).toBeInTheDocument();
     expect(screen.queryByText(MESSAGES['care-team'])).toBeNull();
-  });
-
-  it('tells the patient to go back to Home to start again, only after a block', () => {
-    setup();
-    expect(screen.queryByText(/go back to home to start again/i)).toBeNull();
-    fireEvent.click(screen.getByLabelText(RED_FLAGS[0]!.text));
-    expect(screen.getByText(/go back to home to start again/i)).toBeInTheDocument();
   });
 
   it('counts one block when the patient ticks again after an untick', () => {

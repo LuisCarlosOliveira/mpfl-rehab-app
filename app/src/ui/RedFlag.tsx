@@ -84,7 +84,6 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
           {result.blocked && (
             <Notice tone="strong" icon="triangle-alert" title={result.message}>
               <p className="detail">{GENERAL_GUIDANCE_NOTE}</p>
-              <p>Go back to Home to start again.</p>
             </Notice>
           )}
         </div>
