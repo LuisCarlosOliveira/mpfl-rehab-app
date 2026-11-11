@@ -104,10 +104,20 @@ describe('createIdentityWatcher', () => {
     expect(feed(w, 0, 6100, () => null)).toEqual(['none']);
   });
 
-  it('stops after the configured number of windows, so a long session stores nothing more', () => {
+  // B-07: the check ran only for the first 3 windows (18 s). A leg that moves later was never seen.
+  it('keeps checking for the whole session: a leg that moves after the first 18 s gives answers', () => {
     const w = createIdentityWatcher(1);
-    const answers = feed(w, 0, (IDENTITY_CONFIG.maxWindows + 3) * 6000 + 100, (i) => frame(swing(i * 3, 60), 5));
-    expect(answers).toHaveLength(IDENTITY_CONFIG.maxWindows);
+    const still = feed(w, 0, 18100, () => frame(5, 5));
+    expect(still).toEqual(['none', 'none', 'none']);
+    const later = feed(w, 18200, 36500, (i) => frame(swing(i * 3, 60), 5));
+    expect(later.length).toBeGreaterThanOrEqual(3);
+    expect(later.slice(-2)).toEqual(['left', 'left']);
+  });
+
+  it('keeps no frames between windows, so a long session holds one window only', () => {
+    const w = createIdentityWatcher(1);
+    const answers = feed(w, 0, 20 * 6000 + 100, (i) => frame(swing(i * 3, 60), 5));
+    expect(answers).toHaveLength(20);
   });
 });
 

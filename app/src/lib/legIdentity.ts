@@ -12,7 +12,6 @@ export type MovingLeg = Side | 'ambiguous' | 'none';
 
 export interface IdentityConfig {
   windowMs: number; // length of one window
-  maxWindows: number; // the check stops after this many windows, so it only looks at the first reps
   minFrames: number; // frames with the whole leg visible that a leg needs in a window
   minRangeDeg: number; // below this range for both legs the answer is none
   ambiguousRatio: number; // the smaller range over the larger range at or above this gives ambiguous
@@ -21,7 +20,6 @@ export interface IdentityConfig {
 
 export const IDENTITY_CONFIG: IdentityConfig = {
   windowMs: 6000,
-  maxWindows: 3,
   minFrames: 30,
   minRangeDeg: 8,
   ambiguousRatio: 0.6,
@@ -87,22 +85,19 @@ export function otherLegConfirmed(answers: MovingLeg[], other: Side, config: Ide
 
 /**
  * Collects frames and gives one answer at the end of each window. It gives null between answers.
- * After `maxWindows` windows it keeps nothing and always gives null.
+ * It keeps at most one window of frames and checks for the whole session (B-07).
  */
 export function createIdentityWatcher(aspect: number, config: IdentityConfig = IDENTITY_CONFIG) {
   let frames: Landmark[][] = [];
   let windowStart: number | null = null;
-  let windows = 0;
   return {
     push(landmarks: Landmark[] | null, tMs: number): MovingLeg | null {
-      if (windows >= config.maxWindows) return null;
       if (windowStart === null) windowStart = tMs;
       if (landmarks && landmarks.length >= 33) frames.push(landmarks);
       if (tMs - windowStart < config.windowMs) return null;
       const answer = movingLeg(frames, aspect, config);
       frames = [];
       windowStart = tMs;
-      windows += 1;
       return answer;
     },
   };
