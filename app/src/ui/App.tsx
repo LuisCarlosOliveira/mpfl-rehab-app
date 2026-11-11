@@ -48,10 +48,19 @@ const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ def
 // so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
 const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']);
 
+/** Focuses a screen heading and scrolls it to the top. The new screen then does not keep the scroll position of the old one.
+ * The scroll is instant (behavior auto), so it respects prefers-reduced-motion. */
+function focusHeading(h1: HTMLElement | null | undefined) {
+  if (!h1) return;
+  h1.focus({ preventScroll: true });
+  // An old browser or a test DOM can lack the method. The focus has moved, so the screen still works.
+  h1.scrollIntoView?.({ block: 'start', behavior: 'auto' });
+}
+
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
   useEffect(() => {
-    document.querySelector<HTMLElement>('main h1')?.focus();
+    focusHeading(document.querySelector<HTMLElement>('main h1'));
   }, []);
   return children;
 }
@@ -212,6 +221,12 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   const phase = protocol && store ? protocol.phases.find((p) => p.id === store.activePhase) : undefined;
   const exercise = phase?.exercises.find((e) => e.kind === state.exercise);
 
+  // The app has no URL routes. The browser must not restore the old scroll position when the history entry
+  // above a root screen goes (useBackButton). The focused heading would then leave the screen.
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+  }, []);
+
   // Move focus to the heading when the screen changes, so a screen reader announces it.
   const main = useRef<HTMLElement>(null);
   const first = useRef(true);
@@ -220,7 +235,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
       first.current = false;
       return;
     }
-    main.current?.querySelector<HTMLElement>('h1')?.focus();
+    focusHeading(main.current?.querySelector<HTMLElement>('h1'));
   }, [state.screen]);
 
   const banners = bannersFor(mode, protocol?.example === true, protocol?.generated !== undefined && protocol.approvedOn === undefined);
