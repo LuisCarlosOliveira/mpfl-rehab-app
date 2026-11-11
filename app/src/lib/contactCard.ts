@@ -18,10 +18,11 @@ export function contactReason(session: SessionData, painPauseThreshold: number |
   if (session.gaveWayPresses > 0) return { kind: 'gave-way', text: `On ${day} you pressed "Knee gave way or hurts".` };
 
   const end = evaluateSession({ pain: session.pain ?? 0, swelling: 'none', painPauseThreshold });
-  // An answer between sets counts only against a threshold that the clinician set (design 4.3, L2).
-  const between = painPauseThreshold !== undefined && (session.setPain ?? []).some((v) => v !== null && v >= painPauseThreshold);
+  // An answer between sets uses the same rule as the end pain: the floor of 7 or a lower clinician threshold (FR12).
+  const answers = (session.setPain ?? []).filter((v): v is number => v !== null);
+  const between = answers.some((pain) => evaluateSession({ pain, swelling: 'none', painPauseThreshold }).reasons.includes('pain'));
   if (end.reasons.includes('pain') || between) {
-    const value = end.reasons.includes('pain') ? session.pain : Math.max(...(session.setPain ?? []).filter((v): v is number => v !== null));
+    const value = end.reasons.includes('pain') ? session.pain : Math.max(...answers);
     return { kind: 'pain', text: `On ${day} you reported pain ${value} out of 10.` };
   }
   if (session.swelling === 'more') return { kind: 'swelling', text: `On ${day} you reported swelling: more than before.` };

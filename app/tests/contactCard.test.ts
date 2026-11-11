@@ -40,8 +40,16 @@ describe('contactReason', () => {
     expect(contactReason({ ...clean, swelling: 'more' }, undefined)?.text).toBe('On 2026-03-01 you reported swelling: more than before.');
   });
 
-  it('counts a pain answer between sets only when the clinician set a threshold', () => {
-    expect(contactReason({ ...clean, setPain: [8] }, undefined)).toBeNull();
+  it('applies the floor of 7 to a pain answer between sets when the protocol sets no threshold (FR12)', () => {
+    expect(contactReason({ ...clean, setPain: [8] }, undefined)?.text).toBe('On 2026-03-01 you reported pain 8 out of 10.');
+    expect(contactReason({ ...clean, setPain: [6] }, undefined)).toBeNull();
+  });
+
+  it('keeps the floor of 7 when the clinician threshold is higher', () => {
+    expect(contactReason({ ...clean, setPain: [8] }, 9)?.kind).toBe('pain');
+  });
+
+  it('uses a lower clinician threshold for a pain answer between sets', () => {
     expect(contactReason({ ...clean, setPain: [null, 5] }, 5)?.kind).toBe('pain');
     expect(contactReason({ ...clean, setPain: [4] }, 5)).toBeNull();
   });
