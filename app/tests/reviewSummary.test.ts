@@ -140,6 +140,17 @@ describe('pain, session count and swelling rows', () => {
     expect(firstRow([squat(1, 100), squat(2, 100)], crit).state).toBe(STATE.notEnough);
   });
 
+  it('counts the between-set pain as a pain value, and says so in the criterion text', () => {
+    const crit = { kind: 'numeric', measure: 'painMax', op: 'atMost', limit: 5, lastSessions: 3, evidence: 'unvalidated' };
+    const row = firstRow([
+      squat(1, 100, { pain: undefined, setPain: [2, 8] }), squat(2, 100, { pain: 2 }), squat(3, 100, { pain: 1, setPain: [null, 3] }),
+    ], crit);
+    expect(row.measured).toBe(8);
+    expect(row.measuredText).toBe('8 (0 to 10)');
+    expect(row.state).toBe(STATE.above);
+    expect(row.criterion).toBe('Highest pain, after a session or between sets, at most 5 on a scale from 0 to 10');
+  });
+
   it('counts the sessions of the phase', () => {
     const crit = { kind: 'numeric', measure: 'sessionsDone', op: 'atLeast', limit: 4, lastSessions: 3, evidence: 'unvalidated' };
     const row = firstRow([squat(1, 100), squat(2, 100), squat(3, 100), squat(4, 100, { phase: 2 })], crit);

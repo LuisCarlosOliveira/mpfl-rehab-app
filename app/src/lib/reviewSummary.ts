@@ -63,7 +63,7 @@ type Measure = NumericCriterion['measure'];
 const MEASURE_TEXT: Record<Measure, (c: NumericCriterion) => string> = {
   peakFlexionDeg: (c) => `Peak knee bend, ${exerciseLabel(c.exerciseId ?? 'mini-squat')}, ${OP_TEXT[c.op]} ${c.limit} degrees`,
   topFlexionDeg: (c) => `Knee angle at the top, straight leg raise, ${OP_TEXT[c.op]} ${c.limit} degrees`,
-  painMax: (c) => `Highest pain after a session, ${OP_TEXT[c.op]} ${c.limit} on a scale from 0 to 10`,
+  painMax: (c) => `Highest pain, after a session or between sets, ${OP_TEXT[c.op]} ${c.limit} on a scale from 0 to 10`,
   sessionsDone: (c) => `Sessions done in this phase, ${OP_TEXT[c.op]} ${c.limit}`,
 };
 const LIMIT_UNIT: Record<Measure, string> = { peakFlexionDeg: ' degrees', topFlexionDeg: ' degrees', painMax: ' (0 to 10)', sessionsDone: ' sessions' };
@@ -137,6 +137,12 @@ const betweenSetsMax = (s: SessionRecord): number | null => {
   return answers.length ? Math.max(...answers) : null;
 };
 
+/** The highest pain of a session: the end answer or a between-set answer. Null when there is none. */
+const highestPain = (s: SessionRecord): number | null => {
+  const values = [s.pain, betweenSetsMax(s)].filter((v): v is number => v != null);
+  return values.length ? Math.max(...values) : null;
+};
+
 /** The pain text of a session: the end answer and the highest between-set answer, or "Not answered" when there is none. */
 export function painText(s: SessionRecord): string {
   const between = betweenSetsMax(s);
@@ -168,7 +174,7 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
   if (c.measure === 'painMax') {
     // Pain is a self-report. The highest value of the window is the right measure for a pain limit. PROPOSAL.
     const window = phaseSessions.slice(-c.lastSessions);
-    const answered = window.flatMap((s) => (s.pain === undefined ? [] : [s.pain])); // a run with no answer has no pain value
+    const answered = window.flatMap((s) => highestPain(s) ?? []); // a run with no answer has no pain value
     const highest = answered.length ? Math.max(...answered) : null;
     const enough = window.length >= c.lastSessions && highest !== null;
     return {
@@ -257,7 +263,7 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
     events: {
       redFlagBlocks: since.reduce((n, s) => n + s.redFlagBlocks, 0),
       gaveWayPresses: since.reduce((n, s) => n + s.gaveWayPresses, 0),
-      painAtPause: since.filter((s) => [s.pain, betweenSetsMax(s)].some((v) => v != null && v >= painThreshold)).length,
+      painAtPause: since.filter((s) => (highestPain(s) ?? -1) >= painThreshold).length,
       swellingMore: since.filter((s) => s.swelling === 'more').length,
     },
     rows,
