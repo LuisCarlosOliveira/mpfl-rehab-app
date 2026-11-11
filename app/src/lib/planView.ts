@@ -59,6 +59,11 @@ export const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
+/** The line for a heel slide after the answer "No limit". The surgeon gave none, so the person has nothing to ask for. */
+export const NO_LIMIT_GIVEN = 'No knee-bend limit was given by your surgeon';
+
+/** The line for the seated hold. The guideline gives no hold time and the app invents none. Every screen says the same. */
+export const HOLD_TIME_LINE = 'Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.';
 
 /** The rules whose number comes from a published source and shows with a source note. */
 export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2' | 'RANGE_NONE';
@@ -108,6 +113,14 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
+/** The names of the exercises of the active phase that hold the dose, in the order of the plan screen. The mini squat is last. */
+export function doseScope(protocol: Protocol): string[] {
+  const has = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
+  const camera = activeExercises(protocol).filter(has);
+  const names = (list: Exercise[]) => list.map((e) => NAMES[e.kind].toLowerCase());
+  return [...names(camera.filter((e) => e.kind !== 'mini-squat')), ...activeHome(protocol).filter(has).map((h) => HOME_NAMES[h.kind].toLowerCase()), ...names(camera.filter((e) => e.kind === 'mini-squat'))];
+}
+
 /**
  * One plain line for each part of the new plan. A dose shows once for the group, as the guideline gives it (the whole range, with the
  * population and the label). The exercises without a dose in the guideline show the missing dose once, at the end.
@@ -119,7 +132,7 @@ export function describeNewPlan(protocol: Protocol): string[] {
   const home = activeHome(protocol);
   let askDose = false;
   for (const e of exercises) {
-    if (!hasDose(e) && e.holdSeconds === undefined) askDose = true;
+    if (!hasDose(e) && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') askDose = true;
     const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
     const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
@@ -128,7 +141,8 @@ export function describeNewPlan(protocol: Protocol): string[] {
     if (!hasDose(h)) askDose = true;
     lines.push(`${HOME_NAMES[h.kind]} (at home).`);
   }
-  if ([...exercises, ...home].some(hasDose)) lines.push(`${RULES.DOSE.text} ${NOT_APPROVED}.`);
+  if ([...exercises, ...home].some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}.`);
+  if (exercises.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined)) lines.push(HOLD_TIME_LINE);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
   if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
@@ -166,6 +180,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   for (const h of homeBefore) {
     if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
   }
+  if (after.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined) && !before.some((e) => e.kind === 'seated-extension-hold')) lines.push(HOLD_TIME_LINE);
   // A stored plan from before the dose rule has no sets and reps. The new plan adds the dose of the guideline.
   const hadNoDose = (old: { sets?: number } | undefined) => old !== undefined && old.sets === undefined;
   const newDose = [
@@ -194,17 +209,15 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
 const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
 
 /**
- * True when the proposal gives the knee more room than the stored plan: a pain limit that is higher or gone, a knee-bend ceiling that is
- * higher or gone, a straightest angle that is lower or gone, or a mini squat or a seated hold that the stored plan lacks in the same phase.
+ * True when the proposal gives the knee more room through a number: a pain limit that is higher or gone, a knee-bend ceiling that is
+ * higher or gone, or a straightest angle that is lower or gone. A new exercise is not a number, so it does not count here.
  */
-export function raisesLimit(current: Protocol, next: Protocol): boolean {
+export function raisesKneeLimit(current: Protocol, next: Protocol): boolean {
   if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const exercise of phase.exercises) {
       const old = before?.exercises.find((e) => e.kind === exercise.kind);
-      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
-      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
       if (!old) continue;
       for (const key of EXERCISE_CEILINGS) {
         const was = old[key];
@@ -216,6 +229,17 @@ export function raisesLimit(current: Protocol, next: Protocol): boolean {
   }
   return false;
 }
+
+/** True when the proposal adds a mini squat or a seated hold that the stored plan lacks in the same phase. It is more load for the knee (generator v2). */
+export function addsLoad(current: Protocol, next: Protocol): boolean {
+  return next.phases.some((phase) => {
+    const before = current.phases.find((p) => p.id === phase.id);
+    return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((o) => o.kind === e.kind));
+  });
+}
+
+/** True when the proposal gives the knee more room than the stored plan: a higher limit or a new mini squat or seated hold. */
+export const raisesLimit = (current: Protocol, next: Protocol): boolean => raisesKneeLimit(current, next) || addsLoad(current, next);
 
 /** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. The app and the screens use this one rule. */
 export function movesForward(current: Protocol, next: Protocol): boolean {
@@ -230,7 +254,7 @@ export const HOLD_PAIN_LIMIT = 'Your stored plan has a pain limit from your clin
 export function holdTextFor(current: Protocol, next: Protocol): string {
   const painLimit = current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
   if (painLimit) return HOLD_PAIN_LIMIT;
-  return raisesLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
+  return raisesKneeLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
 }
 
 /** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */

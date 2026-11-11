@@ -120,7 +120,7 @@ describe('rules data', () => {
 
   it('gives the one reference line for the knee bend by week from S1, as typical practice and not an order', () => {
     expect(RANGE_REFERENCE).toBe(
-      'Typical practice in the guideline, not a limit and not your plan: patients start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. Your surgeon sets your limit.',
+      'Knee bend limit by week: no number in the guideline. Typical practice: start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. This is not a limit and not your plan. Your surgeon sets your limit.',
     );
     expect(RANGE_REFERENCE).not.toMatch(/\badd\b/);
     expect(RULES.RANGE_NONE.display?.value).toBe(RANGE_REFERENCE);

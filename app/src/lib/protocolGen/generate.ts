@@ -55,7 +55,7 @@ function refer(id: ReferralId, extra?: string): GenerateResult {
   return { kind: 'referral', reason: id, text: extra === undefined ? base : `${base} ${extra}` };
 }
 
-function why(id: RuleId, outcome: WhyEntry['outcome'], applied: Applied[] = []): WhyEntry {
+function why(id: RuleId, outcome: WhyEntry['outcome'], applied: Applied[] = [], text?: string): WhyEntry {
   const r = RULES[id];
   return {
     ruleId: id,
@@ -63,7 +63,7 @@ function why(id: RuleId, outcome: WhyEntry['outcome'], applied: Applied[] = []):
     grade: r.grade,
     population: r.population,
     conservative: r.conservative,
-    text: outcome === 'refused' && r.textRefused !== undefined ? r.textRefused : r.text,
+    text: text ?? (outcome === 'refused' && r.textRefused !== undefined ? r.textRefused : r.text),
     label: NOT_APPROVED,
     outcome,
     flag: r.flag,
@@ -180,6 +180,12 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   // Seated hold (D4). From phase 2, after the report of the clearance. No hold time. The arc is the one of P1 and never straight.
   const holdBuilt =
     extended && phase2 && !i.kneeGaveWay && i.seatedHoldCleared === 'yes' && (limit.kind !== 'degrees' || limit.degrees >= RULES.HOLD_P2.values.arcStart);
+  // The clearance is there and the limit is the only reason: the screen says so, with the numbers.
+  const holdBelowArc = extended && phase2 && !i.kneeGaveWay && i.seatedHoldCleared === 'yes' && limit.kind === 'degrees' && limit.degrees < RULES.HOLD_P2.values.arcStart;
+  const holdBelowArcText =
+    limit.kind === 'degrees'
+      ? `The seated hold is not in your plan because the knee-bend limit your surgeon gave (${limit.degrees} degrees) is below the start of the guideline arc (${RULES.HOLD_P2.values.arcStart} degrees).`
+      : RULES.HOLD_ARC_LIMIT.text;
   const seatedHold = (): Exercise => {
     const path = 'phase2.seated-extension-hold';
     holdApplied.push({ path: `${path}.minFlexion`, value: RULES.HOLD_P2.values.minFlexion, origin: 'rule' });
@@ -248,7 +254,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     why('RANGE_NONE', 'refused'),
     why('DOSE_NONE', 'refused'),
     why('SQUAT', 'refused'),
-    ...(holdBuilt ? [] : [why('HOLD', 'refused')]),
+    ...(holdBuilt ? [] : [holdBelowArc ? why('HOLD_ARC_LIMIT', 'refused', [], holdBelowArcText) : why('HOLD', 'refused')]),
     why('PAIN', 'refused'),
     ...(['NONE_WB_BRACE', 'NONE_FREQ', 'NONE_TEMPO', 'NONE_HOLDTIME', 'NONE_PAIN_STOP', 'NONE_VALGUS', 'NONE_REVISION', 'NONE_GRAFT'] as const).map(
       (id) => why(id, 'refused'),

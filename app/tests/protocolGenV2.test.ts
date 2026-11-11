@@ -279,6 +279,29 @@ describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)
     expect(RULES.HOLD.text).toMatch(/none from week 7 without your report that your surgeon cleared it/);
   });
 
+  // A3-01: the real reason shows. A limit below the start of the arc is not the missing clearance.
+  it('gives the real reason when the surgeon limit is below the arc: own line with the numbers, and not the clearance line', () => {
+    for (const degrees of [40, 60, 89]) {
+      const r = plan(at(8, { ...cleared, ...gates, seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees } }));
+      expect(kinds(r.protocol, 2)).not.toContain('seated-extension-hold');
+      const entry = r.why.find((x) => x.ruleId === 'HOLD_ARC_LIMIT')!;
+      expect(entry.outcome).toBe('refused');
+      expect(entry.text).toBe(
+        `The seated hold is not in your plan because the knee-bend limit your surgeon gave (${degrees} degrees) is below the start of the guideline arc (90 degrees).`,
+      );
+      expect(r.why.some((x) => x.ruleId === 'HOLD')).toBe(false);
+    }
+    // The clearance line stays when the clearance is missing, also with a low limit.
+    const noClear = plan(at(8, { ...cleared, ...gates, seatedHoldCleared: 'no', surgeonLimit: { kind: 'degrees', degrees: 60 } }));
+    expect(noClear.why.some((x) => x.ruleId === 'HOLD')).toBe(true);
+    expect(noClear.why.some((x) => x.ruleId === 'HOLD_ARC_LIMIT')).toBe(false);
+    // A limit of 90 or more, or no limit, gives the hold and no refusal line.
+    for (const surgeonLimit of [{ kind: 'degrees', degrees: 90 }, { kind: 'none' }] as const) {
+      const ok = plan(at(8, { ...cleared, ...gates, seatedHoldCleared: 'yes', surgeonLimit }));
+      expect(ok.why.some((x) => x.ruleId === 'HOLD' || x.ruleId === 'HOLD_ARC_LIMIT')).toBe(false);
+    }
+  });
+
   it('never gives a straight arc and never a hold time', () => {
     const h = hold({ seatedHoldCleared: 'yes' })!;
     expect(h.minFlexion).toBe(RULES.HOLD_P2.values.minFlexion);

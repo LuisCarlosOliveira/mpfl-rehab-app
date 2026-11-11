@@ -4,7 +4,8 @@
 import { useRef, useState } from 'react';
 import type { Mode, Protocol } from '../lib/protocol';
 import { acceptProposal, confirmByPerson, selfProgressionOn } from '../lib/protocol/accept';
-import { describeNewPlan, holdTextFor, movesForward, type PlanDraft } from '../lib/planView';
+import { describeNewPlan, doseScope, holdTextFor, movesForward, type PlanDraft } from '../lib/planView';
+import { SourceNote } from './SourceNote';
 import { saveGeneratorInputs, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
@@ -160,6 +161,10 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
               </ul>
             )}
           </section>
+        )}
+
+        {hold === null && !noChange && draft.protocol.generated?.rules.includes('DOSE') === true && (!update || draft.changes.some((l) => l.startsWith('Sets and reps added'))) && (
+          <SourceNote rule="DOSE" label="Sets and reps" scope={doseScope(draft.protocol)} hideValue />
         )}
 
         {error && (

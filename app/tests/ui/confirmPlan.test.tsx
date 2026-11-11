@@ -69,15 +69,36 @@ describe('ConfirmPlan, a new plan', () => {
     expect(await loadStoredProtocol(db, 'demo')).toBeNull();
   });
 
-  it('lists the dose once, as the whole range with the population and the label, and says the missing dose once', () => {
+  it('lists the dose once with the names of the exercises, and shows the source note once for the group (A3-09)', () => {
     const { container } = setup(createDraft(), null).view;
     const items = [...container.querySelectorAll('.change-list li')].map((li) => li.textContent ?? '');
     const dose = items.filter((t) => t.includes('2 sets of 10 to 15, then 3 sets as tolerated'));
     expect(dose).toHaveLength(1);
-    expect(dose[0]).toContain('ages 8 to 25, not for adults');
-    expect(dose[0]).toContain('Not approved by a clinician');
+    expect(dose[0]).toMatch(/^Sets and reps: straight leg raise, quadriceps set, gluteal set, leg raise to the side, leg raise to the back: 2 sets/);
     expect(items.filter((t) => t.startsWith('How many: ask your care team'))).toHaveLength(1);
+    const notes = screen.getAllByLabelText('Source of: Sets and reps');
+    expect(notes).toHaveLength(1);
+    const lines = [...notes[0]!.querySelectorAll('li')].map((li) => li.textContent ?? '');
+    expect(lines[0]).toMatch(/^Source: Cincinnati Children's Hospital Medical Center, 2015/);
+    expect(lines[1]).toBe('Evidence: OPINION (level 5)');
+    expect(lines[2]).toMatch(/^Population: Ages 8 to 25/);
+    expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
     expect(container.textContent).not.toMatch(/undefined|NaN|sets of 10 reps/);
+  });
+
+  it('shows the same source note once on the Confirm of a change that adds the dose to an older plan (A3-09)', async () => {
+    const { i, r } = made({});
+    const next = r.protocol;
+    const strip = <T extends { sets?: number; reps?: number }>(x: T): T => {
+      const copy = { ...x };
+      delete copy.sets;
+      delete copy.reps;
+      return copy;
+    };
+    const older: Protocol = { ...next, phases: next.phases.map((ph) => ({ ...ph, exercises: ph.exercises.map(strip), homeExercises: ph.homeExercises?.map(strip) })) };
+    const draft = { ...(draftOf(r, 'update', i) as PlanOnly), changes: describeChanges(older, next), hold: null };
+    setup(draft, older);
+    expect(screen.getAllByLabelText('Source of: Sets and reps')).toHaveLength(1);
   });
 
   it('saves the plan and the answers after a click of a person, and gives the saved plan to the app', async () => {

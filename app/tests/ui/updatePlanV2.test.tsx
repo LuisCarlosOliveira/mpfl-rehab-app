@@ -17,7 +17,7 @@ const stored: StoredInputs = {
 };
 const asked = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 
-async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: string } = {}) {
+async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: string; selfProgression?: boolean } = {}) {
   const db = freshDb();
   const r = generateProtocol({ ...stored, phaseClearance: 'no', redFlags: {}, pain: 2, swelling: 'none', ...planAnswers }, PLAN_DAY);
   if (r.kind !== 'protocol') throw new Error('expected a plan');
@@ -26,7 +26,7 @@ async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: stri
   await saveGeneratorInputs(db, stored);
   if (props.event) await saveSession(db, { ...sessionInput(), date: props.event, gaveWayPresses: 1 });
   const onDone = vi.fn();
-  render(<UpdatePlan db={db} protocol={saved.protocol as Protocol} today={TODAY} selfProgression onDone={onDone} onCancel={vi.fn()} onCreate={vi.fn()} />);
+  render(<UpdatePlan db={db} protocol={saved.protocol as Protocol} today={TODAY} selfProgression={props.selfProgression ?? true} onDone={onDone} onCancel={vi.fn()} onCreate={vi.fn()} />);
   return { onDone };
 }
 const ready = () => screen.findByRole('button', { name: 'Check my plan' });
@@ -84,6 +84,21 @@ describe('UpdatePlan, the questions of version 2', () => {
     expect(draft.changes.join(' ')).toContain('Mini squat added');
     expect(draft.changes.join(' ')).toContain('SQUAT_P2');
     expect(draft.inputs).toMatchObject({ walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'no', kneeGaveWay: false });
+  });
+
+  it('holds the added mini squat and seated hold with the next stage text, not the higher limit text (A3-03)', async () => {
+    const { onDone } = await seed({ phaseClearance: 'yes' }, { selfProgression: false });
+    await ready();
+    answerToday();
+    pick(clearance, 'Yes');
+    pick(walking, 'Yes');
+    pick(legRaise, 'Yes');
+    pick(seated, 'Yes');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    const draft = onDone.mock.calls[0]![0];
+    expect(draft.changes.join(' ')).toContain('Mini squat added');
+    expect(draft.hold).toBe('Ask your care team about the next stage.');
+    expect(String(draft.hold)).not.toMatch(/higher limit/);
   });
 
   it('removes the mini squat after a knee gave way press since the plan, and needs no hold', async () => {

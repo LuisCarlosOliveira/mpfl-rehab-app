@@ -68,7 +68,7 @@ const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not
 
 /** The one reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
 export const RANGE_REFERENCE =
-  'Typical practice in the guideline, not a limit and not your plan: patients start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. Your surgeon sets your limit.';
+  'Knee bend limit by week: no number in the guideline. Typical practice: start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. This is not a limit and not your plan. Your surgeon sets your limit.';
 
 /** The plain line for a value that no source gives. */
 export const NO_NUMBER = 'No number in the guideline.';
@@ -260,6 +260,17 @@ const defs = {
       'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. The app takes the stricter rule.',
     text: 'The app adds no seated knee hold in weeks 0 to 6, and none from week 7 without your report that your surgeon cleared it. P1 and P2 avoid straightening the knee against the weight of the leg.',
   },
+  HOLD_ARC_LIMIT: {
+    title: 'Seated knee hold with a low knee-bend limit',
+    kind: 'protective',
+    values: {},
+    auditRows: ['V105'],
+    sourceIds: ['P1'],
+    grade: 'OPINION',
+    population: ADULT_ISO,
+    conservative: 'P1 gives an arc of 90 to 40 degrees. A knee-bend limit below 90 degrees leaves no part of the arc that the surgeon allows.',
+    text: 'The seated hold is not in your plan because the knee-bend limit your surgeon gave is below the start of the guideline arc (90 degrees).',
+  },
   HOLD_P2: {
     title: 'Seated knee hold in a limited arc',
     kind: 'generated',
@@ -269,7 +280,7 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. Sanford gives 0 to 60 degrees and is not audited. The app takes 40 degrees, the more bent end. The knee never goes straight.',
+      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. The app takes 40 degrees, the more bent end. The knee never goes straight.',
     display: {
       value: 'Arc from 90 to 40 degrees of knee bend. The knee never goes straight. No hold time.',
       cite: 'Hospital for Special Surgery, 2024, P1 phase 2 (open chain strengthening in a limited arc of motion, 90-40 degrees)',
@@ -296,7 +307,7 @@ const defs = {
     values: { targetFlexion: 40 + 2 * MARGIN_DEG },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason:
       'The hold angle is the arc end of 40 degrees plus twice the camera margin. The schema needs a hold angle of more than the arc end plus one margin. It is not a range target.',
     flag: 'clinical-review-needed',
@@ -339,7 +350,7 @@ const defs = {
     grade: 'NONE',
     population: 'Not applicable',
     reason:
-      'The P2 values of 90 and 120 degrees are passive range targets. P1 has no explicit cap. S1 says "Typically" and describes practice. N3 gives passive flexion above 125 degrees. None of these is a ceiling for an active camera angle.',
+      'The P2 values of 90 and 120 degrees are passive range targets. P1 has no explicit cap. S1 says "Typically" and describes practice. None of these is a ceiling for an active camera angle.',
     display: {
       value: RANGE_REFERENCE,
       cite: 'Hsu CJ, Lee C, Christensen RS, Liu TY, 2025, S1, text of the protection phase',
@@ -365,7 +376,7 @@ const defs = {
     values: { targetFlexion: 2 * MARGIN_DEG, minLimit: 3 * MARGIN_DEG + 1 },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason:
       'Twice the camera margin is the smallest knee bend that the camera tells from rest. It is not a range target. The schema needs a limit of at least 3 margins plus 1 degree.',
     flag: 'clinical-review-needed',
@@ -377,7 +388,7 @@ const defs = {
     values: { returnWithinDeg: MARGIN_DEG },
     sourceIds: ['F1', 'F3'],
     grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    population: 'Camera error from healthy adults in still photos (F1). Error on exercise video is larger (F3).',
     reason: 'A rep ends when the knee is back within the camera margin of the resting angle. A clinician must confirm that this is not a clinical value.',
     flag: 'clinical-review-needed',
     text: 'A heel slide rep ends when the knee is back within the camera margin of rest. It is an engineering value.',

@@ -159,8 +159,14 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     render(<PlanResult draft={draftFor({ ...week8, seatedHoldCleared: 'yes' })} onUse={vi.fn()} onBack={vi.fn()} />);
     const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Seated knee extension hold').closest('li') as HTMLElement;
     expect(item).toHaveTextContent('Straightest knee angle: 40 degrees');
-    expect(item).toHaveTextContent('Hold time: ask your care team');
+    expect(item).toHaveTextContent('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.');
+    expect(item).not.toHaveTextContent('How many: ask your care team');
+    expect(item).not.toHaveTextContent('Hold time: ask your care team');
     const note = screen.getByLabelText('Source of: Seated hold arc');
+    // The dose line names the exercises that it applies to. The seated hold is not one of them.
+    const dose = screen.getByLabelText('Source of: Sets and reps').closest('.source-note') as HTMLElement;
+    expect(dose.querySelector('.source-value')).toHaveTextContent(/^Sets and reps: straight leg raise, quadriceps set, gluteal set, leg raise to the side, leg raise to the back: 2 sets of 10 to 15/);
+    expect(dose.querySelector('.source-value')?.textContent).not.toMatch(/seated|heel slide|ankle pump/i);
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hospital for Special Surgery, 2024, P1/);
     expect(lines[1]).toBe('Evidence: OPINION (level 5)');
@@ -216,21 +222,23 @@ describe('Home, a plan with home exercises', () => {
     const { container } = show(protocol());
     expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
     expect(container.querySelector('.range-reference')).toHaveTextContent('Your surgeon sets your limit.');
-    expect(screen.getByLabelText('Source of: Knee bend by week')).toBeInTheDocument();
+    expect(screen.getByLabelText('Source of: Knee bend limit by week')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/week 3 |week 4 |week 5 /);
   });
 
   it('shows the dose range in the exercise chips and "ask your care team" for the heel slide, and no undefined or NaN', () => {
     const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
     expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
-    expect(screen.getByText(/Hold time missing/)).toBeInTheDocument();
+    expect(screen.getAllByText('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.')).toHaveLength(1);
+    expect(screen.queryByText(/Hold time missing/)).toBeNull();
     const text = container.textContent ?? '';
     expect(text).not.toMatch(/undefined|NaN/);
     expect(screen.getAllByText('Straightest knee angle: 40 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Limit 50 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2 sets of 10 to 15, then 3 sets as tolerated').length).toBeGreaterThan(1);
     expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Knee-bend limit: ask your surgeon').length).toBeGreaterThan(0);
+    // The plan has the answer "No limit", so the heel slide row says that the surgeon gave none (A3-10).
+    expect(screen.getAllByText('No knee-bend limit was given by your surgeon').length).toBeGreaterThan(0);
   });
 });
 
@@ -244,5 +252,29 @@ describe('PlanResult with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
     const refused = screen.getByRole('list', { name: 'Not in your plan, and why' });
     const entry = within(refused).getByRole('heading', { name: RULES.EXTENDED_OFF.title, level: 3 }).closest('li') as HTMLElement;
     expect(entry).toHaveTextContent('Ask your care team');
+  });
+});
+
+// A3-10: the heel slide row names the answer. "No limit" is not "I do not know".
+describe('the knee-bend limit line of the heel slide (A3-10)', () => {
+  const NONE_LINE = 'No knee-bend limit was given by your surgeon';
+  const rowOf = (over: Partial<GeneratorInputs>) => {
+    const { unmount } = render(<PlanResult draft={draftFor(over)} onUse={vi.fn()} onBack={vi.fn()} />);
+    const row = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Heel slide').closest('li') as HTMLElement;
+    const text = row.textContent ?? '';
+    unmount();
+    return text;
+  };
+
+  it('says that no limit was given for the answer "No limit", and keeps "ask your surgeon" for "I do not know"', () => {
+    const none = rowOf({ ...week8, surgeonLimit: { kind: 'none' } });
+    expect(none).toContain(NONE_LINE);
+    expect(none).not.toContain('Knee-bend limit: ask your surgeon');
+    const unknown = rowOf({ ...week8, surgeonLimit: { kind: 'unknown' } });
+    expect(unknown).toContain('Knee-bend limit: ask your surgeon');
+    expect(unknown).not.toContain(NONE_LINE);
+    const number = rowOf({ ...week8, surgeonLimit: { kind: 'degrees', degrees: 60 } });
+    expect(number).toContain('Limit 60 degrees');
+    expect(number).not.toContain(NONE_LINE);
   });
 });
