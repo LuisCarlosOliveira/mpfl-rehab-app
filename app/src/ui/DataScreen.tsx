@@ -90,6 +90,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
   }, [db]);
 
   async function exportAs(kind: 'json' | 'csv') {
+    if (exporting !== null || exported !== null) return; // the buttons use aria-disabled, so they keep the focus. A press in this time does nothing.
     const day = new Date().toISOString().slice(0, 10);
     const filename = `mpfl-sessions-${day}.${kind}`;
     setExporting(kind);
@@ -212,11 +213,11 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
               </p>
             )}
             <div className="actions">
-              <button type="button" className="btn btn-primary btn-keep" disabled={noSessions || busy} onClick={() => void exportAs('json')}>
+              <button type="button" className="btn btn-primary btn-keep" disabled={noSessions} aria-disabled={busy || undefined} onClick={() => void exportAs('json')}>
                 <Icon name={exported === 'json' ? 'check' : 'download'} size={18} />
                 {exportLabel('json')}
               </button>
-              <button type="button" className="btn btn-keep" disabled={noSessions || busy} onClick={() => void exportAs('csv')}>
+              <button type="button" className="btn btn-keep" disabled={noSessions} aria-disabled={busy || undefined} onClick={() => void exportAs('csv')}>
                 <Icon name={exported === 'csv' ? 'check' : 'download'} size={18} />
                 {exportLabel('csv')}
               </button>

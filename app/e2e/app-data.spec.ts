@@ -63,6 +63,20 @@ test('My data exports JSON with the method of the angle, and CSV', async ({ page
   expect(csv.text).toContain('heel-slide');
 });
 
+test('AC5-04: the focus stays on the export button after Enter, and never goes to the body', async ({ page }) => {
+  await saveOneSession(page);
+  await openMyData(page);
+  const json = page.getByRole('button', { name: /^Export .*as JSON$/ });
+  await json.focus();
+  const download = page.waitForEvent('download');
+  await page.keyboard.press('Enter');
+  await download;
+  await expect(page.getByRole('status').filter({ hasText: 'File saved' })).toBeVisible();
+  expect((await focused(page)).tag).toBe('BUTTON');
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+  await expect(page.getByRole('button', { name: 'Done' })).toBeFocused();
+});
+
 test('the erase dialog is a real dialog: focus moves in, Escape closes it, focus returns', async ({ page }) => {
   await toHome(page);
   await openMyData(page);
