@@ -120,6 +120,15 @@ for (const screen of SCREENS) {
   test.describe(screen.name, () => {
     test('axe finds no violation (wcag2a, wcag2aa, wcag21aa, wcag22aa)', async ({ page }) => {
       await screen.go(page);
+      // The status word fades in for 180 ms each time it changes. Axe must not read its colour in the middle of a fade,
+      // so wait until no finite animation runs in two checks that are 300 ms apart.
+      const fading = () => page.evaluate(() => document.getAnimations().some((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity));
+      for (let i = 0; i < 20; i += 1) {
+        if (!(await fading())) {
+          await page.waitForTimeout(300);
+          if (!(await fading())) break;
+        } else await page.waitForTimeout(100);
+      }
       const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
       const report = violations.map((v) => ({
         id: v.id,
