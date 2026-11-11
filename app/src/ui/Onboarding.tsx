@@ -9,6 +9,7 @@ import {
 import { draftOf, type PlanDraft } from '../lib/planView';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
+import { focusHeading } from './focusHeading';
 import { Icon } from './Icon';
 import { PainScale } from './PainScale';
 import { StepTrack } from './StepTrack';
@@ -132,7 +133,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
       first.current = false;
       return;
     }
-    heading.current?.focus();
+    focusHeading(heading.current);
   }, [step]);
 
   const steps = stepsFor(answers, today);

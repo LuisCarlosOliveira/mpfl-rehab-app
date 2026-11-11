@@ -474,11 +474,11 @@ main {
     transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
-  .btn:hover:not(:disabled) {
+  .btn:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--sunken);
   }
 }
-.btn:active:not(:disabled) {
+.btn:active:not(:disabled):not([aria-disabled='true']) {
   transform: scale(0.98);
 }
 .btn-primary {
@@ -487,11 +487,11 @@ main {
   color: var(--on-primary);
 }
 @media (hover: hover) and (pointer: fine) {
-  .btn-primary:hover:not(:disabled) {
+  .btn-primary:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--primary-hover);
   }
 }
-.btn-primary:active:not(:disabled) {
+.btn-primary:active:not(:disabled):not([aria-disabled='true']) {
   background: var(--primary-press);
 }
 .btn-ghost {
@@ -509,7 +509,8 @@ main {
 .btn-block {
   width: 100%;
 }
-.btn:disabled {
+.btn:disabled,
+.btn[aria-disabled='true'] {
   background: var(--disabled-bg);
   color: var(--disabled-ink);
   border-color: transparent;

@@ -14,6 +14,7 @@ import { startQrScan } from '../pairing/qrReader';
 import { createCompanionLink, type CompanionLink } from '../pairing/rtcLink';
 import { startCamera, stopCamera, type CameraResult } from '../pose/camera';
 import { cameraSource, type LandmarkSource } from '../pose/source';
+import { focusHeading } from './focusHeading';
 
 /** The part of a Wake Lock sentinel that this screen uses. The `release` event comes from the browser. */
 export interface ScreenLock {
@@ -84,7 +85,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
   const unsubscribe = useRef<(() => void) | null>(null);
 
   // The heading takes the focus on each step, so that a screen reader reads the new step.
-  useEffect(() => h1.current?.focus(), [step]);
+  useEffect(() => focusHeading(h1.current), [step]);
 
   const releaseAll = useCallback(() => {
     stopScan.current?.();

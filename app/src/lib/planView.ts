@@ -151,7 +151,7 @@ export function describeNewPlan(protocol: Protocol): string[] {
 }
 
 /** The changes between the stored plan and the proposal, each with its reason and rule id. Empty when nothing changes. */
-export function describeChanges(current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string }): string[] {
+export function describeChanges(current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string; phaseClearance?: string }): string[] {
   const lines: string[] = [];
   if (next.activePhase !== current.activePhase) {
     const reason =
@@ -173,7 +173,7 @@ export function describeChanges(current: Protocol, next: Protocol, inputs?: { se
     }
   }
   for (const old of before) {
-    if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${removedReason(old.kind, next, inputs)}.`);
+    if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${removedReason(old.kind, current, next, inputs)}.`);
   }
   const homeBefore = activeHome(current);
   for (const h of activeHome(next)) {
@@ -208,9 +208,12 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
 };
 
-/** The seated hold goes for one of three causes. The text names the real one: a limit below the arc start, no clearance, or something else. */
-function removedReason(kind: Exercise['kind'], next: Protocol, inputs?: { seatedHoldCleared?: string }): string {
+/** The seated hold goes for one of four causes. The text names the first that holds, in this order: the stage goes back, the limit is below the arc start, no clearance, or something else. */
+function removedReason(kind: Exercise['kind'], current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string; phaseClearance?: string }): string {
   if (kind !== 'seated-extension-hold') return REMOVED_REASON[kind];
+  if (next.activePhase < current.activePhase || inputs?.phaseClearance === 'no') {
+    return `the plan goes back to the first stage, and the seated hold is only in the second stage (${RULES.HOLD_P2.id})`;
+  }
   const arcStart = RULES.HOLD_P2.values.arcStart;
   const limit = activeExercises(next).find((e) => e.kind === 'heel-slide')?.maxFlexion;
   if (limit !== undefined && limit < arcStart && inputs?.seatedHoldCleared !== 'no') {

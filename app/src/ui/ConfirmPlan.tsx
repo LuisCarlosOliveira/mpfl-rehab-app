@@ -99,9 +99,11 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
       </header>
       <div className="stack">
         <p className="lede">
-          {update
-            ? 'You asked the app to check your plan again. The app changes nothing until you press Confirm.'
-            : 'You asked the app to make a plan from your answers. The app saves it on this device only when you press Confirm.'}
+          {!canConfirm
+            ? 'The app changes nothing. Your plan stays as it is.'
+            : update
+              ? 'You asked the app to check your plan again. The app changes nothing until you press Confirm.'
+              : 'You asked the app to make a plan from your answers. The app saves it on this device only when you press Confirm.'}
         </p>
 
         {hold === null && current?.approvedOn && (

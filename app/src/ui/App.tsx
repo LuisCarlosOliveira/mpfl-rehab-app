@@ -12,6 +12,7 @@ import type { LandmarkSource } from '../pose/source';
 import { appReducer, backStep, initialAppState } from './appState';
 import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
+import { focusHeading } from './focusHeading';
 import { Home } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadError, retryableLazy } from './LoadError';
@@ -47,16 +48,6 @@ const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ def
 // The screens that load on demand. The shell cannot move the focus to their heading while the chunk loads,
 // so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
 const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']);
-
-/** Focuses a screen heading. A new screen opens at the top of the page: the page scroll goes to 0, so the prototype banner above the
- * heading stays visible and the heading is in view (final review A2-04 and C3-01). The scroll is instant, so it respects prefers-reduced-motion.
- * It sets scrollTop and does not call window.scrollTo, so a test DOM that lacks scrollTo logs no error. */
-function focusHeading(h1: HTMLElement | null | undefined) {
-  if (!h1) return;
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  h1.focus({ preventScroll: true });
-}
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {

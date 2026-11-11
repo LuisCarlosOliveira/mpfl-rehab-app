@@ -2,6 +2,7 @@
 // happened, one sentence that says the fix, and one or two buttons. No notice box and no colour that carries a verdict.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
+import { focusHeading } from './focusHeading';
 import './screensV2.css';
 
 export interface StateAction {
@@ -23,7 +24,7 @@ interface Props {
 
 export function StateScreen({ icon, title, children, primary, secondary, id = 'state-title' }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => heading.current?.focus(), []);
+  useEffect(() => focusHeading(heading.current), []);
   return (
     <section aria-labelledby={id} className="v2-screens state-screen">
       <span className="state-icon" aria-hidden="true">

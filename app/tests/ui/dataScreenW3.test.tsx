@@ -147,15 +147,33 @@ describe('export buttons keep their width (U9)', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await open(true);
     fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as JSON' }));
-    expect(screen.getByRole('button', { name: 'Exporting' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toBeDisabled();
-    expect(await screen.findByRole('button', { name: 'Done' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Exporting' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByRole('button', { name: 'Done' })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('status')).toHaveTextContent(/mpfl-sessions-\d{4}-\d{2}-\d{2}\.json/);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
-    expect(screen.getByRole('button', { name: 'Export 1 session as JSON' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Export 1 session as JSON' })).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByRole('button', { name: 'Export 1 session as CSV' })).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('AC5-04: the export button keeps the focus while it shows Exporting and Done, and a second press does nothing', async () => {
+    await open(true);
+    const json = screen.getByRole('button', { name: 'Export 1 session as JSON' });
+    json.focus();
+    fireEvent.click(json);
+    const busy = screen.getByRole('button', { name: 'Exporting' });
+    expect(document.activeElement).toBe(busy);
+    expect(busy).toHaveAttribute('aria-disabled', 'true');
+    const csv = screen.getByRole('button', { name: 'Export 1 session as CSV' });
+    expect(csv).toHaveAttribute('aria-disabled', 'true');
+    const done = await screen.findByRole('button', { name: 'Done' });
+    expect(document.activeElement).toBe(done);
+    expect(document.activeElement).not.toBe(document.body);
+    fireEvent.click(csv);
+    fireEvent.click(done);
+    expect(stub.clicked).toHaveLength(1);
   });
 
   it('the CSV button swaps its own label and leaves the JSON label alone', async () => {
