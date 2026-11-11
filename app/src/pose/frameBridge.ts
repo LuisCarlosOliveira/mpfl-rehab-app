@@ -9,21 +9,29 @@ export interface FrameMessage {
   bitmap: ImageBitmap;
   timestampMs: number;
 }
+/** Switch the model between one and two poses (B5-02). */
+export interface PosesMessage {
+  type: 'poses';
+  count: 1 | 2;
+}
 export type WorkerMessage =
   | { type: 'progress'; bytes: number }
   | { type: 'ready' }
   | { type: 'failed' }
-  | { type: 'result'; timestampMs: number; landmarks: Landmark[] | null };
+  // `extra` holds the other poses. It is there only while the probe of two poses runs.
+  | { type: 'result'; timestampMs: number; landmarks: Landmark[] | null; extra?: Landmark[][] };
 
 export interface FrameBridge {
   /** Send the frame that shows now. It does nothing while the last frame is still in work. */
   submit(video: HTMLVideoElement, timestampMs: number): void;
+  /** One pose or two poses for the next frames. */
+  setPoses(count: 1 | 2): void;
   /** End the worker and close every picture. It is safe to call twice. */
   close(): void;
 }
 
 export interface FrameBridgeOptions {
-  onResult: (landmarks: Landmark[] | null, timestampMs: number) => void;
+  onResult: (landmarks: Landmark[] | null, timestampMs: number, extra?: Landmark[][]) => void;
   /** The size of each chunk of the model files that the worker loads. */
   onProgress?: (bytes: number) => void;
   /** The worker failed after the start. The bridge is closed then. */
@@ -86,10 +94,16 @@ export function createFrameBridge({ onResult, onProgress, onFail }: FrameBridgeO
       else if (data.type === 'failed') fail();
       else if (data.type === 'ready') {
         started = true;
-        resolve({ submit, close });
+        resolve({
+          submit,
+          close,
+          setPoses: (count) => {
+            if (!closed) worker.postMessage({ type: 'poses', count } satisfies PosesMessage);
+          },
+        });
       } else {
         busy = false;
-        onResult(data.landmarks, data.timestampMs);
+        onResult(data.landmarks, data.timestampMs, data.extra);
         // The worker is free. Do not wait for the next tick: take the frame that shows now, if it is a new one.
         if (last && last.video.currentTime !== last.time) submit(last.video, performance.now());
       }
