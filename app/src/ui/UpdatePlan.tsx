@@ -3,7 +3,7 @@
 // This screen saves nothing. A change that moves forward needs VITE_SELF_PROGRESSION, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
-import { describeChanges, draftOf, eventsSince, gaveWaySince, HOLD_LIMIT, HOLD_NEXT_STAGE, movesForward, raisesLimit, weeksSince, type PlanDraft } from '../lib/planView';
+import { describeChanges, draftOf, eventsSince, gaveWaySince, HOLD_LIMIT, HOLD_NEXT_STAGE, movesForward, raisesKneeLimit, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
@@ -122,7 +122,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
       return;
     }
     const forward = movesForward(protocol, result.protocol);
-    const heldText = raisesLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
+    const heldText = raisesKneeLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
     const hold = !forward ? null : !selfProgression ? heldText : events > 0 ? HOLD_EVENT : null;
     onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol), hold));
   }

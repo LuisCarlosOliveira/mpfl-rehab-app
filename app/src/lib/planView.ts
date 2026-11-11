@@ -194,17 +194,15 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
 const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
 
 /**
- * True when the proposal gives the knee more room than the stored plan: a pain limit that is higher or gone, a knee-bend ceiling that is
- * higher or gone, a straightest angle that is lower or gone, or a mini squat or a seated hold that the stored plan lacks in the same phase.
+ * True when the proposal gives the knee more room through a number: a pain limit that is higher or gone, a knee-bend ceiling that is
+ * higher or gone, or a straightest angle that is lower or gone. A new exercise is not a number, so it does not count here.
  */
-export function raisesLimit(current: Protocol, next: Protocol): boolean {
+export function raisesKneeLimit(current: Protocol, next: Protocol): boolean {
   if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const exercise of phase.exercises) {
       const old = before?.exercises.find((e) => e.kind === exercise.kind);
-      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
-      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
       if (!old) continue;
       for (const key of EXERCISE_CEILINGS) {
         const was = old[key];
@@ -216,6 +214,17 @@ export function raisesLimit(current: Protocol, next: Protocol): boolean {
   }
   return false;
 }
+
+/** True when the proposal adds a mini squat or a seated hold that the stored plan lacks in the same phase. It is more load for the knee (generator v2). */
+export function addsLoad(current: Protocol, next: Protocol): boolean {
+  return next.phases.some((phase) => {
+    const before = current.phases.find((p) => p.id === phase.id);
+    return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((o) => o.kind === e.kind));
+  });
+}
+
+/** True when the proposal gives the knee more room than the stored plan: a higher limit or a new mini squat or seated hold. */
+export const raisesLimit = (current: Protocol, next: Protocol): boolean => raisesKneeLimit(current, next) || addsLoad(current, next);
 
 /** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. The app and the screens use this one rule. */
 export function movesForward(current: Protocol, next: Protocol): boolean {
@@ -230,7 +239,7 @@ export const HOLD_PAIN_LIMIT = 'Your stored plan has a pain limit from your clin
 export function holdTextFor(current: Protocol, next: Protocol): string {
   const painLimit = current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
   if (painLimit) return HOLD_PAIN_LIMIT;
-  return raisesLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
+  return raisesKneeLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
 }
 
 /** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */

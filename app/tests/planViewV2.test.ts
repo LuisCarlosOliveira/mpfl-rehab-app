@@ -1,6 +1,6 @@
 // Generator version 2 in the plan helpers: home exercises, the new lines of change and the forward check.
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
-import { describeChanges, describeNewPlan, HOME_NAMES, movesForward, whyView } from '../src/lib/planView';
+import { describeChanges, describeNewPlan, HOLD_LIMIT, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
 import type { Protocol } from '../src/lib/protocol';
 
 // The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
@@ -112,6 +112,24 @@ describe('describeChanges with version 2 items', () => {
     const back = describeChanges(plan(8, { seatedHoldCleared: 'yes' }).protocol, plan(8).protocol);
     expect(back[0]).toContain('Seated knee extension hold removed');
     expect(back[0]).toContain('HOLD_P2');
+  });
+});
+
+describe('the words of a held next stage (A3-03)', () => {
+  it('says "ask your care team about the next stage" when a mini squat or a seated hold is added and no limit changes', () => {
+    const base = plan(8).protocol;
+    const more = plan(8, { ...gates, seatedHoldCleared: 'yes' }).protocol;
+    expect(raisesKneeLimit(base, more)).toBe(false);
+    expect(movesForward(base, more)).toBe(true);
+    expect(holdTextFor(base, more)).toBe(HOLD_NEXT_STAGE);
+  });
+
+  it('says "a higher limit needs your care team" only when a knee-bend limit rises', () => {
+    const low = plan(8, { surgeonLimit: { kind: 'degrees', degrees: 60 } }).protocol;
+    const high = plan(8, { surgeonLimit: { kind: 'degrees', degrees: 100 } }).protocol;
+    expect(raisesKneeLimit(low, high)).toBe(true);
+    expect(holdTextFor(low, high)).toBe(HOLD_LIMIT);
+    expect(holdTextFor(high, low)).toBe(HOLD_NEXT_STAGE);
   });
 });
 
