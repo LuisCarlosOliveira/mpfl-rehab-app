@@ -169,11 +169,13 @@ describe('Create my plan, in the whole app', () => {
     await openLoad();
     click('Create my plan');
     await heading('Did your care team give you a written rehab plan?');
-    answerAll('2026-08-01');
-    // from week 7 a question about the next stage comes first
-    await heading(/Has your surgeon or physiotherapist said/);
     choose('No'); next();
-    click('Make my plan');
+    choose('MPFL reconstruction only'); next();
+    choose('18 or older'); next();
+    choose('No'); next();
+    choose('Yes'); next();
+    choose('No'); next();
+    type('Date of surgery', '2026-08-01'); next(); // the referral shows at the date question
     await heading('No plan from the app');
     expect(screen.getByText(/no plan after week 11/)).toBeInTheDocument();
   });

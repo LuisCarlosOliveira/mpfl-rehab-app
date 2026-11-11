@@ -289,14 +289,11 @@ describe('Onboarding, the summary and the plan', () => {
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R9' });
   });
 
-  it('refers at week 12 with the text of the generator', () => {
+  it('refers at week 12 with the text of the generator, at the date question', () => {
     const { onDone } = setup();
-    walk('2026-08-01', () => {
-      choose('No');
-      next();
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
-    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10' });
+    referralQuestions();
+    type('Date of surgery', '2026-08-01'); next();
+    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10', text: expect.stringMatching(/no plan after week 11/) });
   });
 
   it('asks the clearance question from week 7 and puts the answer in the inputs', () => {
@@ -377,6 +374,26 @@ describe('Onboarding, a date change that opens the clearance question (A-01)', (
     type('Date of surgery', '2026-09-10'); // week 8
     next();
     expect(h1()).toMatch(Q.clearance);
+  });
+});
+
+describe('Onboarding, a surgery date after week 11 stops the questions at the date (A-12)', () => {
+  it('shows the referral right after the date question, before the side and the other questions', () => {
+    const { onDone } = setup();
+    referralQuestions();
+    type('Date of surgery', '2026-08-01'); // week 14
+    next();
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10' });
+  });
+
+  it('goes on to the side question for a date in week 11', () => {
+    const { onDone } = setup();
+    referralQuestions();
+    type('Date of surgery', '2026-08-23'); // week 11
+    next();
+    expect(onDone).not.toHaveBeenCalled();
+    expect(h1()).toBe(Q.side);
   });
 });
 

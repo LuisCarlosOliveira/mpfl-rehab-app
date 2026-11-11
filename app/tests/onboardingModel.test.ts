@@ -182,6 +182,16 @@ describe('fromInputs and the questions that are not asked (A-01)', () => {
   });
 });
 
+describe('earlyReferral and the surgery date (A-12)', () => {
+  it('refers with R10 from week 12, and with no date or a date that is not usable it does not refer', () => {
+    expect(earlyReferral(full({ surgeryDate: '2026-08-01' }), TODAY)).toMatchObject({ reason: 'R10' });
+    expect(earlyReferral(full({ surgeryDate: '2026-08-23' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '2026-02-31' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '2027-01-01' }), TODAY)).toBeNull();
+  });
+});
+
 describe('earlyReferral', () => {
   it('is null while the answers of the referral questions allow a plan', () => {
     expect(earlyReferral(emptyAnswers(), TODAY)).toBeNull();

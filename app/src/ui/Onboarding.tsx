@@ -140,7 +140,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   const set = (patch: Partial<Answers>) => setAnswers((a) => ({ ...a, ...patch }));
 
   function goNext() {
-    if (index <= steps.indexOf('specialRules')) {
+    if (index <= steps.indexOf('surgeryDate')) {
       const referral = earlyReferral(answers, today);
       if (referral) {
         onDone(draftOf(referral, 'create', null));

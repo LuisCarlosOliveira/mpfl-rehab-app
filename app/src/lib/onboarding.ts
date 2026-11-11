@@ -175,11 +175,13 @@ export function fromInputs(i: GeneratorInputs, today: string): Answers {
   return a;
 }
 
-const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'];
+// R10 is the window of weeks. It needs the date, so it speaks from the date question on.
+const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R10'];
 
 /**
- * A referral that the first six answers already decide. The generator makes the text. The other answers get values
- * that cause no referral, so only these six can speak. The person sees the refusal at once and gives no more data.
+ * A referral that the first six answers, and the date of surgery, already decide. The generator makes the text. The other
+ * answers get values that cause no referral, so only these can speak. The person sees the refusal at once and gives no more data.
+ * A date that is empty, not real or in the future counts as today, so it causes no referral here. The date question refuses it.
  */
 export function earlyReferral(a: Answers, today: string): Extract<GenerateResult, { kind: 'referral' }> | null {
   const probe: GeneratorInputs = {
@@ -189,7 +191,7 @@ export function earlyReferral(a: Answers, today: string): Extract<GenerateResult
     bothKnees: a.bothKnees ?? false,
     firstSurgery: a.firstSurgery ?? 'yes',
     specialRules: a.specialRules ?? 'no',
-    surgeryDate: today,
+    surgeryDate: weeksOf(a, today) === null ? today : a.surgeryDate,
     side: 'left',
     surgeonLimit: { kind: 'unknown' },
     phaseClearance: 'no',

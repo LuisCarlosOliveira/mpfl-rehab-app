@@ -212,9 +212,11 @@ test('a red flag gives the refusal with the message of its group, and stores not
   expect(await readInputs(page)).toHaveLength(0);
 });
 
-test('week 12 gives the refusal', async ({ page }) => {
-  await toSummary(page, 7 * 12 + 2);
-  await press(page, 'Make my plan');
+test('week 12 gives the refusal at the date question', async ({ page }) => {
+  await toLoadAny(page);
+  await press(page, 'Create my plan');
+  await referralQuestions(page);
+  await page.getByLabel('Date of surgery').fill(ago(7 * 12 + 2)); await next(page);
   await expectScreen(page, 'No plan from the app');
   await expect(page.getByText(/no plan after week 11/)).toBeVisible();
   expect(await readStore(page, 'protocol')).toHaveLength(0);
