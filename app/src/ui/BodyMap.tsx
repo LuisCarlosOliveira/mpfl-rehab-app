@@ -28,6 +28,9 @@ export interface BodyMapHandle {
    *  `shownAngle` is the number that the screen shows for the knee (the filtered angle). With a number, the angle text shows this number.
    *  With null, the angle text is empty. Without it (Setup), the text shows the angle of these landmarks. */
   update(landmarks: Landmark[] | null, timeMs: number, aspect?: number, shownAngle?: number | null): void;
+  /** The readout changed between two frames (B2-01). Sets only the number of the angle text, so map and readout agree at once.
+   *  It draws nothing when the arc is off. With null the angle text is empty. */
+  setShownAngle(shownAngle: number | null): void;
 }
 
 interface Props {
@@ -98,6 +101,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const lowSince = useRef<(number | null)[]>([null, null, null]);
   const track = useRef(new Map<number, { last: Landmark; prev: Landmark; held: number }>());
   const sides = useRef({ arc: 1, chosen: 1 });
+  const arcDrawn = useRef(false); // the arc of the chosen knee is on, so the angle text can show
   const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 }); // the box of the angle text in view box units, for the leg label
   const lastAt = useRef<({ x: number; y: number } | null)[]>([null, null, null]); // the last place where each joint of the chosen leg was seen
 
@@ -134,6 +138,13 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   useImperativeHandle(
     ref,
     () => ({
+      setShownAngle(shownAngle) {
+        const el = els.current['arc-text'];
+        if (!el || !arcDrawn.current) return;
+        el.setAttribute('display', shownAngle === null ? 'none' : 'inline');
+        const first = el.children[0];
+        if (first && shownAngle !== null) first.textContent = `${Math.round(shownAngle)}° `;
+      },
       update(input, timeMs, aspectNow = DEFAULT_ASPECT, shownAngle) {
         let landmarks = input;
         const e = els.current;
@@ -264,6 +275,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         show('arc-core', arcOn);
         show('arc-halo', arcOn);
         const textValue = shownAngle === undefined ? bend : shownAngle;
+        arcDrawn.current = arcOn;
         show('arc-text', arcOn && textValue !== null);
         if (arcOn) {
           const k = at(knee);

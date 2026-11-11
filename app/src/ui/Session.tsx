@@ -86,6 +86,7 @@ const total = (sets: SetsState) => sets.repsPerSet.reduce((a, b) => a + b, 0);
 interface Live {
   otherLegMoves: boolean; // the last moving-leg windows named the other leg, in a row (F1)
   flexion: number | null;
+  shown: number | null; // the whole-degree angle of the last tick. The map draws this number, so map and readout agree (B2-01).
   frameAt: number | null; // performance.now() of the last frame. null means no frame yet.
   cue: LiveCue | null;
   capture: CaptureState | null; // the in-place capture of the starting angle. null when none runs.
@@ -185,6 +186,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const live = useRef<Live>({
     otherLegMoves: false,
     flexion: null,
+    shown: null,
     frameAt: null,
     cue: null,
     capture: null,
@@ -254,6 +256,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     const gate = createCueGate(); // ENGINEERING rate limit and order of the cues. One gate for each run of the effect.
     let overBeepAt: number | null = null; // the time of the last over-limit beep of the present alert
     const minRepMs = exercise.minRepSeconds === undefined ? null : exercise.minRepSeconds * 1000;
+    live.current.shown = null;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
     live.current.holdMs = 0;
@@ -265,8 +268,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     const onFrame = (landmarks: Parameters<Pipeline['step']>[0], timeMs: number) => {
       const p = getPipeline();
       const out = p?.step(landmarks, timeMs);
-      // svg attributes only, no React state, no frame read. The angle text shows the same filtered number as the readout (B-05).
-      map.current?.update(landmarks, timeMs, source.aspect(), out === undefined ? null : out.flexion);
+      // svg attributes only, no React state, no frame read. The angle text shows the number of the last tick, the same as the readout (B-05, B2-01).
+      map.current?.update(landmarks, timeMs, source.aspect(), live.current.shown);
       if (!p || !out) return;
       const now = performance.now();
       const state = live.current;
@@ -338,8 +341,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const stale = state.frameAt !== null && now - state.frameAt > STALE_MS;
       const cue = state.cue && now < state.cue.until ? state.cue : null;
       const sum = pipeline.current?.summary();
+      const angle = stale || state.flexion === null ? null : Math.round(state.flexion);
+      state.shown = angle;
+      map.current?.setShownAngle(angle);
       const next: View = {
-        angle: stale || state.flexion === null ? null : Math.round(state.flexion),
+        angle,
         top: sum ? topAngleText(sum.topFlexion) : null,
         topNote: sum ? topAngleNote(sum.topFlexion) : null,
         cue: cue && !cue.alert ? cue.text : '',
