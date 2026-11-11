@@ -605,7 +605,12 @@
   position: relative;
 }
 .v2-screens .row-detail-out {
-  margin: calc(var(--s-2) * -1) 0 var(--s-3) calc(24px + var(--s-4));
+  /* No negative top margin: the hover fill of the row ends at the row, above this line. */
+  margin: 0 0 var(--s-3) calc(24px + var(--s-4));
+}
+.v2-screens .action-rows > li:has(.row-detail-out) .action-row {
+  padding-bottom: var(--s-1);
+  min-height: 3.25rem;
 }
 .v2-screens .row-file-input {
   position: absolute;
