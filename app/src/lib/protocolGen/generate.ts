@@ -63,7 +63,7 @@ function why(id: RuleId, outcome: WhyEntry['outcome'], applied: Applied[] = []):
     grade: r.grade,
     population: r.population,
     conservative: r.conservative,
-    text: r.text,
+    text: outcome === 'refused' && r.textRefused !== undefined ? r.textRefused : r.text,
     label: NOT_APPROVED,
     outcome,
     flag: r.flag,

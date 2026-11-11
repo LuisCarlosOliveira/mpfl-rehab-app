@@ -4,10 +4,9 @@ import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { RED_FLAGS } from '../src/lib/redflags';
 import { generateProtocol, RULES, type GeneratorInputs, type WhyEntry } from '../src/lib/protocolGen';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
-vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
-beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file runs with the default.
+// A second block at the end runs the same inputs with the value false.
+afterEach(() => vi.unstubAllEnvs());
 
 // Plain case tables. A small seeded generator gives many inputs. No extra package.
 const TODAY = '2026-11-08';
@@ -359,5 +358,32 @@ describe('the core stays pure', () => {
 
   it('never writes the active phase', () => {
     for (const f of files) expect(sourceOf(f), f).not.toMatch(/activePhase\s*=[^=]|setActivePhase/);
+  });
+});
+
+describe('properties of the generator with VITE_GENERATOR_EXTENDED=false', () => {
+  it('adds no mini squat, no seated hold and no phase 2 heel slide for an unknown limit, and no extra question changes a referral', () => {
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
+    let plans = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      const off = generateProtocol(i, TODAY);
+      vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+      const on = generateProtocol(i, TODAY);
+      vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
+      // A referral is the same with the flag on and off: the extended items never change a safety decision.
+      expect(off.kind, `seed ${seed}`).toBe(on.kind);
+      if (off.kind === 'referral' && on.kind === 'referral') expect(off.reason, `seed ${seed}`).toBe(on.reason);
+      if (off.kind !== 'protocol') continue;
+      plans += 1;
+      for (const ph of off.protocol.phases) {
+        const kinds = ph.exercises.map((e) => e.kind);
+        expect(kinds, `seed ${seed}`).not.toContain('mini-squat');
+        expect(kinds, `seed ${seed}`).not.toContain('seated-extension-hold');
+        if (i.surgeonLimit.kind === 'unknown') expect(kinds, `seed ${seed}`).not.toContain('heel-slide');
+      }
+      expect(off.protocol.activePhase, `seed ${seed}`).toBe(on.kind === 'protocol' ? on.protocol.activePhase : off.protocol.activePhase);
+    }
+    expect(plans).toBeGreaterThan(0);
   });
 });

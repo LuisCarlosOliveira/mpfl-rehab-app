@@ -38,7 +38,7 @@ const kinds = (p: Protocol, id: number) => phase(p, id)?.exercises.map((e) => e.
 const ex = (p: Protocol, id: number, kind: string) => phase(p, id)?.exercises.find((e) => e.kind === kind);
 
 // The extended items (mini squat, seated hold, phase 2 heel slide for an unknown limit) are behind VITE_GENERATOR_EXTENDED.
-// This file tests them with the flag ON. The describe "flag OFF" at the end tests the default.
+// This file tests them with the flag ON. The describe "flag OFF" at the end tests the value false.
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 afterEach(() => vi.unstubAllEnvs());
 
@@ -184,6 +184,25 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
     expect(kinds(plan(at(8, { phaseClearance: 'yes' })).protocol, 2)).not.toContain('mini-squat');
   });
 
+  it('says in the guideline words that the mini squat is not in the plan when an answer is no or unknown, and never says that it is in the plan', () => {
+    for (const over of [{ walksWithoutCrutches: 'no' }, { legRaiseStraight: 'unknown' }, { kneeGaveWay: true }] as const) {
+      const entry = plan(at(8, { ...gates, ...over })).why.find((x) => x.ruleId === 'SQUAT_P2')!;
+      expect(entry.outcome).toBe('refused');
+      expect(entry.text, JSON.stringify(over)).not.toMatch(/is in your plan/);
+      expect(entry.text, JSON.stringify(over)).toMatch(/not in your plan/);
+      expect(entry.text, JSON.stringify(over)).toMatch(/P3 lists the mini squat/);
+      expect(entry.text, JSON.stringify(over)).toMatch(/Ask your care team/);
+    }
+    expect(plan(at(8, gates)).why.find((x) => x.ruleId === 'SQUAT_P2')!.text).toMatch(/is in your plan/);
+  });
+
+  it('says in the guideline words that the seated hold is not in the plan without the answer yes', () => {
+    const entry = plan(at(8, { ...cleared, ...gates, seatedHoldCleared: 'no' })).why.find((x) => x.ruleId === 'HOLD')!;
+    expect(entry.outcome).toBe('refused');
+    expect(entry.text).toMatch(/none from week 7 without your report that your surgeon cleared it/);
+    expect(entry.text).toMatch(/P1 and P2 avoid/);
+  });
+
   it('removes the mini squat after a knee gave way event', () => {
     const r = plan(at(8, { ...gates, kneeGaveWay: true }));
     expect(kinds(r.protocol, 2)).not.toContain('mini-squat');
@@ -311,8 +330,8 @@ describe('version 2 keeps the core rules', () => {
   });
 });
 
-describe('flag OFF (the default): the held back items', () => {
-  beforeEach(() => vi.unstubAllEnvs());
+describe('flag OFF (VITE_GENERATOR_EXTENDED=false): the held back items', () => {
+  beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false'));
   const all = { ...gates, seatedHoldCleared: 'yes' } as const;
 
   it('A-04: the heel slide text says it is left out for an unknown limit, and does not say it is in the plan', () => {
@@ -352,10 +371,14 @@ describe('flag OFF (the default): the held back items', () => {
     expect(r.why.find((w) => w.ruleId === 'HEEL')!.text).toMatch(/do not know a limit/);
   });
 
-  it('reads only the exact text true', () => {
-    for (const v of ['1', 'TRUE', 'yes', '']) {
+  it('reads only the exact text false or 0 as off', () => {
+    for (const v of ['false', '0']) {
       vi.stubEnv('VITE_GENERATOR_EXTENDED', v);
-      expect(kinds(plan(at(8, { ...cleared, ...all })).protocol, 2)).not.toContain('mini-squat');
+      expect(kinds(plan(at(8, { ...cleared, ...all })).protocol, 2), v).not.toContain('mini-squat');
+    }
+    for (const v of ['1', 'TRUE', 'yes', '', 'true']) {
+      vi.stubEnv('VITE_GENERATOR_EXTENDED', v);
+      expect(kinds(plan(at(8, { ...cleared, ...all })).protocol, 2), v).toContain('mini-squat');
     }
   });
 

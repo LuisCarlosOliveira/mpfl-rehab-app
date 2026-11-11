@@ -38,8 +38,8 @@ const group = (name: RegExp) => screen.getByRole('group', { name });
 const pick = (name: RegExp, choice: string) => fireEvent.click(within(group(name)).getByRole('radio', { name: choice }));
 import { within } from '@testing-library/react';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 const clearance = /Has your surgeon or physiotherapist said that you can start the next stage/;
@@ -129,9 +129,9 @@ describe('UpdatePlan, the questions of version 2', () => {
   });
 });
 
-describe('UpdatePlan with the flag off (the default)', () => {
+describe('UpdatePlan with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
   it('does not ask the three questions and keeps Check my plan open after the clearance answer', async () => {
-    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
     await seed({});
     await ready();
     answerToday();

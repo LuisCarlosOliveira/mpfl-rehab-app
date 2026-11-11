@@ -52,6 +52,8 @@ export interface Rule {
     /** A source that disagrees. It shows on the same screen as the value. */
     disagree?: string;
   };
+  /** The sentence for the screen when the rule did not make the plan. It says that the exercise is not in the plan. */
+  textRefused?: string;
   /** One plain sentence for the screen "Why this plan". */
   text: string;
   referralText?: string;
@@ -210,6 +212,8 @@ const defs = {
     population: ADULT_ISO,
     conservative:
       'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in its second phase and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
+    textRefused:
+      'The mini squat is not in your plan. It needs your report that your care team said you can start the next stage. It also needs a yes to both answers about walking and the leg raise, and no knee that gave way. P3 lists the mini squat in its second stage. P1 starts free squats later, at week 12. Ask your care team.',
     text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. P1 starts free squats later, at week 12.',
   },
   SQUAT_DEPTH: {

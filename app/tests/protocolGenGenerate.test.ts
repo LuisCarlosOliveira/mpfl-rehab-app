@@ -4,8 +4,8 @@ import { PAUSE_MESSAGE } from '../src/lib/safety';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { GENERATED_BY, generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 

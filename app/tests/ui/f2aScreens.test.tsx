@@ -59,7 +59,8 @@ describe('L2-01: the engineering count value is not a target', () => {
     const { container } = render(<PlanResult draft={draft()} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).getByText(new RegExp(`^${START_TEXT.replace(/[()]/g, '\\$&')}`))).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/target/i);
+    // The plan section holds no "target". The guideline words of a rule of kind none ("passive range targets") are in Why this plan, not here.
+    expect(container.querySelector('[aria-labelledby="plan-phase"]')?.textContent).not.toMatch(/target/i);
   });
 
   it('Why this plan shows the value with the same words, and the return tolerance as an app value', () => {

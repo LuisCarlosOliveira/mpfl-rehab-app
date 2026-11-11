@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { afterEach, vi } from 'vitest';
 import { RULE_IDS, RULES } from '../src/lib/protocolGen';
+
+afterEach(() => vi.unstubAllEnvs());
 
 // The audit file is the only place that says whether a quote is EXACT. The test reads it from the repo root.
 const audit = readFileSync(resolve(__dirname, '../../research/citation-audit.md'), 'utf8');
@@ -42,6 +45,15 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
     const parts = [r.text, r.conservative ?? '', r.reason ?? '', d?.value ?? '', d?.cite ?? '', d?.evidence ?? '', d?.disagree ?? ''];
     return parts.some((t) => /\d/.test(strip(t))) || Object.keys(r.values).length > 0;
   };
+
+  it.each([undefined, 'true', 'false'])('lists an audit row for every rule with a number, with the flag %s', (flag) => {
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', flag as string);
+    const missing = RULE_IDS.map((id) => RULES[id])
+      .filter((r) => digits(r) && r.kind !== 'engineering' && r.appOwn !== true)
+      .filter((r) => (r.auditRows?.length ?? 0) === 0)
+      .map((r) => r.id);
+    expect(missing).toEqual([]);
+  });
 
   it('lists an audit row for every rule whose text, caveat, display or values hold a number, unless the rule is engineering or the number is the own number of the app', () => {
     const missing = RULE_IDS.map((id) => RULES[id])

@@ -9,8 +9,8 @@ import { PlanResult } from '../../src/ui/PlanResult';
 import { freshDb } from './helpers';
 import { hasVerdictWord } from './verdict';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
@@ -234,9 +234,9 @@ describe('Home, a plan with home exercises', () => {
   });
 });
 
-describe('PlanResult with the flag off (the default)', () => {
+describe('PlanResult with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
   it('shows no mini squat and no seated hold, and tells the person to ask the care team', () => {
-    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
     render(<PlanResult draft={draftFor({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' })} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).queryByText('Mini squat')).toBeNull();

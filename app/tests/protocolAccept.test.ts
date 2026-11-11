@@ -4,8 +4,8 @@ import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { acceptProposal, confirmByPerson, CONFIRMATION_MAX_AGE_MS, type PersonConfirmation } from '../src/lib/protocol/accept';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 

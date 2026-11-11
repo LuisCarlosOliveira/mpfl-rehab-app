@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, limitProblem, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
 import { inputsSchema } from '../src/lib/protocolGen';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
@@ -82,9 +82,9 @@ describe('the questions of version 2 (mini squat and seated hold)', () => {
   });
 });
 
-describe('the questions of version 2 with the flag off (the default)', () => {
+describe('the questions of version 2 with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
   it('asks no walking, leg raise or seated hold question, and gives the answers as unknown', () => {
-    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
     const a = full({ surgeryDate: '2026-09-15', phaseClearance: 'yes' });
     expect(stepsFor(a, TODAY)).not.toContain('walking');
     expect(toInputs(a, TODAY)).toMatchObject({ walksWithoutCrutches: 'unknown', legRaiseStraight: 'unknown', seatedHoldCleared: 'unknown' });

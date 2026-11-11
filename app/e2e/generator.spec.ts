@@ -222,7 +222,7 @@ test('week 12 gives the refusal at the date question', async ({ page }) => {
   expect(await readStore(page, 'protocol')).toHaveLength(0);
 });
 
-test('the clock moves and the phase stays 1 until Update my plan and Confirm, and the next stage is held while the flag is off', async ({ page }) => {
+test('the clock moves and the phase stays 1 until Update my plan and Confirm, and the next stage is held while the self progression is off', async ({ page }) => {
   await toHomeWithPlan(page);
   const [before] = (await readStore(page, 'protocol')) as { raw: string }[];
   // Fix the date of the page 4 weeks later, then reload. The stored plan is the same.
@@ -237,6 +237,10 @@ test('the clock moves and the phase stays 1 until Update my plan and Confirm, an
   await toUpdate(page);
   await radio(page, '2'); await radio(page, 'No swelling');
   await radio(page, 'Yes');
+  // The extended items are on by default: the three questions for the next exercises show after the answer yes.
+  for (const legend of ['Do you walk without crutches?', 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?', 'Did your surgeon say that you can do knee straightening exercises while you sit?']) {
+    await page.getByRole('group', { name: legend }).getByRole('radio', { name: 'Yes', exact: true }).check();
+  }
   await press(page, 'Check my plan');
   await expectScreen(page, 'Confirm the change');
   await expect(page.getByText('Ask your care team about the next stage.')).toBeVisible();
