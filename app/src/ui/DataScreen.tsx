@@ -2,7 +2,7 @@
 // The export is a text file. The app builds a Blob from the text and a download link. It never makes a Blob from a camera frame.
 // The confirmation is a native dialog: showModal gives the focus trap and Escape (research/ui-decisions.md section 2).
 import { useEffect, useRef, useState } from 'react';
-import { MAX_IMPORT_BYTES, eraseAll, exportCsv, exportJson, getLastExport, importSessions, markExported, type MpflDb } from '../lib/storage';
+import { MAX_IMPORT_BYTES, eraseAll, exportCsv, exportJson, getLastExport, importSessions, markExported, readValidRows, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import './dashboard.css';
@@ -47,7 +47,9 @@ const isJsonFile = (file: File) => /\.json$/i.test(file.name) || file.type === '
 const DROP_TEXT = { idle: 'Drop the session file here, or choose a file', over: 'Drop to open' } as const;
 
 export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivacy }: Props) {
+  // The count is the number of rows that the export holds. A stored row that fails the schema is left out of the file, so it is left out here and named in a line.
   const [count, setCount] = useState<number | null>(null);
+  const [skipped, setSkipped] = useState(0);
   const [lastExport, setLastExport] = useState(getLastExport());
   const [notice, setNotice] = useState<Notice>(null);
   const [drop, setDrop] = useState<Drop>({ kind: 'idle' });
@@ -63,11 +65,23 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
 
   useEffect(() => () => clearTimeout(doneTimer.current), []);
 
-  const refreshCount = () => db.sessions.count().then(setCount, () => setCount(0));
+  const readCount = () => db.sessions.toArray().then((all) => readValidRows(all));
+  const refreshCount = () =>
+    readCount().then(
+      (r) => {
+        setCount(r.rows.length);
+        setSkipped(r.skipped);
+      },
+      () => setCount(0),
+    );
   useEffect(() => {
     let alive = true;
-    db.sessions.count().then(
-      (n) => alive && setCount(n),
+    readCount().then(
+      (r) => {
+        if (!alive) return;
+        setCount(r.rows.length);
+        setSkipped(r.skipped);
+      },
       () => alive && setCount(0),
     );
     return () => {
@@ -192,6 +206,11 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
                 {lastExport ? `Last export: ${lastExport.slice(0, 10)}` : 'You have not exported yet.'}
               </li>
             </ul>
+            {skipped > 0 && (
+              <p className="detail">
+                {skipped === 1 ? '1 saved row is' : `${skipped} saved rows are`} left out of the export because the app cannot read {skipped === 1 ? 'it' : 'them'}.
+              </p>
+            )}
             <div className="actions">
               <button type="button" className="btn btn-primary btn-keep" disabled={noSessions || busy} onClick={() => void exportAs('json')}>
                 <Icon name={exported === 'json' ? 'check' : 'download'} size={18} />
