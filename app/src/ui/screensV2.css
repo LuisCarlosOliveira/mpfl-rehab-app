@@ -220,7 +220,7 @@
 }
 
 /* ---------- The source of a number from a guideline: quiet lines, under the group that it covers ---------- */
-.v2-screens .source-note {
+.source-note {
   display: grid;
   gap: var(--s-1);
   margin-top: var(--s-4);
@@ -231,13 +231,13 @@
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
-.v2-screens .source-note p,
-.v2-screens .source-note ul {
+.source-note p,
+.source-note ul {
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.v2-screens .source-note .source-lines {
+.source-note .source-lines {
   display: grid;
   gap: var(--s-1);
 }

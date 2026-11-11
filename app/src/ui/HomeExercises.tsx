@@ -2,7 +2,7 @@
 // The list has no Start button and no count. The text comes from the rules, so one sentence has one place.
 import { ASK_HOW_MANY, HOME_NAMES, NOT_CHECKED_GROUP } from '../lib/planView';
 import type { HomeExercise, Protocol } from '../lib/protocol';
-import { DOSE_SHOWN, NO_NUMBER, RULES } from '../lib/protocolGen';
+import { NO_NUMBER, RULES } from '../lib/protocolGen';
 import './screensV2.css';
 
 /**
@@ -15,6 +15,7 @@ export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) 
   const hasDose = (h: HomeExercise) => h.sets !== undefined && h.reps !== undefined;
   const askDose = items.some((h) => !hasDose(h));
   const dosed = items.some(hasDose);
+
   return (
     <div className="v2-screens home-group">
       <h3 className="home-group-title">At home</h3>
@@ -25,7 +26,6 @@ export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) 
           </li>
         ))}
       </ul>
-      {dosed && <p className="detail home-note">How many: {DOSE_SHOWN}.</p>}
       {askDose && (
         <p className="detail home-note">
           {dosed ? `${items.filter((h) => !hasDose(h)).map((h) => HOME_NAMES[h.kind]).join(', ')}: ${NO_NUMBER} Ask your care team.` : `${ASK_HOW_MANY}.`}

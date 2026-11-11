@@ -3,7 +3,7 @@
 
 import { contactReason } from './contactCard';
 import type { Exercise, HomeExercise, Protocol } from './protocol';
-import { NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
+import { DOSE_SHOWN, NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
 /**
@@ -165,6 +165,15 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   }
   for (const h of homeBefore) {
     if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
+  }
+  // A stored plan from before the dose rule has no sets and reps. The new plan adds the dose of the guideline.
+  const hadNoDose = (old: { sets?: number } | undefined) => old !== undefined && old.sets === undefined;
+  const newDose = [
+    ...after.filter((e) => e.sets !== undefined && hadNoDose(before.find((x) => x.kind === e.kind))).map((e) => NAMES[e.kind]),
+    ...activeHome(next).filter((h) => h.sets !== undefined && hadNoDose(homeBefore.find((x) => x.kind === h.kind))).map((h) => HOME_NAMES[h.kind]),
+  ];
+  if (newDose.length > 0) {
+    lines.push(`Sets and reps added for ${newDose.join(', ')}. Reason: P2 gives ${DOSE_SHOWN} for strengthening exercises, for ages 8 to 25, not for adults (${RULES.DOSE.id}).`);
   }
   return lines;
 }

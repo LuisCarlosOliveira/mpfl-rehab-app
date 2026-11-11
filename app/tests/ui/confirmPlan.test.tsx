@@ -69,6 +69,17 @@ describe('ConfirmPlan, a new plan', () => {
     expect(await loadStoredProtocol(db, 'demo')).toBeNull();
   });
 
+  it('lists the dose once, as the whole range with the population and the label, and says the missing dose once', () => {
+    const { container } = setup(createDraft(), null).view;
+    const items = [...container.querySelectorAll('.change-list li')].map((li) => li.textContent ?? '');
+    const dose = items.filter((t) => t.includes('2 sets of 10 to 15, then 3 sets as tolerated'));
+    expect(dose).toHaveLength(1);
+    expect(dose[0]).toContain('ages 8 to 25, not for adults');
+    expect(dose[0]).toContain('Not approved by a clinician');
+    expect(items.filter((t) => t.startsWith('How many: ask your care team'))).toHaveLength(1);
+    expect(container.textContent).not.toMatch(/undefined|NaN|sets of 10 reps/);
+  });
+
   it('saves the plan and the answers after a click of a person, and gives the saved plan to the app', async () => {
     const { db, onAccepted } = setup(createDraft(), null);
     confirm();

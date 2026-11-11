@@ -13,7 +13,7 @@ import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
 import { COMPANION_BUTTON } from './CompanionEntry';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
-import { SourceNote } from './SourceNote';
+import { SourceNotes } from './SourceNote';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -201,8 +201,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                         </li>
                       ))}
                     </ul>
-                    {e.kind === 'mini-squat' && protocol.generated?.rules.includes('SQUAT_DEPTH') === true && <SourceNote rule="SQUAT_DEPTH" />}
-                    {e.kind === 'seated-extension-hold' && protocol.generated?.rules.includes('HOLD_P2') === true && <SourceNote rule="HOLD_P2" />}
                     {!setup.ok && <p className="detail">{notReadyText(e.kind, setup.missing)}</p>}
                   </div>
                   {featured && (
@@ -227,7 +225,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
             })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
-          {protocol.generated?.rules.includes('DOSE') === true && <SourceNote rule="DOSE" label="Sets and reps" />}
+          <SourceNotes made={protocol.generated?.rules ?? []} />
           <PlanLines protocol={protocol} />
           {madeByApp && (
             <p className="detail range-reference">

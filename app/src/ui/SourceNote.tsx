@@ -20,3 +20,16 @@ export function SourceNote({ rule, label }: { rule: SourceNoteId; label?: string
     </div>
   );
 }
+
+const LABELS: Record<SourceNoteId, string> = { DOSE: 'Sets and reps', SQUAT_DEPTH: 'Mini squat depth', HOLD_P2: 'Seated hold arc' };
+
+/** The source notes of the numbers that the plan holds, as one group under the exercises. A row holds the value and no source. */
+export function SourceNotes({ made }: { made: readonly string[] }) {
+  return (
+    <>
+      {(['DOSE', 'SQUAT_DEPTH', 'HOLD_P2'] as const).filter((id) => made.includes(id)).map((id) => (
+        <SourceNote key={id} rule={id} label={LABELS[id]} />
+      ))}
+    </>
+  );
+}

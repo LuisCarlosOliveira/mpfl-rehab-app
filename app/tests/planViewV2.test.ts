@@ -77,6 +77,27 @@ describe('describeChanges with version 2 items', () => {
     expect(lines[0]).toContain('SQUAT_GATE');
   });
 
+  it('names the dose that a plan from before the dose rule gets, once, with the range and the rule', () => {
+    const next = plan(3).protocol;
+    const withoutDose: Protocol = {
+      ...next,
+      phases: next.phases.map((ph) => ({
+        ...ph,
+        exercises: ph.exercises.map(({ sets: _s, reps: _r, ...rest }) => rest),
+        homeExercises: ph.homeExercises?.map(({ sets: _s, reps: _r, ...rest }) => rest),
+      })),
+    };
+    const lines = describeChanges(withoutDose, next);
+    const dose = lines.filter((l) => l.startsWith('Sets and reps added'));
+    expect(dose).toHaveLength(1);
+    expect(dose[0]).toContain('Straight leg raise');
+    expect(dose[0]).toContain('Quadriceps set');
+    expect(dose[0]).not.toContain('Ankle pump');
+    expect(dose[0]).toContain('2 sets of 10 to 15, then 3 sets as tolerated');
+    expect(dose[0]).toContain('(DOSE)');
+    expect(describeChanges(next, next)).toEqual([]);
+  });
+
   it('names the heel slide for an unknown limit with its own rule', () => {
     const lines = describeChanges(plan(8, { surgeonLimit: { kind: 'none' } }).protocol, plan(8, { surgeonLimit: { kind: 'unknown' } }).protocol);
     expect(lines.join(' ')).not.toContain('HEEL)');

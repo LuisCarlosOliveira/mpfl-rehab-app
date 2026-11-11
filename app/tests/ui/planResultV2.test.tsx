@@ -33,7 +33,6 @@ const draftFor = (over: Partial<GeneratorInputs> = {}) => {
 const NOT_CHECKED = 'The app does not check this exercise.';
 const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 const HOME_GROUP_TITLE = 'At home';
-const HOME_HOW_MANY = 'How many: 2 sets of 10 to 15, then 3 sets as tolerated.';
 const HOME_ASK_ANKLE = 'Ankle pump: No number in the guideline. Ask your care team.';
 
 describe('PlanResult, home exercises and text lines', () => {
@@ -49,7 +48,7 @@ describe('PlanResult, home exercises and text lines', () => {
     expect(within(list).queryByText(/How many/)).toBeNull();
     expect(within(list).queryByText(/does not check/)).toBeNull();
     const group = list.closest('.home-group') as HTMLElement;
-    expect(within(group).getAllByText(HOME_HOW_MANY)).toHaveLength(1);
+    expect(within(group).queryByText(/sets of/)).toBeNull();
     expect(within(group).getAllByText(HOME_ASK_ANKLE)).toHaveLength(1);
     expect(within(group).getAllByText(NOT_CHECKED_GROUP)).toHaveLength(1);
     expect(screen.queryAllByText(NOT_CHECKED)).toHaveLength(0);
@@ -120,8 +119,8 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     expect(item).toHaveTextContent('Limit 50 degrees');
     expect(item).toHaveTextContent('2 sets of 10 to 15, then 3 sets as tolerated');
     expect(item).not.toHaveTextContent('Knee-bend limit: ask your surgeon');
-    // The source note of the depth shows in the row, in the fixed order, with the source that disagrees on the same screen.
-    const note = within(item).getByLabelText('Source of: SQUAT_DEPTH');
+    // The source notes show as one group under the exercises, in the fixed order, with the source that disagrees on the same screen.
+    const note = screen.getByLabelText('Source of: Mini squat depth');
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hysing-Dahl, 2024, N3/);
     expect(lines[1]).toBe('Evidence: OPINION');
@@ -161,14 +160,14 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Seated knee extension hold').closest('li') as HTMLElement;
     expect(item).toHaveTextContent('Straightest knee angle: 40 degrees');
     expect(item).toHaveTextContent('Hold time: ask your care team');
-    const note = within(item).getByLabelText('Source of: HOLD_P2');
+    const note = screen.getByLabelText('Source of: Seated hold arc');
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hospital for Special Surgery, 2024, P1/);
     expect(lines[1]).toBe('Evidence: OPINION');
     expect(lines[2]).toMatch(/^Population: Adults after a first, isolated MPFL reconstruction/);
     expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
     expect(lines[4]).toBe("Another source: Cincinnati Children's, 2015, P2 gives 90 to 30 degrees, in a Note.");
-    expect(item).toHaveTextContent('Arc from 90 to 40 degrees of knee bend');
+    expect(note.closest('.source-note')).toHaveTextContent('Arc from 90 to 40 degrees of knee bend');
     const entry = screen.getByRole('heading', { name: RULES.HOLD_P2.title, level: 3 }).closest('li') as HTMLElement;
     expect(entry).toHaveTextContent('P1:');
     expect(entry).toHaveTextContent('P2:');

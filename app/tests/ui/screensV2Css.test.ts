@@ -29,7 +29,7 @@ describe('plan rows', () => {
   });
 
   it('sets the source lines in the muted colour at the small size', () => {
-    expect(rule('.v2-screens .source-note')).toMatch(/color:\s*var\(--muted\)/);
-    expect(rule('.v2-screens .source-note')).toMatch(/font-size:\s*var\(--step-m1\)/);
+    expect(rule('.source-note')).toMatch(/color:\s*var\(--muted\)/);
+    expect(rule('.source-note')).toMatch(/font-size:\s*var\(--step-m1\)/);
   });
 });
