@@ -45,6 +45,7 @@ export interface RepsState {
   lastRepMs: number | null;
   blocked: CountBlock | null; // why no rep can count, or null
   lostSince: number | null; // the time of the first sample with no leg in the present gap (B4-02)
+  repAfterGap: boolean; // the present rep began right after a gap of no leg. Its start time is unknown, so it gives no too-fast event (B5-06).
 }
 
 /** Why no rep can count: the protocol sets no return value, or Setup measured no resting angle. */
@@ -74,6 +75,7 @@ export const repsInitial = (): RepsState => ({
   lastRepMs: null,
   blocked: null,
   lostSince: null,
+  repAfterGap: false,
 });
 
 export function repsStep(
@@ -91,6 +93,7 @@ export function repsStep(
   }
   const { flexion, t } = sample;
   const margin = cfg.margin ?? 0;
+  const afterGap = state.lostSince !== null && t - state.lostSince >= LIMIT_GAP_RESET_MS;
   const s = { ...state, blocked: countBlock(cfg), lostSince: null };
   const exit = s.blocked === null ? (cfg.baseline as number) + (cfg.returnWithin as number) : null;
   let event: RepsEvent = null;
@@ -121,6 +124,7 @@ export function repsStep(
       if (s.candidateSince === null) {
         s.candidateSince = t;
         s.repStart = t;
+        s.repAfterGap = afterGap;
         s.peak = flexion;
       } else {
         s.peak = Math.max(s.peak, flexion);
@@ -146,7 +150,7 @@ export function repsStep(
           if (s.peak >= cfg.target - margin) {
             s.reps += 1;
             s.lastRepMs = s.repStart === null ? null : s.candidateSince - s.repStart;
-            const fast = cfg.minRepMs !== undefined && s.lastRepMs !== null && s.lastRepMs < cfg.minRepMs;
+            const fast = !s.repAfterGap && cfg.minRepMs !== undefined && s.lastRepMs !== null && s.lastRepMs < cfg.minRepMs;
             event = fast ? 'too-fast' : 'rep';
           } else {
             event = 'shallow';

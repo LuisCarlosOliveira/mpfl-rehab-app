@@ -108,3 +108,37 @@ describe('B4-02: the over-limit alert fires again after a gap of no pose', () =>
     expect(alerts).toHaveLength(1);
   });
 });
+
+// B5-06: a rep that began while the leg was not seen (a gap of 500 ms or more) has an unknown start time. It gives no "too fast" cue.
+describe('B5-06: no too-fast cue for a rep that began in a gap', () => {
+  const make = () => {
+    const made = createPipeline(ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 120, returnWithinDeg: 10, minRepSeconds: 2 } as never), 'right', 1, { baselineDeg: 5 });
+    if (!made.ok) throw new Error('setup');
+    return made.pipeline;
+  };
+  const events = (p: ReturnType<typeof make>, from: number, ms: number, deg: number | null, seen: string[]) => {
+    let t = from;
+    for (; t < from + ms; t += 33) {
+      const e = p.step(deg === null ? null : legLandmarks('right', deg), t).event;
+      if (e === 'too-fast' || e === 'rep') seen.push(e);
+    }
+    return t;
+  };
+  it('a fast rep after a gap counts and gives no too-fast event', () => {
+    const p = make();
+    const seen: string[] = [];
+    let t = events(p, 0, 2500, 5, seen);
+    t = events(p, t, 1000, null, seen);
+    t = events(p, t, 400, 90, seen); // the leg comes back bent
+    events(p, t, 700, 5, seen);
+    expect(seen).toEqual(['rep']);
+  });
+  it('the same fast rep without a gap gives too-fast', () => {
+    const p = make();
+    const seen: string[] = [];
+    let t = events(p, 0, 2500, 5, seen);
+    t = events(p, t, 400, 90, seen);
+    events(p, t, 700, 5, seen);
+    expect(seen).toEqual(['too-fast']);
+  });
+});
