@@ -10,7 +10,15 @@ export function overByteCap(raw: string): boolean {
   return raw.length * 3 > MAX_FILE_BYTES && new TextEncoder().encode(raw).length > MAX_FILE_BYTES;
 }
 
-type Issue = { path: ReadonlyArray<PropertyKey>; message: string; code?: string; origin?: string; minimum?: unknown; maximum?: unknown };
+type Issue = { path: ReadonlyArray<PropertyKey>; message: string; code?: string; origin?: string; format?: string; keys?: ReadonlyArray<string>; minimum?: unknown; maximum?: unknown };
+
+const MAX_KEY_CHARS = 40;
+
+/** A key name from the file as plain text: control characters out, cut at 40 characters. React escapes it when it shows. */
+function plainKey(key: string): string {
+  const clean = key.replace(/[\u0000-\u001f\u007f-\u009f]/g, '');
+  return clean.length > MAX_KEY_CHARS ? `${clean.slice(0, MAX_KEY_CHARS)}...` : clean;
+}
 
 // A message that Zod wrote starts with one of these words. A message that the schema wrote is already plain.
 const ZOD_DEFAULT = /^(Invalid |Too |Unrecognized |Input )/;
@@ -26,13 +34,15 @@ export function plainIssue(issue: Issue | undefined): string {
     case 'invalid_value':
       return 'the value is not one of the allowed values';
     case 'unrecognized_keys':
-      return 'the file has a key that the app does not know';
+      return issue.keys && issue.keys.length > 0
+        ? `the file has a key that the app does not know: "${plainKey(issue.keys[0] ?? '')}"${issue.keys.length > 1 ? ` and ${issue.keys.length - 1} more` : ''}`
+        : 'the file has a key that the app does not know';
     case 'too_small':
       return kind === 'number' ? `the number is too small (at least ${String(issue.minimum)})` : kind === 'text' ? `the text is too short (at least ${String(issue.minimum)} characters)` : `the list has too few items (at least ${String(issue.minimum)})`;
     case 'too_big':
       return kind === 'number' ? `the number is too large (at most ${String(issue.maximum)})` : kind === 'text' ? `the text is too long (at most ${String(issue.maximum)} characters)` : `the list has too many items (at most ${String(issue.maximum)})`;
     case 'invalid_format':
-      return 'the text does not have the required format';
+      return issue.format === 'date' ? 'the text does not have the required format, use the form YYYY-MM-DD' : 'the text does not have the required format';
     case 'invalid_union':
       return 'the value does not match any allowed form';
     default:
@@ -49,10 +59,20 @@ export function describeFirstIssue(
   subject: string,
 ): string {
   const first = error.issues[0];
-  const where = first && first.path.length > 0 ? first.path.map(String).join('.') : 'file';
-  const sentence = `The ${subject} is not valid at "${where}": ${plainIssue(first)}`;
+  const at = first && first.path.length > 0 ? `at "${first.path.map(String).join('.')}"` : 'in the file';
+  const sentence = `The ${subject} is not valid ${at}: ${plainIssue(first)}`;
   const cut = sentence.length > MAX_MESSAGE_CHARS ? `${sentence.slice(0, MAX_MESSAGE_CHARS)}...` : sentence;
   return cut.endsWith('.') ? cut : `${cut}.`;
+}
+
+const PLACEHOLDER_TEXT = 'SET BY CLINICIAN';
+
+/** How many values of the clinician template are still unset: the text "SET BY CLINICIAN" or null. */
+function countPlaceholders(v: unknown): number {
+  if (v === PLACEHOLDER_TEXT || v === null) return 1;
+  if (Array.isArray(v)) return v.reduce<number>((n, x) => n + countPlaceholders(x), 0);
+  if (v && typeof v === 'object') return Object.values(v).reduce<number>((n, x) => n + countPlaceholders(x), 0);
+  return 0;
 }
 
 export type Mode = 'demo' | 'patient';
@@ -78,7 +98,10 @@ export function loadProtocol(raw: string, mode: Mode): LoadResult {
 
   const parsed = protocolSchema.safeParse(data);
   if (!parsed.success) {
-    return fail('schema', describeFirstIssue(parsed.error, 'protocol'));
+    // The first problem only, one at a time. A file with more placeholders left says how many.
+    const left = countPlaceholders(data) - 1;
+    const more = left > 0 ? ` ${left === 1 ? 'One more field still has' : `${left} more fields still have`} placeholder text.` : '';
+    return fail('schema', `${describeFirstIssue(parsed.error, 'protocol')}${more}`);
   }
 
   const protocol = parsed.data;
