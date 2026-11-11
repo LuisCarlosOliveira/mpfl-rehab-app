@@ -102,6 +102,8 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
 
   const doseApplied: Applied[] = [];
   const squatApplied: Applied[] = [];
+  const holdApplied: Applied[] = [];
+  const holdAngleApplied: Applied[] = [];
   const targetApplied: Applied[] = [];
   const returnApplied: Applied[] = [];
   const limitApplied: Applied[] = [];
@@ -175,11 +177,27 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     };
   };
 
+  // Seated hold (D4). From phase 2, after the report of the clearance. No hold time. The arc is the one of P1 and never straight.
+  const holdBuilt =
+    extended && phase2 && !i.kneeGaveWay && i.seatedHoldCleared === 'yes' && (limit.kind !== 'degrees' || limit.degrees >= RULES.HOLD_P2.values.arcStart);
+  const seatedHold = (): Exercise => {
+    const path = 'phase2.seated-extension-hold';
+    holdApplied.push({ path: `${path}.minFlexion`, value: RULES.HOLD_P2.values.minFlexion, origin: 'rule' });
+    holdAngleApplied.push({ path: `${path}.targetFlexion`, value: RULES.ENG_HOLD.values.targetFlexion, origin: 'rule' });
+    return {
+      kind: 'seated-extension-hold',
+      minFlexion: RULES.HOLD_P2.values.minFlexion,
+      targetFlexion: RULES.ENG_HOLD.values.targetFlexion,
+      source: `Seated hold: P1 P2 (HOLD_P2). Hold angle: ENGINEERING (ENG_HOLD). No hold time (NONE_HOLDTIME). ${NOT_APPROVED}.`,
+    };
+  };
+
   const exercisesOf = (phaseId: number): Exercise[] => {
     const list = [straightLegRaise(phaseId)];
     const heel = heelSlide(phaseId);
     if (heel !== null) list.push(heel);
     if (phaseId === 2 && squatBuilt) list.push(miniSquat());
+    if (phaseId === 2 && holdBuilt) list.push(seatedHold());
     return list;
   };
 
@@ -222,6 +240,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     ...(phase2 && !extended ? [why('EXTENDED_OFF', 'refused')] : []),
     ...(phase2 && extended ? [why('SQUAT_P2', squatBuilt ? 'generated' : 'refused'), why('SQUAT_GATE', squatBuilt ? 'generated' : 'refused')] : []),
     ...(squatBuilt ? [why('SQUAT_DEPTH', 'generated', squatApplied)] : []),
+    ...(holdBuilt ? [why('HOLD_P2', 'generated', holdApplied), why('ENG_HOLD', 'generated', holdAngleApplied)] : []),
     ...(targetApplied.length > 0 ? [why('ENG_TARGET', 'generated', targetApplied), why('ENG_RETURN', 'generated', returnApplied)] : []),
     why('REVIEW', 'generated', reviewApplied),
     ...(week <= RULES.PH1.values.lastWeek ? [why('ROM_CHECK', 'generated')] : []),
@@ -229,7 +248,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     why('RANGE_NONE', 'refused'),
     why('DOSE_NONE', 'refused'),
     why('SQUAT', 'refused'),
-    why('HOLD', 'refused'),
+    ...(holdBuilt ? [] : [why('HOLD', 'refused')]),
     why('PAIN', 'refused'),
     ...(['NONE_WB_BRACE', 'NONE_FREQ', 'NONE_TEMPO', 'NONE_HOLDTIME', 'NONE_PAIN_STOP', 'NONE_VALGUS', 'NONE_REVISION', 'NONE_GRAFT'] as const).map(
       (id) => why(id, 'refused'),

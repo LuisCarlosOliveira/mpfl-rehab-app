@@ -156,8 +156,26 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     expect(within(refused).getByRole('heading', { name: RULES.SQUAT_P2.title, level: 3 })).toBeInTheDocument();
   });
 
-  it('shows no seated hold, with any answer, and says that the app adds none', () => {
+  it('shows the seated hold with the arc end of 40 degrees, a note about the hold time and the source note with the source that disagrees', () => {
     render(<PlanResult draft={draftFor({ ...week8, seatedHoldCleared: 'yes' })} onUse={vi.fn()} onBack={vi.fn()} />);
+    const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Seated knee extension hold').closest('li') as HTMLElement;
+    expect(item).toHaveTextContent('Straightest knee angle: 40 degrees');
+    expect(item).toHaveTextContent('Hold time: ask your care team');
+    const note = within(item).getByLabelText('Source of: HOLD_P2');
+    const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(lines[0]).toMatch(/^Source: Hospital for Special Surgery, 2024, P1/);
+    expect(lines[1]).toBe('Evidence: OPINION');
+    expect(lines[2]).toMatch(/^Population: Adults after a first, isolated MPFL reconstruction/);
+    expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
+    expect(lines[4]).toBe("Another source: Cincinnati Children's, 2015, P2 gives 90 to 30 degrees, in a Note.");
+    expect(item).toHaveTextContent('Arc from 90 to 40 degrees of knee bend');
+    const entry = screen.getByRole('heading', { name: RULES.HOLD_P2.title, level: 3 }).closest('li') as HTMLElement;
+    expect(entry).toHaveTextContent('P1:');
+    expect(entry).toHaveTextContent('P2:');
+  });
+
+  it('shows no seated hold without the clearance answer yes, and says that the app adds none', () => {
+    render(<PlanResult draft={draftFor({ ...week8, seatedHoldCleared: 'no' })} onUse={vi.fn()} onBack={vi.fn()} />);
     expect(within(screen.getByRole('list', { name: 'Exercises in your plan' })).queryByText('Seated knee extension hold')).toBeNull();
     const refused = screen.getByRole('list', { name: 'Not in your plan, and why' });
     expect(within(refused).getByRole('heading', { name: RULES.HOLD.title, level: 3 }).closest('li')).toHaveTextContent('The app adds no seated knee hold');
@@ -197,9 +215,11 @@ describe('Home, a plan with home exercises', () => {
 
   it('shows the dose range in the exercise chips and "ask your care team" for the heel slide, and no undefined or NaN', () => {
     const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
-    expect(screen.queryByRole('button', { name: 'Start Seated knee extension hold' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
+    expect(screen.getByText(/Hold time missing/)).toBeInTheDocument();
     const text = container.textContent ?? '';
-    expect(text).not.toMatch(/undefined|NaN|40 degrees/);
+    expect(text).not.toMatch(/undefined|NaN/);
+    expect(screen.getAllByText('Straightest knee angle: 40 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Limit 50 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2 sets of 10 to 15, then 3 sets as tolerated').length).toBeGreaterThan(1);
     expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(0);

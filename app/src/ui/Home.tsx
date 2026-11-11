@@ -202,6 +202,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                       ))}
                     </ul>
                     {e.kind === 'mini-squat' && protocol.generated?.rules.includes('SQUAT_DEPTH') === true && <SourceNote rule="SQUAT_DEPTH" />}
+                    {e.kind === 'seated-extension-hold' && protocol.generated?.rules.includes('HOLD_P2') === true && <SourceNote rule="HOLD_P2" />}
                     {!setup.ok && <p className="detail">{notReadyText(e.kind, setup.missing)}</p>}
                   </div>
                   {featured && (

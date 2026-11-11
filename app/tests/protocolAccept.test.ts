@@ -268,19 +268,14 @@ describe('acceptProposal: the active phase', () => {
   });
 
   // Generator v2: a mini squat or a seated hold that the stored plan does not have is more load, so it counts as a move forward.
-  // The generator no longer adds a seated hold (its arc is a clinical number), so that proposal is built by hand. The check on the proposal stays.
-  const withHold = (p: Protocol): Protocol => ({
-    ...p,
-    phases: p.phases.map((ph) => (ph.id === 2 ? { ...ph, exercises: [...ph.exercises, { kind: 'seated-extension-hold' as const, minFlexion: 40, targetFlexion: 58, holdSeconds: 5, source: 'Test, by hand' }] } : ph)),
-  });
   it.each([
-    ['a new mini squat', (open: Partial<GeneratorInputs>) => plan(8, { ...open, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' })],
-    ['a new seated hold', (open: Partial<GeneratorInputs>) => withHold(plan(8, open))],
-  ] as const)('refuses %s while the flag is off and keeps the stored bytes', async (_name, build) => {
+    ['a new mini squat', { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' }],
+    ['a new seated hold', { seatedHoldCleared: 'yes' }],
+  ] as const)('refuses %s while the flag is off and keeps the stored bytes', async (_name, answers) => {
     const open = { phaseClearance: 'yes', surgeonLimit: { kind: 'none' } } as const;
     await acceptProposal(db, proposalOf(plan(8, open)), confirmed(), 'demo');
     const before = await storedRaw();
-    const more = build(open);
+    const more = plan(8, { ...open, ...answers });
     expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
     vi.stubEnv('VITE_SELF_PROGRESSION', 'true');

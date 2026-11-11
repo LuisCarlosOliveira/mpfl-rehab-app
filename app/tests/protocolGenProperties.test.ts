@@ -214,14 +214,14 @@ describe('properties of the generator', () => {
           expect(e.holdSeconds).toBeUndefined();
           expect(e.minRepSeconds).toBeUndefined();
           expect(e.maxTopFlexion).toBeUndefined();
-          // The heel slide has no dose (DOSE_NONE). The other exercises start at the dose range of P2 rec 26 (DOSE, V49).
-          if (e.kind === 'heel-slide') {
+          // The heel slide and the seated hold have no dose (DOSE_NONE, NONE_HOLDTIME). The other exercises start at the dose range of P2 rec 26 (DOSE, V49).
+          if (e.kind === 'heel-slide' || e.kind === 'seated-extension-hold') {
             expect(e.sets, `seed ${seed}`).toBeUndefined();
             expect(e.reps, `seed ${seed}`).toBeUndefined();
           } else {
             expect(e, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
           }
-          expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
+          if (e.kind !== 'seated-extension-hold') expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
           expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
         }
         for (const h of ph.homeExercises ?? []) {
@@ -256,13 +256,23 @@ describe('properties of the generator', () => {
     expect(lowered).toBeGreaterThan(0);
   });
 
-  // Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, whatever the answers are.
-  it('never adds a seated hold, with any answers', () => {
+  it('never gives a seated hold without the reported clearance, in phase 1, or with a straight arc', () => {
+    let holds = 0;
     for (const seed of SEEDS) {
-      const r = generateProtocol(randomInputs(seed), TODAY);
+      const i = randomInputs(seed);
+      const r = generateProtocol(i, TODAY);
       if (r.kind !== 'protocol') continue;
-      for (const ph of r.protocol.phases) expect(ph.exercises.map((e) => e.kind), `seed ${seed}`).not.toContain('seated-extension-hold');
+      for (const ph of r.protocol.phases) {
+        const hold = ph.exercises.find((e) => e.kind === 'seated-extension-hold');
+        if (hold === undefined) continue;
+        holds += 1;
+        expect(ph.id, `seed ${seed}`).toBe(2);
+        expect(i.seatedHoldCleared, `seed ${seed}`).toBe('yes');
+        expect(hold.minFlexion, `seed ${seed}`).toBeGreaterThan(0);
+        expect(hold.holdSeconds, `seed ${seed}`).toBeUndefined();
+      }
     }
+    expect(holds).toBeGreaterThan(0);
   });
 
   it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {

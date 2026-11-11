@@ -12,7 +12,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
 
   it('lists an audit row for each generated rule that carries a number', () => {
     const generated = withNumbers.filter((r) => r.kind === 'generated').map((r) => r.id);
-    expect(generated).toEqual(expect.arrayContaining(['DOSE']));
+    expect(generated).toEqual(expect.arrayContaining(['DOSE', 'SQUAT_DEPTH', 'HOLD_P2']));
     for (const id of generated) expect(RULES[id as keyof typeof RULES].auditRows?.length ?? 0, id).toBeGreaterThan(0);
   });
 

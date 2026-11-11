@@ -64,7 +64,7 @@ export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 export const NO_NUMBER = 'No number in the guideline.';
 
 /** The rules whose number comes from a published source and shows with a source note. */
-export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH';
+export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2';
 
 /**
  * The lines of a source note, in the fixed order: the value, the source, the evidence, the population, the label of the app,
@@ -174,6 +174,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
 
 const ADDED_REASON = (e: Exercise, next: Protocol): string => {
   if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
+  if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
   if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
   return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
 };
@@ -181,7 +182,7 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'heel-slide': `the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id})`,
   'straight-leg-raise': `the app adds this exercise in every plan (${RULES.SLR.id})`,
   'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
-  'seated-extension-hold': `the app adds no seated hold, because its arc is a clinical number (${RULES.HOLD.id})`,
+  'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
 };
 
 const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;

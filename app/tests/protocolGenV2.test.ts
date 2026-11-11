@@ -2,6 +2,7 @@
 import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { generateProtocol, RULES, type GeneratorInputs } from '../src/lib/protocolGen';
+import { counterSetup, createPipeline } from '../src/lib/exercises';
 
 const TODAY = '2026-11-08';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -227,25 +228,72 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
   });
 });
 
-// Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, with any answers and in any phase.
-describe('the seated hold is never generated', () => {
-  const all = { ...gates, seatedHoldCleared: 'yes' } as const;
+describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)', () => {
+  const hold = (over: Partial<GeneratorInputs>, week = 8) => ex(plan(at(week, { ...cleared, ...over })).protocol, 2, 'seated-extension-hold');
 
-  it('adds no seated hold in any phase, for any answer, limit or week', () => {
-    for (const w of [0, 3, 6, 7, 8, 9, 11]) {
+  it('adds the seated hold in phase 2 only with the report that the surgeon cleared it', () => {
+    expect(hold({ seatedHoldCleared: 'yes' })).toMatchObject({ minFlexion: 40, targetFlexion: 40 + 2 * MARGIN_DEG });
+    for (const a of ['no', 'unknown'] as const) expect(hold({ seatedHoldCleared: a })).toBeUndefined();
+    expect(hold({})).toBeUndefined();
+    expect(kinds(plan(at(8, { phaseClearance: 'no', seatedHoldCleared: 'yes' })).protocol, 1)).not.toContain('seated-extension-hold');
+  });
+
+  it('adds no seated hold in phase 1, in any week, whatever the answers are', () => {
+    for (const w of [0, 3, 6]) {
       for (const surgeonLimit of [{ kind: 'unknown' }, { kind: 'none' }, { kind: 'degrees', degrees: 100 }] as const) {
-        const r = plan(at(w, { ...all, surgeonLimit }));
-        for (const id of [1, 2]) expect(kinds(r.protocol, id), `week ${w}`).not.toContain('seated-extension-hold');
+        const r = plan(at(w, { ...gates, seatedHoldCleared: 'yes', surgeonLimit }));
+        expect(kinds(r.protocol, 1), `week ${w}`).not.toContain('seated-extension-hold');
         expect(r.why.find((x) => x.ruleId === 'HOLD')?.outcome, `week ${w}`).toBe('refused');
         for (const id of ['HOLD_P2', 'ENG_HOLD']) expect(r.why.some((x) => (x.ruleId as string) === id), id).toBe(false);
       }
     }
   });
 
-  it('says in the plan that the app adds no seated hold and to ask the surgeon', () => {
-    expect(RULES.HOLD.text).toMatch(/adds no seated knee hold/);
-    expect(RULES.HOLD.text).toMatch(/Ask your surgeon/);
-    expect(RULES.HOLD.conservative).toMatch(/clinical number/);
+  it('adds no seated hold in phase 2 without the clearance answer yes, and says why', () => {
+    for (const w of [7, 8, 11]) {
+      for (const seatedHoldCleared of ['no', 'unknown'] as const) {
+        const r = plan(at(w, { ...cleared, ...gates, seatedHoldCleared }));
+        expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('seated-extension-hold');
+        expect(r.why.find((x) => x.ruleId === 'HOLD')?.outcome, `week ${w}`).toBe('refused');
+      }
+    }
+    expect(RULES.HOLD.text).toMatch(/none from week 7 without your report that your surgeon cleared it/);
+  });
+
+  it('never gives a straight arc and never a hold time', () => {
+    const h = hold({ seatedHoldCleared: 'yes' })!;
+    expect(h.minFlexion).toBe(RULES.HOLD_P2.values.minFlexion);
+    expect(h.minFlexion).toBeGreaterThan(0);
+    expect(h.holdSeconds).toBeUndefined();
+    expect(h.sets).toBeUndefined();
+  });
+
+  it('leaves out the hold when the surgeon knee-bend limit is below the start of the arc', () => {
+    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees: 89 } })).toBeUndefined();
+    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees: 90 } })).toBeDefined();
+    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'none' } })).toBeDefined();
+  });
+
+  it('rests the arc on P1 and P2 with the more conservative end, and on the audit row V105', () => {
+    expect(RULES.HOLD_P2.sourceIds).toEqual(expect.arrayContaining(['P1', 'P2']));
+    expect(RULES.HOLD_P2.values).toEqual({ minFlexion: 40, arcStart: 90 });
+    expect(RULES.HOLD_P2.auditRows).toEqual(['V105']);
+    expect(RULES.HOLD_P2.conservative).toMatch(/90-30|90 to 30/);
+    expect(RULES.HOLD_P2.display?.disagree).toMatch(/90 to 30 degrees/);
+    expect(RULES.ENG_HOLD.grade).toBe('ENGINEERING');
+  });
+
+  // The hold counter needs a hold time. The design did not verify this (docs/generator-v2-design.md section 8).
+  it('verifies the hold counter: with no hold time it refuses to run and names the hold time', () => {
+    const h = hold({ seatedHoldCleared: 'yes' })!;
+    expect(counterSetup(h)).toEqual({ ok: false, reason: 'ask-your-surgeon', missing: 'holdSeconds' });
+    expect(createPipeline(h, 'left', 1.78)).toMatchObject({ ok: false, missing: 'holdSeconds' });
+  });
+
+  it('verifies the hold counter: the same exercise runs once a clinician sets a hold time', () => {
+    const h = { ...hold({ seatedHoldCleared: 'yes' })!, holdSeconds: 5 };
+    expect(counterSetup(h)).toMatchObject({ ok: true, kind: 'hold' });
+    expect(createPipeline(h, 'left', 1.78).ok).toBe(true);
   });
 });
 
@@ -293,7 +341,7 @@ describe('flag OFF (the default): the held back items', () => {
       const r = plan(at(w, { ...cleared, ...all }));
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('mini-squat');
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('seated-extension-hold');
-      for (const id of ['SQUAT_P2', 'SQUAT_GATE', 'SQUAT_DEPTH'] as const) {
+      for (const id of ['SQUAT_P2', 'SQUAT_GATE', 'SQUAT_DEPTH', 'HOLD_P2', 'ENG_HOLD'] as const) {
         expect(r.protocol.generated?.rules, id).not.toContain(id);
       }
     }
@@ -323,9 +371,10 @@ describe('flag OFF (the default): the held back items', () => {
 });
 
 describe('audit defects D3, D4, D5 and D2 (flag ON)', () => {
-  it('D4: a knee gave way event removes the mini squat', () => {
+  it('D4: a knee gave way event removes the seated hold as well as the mini squat', () => {
+    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: true })).protocol, 2, 'seated-extension-hold')).toBeUndefined();
     expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: true })).protocol, 2, 'mini-squat')).toBeUndefined();
-    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: false })).protocol, 2, 'mini-squat')).toBeDefined();
+    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: false })).protocol, 2, 'seated-extension-hold')).toBeDefined();
   });
 
   it('D3: the heel slide for an unknown limit carries the P1 line about 120 degrees and the care team', () => {

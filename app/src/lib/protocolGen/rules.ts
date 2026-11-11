@@ -227,15 +227,33 @@ const defs = {
     text: 'The mini squat needs your report that you walk without crutches and lift your leg without the knee bending. The app does not check this. Reported by you. Not checked by the app.',
   },
   HOLD: {
-    title: 'Seated knee hold',
+    title: 'Seated knee hold without a clearance',
     kind: 'protective',
     values: {},
     sourceIds: ['P2', 'P1', 'P3'],
     grade: 'OPINION',
     population: P2_POPULATION,
     conservative:
-      'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. P1 gives an arc for later weeks that follows the preference of the surgeon. The app adds no seated hold and no arc, because the arc is a clinical number.',
-    text: 'The app adds no seated knee hold. Ask your surgeon about it. P1 and P2 avoid straightening the knee against the weight of the leg in the first weeks.',
+      'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. The app takes the stricter rule.',
+    text: 'The app adds no seated knee hold in weeks 0 to 6, and none from week 7 without your report that your surgeon cleared it. P1 and P2 avoid straightening the knee against the weight of the leg.',
+  },
+  HOLD_P2: {
+    title: 'Seated knee hold in a limited arc',
+    kind: 'generated',
+    values: { minFlexion: 40, arcStart: 90 },
+    auditRows: ['V105'],
+    sourceIds: ['P1', 'P2'],
+    grade: 'OPINION',
+    population: ADULT_ISO,
+    conservative:
+      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. Sanford gives 0 to 60 degrees and is not audited. The app takes 40 degrees, the more bent end. The knee never goes straight.',
+    display: {
+      value: 'Arc from 90 to 40 degrees of knee bend. The knee never goes straight. No hold time.',
+      cite: 'Hospital for Special Surgery, 2024, P1 phase 2 (open chain strengthening in a limited arc of motion, 90-40 degrees)',
+      evidence: 'OPINION',
+      disagree: "Cincinnati Children's, 2015, P2 gives 90 to 30 degrees, in a Note.",
+    },
+    text: 'From week 7, after you report that your surgeon cleared it, the seated hold stays between 90 and 40 degrees of knee bend (P1). The app sets no hold time.',
   },
   EXTENDED_OFF: {
     title: 'Held back: mini squat, seated hold and heel slide with an unknown limit',
@@ -247,6 +265,18 @@ const defs = {
     conservative:
       'P3 lists mini squats in its second stage. P1 starts free squats at week 12. No source gives a depth or the answers for a mini squat in weeks 7 to 11.',
     text: 'The app adds no mini squat, no seated hold and no heel slide for an unknown limit. Ask your care team about these exercises.',
+  },
+  ENG_HOLD: {
+    title: 'Hold angle of the seated hold',
+    kind: 'engineering',
+    values: { targetFlexion: 40 + 2 * MARGIN_DEG },
+    sourceIds: ['F1', 'F3'],
+    grade: 'ENGINEERING',
+    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
+    reason:
+      'The hold angle is the arc end of 40 degrees plus twice the camera margin. The schema needs a hold angle of more than the arc end plus one margin. It is not a range target.',
+    flag: 'clinical-review-needed',
+    text: 'The app counts the hold at the arc end plus 2 times the camera margin. It is an engineering value and not a range for your knee.',
   },
   DOSE: {
     title: 'Dose of the strengthening exercise',
