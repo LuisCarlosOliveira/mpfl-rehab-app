@@ -154,6 +154,17 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   const [picked, setPicked] = useState<number | null>(null);
   const titleId = `${id}-title`;
   const summaryId = `${id}-summary`;
+  // No value at all: the title and one line, with no plot frame and no table.
+  if (rows.every((r) => r.value === null)) {
+    return (
+      <section className="dash-chart" aria-labelledby={titleId}>
+        <h2 id={titleId}>{chart.title}</h2>
+        <p id={summaryId} className="dash-note">
+          {summaryText(rows)}
+        </p>
+      </section>
+    );
+  }
   const labels = chart.data.map((d) => d.label);
   const ends = [...new Set([labels[0], labels[labels.length - 1]])].filter((l): l is string => l !== undefined);
   // A line chart places each point by its time, so a gap of 24 days looks 24 times wider than a gap of 1 day.
