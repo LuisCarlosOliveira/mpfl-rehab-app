@@ -249,6 +249,20 @@ describe('flag OFF (the default): the held back items', () => {
   beforeEach(() => vi.unstubAllEnvs());
   const all = { ...gates, seatedHoldCleared: 'yes' } as const;
 
+  it('A-04: the heel slide text says it is left out for an unknown limit, and does not say it is in the plan', () => {
+    const r = plan(at(8, { ...cleared, surgeonLimit: { kind: 'unknown' } }));
+    expect(kinds(r.protocol, 2)).not.toContain('heel-slide');
+    const heel = r.why.find((w) => w.ruleId === 'HEEL')!;
+    expect(heel.text).not.toMatch(/do not know/);
+    expect(heel.text).toMatch(/unknown/);
+  });
+
+  it('A-04: with the flag on, the heel slide text keeps the unknown limit case', () => {
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+    const r = plan(at(8, { ...cleared, surgeonLimit: { kind: 'unknown' } }));
+    expect(r.why.find((w) => w.ruleId === 'HEEL')!.text).toMatch(/do not know a limit/);
+  });
+
   it('reads only the exact text true', () => {
     for (const v of ['1', 'TRUE', 'yes', '']) {
       vi.stubEnv('VITE_GENERATOR_EXTENDED', v);

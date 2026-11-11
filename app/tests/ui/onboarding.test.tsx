@@ -181,6 +181,31 @@ describe('Onboarding, the date, the knee and the limit', () => {
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });
 
+  it('A-06: a limit of 200, -5 or 90.5 gets a plain message and aria-invalid, and a good number clears both', () => {
+    setup();
+    referralQuestions();
+    type('Date of surgery', '2026-10-15'); next();
+    choose('Left'); next();
+    choose(/Yes, my limit is/);
+    const field = () => screen.getByLabelText('Limit in degrees');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    expect(screen.queryByRole('alert')).toBeNull();
+    for (const bad of ['200', '-5', '90.5']) {
+      type('Limit in degrees', bad);
+      expect(field()).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole number of degrees from 0 to 180.');
+      expect(field()).toHaveAccessibleDescription(/Enter a whole number of degrees from 0 to 180/);
+      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    }
+    type('Limit in degrees', '');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    type('Limit in degrees', '0');
+    expect(field()).not.toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    type('Limit in degrees', '180');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('says that the heel slide needs a number from the surgeon when the answer is no limit', () => {
     setup();
     referralQuestions();
@@ -264,14 +289,11 @@ describe('Onboarding, the summary and the plan', () => {
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R9' });
   });
 
-  it('refers at week 12 with the text of the generator', () => {
+  it('refers at week 12 with the text of the generator, at the date question', () => {
     const { onDone } = setup();
-    walk('2026-08-01', () => {
-      choose('No');
-      next();
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
-    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10' });
+    referralQuestions();
+    type('Date of surgery', '2026-08-01'); next();
+    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10', text: expect.stringMatching(/no plan after week 11/) });
   });
 
   it('asks the clearance question from week 7 and puts the answer in the inputs', () => {
@@ -337,6 +359,41 @@ describe('Onboarding, the summary and the plan', () => {
     setup({ initial: inputs });
     expect(h1()).toBe('Check your answers');
     expect(screen.getByText('No limit')).toBeInTheDocument();
+  });
+});
+
+describe('Onboarding, a date change that opens the clearance question (A-01)', () => {
+  it('asks the clearance question after the date moves from week 3 to week 8, and shows no answer for it before', () => {
+    const inputs: GeneratorInputs = {
+      writtenPlan: 'no', procedure: 'mpflr-only', ageBand: '18-plus', bothKnees: false, firstSurgery: 'yes', specialRules: 'no',
+      surgeryDate: '2026-10-15', side: 'left', surgeonLimit: { kind: 'degrees', degrees: 60 }, phaseClearance: 'no', redFlags: {}, pain: 1, swelling: 'none',
+    };
+    setup({ initial: inputs });
+    expect(screen.queryByText('Next stage said by your care team')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Change the date of surgery' }));
+    type('Date of surgery', '2026-09-10'); // week 8
+    next();
+    expect(h1()).toMatch(Q.clearance);
+  });
+});
+
+describe('Onboarding, a surgery date after week 11 stops the questions at the date (A-12)', () => {
+  it('shows the referral right after the date question, before the side and the other questions', () => {
+    const { onDone } = setup();
+    referralQuestions();
+    type('Date of surgery', '2026-08-01'); // week 14
+    next();
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10' });
+  });
+
+  it('goes on to the side question for a date in week 11', () => {
+    const { onDone } = setup();
+    referralQuestions();
+    type('Date of surgery', '2026-08-23'); // week 11
+    next();
+    expect(onDone).not.toHaveBeenCalled();
+    expect(h1()).toBe(Q.side);
   });
 });
 

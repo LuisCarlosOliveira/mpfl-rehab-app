@@ -3,7 +3,7 @@
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
 import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
-import { ASK_SURGEON, RULES } from '../lib/protocolGen';
+import { RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -30,7 +30,7 @@ function WhyList({ entries, label, asks }: { entries: PlanOnly['why']; label: st
               <summary>
                 <span className="why-head">
                   <h3>{v.title}</h3>
-                  {asks && <span className="chip chip-accent">{ASK_SURGEON}</span>}
+                  {asks && v.ask !== null && <span className="chip chip-accent">{v.ask}</span>}
                   {v.needsReview && <span className="chip">A clinician has not reviewed this value.</span>}
                 </span>
                 <span className="chev">

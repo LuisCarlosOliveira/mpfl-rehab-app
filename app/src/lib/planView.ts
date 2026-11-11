@@ -53,6 +53,8 @@ export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
   'leg-raise-back': 'Leg raise to the back',
 };
 export const NOT_CHECKED = 'The app does not check this exercise.';
+/** The same fact for the whole group of home exercises. The group shows it once. */
+export const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 /** The line for a dose that the plan does not hold. The generator sets no dose, so the person asks the care team. */
 export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
@@ -96,15 +98,23 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
-/** One plain line for each part of the new plan. */
+/** One plain line for each part of the new plan. One dose rule: a dose shows only when the plan holds it, and the missing dose is said once at the end. */
 export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
+  let askDose = false;
   for (const e of activeExercises(protocol)) {
-    lines.push(e.maxFlexion === undefined ? `${NAMES[e.kind]}.` : `${NAMES[e.kind]}, knee-bend limit ${e.maxFlexion} degrees.`);
+    const dose = e.sets !== undefined && e.reps !== undefined ? `${e.sets} sets of ${e.reps}` : e.holdSeconds !== undefined ? `hold ${e.holdSeconds} seconds` : null;
+    if (dose === null) askDose = true;
+    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...(dose === null ? [] : [dose])];
+    lines.push(`${parts.join(', ')}.`);
   }
-  for (const h of activeHome(protocol)) {
-    lines.push(h.sets !== undefined ? `${HOME_NAMES[h.kind]}, ${homeDose(h)}. ${NOT_CHECKED}` : `${HOME_NAMES[h.kind]}. ${homeDose(h)}. ${NOT_CHECKED}`);
+  const home = activeHome(protocol);
+  for (const h of home) {
+    if (h.sets === undefined || h.reps === undefined) askDose = true;
+    lines.push(`${HOME_NAMES[h.kind]}${h.sets !== undefined && h.reps !== undefined ? `, ${homeDose(h)}` : ''} (at home).`);
   }
+  if (askDose) lines.push(`${ASK_HOW_MANY}.`);
+  if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
 }
 
@@ -155,30 +165,46 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'seated-extension-hold': `the app adds no seated hold, because its arc is a clinical number (${RULES.HOLD.id})`,
 };
 
-/** True when the proposal adds a mini squat or a seated hold that the stored plan does not have in the same phase. accept.ts enforces the same rule. */
-function addsLoadedExercise(current: Protocol, next: Protocol): boolean {
-  return next.phases.some((phase) => {
-    const before = current.phases.find((p) => p.id === phase.id);
-    return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((x) => x.kind === e.kind));
-  });
-}
+const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
 
-/** True when a limit in the proposal is higher than the stored limit, or is gone. accept.ts enforces the same rule. */
+/**
+ * True when the proposal gives the knee more room than the stored plan: a pain limit that is higher or gone, a knee-bend ceiling that is
+ * higher or gone, a straightest angle that is lower or gone, or a mini squat or a seated hold that the stored plan lacks in the same phase.
+ */
 export function raisesLimit(current: Protocol, next: Protocol): boolean {
-  if (addsLoadedExercise(current, next)) return true;
+  if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
-    for (const e of phase.exercises) {
-      const old = before?.exercises.find((x) => x.kind === e.kind);
-      if (old?.maxFlexion !== undefined && (e.maxFlexion === undefined || e.maxFlexion > old.maxFlexion)) return true;
+    for (const exercise of phase.exercises) {
+      const old = before?.exercises.find((e) => e.kind === exercise.kind);
+      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
+      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
+      if (!old) continue;
+      for (const key of EXERCISE_CEILINGS) {
+        const was = old[key];
+        if (was !== undefined && (exercise[key] === undefined || exercise[key] > was)) return true;
+      }
+      // minFlexion is the straightest angle that is allowed. A lower value allows more.
+      if (old.minFlexion !== undefined && (exercise.minFlexion === undefined || exercise.minFlexion < old.minFlexion)) return true;
     }
   }
   return false;
 }
 
-/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. accept.ts enforces the same rule. */
+/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. The app and the screens use this one rule. */
 export function movesForward(current: Protocol, next: Protocol): boolean {
   return next.activePhase > current.activePhase || raisesLimit(current, next);
+}
+
+export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
+export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
+export const HOLD_PAIN_LIMIT = 'Your stored plan has a pain limit from your clinician. A new plan from your answers would remove or raise it. Ask your care team. The app keeps your plan.';
+
+/** The reason that the app offers no Confirm for a plan that moves forward, with the right words for the cause. */
+export function holdTextFor(current: Protocol, next: Protocol): string {
+  const painLimit = current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
+  if (painLimit) return HOLD_PAIN_LIMIT;
+  return raisesLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
 }
 
 /** The number of sessions since the plan date with a safety event: a block, a gave-way press, a pause or swelling. */
@@ -248,9 +274,17 @@ export interface WhyView {
   conservative?: string;
   sources: string[];
   applied: string[];
+  /** Who the person asks, as the text of the rule says it: "Ask your surgeon" or "Ask your care team". null when the text names neither. */
+  ask: string | null;
   /** True when a clinician has not reviewed the value, as the rule says. */
   needsReview: boolean;
 }
+
+const ASKS = ['Ask your surgeon', 'Ask your care team'] as const;
+
+/** The first "Ask your ..." that a text holds. The chip of a rule follows its own line. */
+export const askOf = (text: string): string | null =>
+  ASKS.map((a) => ({ a, at: text.indexOf(a) })).filter((x) => x.at >= 0).sort((x, y) => x.at - y.at)[0]?.a ?? null;
 
 /** One rule of "Why this plan" as plain fields, so the screen holds no rule logic. */
 export function whyView(e: WhyEntry): WhyView {
@@ -263,6 +297,7 @@ export function whyView(e: WhyEntry): WhyView {
     conservative: e.conservative,
     sources: e.sourceIds.map(sourceLine),
     applied: e.applied.map(appliedLine),
+    ask: askOf(e.text),
     needsReview: e.flag === 'clinical-review-needed',
   };
 }

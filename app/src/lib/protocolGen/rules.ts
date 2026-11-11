@@ -6,6 +6,7 @@
 // It never invents a number.
 
 import { MARGIN_DEG } from '../margin';
+import { generatorExtendedOn } from '../mode';
 import type { Grade, SourceId } from './sources';
 
 export type RuleKind =
@@ -98,7 +99,12 @@ const defs = {
     population: ADULT_ISO,
     conservative:
       'S1 and P3 start the heel slide in phase 1. P1 starts it in phase 2. The app takes the later start, unless you enter a knee-bend limit from your surgeon.',
-    text: 'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with a limit, with no limit, or when you do not know a limit.',
+    // The text follows the flag, because generate.ts adds the heel slide for an unknown limit in phase 2 only with the flag on.
+    get text() {
+      return generatorExtendedOn()
+        ? 'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with a limit, with no limit, or when you do not know a limit.'
+        : 'The heel slide is in phase 1 and in phase 2 only with a knee-bend limit from your surgeon. In phase 2 it is also in your plan with no limit. When the limit is unknown, it is left out.';
+    },
   },
   HEEL_P2_UNKNOWN: {
     title: 'Heel slide in phase 2 with an unknown limit',
@@ -487,4 +493,7 @@ export const RULE_IDS = Object.keys(defs) as RuleId[];
 // The type keeps the literal keys of `values`, so a missing value is a compile error.
 type Typed = { [K in RuleId]: Omit<Rule, 'id' | 'values'> & { id: K; values: (typeof defs)[K]['values'] } };
 
-export const RULES = Object.fromEntries(RULE_IDS.map((id) => [id, { id, ...defs[id] }])) as unknown as Typed;
+// The copy keeps a getter as a getter (HEEL.text follows the flag at the time of the call).
+export const RULES = Object.fromEntries(
+  RULE_IDS.map((id) => [id, Object.defineProperties({ id }, Object.getOwnPropertyDescriptors(defs[id]))]),
+) as unknown as Typed;

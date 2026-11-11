@@ -1,6 +1,6 @@
 // The questionnaire model: the order of the questions, when a question is answered, the early referral, and the inputs.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { answered, earlyReferral, emptyAnswers, fromInputs, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
+import { answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, limitProblem, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
 import { inputsSchema } from '../src/lib/protocolGen';
 
 // The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
@@ -78,7 +78,7 @@ describe('the questions of version 2 (mini squat and seated hold)', () => {
 
   it('round-trips through fromInputs', () => {
     const i = toInputs(asked({ walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'no' }), TODAY)!;
-    expect(toInputs(fromInputs(i), TODAY)).toEqual(i);
+    expect(toInputs(fromInputs(i, TODAY), TODAY)).toEqual(i);
   });
 });
 
@@ -122,6 +122,19 @@ describe('answered', () => {
   });
 });
 
+describe('the limit field (A-06)', () => {
+  it('takes only whole degrees from 0 to 180', () => {
+    for (const ok of ['0', '45', '180', ' 60 ']) expect(limitNumber(ok), ok).not.toBeNull();
+    for (const bad of ['', '181', '200', '-5', '90.5', 'abc', '1e1']) expect(limitNumber(bad), bad).toBeNull();
+  });
+
+  it('gives a message for a value outside the rule, and none for an empty or good value', () => {
+    expect(limitProblem('')).toBeNull();
+    expect(limitProblem('60')).toBeNull();
+    for (const bad of ['200', '-5', '90.5', 'abc']) expect(limitProblem(bad), bad).toBe('Enter a whole number of degrees from 0 to 180.');
+  });
+});
+
 describe('toInputs and fromInputs', () => {
   it('builds inputs that the strict schema accepts', () => {
     const inputs = toInputs(full(), TODAY);
@@ -147,7 +160,35 @@ describe('toInputs and fromInputs', () => {
 
   it('round-trips through fromInputs', () => {
     const inputs = toInputs(full({ limitKind: 'none', limitDegrees: '' }), TODAY)!;
-    expect(toInputs(fromInputs(inputs), TODAY)).toEqual(inputs);
+    expect(toInputs(fromInputs(inputs, TODAY), TODAY)).toEqual(inputs);
+  });
+});
+
+describe('fromInputs and the questions that are not asked (A-01)', () => {
+  it('gives null for the clearance and the gate answers when the date is before week 7', () => {
+    const inputs = toInputs(full(), TODAY)!;
+    expect(inputs.phaseClearance).toBe('no');
+    const a = fromInputs(inputs, TODAY);
+    expect(a.phaseClearance).toBeNull();
+    expect(a.walksWithoutCrutches).toBeNull();
+    expect(a.legRaiseStraight).toBeNull();
+    expect(a.seatedHoldCleared).toBeNull();
+  });
+
+  it('keeps the clearance answer when the question is asked', () => {
+    const gates = { walksWithoutCrutches: 'no', legRaiseStraight: 'no', seatedHoldCleared: 'no' } as const;
+    const inputs = toInputs(full({ surgeryDate: '2026-09-15', phaseClearance: 'yes', ...gates }), TODAY)!;
+    expect(fromInputs(inputs, TODAY)).toMatchObject({ phaseClearance: 'yes', ...gates });
+  });
+});
+
+describe('earlyReferral and the surgery date (A-12)', () => {
+  it('refers with R10 from week 12, and with no date or a date that is not usable it does not refer', () => {
+    expect(earlyReferral(full({ surgeryDate: '2026-08-01' }), TODAY)).toMatchObject({ reason: 'R10' });
+    expect(earlyReferral(full({ surgeryDate: '2026-08-23' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '2026-02-31' }), TODAY)).toBeNull();
+    expect(earlyReferral(full({ surgeryDate: '2027-01-01' }), TODAY)).toBeNull();
   });
 });
 

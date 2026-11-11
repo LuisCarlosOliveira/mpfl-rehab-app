@@ -231,3 +231,21 @@ describe('raisesLimit', () => {
     expect(raisesLimit(plan(3).protocol, plan(3).protocol)).toBe(false);
   });
 });
+
+describe('one movesForward rule (R-03)', () => {
+  const ex = (o: object) => ({ kind: 'heel-slide', targetFlexion: 40, returnWithinDeg: 10, ...o });
+  const base = (o: object, e: object) => ({ schemaVersion: 1, id: 'x', side: 'left', activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [ex(e)] }], ...o }) as never;
+
+  it('sees a removed or higher pain threshold as forward, as the save step does', () => {
+    const current = base({ painPauseThreshold: 3 }, { maxFlexion: 80 });
+    expect(movesForward(current, base({}, { maxFlexion: 60 }))).toBe(true);
+    expect(movesForward(current, base({ painPauseThreshold: 5 }, { maxFlexion: 60 }))).toBe(true);
+    expect(movesForward(current, base({ painPauseThreshold: 3 }, { maxFlexion: 60 }))).toBe(false);
+  });
+
+  it('sees a higher maxTopFlexion and a lower minFlexion as forward', () => {
+    expect(movesForward(base({}, { maxTopFlexion: 60 }), base({}, { maxTopFlexion: 70 }))).toBe(true);
+    expect(movesForward(base({}, { minFlexion: 10 }), base({}, { minFlexion: 5 }))).toBe(true);
+    expect(raisesLimit(base({ painPauseThreshold: 3 }, {}), base({}, {}))).toBe(true);
+  });
+});

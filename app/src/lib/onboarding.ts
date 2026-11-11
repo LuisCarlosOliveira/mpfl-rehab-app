@@ -62,11 +62,16 @@ export function stepsFor(a: Answers, today: string): StepId[] {
   ];
 }
 
-/** The number of the limit field, or null when the text is not a number from 0 to 180. */
+/** The number of the limit field, or null when the text is not a whole number from 0 to 180. */
 export function limitNumber(text: string): number | null {
-  if (text.trim() === '') return null;
+  if (text.trim() === '' || !/^\s*-?\d+\s*$/.test(text)) return null;
   const n = Number(text);
-  return Number.isFinite(n) && n >= 0 && n <= 180 ? n : null;
+  return n >= 0 && n <= 180 ? n : null;
+}
+
+/** A plain message for a limit that the app cannot use, or null. An empty field has no message. */
+export function limitProblem(text: string): string | null {
+  return text.trim() === '' || limitNumber(text) !== null ? null : 'Enter a whole number of degrees from 0 to 180.';
 }
 
 /**
@@ -135,8 +140,13 @@ export function toInputs(a: Answers, today: string): GeneratorInputs | null {
   };
 }
 
-export function fromInputs(i: GeneratorInputs): Answers {
-  return {
+/**
+ * The answers for the questions of the stored inputs. The inputs hold a value for a question that was never asked
+ * (for example "no" for the clearance question before week 7). Such a value is not an answer of the person.
+ * So an answer of a step that `stepsFor` does not ask is null, and the question is asked when a change makes it open.
+ */
+export function fromInputs(i: GeneratorInputs, today: string): Answers {
+  const a: Answers = {
     writtenPlan: i.writtenPlan,
     procedure: i.procedure,
     ageBand: i.ageBand,
@@ -155,13 +165,23 @@ export function fromInputs(i: GeneratorInputs): Answers {
     legRaiseStraight: i.legRaiseStraight ?? null,
     seatedHoldCleared: i.seatedHoldCleared ?? null,
   };
+  const steps = stepsFor(a, today);
+  if (!steps.includes('clearance')) a.phaseClearance = null;
+  if (!steps.includes('walking')) {
+    a.walksWithoutCrutches = null;
+    a.legRaiseStraight = null;
+    a.seatedHoldCleared = null;
+  }
+  return a;
 }
 
-const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6'];
+// R10 is the window of weeks. It needs the date, so it speaks from the date question on.
+const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R10'];
 
 /**
- * A referral that the first six answers already decide. The generator makes the text. The other answers get values
- * that cause no referral, so only these six can speak. The person sees the refusal at once and gives no more data.
+ * A referral that the first six answers, and the date of surgery, already decide. The generator makes the text. The other
+ * answers get values that cause no referral, so only these can speak. The person sees the refusal at once and gives no more data.
+ * A date that is empty, not real or in the future counts as today, so it causes no referral here. The date question refuses it.
  */
 export function earlyReferral(a: Answers, today: string): Extract<GenerateResult, { kind: 'referral' }> | null {
   const probe: GeneratorInputs = {
@@ -171,7 +191,7 @@ export function earlyReferral(a: Answers, today: string): Extract<GenerateResult
     bothKnees: a.bothKnees ?? false,
     firstSurgery: a.firstSurgery ?? 'yes',
     specialRules: a.specialRules ?? 'no',
-    surgeryDate: today,
+    surgeryDate: weeksOf(a, today) === null ? today : a.surgeryDate,
     side: 'left',
     surgeonLimit: { kind: 'unknown' },
     phaseClearance: 'no',

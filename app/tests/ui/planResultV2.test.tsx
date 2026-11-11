@@ -31,34 +31,42 @@ const draftFor = (over: Partial<GeneratorInputs> = {}) => {
   return d as Extract<PlanDraft, { kind: 'plan' }>;
 };
 const NOT_CHECKED = 'The app does not check this exercise.';
+const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
+const HOME_GROUP_TITLE = 'At home';
+const HOME_HOW_MANY = 'How many: ask your care team.';
 
 describe('PlanResult, home exercises and text lines', () => {
-  it('lists the home exercises that the camera does not count, each with "ask your care team" in place of a dose and the note', () => {
+  it('lists the home exercises under one visible heading, with the dose sentence and the not-checked sentence once for the group (A-05)', () => {
     render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
     for (const name of ['Quadriceps set', 'Gluteal set', 'Ankle pump', 'Leg raise to the side', 'Leg raise to the back']) {
       expect(within(list).getByText(name)).toBeInTheDocument();
     }
     expect(within(list).queryByText(/sets of/)).toBeNull();
-    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(5);
-    expect(within(list).getAllByText(NOT_CHECKED)).toHaveLength(5);
+    expect(screen.getByRole('heading', { level: 3, name: HOME_GROUP_TITLE })).toBeVisible();
+    // The camera rows say "How many" for themselves. The home group says it once, outside the rows.
+    expect(within(list).queryByText(/How many/)).toBeNull();
+    expect(within(list).queryByText(/does not check/)).toBeNull();
+    const group = list.closest('.home-group') as HTMLElement;
+    expect(within(group).getAllByText(HOME_HOW_MANY)).toHaveLength(1);
+    expect(within(group).getAllByText(NOT_CHECKED_GROUP)).toHaveLength(1);
+    expect(screen.queryAllByText(NOT_CHECKED)).toHaveLength(0);
   });
 
-  it('shows the home exercises as dose rows like the plan, with the same text and no cards', () => {
+  it('shows the home exercises as quiet rows, quieter than the dose rows of the camera exercises, with no card', () => {
     const { container } = render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    expect(list).toHaveClass('dose-list');
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(5);
     for (const row of rows) {
-      expect(row).toHaveClass('dose-row');
+      expect(row).toHaveClass('home-row');
       expect(row).not.toHaveClass('card');
-      expect(row.querySelector('.dose-name')).not.toBeNull();
-      expect(row.querySelector('.dose')).not.toBeNull();
-      expect(within(row).getByText(NOT_CHECKED)).toHaveClass('dose-note');
+      expect(row).not.toHaveClass('dose-row');
+      expect(row.querySelector('.dose')).toBeNull();
     }
     expect(within(rows[0]!).getByText('Quadriceps set')).toBeInTheDocument();
     expect(container.querySelectorAll('.plan-exercises .card')).toHaveLength(0);
+    for (const t of container.querySelectorAll('.home-group .detail')) expect(t.className).not.toMatch(/dose\b/);
   });
 
   it('shows no Start button and no count for a home exercise', () => {

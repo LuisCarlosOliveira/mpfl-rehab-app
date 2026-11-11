@@ -1,5 +1,6 @@
 // The answer controls that the questions share: a radio group of cards, the limit question, the swelling question
 // and the red-flag tick list. Onboarding and "Update my plan" use them, so the two screens ask in the same way.
+import { limitProblem } from '../lib/onboarding';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, type RedFlagGroup } from '../lib/redflags';
 import type { SwellingAnswer } from '../lib/safety';
 import { Icon, type IconName } from './Icon';
@@ -78,6 +79,8 @@ interface LimitProps {
 }
 
 export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend }: LimitProps) {
+  const problem = limitProblem(degrees);
+  const problemId = `${name}-degrees-problem`;
   return (
     <fieldset className="choices">
       <legend className="visually-hidden">{legend}</legend>
@@ -98,8 +101,15 @@ export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend }: 
               max={180}
               step={1}
               value={degrees}
+              aria-invalid={problem !== null}
+              aria-describedby={problem === null ? undefined : problemId}
               onChange={(e) => onDegrees(e.target.value)}
             />
+            {problem !== null && (
+              <p id={problemId} className="detail" role="alert">
+                {problem}
+              </p>
+            )}
           </div>
         )}
         <label className="option">
