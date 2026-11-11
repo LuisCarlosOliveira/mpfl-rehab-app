@@ -6,7 +6,7 @@ import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
-import { ASK_HOW_MANY, ASK_LIMIT, NO_LIMIT_GIVEN, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, NO_LIMIT_GIVEN, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
@@ -49,7 +49,7 @@ const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
 export function prescription(e: Exercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
   // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
-  if (madeByApp && e.sets === undefined && e.holdSeconds === undefined) lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
+  if (madeByApp && e.sets === undefined && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
   // The generator holds the start of the range of P2 in the field. The plan shows the whole range (DOSE_SHOWN).
   if (madeByApp && e.sets !== undefined && e.reps !== undefined) lines.push({ text: DOSE_SHOWN, icon: 'list-checks' });
   else if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
@@ -204,7 +204,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                         </li>
                       ))}
                     </ul>
-                    {!setup.ok && <p className="detail">{notReadyText(e.kind, setup.missing)}</p>}
+                    {!setup.ok && <p className="detail">{madeByApp && e.kind === 'seated-extension-hold' && setup.missing === 'holdSeconds' ? HOLD_TIME_LINE : notReadyText(e.kind, setup.missing)}</p>}
                   </div>
                   {featured && (
                     <figure className="exercise-figure">
@@ -228,7 +228,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
             })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
-          <SourceNotes made={protocol.generated?.rules ?? []} />
+          <SourceNotes made={protocol.generated?.rules ?? []} scope={doseScope(protocol)} />
           <PlanLines protocol={protocol} />
           {madeByApp && (
             <div className="range-reference">

@@ -62,6 +62,9 @@ export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 /** The line for a heel slide after the answer "No limit". The surgeon gave none, so the person has nothing to ask for. */
 export const NO_LIMIT_GIVEN = 'No knee-bend limit was given by your surgeon';
 
+/** The line for the seated hold. The guideline gives no hold time and the app invents none. Every screen says the same. */
+export const HOLD_TIME_LINE = 'Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.';
+
 /** The rules whose number comes from a published source and shows with a source note. */
 export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2' | 'RANGE_NONE';
 
@@ -110,6 +113,14 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
+/** The names of the exercises of the active phase that hold the dose, in the order of the plan screen. The mini squat is last. */
+export function doseScope(protocol: Protocol): string[] {
+  const has = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
+  const camera = activeExercises(protocol).filter(has);
+  const names = (list: Exercise[]) => list.map((e) => NAMES[e.kind].toLowerCase());
+  return [...names(camera.filter((e) => e.kind !== 'mini-squat')), ...activeHome(protocol).filter(has).map((h) => HOME_NAMES[h.kind].toLowerCase()), ...names(camera.filter((e) => e.kind === 'mini-squat'))];
+}
+
 /**
  * One plain line for each part of the new plan. A dose shows once for the group, as the guideline gives it (the whole range, with the
  * population and the label). The exercises without a dose in the guideline show the missing dose once, at the end.
@@ -121,7 +132,7 @@ export function describeNewPlan(protocol: Protocol): string[] {
   const home = activeHome(protocol);
   let askDose = false;
   for (const e of exercises) {
-    if (!hasDose(e) && e.holdSeconds === undefined) askDose = true;
+    if (!hasDose(e) && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') askDose = true;
     const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
     const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
@@ -130,7 +141,8 @@ export function describeNewPlan(protocol: Protocol): string[] {
     if (!hasDose(h)) askDose = true;
     lines.push(`${HOME_NAMES[h.kind]} (at home).`);
   }
-  if ([...exercises, ...home].some(hasDose)) lines.push(`${RULES.DOSE.text} ${NOT_APPROVED}.`);
+  if ([...exercises, ...home].some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}. P2 is a guideline for ages 8 to 25, not for adults. ${NOT_APPROVED}.`);
+  if (exercises.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined)) lines.push(HOLD_TIME_LINE);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
   if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
@@ -168,6 +180,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   for (const h of homeBefore) {
     if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
   }
+  if (after.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined) && !before.some((e) => e.kind === 'seated-extension-hold')) lines.push(HOLD_TIME_LINE);
   // A stored plan from before the dose rule has no sets and reps. The new plan adds the dose of the guideline.
   const hadNoDose = (old: { sets?: number } | undefined) => old !== undefined && old.sets === undefined;
   const newDose = [

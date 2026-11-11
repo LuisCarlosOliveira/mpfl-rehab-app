@@ -159,8 +159,14 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     render(<PlanResult draft={draftFor({ ...week8, seatedHoldCleared: 'yes' })} onUse={vi.fn()} onBack={vi.fn()} />);
     const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Seated knee extension hold').closest('li') as HTMLElement;
     expect(item).toHaveTextContent('Straightest knee angle: 40 degrees');
-    expect(item).toHaveTextContent('Hold time: ask your care team');
+    expect(item).toHaveTextContent('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.');
+    expect(item).not.toHaveTextContent('How many: ask your care team');
+    expect(item).not.toHaveTextContent('Hold time: ask your care team');
     const note = screen.getByLabelText('Source of: Seated hold arc');
+    // The dose line names the exercises that it applies to. The seated hold is not one of them.
+    const dose = screen.getByLabelText('Source of: Sets and reps').closest('.source-note') as HTMLElement;
+    expect(dose.querySelector('.source-value')).toHaveTextContent(/^Sets and reps: straight leg raise, quadriceps set, gluteal set, leg raise to the side, leg raise to the back: 2 sets of 10 to 15/);
+    expect(dose.querySelector('.source-value')?.textContent).not.toMatch(/seated|heel slide|ankle pump/i);
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hospital for Special Surgery, 2024, P1/);
     expect(lines[1]).toBe('Evidence: OPINION (level 5)');
@@ -223,7 +229,8 @@ describe('Home, a plan with home exercises', () => {
   it('shows the dose range in the exercise chips and "ask your care team" for the heel slide, and no undefined or NaN', () => {
     const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
     expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
-    expect(screen.getByText(/Hold time missing/)).toBeInTheDocument();
+    expect(screen.getAllByText('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.')).toHaveLength(1);
+    expect(screen.queryByText(/Hold time missing/)).toBeNull();
     const text = container.textContent ?? '';
     expect(text).not.toMatch(/undefined|NaN/);
     expect(screen.getAllByText('Straightest knee angle: 40 degrees').length).toBeGreaterThan(0);

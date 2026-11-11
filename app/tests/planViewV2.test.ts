@@ -1,6 +1,6 @@
 // Generator version 2 in the plan helpers: home exercises, the new lines of change and the forward check.
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
-import { describeChanges, describeNewPlan, HOLD_LIMIT, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
+import { describeChanges, describeNewPlan, doseScope, HOLD_LIMIT, HOLD_TIME_LINE, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
 import type { Protocol } from '../src/lib/protocol';
 
 // The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
@@ -112,6 +112,30 @@ describe('describeChanges with version 2 items', () => {
     const back = describeChanges(plan(8, { seatedHoldCleared: 'yes' }).protocol, plan(8).protocol);
     expect(back[0]).toContain('Seated knee extension hold removed');
     expect(back[0]).toContain('HOLD_P2');
+  });
+});
+
+describe('the dose scope and the hold time line (A3-06, A3-07)', () => {
+  const holdPlan = () => plan(8, { ...gates, seatedHoldCleared: 'yes' }).protocol;
+
+  it('names the exercises that the dose applies to, and not the heel slide, the ankle pump or the seated hold', () => {
+    expect(doseScope(plan(3).protocol)).toEqual(['straight leg raise', 'quadriceps set', 'gluteal set', 'leg raise to the side', 'leg raise to the back']);
+    expect(doseScope(holdPlan())).toEqual(['straight leg raise', 'quadriceps set', 'gluteal set', 'leg raise to the side', 'leg raise to the back', 'mini squat']);
+  });
+
+  it('says the same plain hold time line in the new plan list and in the change list, and nothing for a plan with no hold', () => {
+    expect(HOLD_TIME_LINE).toBe('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.');
+    const lines = describeNewPlan(holdPlan());
+    expect(lines.filter((l) => l === HOLD_TIME_LINE)).toHaveLength(1);
+    // The missing hold time is not a missing dose: the "How many" line names no hold.
+    expect(lines.join(' ')).not.toMatch(/Hold time: ask/);
+    expect(describeChanges(plan(8).protocol, holdPlan()).filter((l) => l === HOLD_TIME_LINE)).toHaveLength(1);
+    expect(describeNewPlan(plan(3).protocol)).not.toContain(HOLD_TIME_LINE);
+  });
+
+  it('writes the dose line with the names of the exercises', () => {
+    const line = describeNewPlan(holdPlan()).find((l) => l.startsWith('Sets and reps:'))!;
+    expect(line).toContain('Sets and reps: straight leg raise, quadriceps set, gluteal set, leg raise to the side, leg raise to the back, mini squat: 2 sets of 10 to 15, then 3 sets as tolerated');
   });
 });
 

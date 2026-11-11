@@ -2,7 +2,7 @@
 // Every number comes from the generator output. "Why this plan" lists each rule with its sources, its evidence level
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
-import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
+import { answerLines, countStartText, doseScope, HOLD_TIME_LINE, whyView, type PlanDraft } from '../lib/planView';
 import { NO_NUMBER, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
@@ -136,14 +136,14 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
                       ))}
                     </ul>
                   )}
-                  {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">Hold time: ask your care team.</p>}
+                  {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">{HOLD_TIME_LINE}</p>}
                   {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
                 </li>
               );
             })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
-          <SourceNotes made={made.map((e) => e.ruleId)} />
+          <SourceNotes made={made.map((e) => e.ruleId)} scope={doseScope(protocol)} />
           {!hasHeel && (
             <Notice role="note" icon="info">
               <p>{heelNote}</p>
