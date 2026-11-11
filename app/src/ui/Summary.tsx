@@ -18,7 +18,7 @@ import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
 import { Segmented } from './Segmented';
-import { runToSessionInput } from './sessionRecord';
+import { runToSessionInput, storedWhole } from './sessionRecord';
 import type { SessionRunSummary } from './Session';
 import './flowV2.css';
 
@@ -122,7 +122,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     saving.current = false;
   }
 
-  const top = topAngleText(summary.topFlexion);
+  const top = topAngleText(storedWhole(summary.topFlexion));
+  const peakWhole = storedWhole(summary.peakFlexion);
   const unit = summary.holds === null ? 'rep' : 'hold';
 
   return (
@@ -168,7 +169,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
                 <dd>{PEAK_NO_VALUE_TEXT}</dd>
               ) : (
                 <dd>
-                  <span className="num">{Math.round(summary.peakFlexion)}</span> <span className="unit">{plural(Math.round(summary.peakFlexion), 'degree')}</span>
+                  <span className="num">{peakWhole}</span> <span className="unit">{plural(peakWhole, 'degree')}</span>
                   <span className="detail">({ANGLE_LABEL})</span>
                 </dd>
               )}

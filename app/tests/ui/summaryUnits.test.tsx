@@ -71,3 +71,14 @@ describe('Summary units agree with the number (R2-03)', () => {
     expect(screen.getByText('Reps counted').nextElementSibling).toHaveTextContent(/^0 reps$/);
   });
 });
+
+describe('C3-05 the Summary shows the whole degree of the stored value', () => {
+  it('a raw 141.46 shows the same whole number as the stored 141.5 gives in the other screens', async () => {
+    const { storedWhole } = await import('../../src/ui/sessionRecord');
+    expect(storedWhole(141.46)).toBe(142);
+    expect(storedWhole(null)).toBeNull();
+    show({ ...base, peakFlexion: 141.46 }, [10]);
+    const dl = screen.getByText('Highest knee bend').closest('.stat')!;
+    expect(dl.querySelector('.num')!.textContent).toBe(String(storedWhole(141.46)));
+  });
+});

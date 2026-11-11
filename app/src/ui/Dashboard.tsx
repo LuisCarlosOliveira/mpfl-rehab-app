@@ -96,22 +96,28 @@ const dayText = (iso: string, year = false) => {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}${year ? ` ${y}` : ''}`;
 };
 
-const PAD_MIN_MS = 30 * 60_000;
+const PAD_MIN_MS = 2 * 60_000;
+/** The width of the plot in pixels, and the width that one tick label needs. */
+export const PLOT_PX = 412;
+export const LABEL_PX = 44;
 /**
  * The x axis of a line chart. One rule: points on several days give a day axis from the first to the last point.
- * Points that all fall on one day give a time-of-day axis, padded on both sides so the points do not sit on the frame.
+ * Points that all fall on one day give a time-of-day axis, padded on both sides so the points do not sit on the frame. The pad is 15% of the span, at least 2 minutes.
  * One tick for each distinct label, so a label never shows twice.
  */
-export function timeAxis(times: number[]): { domain: [number, number]; ticks: number[]; format: (v: number) => string; title: string } {
+export function timeAxis(times: number[], plotPx = PLOT_PX): { domain: [number, number]; ticks: number[]; format: (v: number) => string; title: string } {
   const first = Math.min(...times);
   const last = Math.max(...times);
   const iso = (v: number) => new Date(v).toISOString();
   const oneDay = iso(first).slice(0, 10) === iso(last).slice(0, 10);
   const format = oneDay ? (v: number) => iso(v).slice(11, 16) : (v: number) => dayText(iso(v).slice(0, 10));
   const pad = oneDay ? Math.max((last - first) * 0.15, PAD_MIN_MS) : 0;
+  const domain: [number, number] = [first - pad, last + pad];
+  const x = (v: number) => ((v - domain[0]) / (domain[1] - domain[0])) * plotPx;
+  // One tick for each readable label: the first stays, a later tick needs a distinct label and room for it.
   const ticks: number[] = [];
-  for (const v of [first, last]) if (!ticks.some((x) => format(x) === format(v))) ticks.push(v);
-  return { domain: [first - pad, last + pad], ticks, format, title: oneDay ? 'Time (UTC)' : 'Date' };
+  for (const v of [first, last]) if (ticks.length === 0 || (format(v) !== format(ticks[ticks.length - 1] as number) && x(v) - x(ticks[ticks.length - 1] as number) >= LABEL_PX)) ticks.push(v);
+  return { domain, ticks, format, title: oneDay ? 'Time (UTC)' : 'Date' };
 }
 
 /** A number for display in whole degrees, as the Summary shows it, so a raw value like 141.1 shows as 141. A value that is not a number gives an empty text.
@@ -130,7 +136,7 @@ function marginText(data: ChartPoint[]): string {
 }
 
 /** A timestamp as "2026-11-01 10:00". A day stays a day. The date never breaks inside. A narrow cell can wrap between the date and the time. */
-function WhenCell({ when }: { when: string }) {
+export function WhenCell({ when }: { when: string }) {
   const [date, time] = (when.length === 10 ? when : when.slice(0, 16).replace('T', ' ')).split(' ');
   return (
     <>

@@ -1,9 +1,11 @@
 // P-DATA2 fix C2-06: the date of a table cell never breaks inside; it can wrap between date and time.
 import { readFileSync } from 'node:fs';
-import { cleanup, render, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { BANNER } from '../../src/lib/reviewSummary';
+import { ClinicianView } from '../../src/ui/ClinicianView';
 import { DashboardCharts } from '../../src/ui/Dashboard';
-import { day, session } from './t11helpers';
+import { day, exportText, peakCriterion, pick, protocolFileText, session, threeSquats } from './t11helpers';
 
 afterEach(cleanup);
 
@@ -22,5 +24,20 @@ describe('C2-06 session cell of the angle table', () => {
     const reps = [...container.querySelectorAll('section.dash-chart')].find((s) => s.querySelector('h2')!.textContent!.startsWith('Reps'))!;
     const cell = within(reps as HTMLElement).getAllByRole('cell')[0]!;
     expect(cell.querySelector('span.no-break')!.textContent).toBe(cell.textContent);
+  });
+});
+
+describe('C3-04 care team tables', () => {
+  it('keeps the date of the session list and of the pain table in a no-break span', async () => {
+    render(<ClinicianView onBack={vi.fn()} mode="demo" now={() => new Date('2026-11-20T09:00:00.000Z')} />);
+    pick(screen.getByLabelText(/session file/i), exportText(threeSquats(120)));
+    await screen.findByText(BANNER);
+    pick(screen.getByLabelText(/protocol file/i), protocolFileText([peakCriterion()]));
+    await screen.findByRole('table', { name: 'Pain and swelling by session' });
+    for (const name of ['Session list', 'Pain and swelling by session']) {
+      const cell = within(screen.getByRole('table', { name })).getAllByRole('row')[1]!.querySelector('td')!;
+      expect(cell.querySelector('span.no-break')!.textContent, name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(cell.textContent, name).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+    }
   });
 });

@@ -10,6 +10,9 @@ import type { SessionRunSummary } from './Session';
 
 const clampAngle = (v: number | null) => (v === null ? null : Math.min(180, Math.max(0, Math.round(v * 10) / 10)));
 
+/** The whole degree of the value that the record stores. The Summary uses it, so it agrees with Your sessions and the care team view. */
+export const storedWhole = (v: number | null) => (v === null ? null : Math.round(clampAngle(v) as number));
+
 export interface RunRecordArgs {
   run: Pick<RunResult, 'reason' | 'summary'>;
   exercise: Exercise;
