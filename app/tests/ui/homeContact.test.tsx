@@ -103,7 +103,12 @@ describe('Home, contact card (B1)', () => {
     await settle();
     expect(card()).not.toBeNull();
     cleanup();
+    // FR12: with no clinician threshold the floor of 7 applies between sets too (final review R-02).
     setup(protocol(), await seed({ setPain: [9] }));
+    await settle();
+    expect(card()).not.toBeNull();
+    cleanup();
+    setup(protocol(), await seed({ setPain: [6] }));
     await settle();
     expect(card()).toBeNull();
   });

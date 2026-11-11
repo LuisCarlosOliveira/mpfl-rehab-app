@@ -85,14 +85,14 @@ describe('Care team view and the front-view change', () => {
     await open([session({ exercise: 'heel-slide', secondView: 'front', frontReps: 3, frontChangeDeg: 6.4 })]);
     const list = screen.getByRole('table', { name: /session list/i });
     expect(within(list).getByRole('columnheader', { name: 'Front-view change, estimated, not a medical measurement' })).toBeInTheDocument();
-    expect(within(list).getByText('6.4 (3 reps)')).toBeInTheDocument();
+    expect(within(list).getByText('6 (3 reps)')).toBeInTheDocument();
   });
 
   it('states the median, the sign and that the number is logged and not a diagnosis, in the note', async () => {
     await open([session({ exercise: 'heel-slide', secondView: 'front', frontReps: 3, frontChangeDeg: -6.4 })]);
     const note = screen.getByText(/^Median of N reps, inward positive, a logged number for your care team, not a diagnosis/);
     expect(note).toBeInTheDocument();
-    expect(screen.getByRole('table', { name: /session list/i })).toHaveTextContent('-6.4 (3 reps)');
+    expect(screen.getByRole('table', { name: /session list/i })).toHaveTextContent('-6 (3 reps)');
   });
 
   it('shows "Not enough front-view data" for a front record with no value, and "Not applicable" for one camera', async () => {

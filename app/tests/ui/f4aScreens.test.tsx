@@ -145,7 +145,7 @@ describe('Care team view', () => {
     ]);
     expect(within(list).getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
     expect(list.textContent).not.toContain('165');
-    expect(within(list).getByText('25.5')).toBeInTheDocument();
+    expect(within(list).getByText('26')).toBeInTheDocument();
     expect(within(list).getByText('130')).toBeInTheDocument();
   });
 
@@ -156,7 +156,7 @@ describe('Care team view', () => {
     ]);
     expect(within(list).getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
     expect(list.textContent).not.toContain('143.5');
-    expect(within(list).getByText('21.5')).toBeInTheDocument();
+    expect(within(list).getByText('22')).toBeInTheDocument();
   });
 });
 
