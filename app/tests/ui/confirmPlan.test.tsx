@@ -315,4 +315,15 @@ describe('ConfirmPlan, AC4-04 and AC4-05', () => {
     setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }), current, db);
     expect(screen.getByRole('heading', { level: 1, name: 'Confirm the change' })).toBeInTheDocument();
   });
+
+  it('AC5-02: a held change does not mention Confirm in the lede; a change that can be confirmed does', async () => {
+    const db = freshDb();
+    const current = await stored(db);
+    const held = setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }, 'Contact your care team before the next stage.'), current, db);
+    expect(screen.getByText('The app changes nothing. Your plan stays as it is.')).toBeInTheDocument();
+    expect(held.view.container.querySelector('.lede')?.textContent).not.toMatch(/Confirm/);
+    held.view.unmount();
+    const open = setup(updateDraft(current, { surgeonLimit: { kind: 'degrees', degrees: 50 } }), current, db);
+    expect(open.view.container.querySelector('.lede')?.textContent).toMatch(/until you press Confirm/);
+  });
 });
