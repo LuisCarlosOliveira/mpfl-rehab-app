@@ -289,7 +289,7 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
   gap: 2px;
   overflow: hidden;
-  background: var(--ink);
+  background: var(--edge); /* the dividers and an empty grid area: never the colour of a checked cell (C-11) */
   border: 2px solid var(--ink);
   border-radius: var(--r-s);
 }
