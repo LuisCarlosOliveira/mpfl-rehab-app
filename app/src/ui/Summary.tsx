@@ -98,9 +98,22 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   }
 
   // No write. The run is already saved, without the answers. The pause message stays when the answers trigger it (FR12), so Done shows after it.
-  function skipQuestions() {
-    if (verdict?.pause) setDiscarded(true);
-    else onDone();
+  // C-03: an answer that started the pause stays in the record, so the care team sees it. The questions left unanswered stay out.
+  async function skipQuestions() {
+    if (!verdict?.pause) return onDone();
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const answers = { pain: pain ?? undefined, swelling: swelling ?? undefined };
+      const id = await run.record?.catch(() => undefined);
+      if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), ...answers });
+      else await updateSessionAnswers(db, id, answers);
+      setSaveError(false);
+      setDiscarded(true);
+    } catch {
+      setSaveError(true); // the pause message stays on screen, because it comes from the live answers
+    }
+    saving.current = false;
   }
 
   const top = topAngleText(summary.topFlexion);
@@ -214,7 +227,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             Done
           </button>
         ) : (
-          <button type="button" className="btn btn-lg" onClick={skipQuestions}>
+          <button type="button" className="btn btn-lg" onClick={() => void skipQuestions()}>
             Skip the questions
           </button>
         )}
