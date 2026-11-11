@@ -190,6 +190,15 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     if (lift !== null) lift.settleSince = null;
   };
 
+  // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
+  const unseen = (t: number): StepOutput => {
+    filter.reset();
+    pauseLift();
+    if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
+    else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
+    return { flexion: null, event: 'paused', repMs: null };
+  };
+
   return {
     ok: true,
     pipeline: {
@@ -197,18 +206,10 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
       step(landmarks, t) {
-        if (landmarks === null) {
-          filter.reset();
-          pauseLift();
-          return { flexion: null, event: 'paused', repMs: null };
-        }
+        if (landmarks === null) return unseen(t);
         const [hip, knee, ankle] = selectLeg(landmarks, side);
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
-        if (raw === null) {
-          filter.reset();
-          pauseLift();
-          return { flexion: null, event: 'paused', repMs: null };
-        }
+        if (raw === null) return unseen(t);
         const f = filter.filter(raw, t);
         peak = peak === null ? f : Math.max(peak, f);
         const sample = { flexion: f, t };
