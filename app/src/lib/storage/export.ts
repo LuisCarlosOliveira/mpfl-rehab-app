@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { version as APP_VERSION } from '../../../package.json';
 import { MAX_FILE_BYTES, describeFirstIssue, overByteCap } from '../protocol/loader';
-import { protocolIdSchema } from '../protocol/schema';
+import { protocolIdSchema, protocolSchema } from '../protocol/schema';
 import { loadGeneratorInputs, readValidRows, sessionSchema, storedInputsSchema, type MpflDb, type SessionData } from './db';
 import { adoptPseudonymId, getPseudonymId, storedPseudonymId } from './meta';
 
@@ -34,11 +34,22 @@ const fail = (code: ExportErrorCode, message: string): { ok: false; error: { cod
 
 const SESSION_KEYS = Object.keys(sessionSchema.shape) as Array<keyof SessionData>;
 
+async function storedPlanIsGenerated(db: MpflDb): Promise<boolean> {
+  const stored = await db.protocol.get('current');
+  if (stored === undefined) return false;
+  try {
+    return protocolSchema.safeParse(JSON.parse(stored.raw)).data?.generated !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 async function buildExport(db: MpflDb): Promise<ExportFile> {
   // A stored row that fails the schema is not written to the file. It stays in the database.
   const rows = readValidRows(await db.sessions.orderBy('date').toArray()).rows;
   const sessions = rows.map((row) => Object.fromEntries(SESSION_KEYS.map((k) => [k, row[k]])) as SessionData);
-  const generatorInputs = await loadGeneratorInputs(db);
+  // The plan answers belong to a plan that the app made. After a care team file replaces the plan, they are not exported.
+  const generatorInputs = (await storedPlanIsGenerated(db)) ? await loadGeneratorInputs(db) : null;
   return {
     schemaVersion: 1,
     appVersion: APP_VERSION,

@@ -312,7 +312,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
         onClose={() => eraseButton.current?.focus()}
       >
         <h2 id="erase-title">Erase all your data?</h2>
-        <p>This removes your sessions, your protocol file and your settings from this device. You cannot undo it.</p>
+        <p>This removes your sessions, your protocol file, your plan answers and your settings from this device. You cannot undo it.</p>
         <p>Files that you already exported stay where you saved them. If you want a copy, export the file first.</p>
         {eraseError && (
           <p className="status-line mt-s" role="alert">

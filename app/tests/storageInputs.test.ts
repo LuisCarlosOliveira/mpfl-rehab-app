@@ -17,6 +17,10 @@ import {
   type StoredInputs,
 } from '../src/lib/storage';
 
+// A generated plan carries the field `generated`. A care team plan does not.
+const generatedPlan = JSON.stringify({ schemaVersion: 1, id: 'g-1', side: 'left', generated: { on: '2026-11-08', rules: [] }, activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
+const careTeamPlan = JSON.stringify({ schemaVersion: 1, id: 'c-1', example: true, side: 'left', activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
+
 let n = 0;
 const freshDb = () => createDb(`inputs-${Date.now()}-${n++}`);
 
@@ -117,6 +121,7 @@ describe('export of the generator answers', () => {
     const db = freshDb();
     await saveSession(db, session());
     await saveGeneratorInputs(db, inputs);
+    await saveProtocol(db, generatedPlan, 'demo');
     expect(JSON.parse(await exportJson(db)).generatorInputs).toEqual(inputs);
     const csv = await exportCsv(db);
     expect(csv).not.toContain('2026-10-01');
@@ -126,6 +131,7 @@ describe('export of the generator answers', () => {
   it('exports the answers when there are no sessions yet', async () => {
     const db = freshDb();
     await saveGeneratorInputs(db, inputs);
+    await saveProtocol(db, generatedPlan, 'demo');
     expect(JSON.parse(await exportJson(db)).generatorInputs.surgeryDate).toBe('2026-10-01');
   });
 
@@ -169,8 +175,6 @@ describe('database version', () => {
 });
 
 describe('export of the generator answers follows the stored plan (A-14)', () => {
-  const generatedPlan = JSON.stringify({ schemaVersion: 1, id: 'g-1', side: 'left', generated: { on: '2026-11-08', rules: [] }, activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
-  const careTeamPlan = JSON.stringify({ schemaVersion: 1, id: 'c-1', example: true, side: 'left', activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
 
   it('holds the answers while the stored plan is a generated plan', async () => {
     const db = freshDb();
