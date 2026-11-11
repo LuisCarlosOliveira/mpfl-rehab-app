@@ -159,6 +159,17 @@ describe('Session with no baseline: the person never holds still', () => {
     expect(reps()).toHaveTextContent('0');
   });
 
+  it('B5-07: after the press the focus moves to the angle readout and not to the page body', () => {
+    const { source } = open();
+    moveAll(source, 0, 20000);
+    fireEvent.click(lowestButton()!);
+    tick();
+    const active = document.activeElement as HTMLElement;
+    expect(active).not.toBe(document.body);
+    expect(active.classList.contains('readout-line')).toBe(true);
+    expect(active.getAttribute('tabindex')).toBe('-1');
+  });
+
   it('after the press shows the angle as an estimate, records the source and counts reps', () => {
     const { source, onEnd } = open();
     const t = moveAll(source, 0, 20000);

@@ -31,6 +31,8 @@ export interface BodyMapHandle {
   /** The readout changed between two frames (B2-01). Sets only the number of the angle text, so map and readout agree at once.
    *  It draws nothing when the arc is off. With null the angle text is empty. */
   setShownAngle(shownAngle: number | null): void;
+  /** Hide the label and the arc of the chosen leg. The screen does this while the camera follows someone who may not be the patient (B5-03). */
+  setChosenHidden(hidden: boolean): void;
 }
 
 interface Props {
@@ -101,6 +103,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const lowSince = useRef<(number | null)[]>([null, null, null]);
   const track = useRef(new Map<number, { last: Landmark; prev: Landmark; held: number }>());
   const sides = useRef({ arc: 1, chosen: 1 });
+  const chosenHidden = useRef(false);
   const arcDrawn = useRef(false); // the arc of the chosen knee is on, so the angle text can show
   const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 }); // the box of the angle text in view box units, for the leg label
   const lastAt = useRef<({ x: number; y: number } | null)[]>([null, null, null]); // the last place where each joint of the chosen leg was seen
@@ -138,6 +141,12 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   useImperativeHandle(
     ref,
     () => ({
+      setChosenHidden(hidden) {
+        chosenHidden.current = hidden;
+        if (!hidden) return;
+        for (const k of ['chosen-label', 'arc-core', 'arc-halo', 'arc-text']) els.current[k]?.setAttribute('display', 'none');
+        arcDrawn.current = false;
+      },
       setShownAngle(shownAngle) {
         const el = els.current['arc-text'];
         if (!el || !arcDrawn.current) return;
@@ -266,12 +275,12 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
         const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
         const thighOn = !lost[0] && !lost[1];
-        show('chosen-label', thighOn && !labels); // the joint chips name the leg on Setup
+        show('chosen-label', thighOn && !labels && !chosenHidden.current); // the joint chips name the leg on Setup
 
         // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
         const angle = kneeAngle(hip, knee, ankle, aspect.current);
         const bend = angle === null ? null : flexion(angle);
-        const arcOn = bend !== null && bend >= 1;
+        const arcOn = bend !== null && bend >= 1 && !chosenHidden.current;
         show('arc-core', arcOn);
         show('arc-halo', arcOn);
         const textValue = shownAngle === undefined ? bend : shownAngle;
