@@ -53,10 +53,14 @@ export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
   'leg-raise-back': 'Leg raise to the back',
 };
 export const NOT_CHECKED = 'The app does not check this exercise.';
+/** The line for a dose that the plan does not hold. The generator sets no dose, so the person asks the care team. */
+export const ASK_HOW_MANY = 'How many: ask your care team';
+/** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
+export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 
 /** The dose of a home exercise as plain words. With no dose in the plan, the person asks the care team. */
 export const homeDose = (h: HomeExercise): string =>
-  h.sets !== undefined && h.reps !== undefined ? `${h.sets} sets of ${h.reps}` : 'How many: ask your care team';
+  h.sets !== undefined && h.reps !== undefined ? `${h.sets} sets of ${h.reps}` : ASK_HOW_MANY;
 
 /** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */
 export function localIsoDate(d: Date): string {
@@ -141,7 +145,6 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
 
 const ADDED_REASON = (e: Exercise, next: Protocol): string => {
   if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
-  if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
   if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
   return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
 };
@@ -149,7 +152,7 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'heel-slide': `the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id})`,
   'straight-leg-raise': `the app adds this exercise in every plan (${RULES.SLR.id})`,
   'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
-  'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
+  'seated-extension-hold': `the app adds no seated hold, because its arc is a clinical number (${RULES.HOLD.id})`,
 };
 
 /** True when the proposal adds a mini squat or a seated hold that the stored plan does not have in the same phase. accept.ts enforces the same rule. */

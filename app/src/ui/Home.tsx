@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
-import { localIsoDate, reviewDue } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
@@ -46,12 +46,15 @@ const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
  */
 export function prescription(e: Exercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
+  // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
+  if (madeByApp && e.sets === undefined && e.holdSeconds === undefined) lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
   if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
   if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   if (e.minFlexion !== undefined) lines.push({ text: `Straightest knee angle: ${e.minFlexion} degrees`, icon: 'ruler' });
+  if (madeByApp && e.maxFlexion === undefined && (e.kind === 'heel-slide' || e.kind === 'mini-squat')) lines.push({ text: ASK_LIMIT, icon: 'ruler' });
   return lines;
 }
 

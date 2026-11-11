@@ -214,22 +214,23 @@ describe('properties of the generator', () => {
           expect(e.holdSeconds).toBeUndefined();
           expect(e.minRepSeconds).toBeUndefined();
           expect(e.maxTopFlexion).toBeUndefined();
-          if (e.kind === 'heel-slide') {
-            expect(e.sets).toBeUndefined();
-            expect(e.reps).toBeUndefined();
-          }
+          // Guardrail: no dose, no mini squat depth and no hold arc from a published source.
+          expect(e.sets, `seed ${seed}`).toBeUndefined();
+          expect(e.reps, `seed ${seed}`).toBeUndefined();
+          expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
           expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
         }
         for (const h of ph.homeExercises ?? []) {
-          if (h.kind === 'ankle-pump') expect(h).not.toHaveProperty('sets');
-          else expect(h).toMatchObject({ sets: 2, reps: 10 });
+          expect(h, `seed ${seed}`).not.toHaveProperty('sets');
+          expect(h, `seed ${seed}`).not.toHaveProperty('reps');
         }
       }
     }
   });
 
-  it('never gives a mini squat ceiling above 50 and never a squat without the gates', () => {
+  it('gives a mini squat a ceiling only from the surgeon number, and never a squat without the gates', () => {
     let squats = 0;
+    let withSurgeon = 0;
     for (const seed of SEEDS) {
       const i = randomInputs(seed);
       const r = generateProtocol(i, TODAY);
@@ -239,31 +240,27 @@ describe('properties of the generator', () => {
         if (squat === undefined) continue;
         squats += 1;
         expect(ph.id, `seed ${seed}`).toBe(2);
-        expect(squat.maxFlexion, `seed ${seed}`).toBeLessThanOrEqual(RULES.SQUAT_DEPTH.values.maxFlexion);
+        if (i.surgeonLimit.kind === 'degrees') {
+          withSurgeon += 1;
+          expect(squat.maxFlexion, `seed ${seed}`).toBe(i.surgeonLimit.degrees);
+        } else {
+          expect(squat.maxFlexion, `seed ${seed}`).toBeUndefined();
+        }
         expect([i.walksWithoutCrutches, i.legRaiseStraight, i.phaseClearance], `seed ${seed}`).toEqual(['yes', 'yes', 'yes']);
         expect(i.kneeGaveWay, `seed ${seed}`).toBe(false);
       }
     }
     expect(squats).toBeGreaterThan(0);
+    expect(withSurgeon).toBeGreaterThan(0);
   });
 
-  it('never gives a seated hold without the reported clearance, in phase 1, or with a straight arc', () => {
-    let holds = 0;
+  // Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, whatever the answers are.
+  it('never adds a seated hold, with any answers', () => {
     for (const seed of SEEDS) {
-      const i = randomInputs(seed);
-      const r = generateProtocol(i, TODAY);
+      const r = generateProtocol(randomInputs(seed), TODAY);
       if (r.kind !== 'protocol') continue;
-      for (const ph of r.protocol.phases) {
-        const hold = ph.exercises.find((e) => e.kind === 'seated-extension-hold');
-        if (hold === undefined) continue;
-        holds += 1;
-        expect(ph.id, `seed ${seed}`).toBe(2);
-        expect(i.seatedHoldCleared, `seed ${seed}`).toBe('yes');
-        expect(hold.minFlexion, `seed ${seed}`).toBeGreaterThan(0);
-        expect(hold.holdSeconds, `seed ${seed}`).toBeUndefined();
-      }
+      for (const ph of r.protocol.phases) expect(ph.exercises.map((e) => e.kind), `seed ${seed}`).not.toContain('seated-extension-hold');
     }
-    expect(holds).toBeGreaterThan(0);
   });
 
   it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {

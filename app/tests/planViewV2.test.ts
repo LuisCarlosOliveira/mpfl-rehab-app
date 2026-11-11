@@ -37,11 +37,13 @@ const gates = { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 const old = (p: Protocol): Protocol => ({ ...p, phases: p.phases.map((ph) => ({ ...ph, homeExercises: undefined })) });
 
 describe('describeNewPlan with home exercises', () => {
-  it('lists each home exercise with its dose and says that the app does not check it', () => {
+  it('lists each home exercise with "ask your care team" in place of a dose and says that the app does not check it', () => {
     const lines = describeNewPlan(plan(3).protocol);
-    expect(lines).toContain(`${HOME_NAMES['quad-set']}, 2 sets of 10. The app does not check this exercise.`);
-    expect(lines).toContain(`${HOME_NAMES['ankle-pump']}. How many: ask your care team. The app does not check this exercise.`);
+    for (const kind of ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const) {
+      expect(lines).toContain(`${HOME_NAMES[kind]}. How many: ask your care team. The app does not check this exercise.`);
+    }
     expect(lines.filter((l) => l.includes('The app does not check'))).toHaveLength(5);
+    expect(lines.join(' ')).not.toMatch(/sets of|undefined|NaN/);
   });
 });
 
@@ -71,31 +73,37 @@ describe('describeChanges with version 2 items', () => {
     expect(lines.join(' ')).not.toContain('HEEL)');
   });
 
-  it('names the seated hold that is added', () => {
-    const lines = describeChanges(plan(8).protocol, plan(8, { seatedHoldCleared: 'yes' }).protocol);
-    expect(lines[0]).toContain('Seated knee extension hold added');
-    expect(lines[0]).toContain('HOLD_P2');
+  it('adds no seated hold, whatever the answer, and names the rule when a hold of an older plan goes', () => {
+    expect(describeChanges(plan(8).protocol, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toEqual([]);
+    const base = plan(8).protocol;
+    const withHold: Protocol = {
+      ...base,
+      phases: base.phases.map((ph) => (ph.id === 2 ? { ...ph, exercises: [...ph.exercises, { kind: 'seated-extension-hold' as const, minFlexion: 40, targetFlexion: 58, source: 'older plan' }] } : ph)),
+    };
+    const lines = describeChanges(withHold, base);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('Seated knee extension hold removed');
+    expect(lines[0]).toContain('HOLD)');
   });
 });
 
 describe('the forward check', () => {
-  it('counts a new mini squat or a new seated hold as a move forward, and a removal as no move', () => {
+  it('counts a new mini squat as a move forward, a seated hold answer as no move, and a removal as no move', () => {
     const base = plan(8).protocol;
     expect(movesForward(base, plan(8, gates).protocol)).toBe(true);
-    expect(movesForward(base, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toBe(true);
+    expect(movesForward(base, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toBe(false);
     expect(movesForward(plan(8, gates).protocol, base)).toBe(false);
     expect(movesForward(base, plan(8).protocol)).toBe(false);
   });
 });
 
 describe('whyView for the new values', () => {
-  it('shows a home exercise dose and the hold values with their own words', () => {
+  it('shows no dose and no hold values, and shows the surgeon number for the mini squat with the words of the person', () => {
     const r = plan(8, { ...gates, seatedHoldCleared: 'yes' });
-    const lines = r.why.filter((w) => ['DOSE', 'HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId)).flatMap((w) => whyView(w).applied);
-    expect(lines.join('\n')).toContain('Phase 2, Quadriceps set, sets: 2');
-    expect(lines.join('\n')).toContain('Phase 2, Mini squat, knee-bend limit: 50 degrees');
-    expect(lines.join('\n')).toContain('Phase 2, Seated knee extension hold, straightest knee angle: 40 degrees');
-    expect(lines.join('\n')).toMatch(/Phase 2, Seated knee extension hold, the app counts the hold at 58 degrees/);
-    expect(lines.join('\n')).not.toMatch(/starts counting a rep at 58/);
+    expect(r.why.some((w) => ['DOSE', 'HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId))).toBe(false);
+    const all = r.why.flatMap((w) => whyView(w).applied).join('\n');
+    expect(all).not.toMatch(/sets:|reps:|Seated knee extension hold|straightest knee angle/);
+    expect(all).toContain('Phase 2, Mini squat, knee-bend limit: 100 degrees (as entered by you)');
+    expect(all).not.toMatch(/starts counting a rep at 58/);
   });
 });

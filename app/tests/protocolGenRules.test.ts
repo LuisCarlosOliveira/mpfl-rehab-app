@@ -87,11 +87,26 @@ describe('rules data', () => {
     }
   });
 
-  it('labels the generated dose with the grade and the population caveat', () => {
-    expect(RULES.DOSE.values).toEqual({ sets: 2, reps: 10 });
-    expect(RULES.DOSE.grade).toBe('OPINION');
-    expect(RULES.DOSE.population).toMatch(/8 to 25/);
-    expect(RULES.DOSE.conservative).toBeTruthy();
+  // Guardrail: the generator never puts a number from a published source into a plan. Every clinical number is a clinician or surgeon field.
+  it('has no rule for a dose, a mini squat depth or a seated hold arc, and no rule that carries such a number', () => {
+    for (const id of ['DOSE', 'SQUAT_DEPTH', 'HOLD_P2', 'ENG_HOLD']) expect(Object.keys(RULES), id).not.toContain(id);
+    const generated = rules.filter((r) => r.kind === 'generated');
+    for (const r of generated) {
+      for (const key of ['sets', 'reps', 'maxFlexion', 'minFlexion', 'arcStart', 'holdSeconds']) expect(Object.keys(r.values), `${r.id} ${key}`).not.toContain(key);
+    }
+  });
+
+  it('says that the app sets no dose for any exercise', () => {
+    expect(RULES.DOSE_NONE.kind).toBe('none');
+    expect(RULES.DOSE_NONE.values).toEqual({});
+    expect(RULES.DOSE_NONE.text).toMatch(/no dose for any exercise/);
+    expect(RULES.DOSE_NONE.text).toMatch(/Ask your care team/);
+  });
+
+  it('says that the app adds no seated hold and no mini squat depth', () => {
+    expect(RULES.HOLD.text).toMatch(/adds no seated knee hold/);
+    expect(RULES.SQUAT_P2.text).toMatch(/no depth limit/);
+    expect(RULES.SQUAT_P2.text).toMatch(/Ask your surgeon/);
   });
 
   it('keeps the camera values labelled ENGINEERING', () => {
