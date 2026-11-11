@@ -6,7 +6,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
-import { BANNER, buildReviewSummary, EVENT_LABEL, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
+import { BANNER, buildReviewSummary, EVENT_LABEL, painText, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
 import { DashboardCharts, TableScroll } from './Dashboard';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
@@ -20,6 +20,9 @@ const FRONT_HEADER = 'Front-view change, estimated, not a medical measurement';
 const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your care team, not a diagnosis. N is the number of reps in the cell. It comes from the second camera.';
 const FRONT_NOT_ENOUGH = 'Not enough front-view data';
 const COUNTED_BY_HAND = 'counted by hand'; // M3: the reps came from the "Count this rep" button, not from the camera
+
+/** An ISO time as "YYYY-MM-DD HH:MM", in UTC like the table heads. */
+const utcMinute = (iso: string) => iso.slice(0, 16).replace('T', ' ');
 
 const NOT_ANSWERED = 'Not answered';
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
@@ -36,14 +39,14 @@ async function readText(file: File, maxBytes: number): Promise<{ ok: true; text:
 
 /** The front-view cell: the median in degrees with the number of reps, or the reason that there is no value. */
 function frontCell(s: SessionRecord): string {
-  if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? String(s.frontChangeDeg) : `${s.frontChangeDeg} (${s.frontReps} reps)`;
+  if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? wholeDegrees(s.frontChangeDeg) : `${wholeDegrees(s.frontChangeDeg)} (${s.frontReps} reps)`;
   return s.secondView === undefined ? NOT_APPLICABLE : FRONT_NOT_ENOUGH;
 }
 
-/** One decimal for display, like Your sessions. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
-const oneDecimal = (value: number) => (Number.isFinite(value * 10) ? String(Math.round(value * 10) / 10) : NO_VALUE);
+/** Whole degrees for display, like the Summary. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
+const wholeDegrees = (value: number) => (Number.isFinite(value) ? String(Math.round(value)) : NO_VALUE);
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
-const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : oneDecimal(value));
+const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : wholeDegrees(value));
 
 /** The reps, with the note when the person counted them by hand. */
 const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
@@ -214,7 +217,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
             >
               {sessions.map((s) => (
                 <tr key={s.id}>
-                  <td>{s.date.slice(0, 16).replace('T', ' ')}</td>
+                  <td>{utcMinute(s.date)}</td>
                   <td>{EXERCISE_NAMES[s.exercise]}</td>
                   <td className="num-cell">{s.phase}</td>
                   <td>{s.protocolId}</td>
@@ -222,7 +225,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
                   <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.topFlexion)}</td>
-                  <td className="num-cell">{s.pain === undefined ? NOT_ANSWERED : s.pain}</td>
+                  <td className="num-cell">{painText(s)}</td>
                   <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}
                 </tr>
@@ -271,7 +274,7 @@ function ReviewSummaryBlock({
               ['Protocol id', header.protocolId],
               ['Phase', `${header.phase.id}: ${header.phase.name}`],
               ['Review date', header.reviewDate ?? 'Not set'],
-              ['Last session', header.lastSessionDate ?? 'No sessions'],
+              ['Last session', header.lastSessionDate === null ? 'No sessions' : `${utcMinute(header.lastSessionDate)} (UTC)`],
               ['Sessions in this file', String(header.sessionsSinceExport)],
             ] as const
           ).map(([label, value]) => (
@@ -319,8 +322,8 @@ function ReviewSummaryBlock({
       <Table label="Pain and swelling by session" head={['Date and time (UTC)', 'Exercise', 'Pain (0 to 10)', 'Swelling']}>
         {painSwellingTable.map((r) => (
           <tr key={r.sessionId}>
-            <td>{r.date.slice(0, 16).replace('T', ' ')}</td>
-            <td>{r.exercise}</td>
+            <td>{utcMinute(r.date)}</td>
+            <td>{EXERCISE_NAMES[r.exerciseKind] ?? r.exercise}</td>
             <td className="num-cell">{r.painText}</td>
             <td>{r.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[r.swelling]}</td>
           </tr>

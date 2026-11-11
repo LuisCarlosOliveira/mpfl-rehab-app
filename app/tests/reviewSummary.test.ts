@@ -209,6 +209,25 @@ describe('header, events and tables', () => {
     expect(s.events.painAtPause).toBe(1);
   });
 
+  it('counts a pain answer between sets for the pause event and shows it in the pain table', () => {
+    const only = session({ date: day(5), pain: undefined, setPain: [3, 8] });
+    const both = session({ date: day(6), pain: 5, setPain: [null, 8] });
+    const s = buildReviewSummary({ protocol: protocolWith([]), phaseId: 1, sessions: [only, both], lastExportAt: null, now: NOW });
+    expect(s.events.painAtPause).toBe(2);
+    expect(s.painSwellingTable.map((r) => r.painText)).toEqual(['8 (between sets)', '5 (0 to 10), 8 (between sets)']);
+  });
+
+  it('keeps "Not answered" when there is no pain answer at all', () => {
+    const none = session({ date: day(5), pain: undefined, setPain: [null] });
+    expect(buildReviewSummary({ protocol: protocolWith([]), phaseId: 1, sessions: [none], lastExportAt: null, now: NOW }).painSwellingTable[0]?.painText).toBe('Not answered');
+  });
+
+  it('shows a measured angle in whole degrees and keeps the raw median for the state', () => {
+    const row = firstRow([squat(1, 100.4), squat(2, 100.4), squat(3, 100.4)]);
+    expect(row.measuredText).toBe('100 degrees (estimated angle, not a medical measurement)');
+    expect(row.measured).toBe(100.4);
+  });
+
   it('fills the header from the caller values', () => {
     const s = buildReviewSummary({ protocol, phaseId: 1, sessions: [], lastExportAt: null, now: NOW, pseudonymId: 'abc-123' });
     expect(s.header).toMatchObject({

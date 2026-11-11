@@ -47,7 +47,7 @@ describe('ClinicianView session file', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('shows the peak and the angle at the top with one decimal in the session list, and keeps the stored values', async () => {
+  it('shows the peak and the angle at the top in whole degrees in the session list, and keeps the stored values', async () => {
     setup();
     const raw = [session({ date: day(1), peakFlexion: 87.34567891, topFlexion: 21.98765 }), session({ date: day(2), peakFlexion: 100 })];
     const text = exportText(raw);
@@ -56,13 +56,41 @@ describe('ClinicianView session file', () => {
     const rows = within(list).getAllByRole('row').slice(1);
     const cells = rows.map((r) => within(r).getAllByRole('cell').map((c) => c.textContent));
     const texts = cells.flat().join('|');
-    expect(texts).toContain('87.3');
+    expect(texts).toContain('87');
     expect(texts).toContain('22');
-    expect(texts).not.toMatch(/87\.3456|21\.987/);
+    expect(texts).not.toMatch(/87\.|21\.|22\./);
     // The row with a whole peak shows it without a decimal.
     expect(cells.some((c) => c.includes('100'))).toBe(true);
     // Display only: the file text that the page read still holds the raw numbers.
     expect(text).toContain('87.34567891');
+  });
+
+  it('shows a pain answer between sets in the session list', async () => {
+    setup();
+    await loadFile(exportText([session({ date: day(1), pain: undefined, setPain: [8] })]));
+    const list = screen.getByRole('table', { name: /session list/i });
+    expect(within(list).getByText('8 (between sets)')).toBeInTheDocument();
+    expect(within(list).queryByText('Not answered', { selector: 'td.num-cell' })).toBeNull();
+  });
+
+  it('shows the last session in the header as "YYYY-MM-DD HH:MM (UTC)"', async () => {
+    setup();
+    await loadFile(exportText([session({ date: '2026-10-29T20:24:00.000Z' })]));
+    pick(protocolPicker(), protocolFileText([peakCriterion()]));
+    const header = await screen.findByRole('region', { name: 'Summary header' });
+    const value = within(header).getByText('Last session').nextElementSibling?.textContent;
+    expect(value).toBe('2026-10-29 20:24 (UTC)');
+    expect(value).not.toMatch(/T\d|Z/);
+  });
+
+  it('uses the same capitalised exercise name in the pain table and the session list', async () => {
+    setup();
+    await loadFile(exportText([session({ date: day(1), exercise: 'heel-slide' }), session({ date: day(2), exercise: 'seated-extension-hold' })]));
+    pick(protocolPicker(), protocolFileText([peakCriterion()]));
+    const pain = await screen.findByRole('table', { name: /pain and swelling by session/i });
+    const names = (t: HTMLElement) => within(t).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[1]?.textContent);
+    expect(names(pain)).toEqual(['Heel slide', 'Seated knee extension hold']);
+    expect(names(screen.getByRole('table', { name: /^session list$/i }))).toEqual(names(pain));
   });
 
   it('shows the named error as plain text for each refused file', async () => {
