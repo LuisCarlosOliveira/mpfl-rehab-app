@@ -8,6 +8,9 @@ import { StateScreen } from './StateScreen';
 export const LOAD_ERROR_TEXT =
   'This screen could not load. The app may have been updated. Try again reloads the page. Saved sessions stay on this device. Unsaved answers are lost.';
 
+/** The text when the device has no network. It is read when the failed state shows, so there is no listener. */
+export const OFFLINE_ERROR_TEXT = 'You are offline. Reconnect, then press Try again. Saved sessions stay on this device. Unsaved answers are lost.';
+
 /** Like `lazy`. The name marks a screen whose chunk can be missing. LoadError handles that case. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the props type comes from the screen that the caller loads
 export function retryableLazy<C extends ComponentType<any>>(load: () => Promise<{ default: C }>) {
@@ -26,7 +29,7 @@ function Failed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }
       primary={{ label: 'Try again', icon: 'refresh-cw', onClick: onRetry }}
       secondary={{ label: 'Back to Home', icon: 'arrow-left', onClick: onBack }}
     >
-      {LOAD_ERROR_TEXT}
+      {typeof navigator !== 'undefined' && navigator.onLine === false ? OFFLINE_ERROR_TEXT : LOAD_ERROR_TEXT}
     </StateScreen>
   );
 }
