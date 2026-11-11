@@ -6,7 +6,7 @@
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { PEAK_UNREADABLE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
+import { PEAK_NO_VALUE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
@@ -159,7 +159,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               <dt>Highest knee bend</dt>
               {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
               {peakUnreadable(exercise.kind, summary.peakFlexion) ? (
-                <dd>{PEAK_UNREADABLE_TEXT}</dd>
+                <dd>{PEAK_NO_VALUE_TEXT}</dd>
               ) : (
                 <dd>
                   <span className="num">{Math.round(summary.peakFlexion)}</span> <span className="unit">{plural(Math.round(summary.peakFlexion), 'degree')}</span>

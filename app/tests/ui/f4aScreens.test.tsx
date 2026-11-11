@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';
 import { loadProtocol, type Exercise } from '../../src/lib/protocol';
 import { BANNER } from '../../src/lib/reviewSummary';
-import { PEAK_UNREADABLE_TEXT } from '../../src/lib/cues';
+import { PEAK_NO_VALUE_TEXT, PEAK_UNREADABLE_TEXT } from '../../src/lib/cues';
 import { CAPTURE_TEXT, LEG_TEXT } from '../../src/ui/setupView';
 import { ClinicianView } from '../../src/ui/ClinicianView';
 import { Summary } from '../../src/ui/Summary';
@@ -37,9 +37,17 @@ describe('Summary: the leg raise peak (M8)', () => {
     expect(screen.queryByText(PEAK_UNREADABLE_TEXT)).toBeNull();
   });
 
+  it('C-06: the highest knee bend line says "No value" and does not claim that the camera could not read', () => {
+    summaryOf(SLR, { ...base, peakFlexion: 46.5, topFlexion: 3 });
+    const stat = screen.getByText('Highest knee bend').closest('.stat') as HTMLElement;
+    expect(stat.textContent).toContain(PEAK_NO_VALUE_TEXT);
+    expect(stat.textContent).not.toMatch(/camera could not read|46/);
+    expect(screen.getByText(/Reps counted/)).toBeInTheDocument();
+  });
+
   it('shows the plain sentence and no number when the peak is above 30 degrees', () => {
     summaryOf(SLR, { ...base, peakFlexion: 165 });
-    expect(screen.getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
+    expect(screen.getByText(PEAK_NO_VALUE_TEXT)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/165/);
     expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
   });

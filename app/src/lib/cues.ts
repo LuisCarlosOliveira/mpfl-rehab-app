@@ -119,6 +119,8 @@ export function stillOverLimit(exercise: Pick<Exercise, 'kind' | 'maxFlexion' | 
 // Your sessions draws no straight leg raise angle chart for this reason. The stored numbers stay in the export and the care team view.
 export const SLR_PEAK_PLAUSIBLE_MAX_DEG = 30;
 export const PEAK_UNREADABLE_TEXT = 'The camera could not read this leg raise.';
+// C-06: the Summary shows camera numbers (reps, top angle) next to the peak. A line that says the camera could not read would contradict them.
+export const PEAK_NO_VALUE_TEXT = 'No value to show.';
 
 /** True when the stored peak of a straight leg raise is too high to trust. The stored value stays as it is. */
 export const peakUnreadable = (kind: Exercise['kind'], peakFlexion: number | null): boolean =>
