@@ -73,6 +73,16 @@ describe('ClinicianView session file', () => {
     expect(within(list).queryByText('Not answered', { selector: 'td.num-cell' })).toBeNull();
   });
 
+  it('shows the last session in the header as "YYYY-MM-DD HH:MM (UTC)"', async () => {
+    setup();
+    await loadFile(exportText([session({ date: '2026-10-29T20:24:00.000Z' })]));
+    pick(protocolPicker(), protocolFileText([peakCriterion()]));
+    const header = await screen.findByRole('region', { name: 'Summary header' });
+    const value = within(header).getByText('Last session').nextElementSibling?.textContent;
+    expect(value).toBe('2026-10-29 20:24 (UTC)');
+    expect(value).not.toMatch(/T\d|Z/);
+  });
+
   it('shows the named error as plain text for each refused file', async () => {
     setup();
     pick(sessionPicker(), 'not json');

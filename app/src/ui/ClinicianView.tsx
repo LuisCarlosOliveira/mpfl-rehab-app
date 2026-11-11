@@ -21,6 +21,9 @@ const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your 
 const FRONT_NOT_ENOUGH = 'Not enough front-view data';
 const COUNTED_BY_HAND = 'counted by hand'; // M3: the reps came from the "Count this rep" button, not from the camera
 
+/** An ISO time as "YYYY-MM-DD HH:MM", in UTC like the table heads. */
+const utcMinute = (iso: string) => iso.slice(0, 16).replace('T', ' ');
+
 const NOT_ANSWERED = 'Not answered';
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
@@ -214,7 +217,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
             >
               {sessions.map((s) => (
                 <tr key={s.id}>
-                  <td>{s.date.slice(0, 16).replace('T', ' ')}</td>
+                  <td>{utcMinute(s.date)}</td>
                   <td>{EXERCISE_NAMES[s.exercise]}</td>
                   <td className="num-cell">{s.phase}</td>
                   <td>{s.protocolId}</td>
@@ -271,7 +274,7 @@ function ReviewSummaryBlock({
               ['Protocol id', header.protocolId],
               ['Phase', `${header.phase.id}: ${header.phase.name}`],
               ['Review date', header.reviewDate ?? 'Not set'],
-              ['Last session', header.lastSessionDate ?? 'No sessions'],
+              ['Last session', header.lastSessionDate === null ? 'No sessions' : `${utcMinute(header.lastSessionDate)} (UTC)`],
               ['Sessions in this file', String(header.sessionsSinceExport)],
             ] as const
           ).map(([label, value]) => (
@@ -319,7 +322,7 @@ function ReviewSummaryBlock({
       <Table label="Pain and swelling by session" head={['Date and time (UTC)', 'Exercise', 'Pain (0 to 10)', 'Swelling']}>
         {painSwellingTable.map((r) => (
           <tr key={r.sessionId}>
-            <td>{r.date.slice(0, 16).replace('T', ' ')}</td>
+            <td>{utcMinute(r.date)}</td>
             <td>{r.exercise}</td>
             <td className="num-cell">{r.painText}</td>
             <td>{r.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[r.swelling]}</td>
