@@ -42,7 +42,6 @@ export interface ChartSeries {
   data: ChartPoint[];
 }
 
-const DAY_MS = 86_400_000;
 const SESSIONS = { one: 'session', many: 'sessions' };
 const DAYS = { one: 'day', many: 'days' };
 
@@ -97,6 +96,24 @@ const dayText = (iso: string, year = false) => {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}${year ? ` ${y}` : ''}`;
 };
 
+const PAD_MIN_MS = 30 * 60_000;
+/**
+ * The x axis of a line chart. One rule: points on several days give a day axis from the first to the last point.
+ * Points that all fall on one day give a time-of-day axis, padded on both sides so the points do not sit on the frame.
+ * One tick for each distinct label, so a label never shows twice.
+ */
+export function timeAxis(times: number[]): { domain: [number, number]; ticks: number[]; format: (v: number) => string; title: string } {
+  const first = Math.min(...times);
+  const last = Math.max(...times);
+  const iso = (v: number) => new Date(v).toISOString();
+  const oneDay = iso(first).slice(0, 10) === iso(last).slice(0, 10);
+  const format = oneDay ? (v: number) => iso(v).slice(11, 16) : (v: number) => dayText(iso(v).slice(0, 10));
+  const pad = oneDay ? Math.max((last - first) * 0.15, PAD_MIN_MS) : 0;
+  const ticks: number[] = [];
+  for (const v of [first, last]) if (!ticks.some((x) => format(x) === format(v))) ticks.push(v);
+  return { domain: [first - pad, last + pad], ticks, format, title: oneDay ? 'Time (UTC)' : 'Date' };
+}
+
 /** A number for display in whole degrees, as the Summary shows it, so a raw value like 141.1 shows as 141. A value that is not a number gives an empty text.
  *  The stored value and the export keep their digits. */
 export const roundWhole = (n: number): string => (Number.isFinite(n) ? String(Math.round(n)) : '');
@@ -142,12 +159,10 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   // A line chart places each point by its time, so a gap of 24 days looks 24 times wider than a gap of 1 day.
   // The reps chart has one bar for each day that has a session, so its axis says so.
   const times = chart.data.map((d) => d.t).filter(Number.isFinite);
-  const first = Math.min(...times);
-  const last = Math.max(...times);
-  const timeDomain: [number, number] = first === last ? [first - DAY_MS, last + DAY_MS] : [first, last];
+  const axis = timeAxis(times);
   const xAxis =
     chart.kind === 'line' ? (
-      <XAxis dataKey="t" type="number" scale="time" domain={timeDomain} ticks={[...new Set([first, last])]} tickFormatter={(v: number) => dayText(new Date(v).toISOString().slice(0, 10))} interval={0} label={{ value: 'Date', position: 'insideBottom', offset: -22 }} />
+      <XAxis dataKey="t" type="number" scale="time" domain={axis.domain} ticks={axis.ticks} tickFormatter={axis.format} interval={0} label={{ value: axis.title, position: 'insideBottom', offset: -22 }} />
     ) : (
       <XAxis dataKey="label" ticks={ends} tickFormatter={(v: string) => dayText(v)} interval={0} label={{ value: 'Days with sessions', position: 'insideBottom', offset: -22 }} />
     );
