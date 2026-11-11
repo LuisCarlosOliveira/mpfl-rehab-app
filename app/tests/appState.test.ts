@@ -112,6 +112,16 @@ describe('protocol and privacy', () => {
     expect(appReducer(initialAppState({ seenPrivacy: false, hasProtocol: false }), { type: 'privacy-seen' }).screen).toBe('load');
     expect(appReducer(initialAppState({ seenPrivacy: false, hasProtocol: true }), { type: 'privacy-seen' }).screen).toBe('home');
   });
+  it('the notice opened from My data returns to My data (A-13)', () => {
+    let s = appReducer(home(), { type: 'open', screen: 'data' });
+    s = appReducer(s, { type: 'open', screen: 'privacy' });
+    expect(s.screen).toBe('privacy');
+    expect(appReducer(s, { type: 'privacy-seen' }).screen).toBe('data');
+  });
+  it('the notice opened from Home returns to Home (A-13)', () => {
+    let s = appReducer(home(), { type: 'open', screen: 'privacy' });
+    expect(appReducer(s, { type: 'privacy-seen' }).screen).toBe('home');
+  });
   it('Progress and My data open from Home', () => {
     expect(appReducer(home(), { type: 'open', screen: 'dashboard' }).screen).toBe('dashboard');
     expect(appReducer(home(), { type: 'open', screen: 'data' }).screen).toBe('data');

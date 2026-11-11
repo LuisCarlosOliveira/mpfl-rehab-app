@@ -45,6 +45,8 @@ export interface AppState {
   baselineDeg: number | null; // resting flexion measured in Setup. null: none measured.
   run: RunResult | null;
   draft: PlanDraft | null;
+  /** Set when the privacy notice opens from My data. "I understand" then returns there. */
+  privacyFrom?: 'data';
 }
 
 export type Action =
@@ -126,12 +128,13 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         screen,
+        privacyFrom: screen === 'privacy' && state.screen === 'data' ? 'data' : undefined,
         redFlagCleared: screen === 'setup' || screen === 'session' ? state.redFlagCleared : false,
         draft: PLAN_FLOW.includes(screen) ? state.draft : null,
       };
     }
     case 'privacy-seen':
-      return { ...state, screen: initialScreen({ seenPrivacy: true, hasProtocol: state.hasProtocol }) };
+      return { ...state, privacyFrom: undefined, screen: state.privacyFrom ?? initialScreen({ seenPrivacy: true, hasProtocol: state.hasProtocol }) };
     case 'protocol-loaded':
       return { ...state, hasProtocol: true, screen: 'home', draft: null };
     case 'choose-exercise': {

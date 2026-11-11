@@ -72,6 +72,8 @@ interface Props {
   onOpenData?: () => void;
   /** T12b: opens the phone screen. It shows only when the handler is given. */
   onOpenCompanion?: () => void;
+  /** Opens the privacy notice. The link shows only when the handler is given. */
+  onOpenPrivacy?: () => void;
   /** Opens "Update my plan". It shows only for a plan that the app made, and only when the handler is given. */
   onUpdatePlan?: () => void;
 }
@@ -81,7 +83,7 @@ export const REVIEW_TITLE = 'Review your plan with your care team';
 export const LAST_PLAN_WEEK = 11;
 export const NO_PLAN_AFTER_WEEK = `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`;
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onOpenPrivacy, onUpdatePlan }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -320,6 +322,14 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                     file to your care team.
                   </p>
                 </Notice>
+              </div>
+            )}
+            {onOpenPrivacy && (
+              <div className="actions">
+                <button type="button" className="btn btn-ghost" onClick={onOpenPrivacy}>
+                  <Icon name="lock" size={18} />
+                  Privacy
+                </button>
               </div>
             )}
           </section>

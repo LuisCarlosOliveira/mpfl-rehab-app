@@ -135,3 +135,12 @@ describe('Home, after week 11 (A-03)', () => {
     expect(screen.getAllByRole('button', { name: 'Update my plan' })).toHaveLength(1);
   });
 });
+
+describe('Home, Privacy link (A-13)', () => {
+  it('shows a Privacy link that opens the notice', () => {
+    const onOpenPrivacy = vi.fn();
+    setup(careTeam(undefined), '2026-03-20', { onOpenPrivacy });
+    fireEvent.click(screen.getByRole('button', { name: 'Privacy' }));
+    expect(onOpenPrivacy).toHaveBeenCalledTimes(1);
+  });
+});
