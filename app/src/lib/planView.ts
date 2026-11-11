@@ -136,6 +136,8 @@ export function describeNewPlan(protocol: Protocol): string[] {
     const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
     const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
+    // The same line as Home: the plan says that no limit was given, and does not leave it out.
+    if (e.kind === 'heel-slide' && e.maxFlexion === undefined && e.source.includes('No limit entered')) lines.push(`${NO_LIMIT_GIVEN}.`);
   }
   for (const h of home) {
     if (!hasDose(h)) askDose = true;

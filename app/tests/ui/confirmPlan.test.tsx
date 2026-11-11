@@ -297,3 +297,10 @@ describe('ConfirmPlan, markup and words', () => {
     expect(hasVerdictWord(view.container.textContent ?? '')).toBeNull();
   });
 });
+
+describe('ConfirmPlan, AC4-04 and AC4-05', () => {
+  it('AC4-05: the list of a new plan with the answer No limit shows the no-limit line of the plan and Home', () => {
+    setup(createDraft({ surgeonLimit: { kind: 'none' }, surgeryDate: '2026-09-12', phaseClearance: 'yes' }), null);
+    expect(screen.getByText('No knee-bend limit was given by your surgeon.')).toBeInTheDocument();
+  });
+});
