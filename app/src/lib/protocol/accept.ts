@@ -3,6 +3,7 @@
 // It does not stop script in the same page: such script can call any function. It stops a plan or a phase change
 // that no click of a person asked for. FR4 and FR30 to FR31 of the plan.
 
+import { movesForward } from '../planView';
 import { loadStoredProtocol, saveProtocol, type MpflDb } from '../storage/db';
 import type { Mode } from './loader';
 import { protocolSchema, type Protocol } from './schema';
@@ -50,30 +51,6 @@ export type AcceptCode =
 export type AcceptResult = { ok: true; protocol: Protocol } | { ok: false; code: AcceptCode; message: string };
 
 const refuse = (code: AcceptCode, message: string): AcceptResult => ({ ok: false, code, message });
-
-const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
-
-/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. */
-function movesForward(current: Protocol, next: Protocol): boolean {
-  if (next.activePhase > current.activePhase) return true;
-  if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
-  for (const phase of next.phases) {
-    const before = current.phases.find((p) => p.id === phase.id);
-    for (const exercise of phase.exercises) {
-      const old = before?.exercises.find((e) => e.kind === exercise.kind);
-      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
-      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
-      if (!old) continue;
-      for (const key of EXERCISE_CEILINGS) {
-        const was = old[key];
-        if (was !== undefined && (exercise[key] === undefined || exercise[key] > was)) return true;
-      }
-      // minFlexion is the straightest angle that is allowed. A lower value allows more.
-      if (old.minFlexion !== undefined && (exercise.minFlexion === undefined || exercise.minFlexion < old.minFlexion)) return true;
-    }
-  }
-  return false;
-}
 
 /**
  * Save a generated plan after a confirmation of a person. It uses the same `saveProtocol` path as a loaded file,

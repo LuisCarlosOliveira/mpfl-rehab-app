@@ -155,28 +155,33 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'seated-extension-hold': `the app adds no seated hold, because its arc is a clinical number (${RULES.HOLD.id})`,
 };
 
-/** True when the proposal adds a mini squat or a seated hold that the stored plan does not have in the same phase. accept.ts enforces the same rule. */
-function addsLoadedExercise(current: Protocol, next: Protocol): boolean {
-  return next.phases.some((phase) => {
-    const before = current.phases.find((p) => p.id === phase.id);
-    return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((x) => x.kind === e.kind));
-  });
-}
+const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
 
-/** True when a limit in the proposal is higher than the stored limit, or is gone. accept.ts enforces the same rule. */
+/**
+ * True when the proposal gives the knee more room than the stored plan: a pain limit that is higher or gone, a knee-bend ceiling that is
+ * higher or gone, a straightest angle that is lower or gone, or a mini squat or a seated hold that the stored plan lacks in the same phase.
+ */
 export function raisesLimit(current: Protocol, next: Protocol): boolean {
-  if (addsLoadedExercise(current, next)) return true;
+  if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
-    for (const e of phase.exercises) {
-      const old = before?.exercises.find((x) => x.kind === e.kind);
-      if (old?.maxFlexion !== undefined && (e.maxFlexion === undefined || e.maxFlexion > old.maxFlexion)) return true;
+    for (const exercise of phase.exercises) {
+      const old = before?.exercises.find((e) => e.kind === exercise.kind);
+      // A mini squat or a seated hold that the stored plan lacks is more load for the knee (generator v2).
+      if (!old && (exercise.kind === 'mini-squat' || exercise.kind === 'seated-extension-hold')) return true;
+      if (!old) continue;
+      for (const key of EXERCISE_CEILINGS) {
+        const was = old[key];
+        if (was !== undefined && (exercise[key] === undefined || exercise[key] > was)) return true;
+      }
+      // minFlexion is the straightest angle that is allowed. A lower value allows more.
+      if (old.minFlexion !== undefined && (exercise.minFlexion === undefined || exercise.minFlexion < old.minFlexion)) return true;
     }
   }
   return false;
 }
 
-/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. accept.ts enforces the same rule. */
+/** True when the proposal moves the plan forward: a later phase, or a limit that is higher or gone. The app and the screens use this one rule. */
 export function movesForward(current: Protocol, next: Protocol): boolean {
   return next.activePhase > current.activePhase || raisesLimit(current, next);
 }
