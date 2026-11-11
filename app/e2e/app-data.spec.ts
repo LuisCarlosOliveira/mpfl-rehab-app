@@ -26,13 +26,17 @@ test('Progress with no session shows the empty text', async ({ page }) => {
   await expect(page.getByText('No sessions yet.')).toBeVisible();
 });
 
-test('Progress shows 3 charts, each with a data table', async ({ page }) => {
+test('Progress shows a chart with a data table for each series that has values, and "No values." for the others', async ({ page }) => {
+  // The fake camera sees no person, so the saved session has a rep count and a pain answer but no knee angle.
   await saveOneSession(page);
   await page.getByRole('button', { name: 'Your sessions' }).click();
   await expectScreen(page, 'Your sessions');
-  await expect(page.locator('main [role="img"].dash-chart-box')).toHaveCount(3);
-  await expect(page.locator('main table.data-table')).toHaveCount(3);
-  await expect(page.getByRole('region', { name: /^Data table:/ })).toHaveCount(3);
+  await expect(page.locator('main [role="img"].dash-chart-box')).toHaveCount(2);
+  await expect(page.locator('main table.data-table')).toHaveCount(2);
+  await expect(page.getByRole('region', { name: /^Data table:/ })).toHaveCount(2);
+  // The peak knee bend series has no value: only its title and one line, no empty frame (final review C2-05).
+  await expect(page.getByRole('heading', { name: /^Peak knee bend, heel slide/ })).toBeVisible();
+  await expect(page.getByText('No values.')).toHaveCount(1);
   await page.getByRole('button', { name: 'Back' }).click();
   await expectScreen(page, 'Home');
 });
