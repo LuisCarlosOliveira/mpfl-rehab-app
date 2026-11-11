@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SETUP_TEXT, type SetupRuleId } from '../../src/lib/setupRules';
-import { countdownSeconds, RULE_ROWS, ruleRows } from '../../src/ui/setupView';
+import { CAMERA_PEOPLE_NOTE, countdownSeconds, RULE_ROWS, ruleRows } from '../../src/ui/setupView';
 
 describe('setup rule list', () => {
   it('lists the six rules in the priority order of the setup check', () => {
@@ -45,5 +45,11 @@ describe('countdownSeconds', () => {
     expect(countdownSeconds(4001)).toBe(5);
     expect(countdownSeconds(400)).toBe(1);
     expect(countdownSeconds(0)).toBe(0);
+  });
+});
+
+describe('B-03: the camera note', () => {
+  it('asks that only the person is in the camera view', () => {
+    expect(CAMERA_PEOPLE_NOTE).toBe('Make sure that only you are in the camera view.');
   });
 });

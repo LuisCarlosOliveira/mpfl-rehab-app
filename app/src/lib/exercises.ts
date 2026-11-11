@@ -29,6 +29,10 @@ const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent o
 const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
 const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
 const LIFT_END_MS = 300; // ENGINEERING, not clinical. In clip 03 the shortest real return to rest lasted about 0.4 s, and a one-frame dip lasts 0.1 s or less.
+// ENGINEERING, not clinical. No source sets these two values. A hip that moves more than this fraction of the picture width in one update
+// is read as another person (B-03). The frames count as not seen until the hip stays steady for HIP_STEADY_MS.
+const HIP_JUMP_FRACTION = 0.1;
+const HIP_STEADY_MS = 500;
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
 // The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
 // spike counts none. A lift ends when the leg stays below the start height for LIFT_END_MS, so a short dip in a hold counts no
@@ -190,6 +194,25 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     if (lift !== null) lift.settleSince = null;
   };
 
+  // B-03: the pose model follows one person. A second person can take the place of the first. A hip that jumps far in one update
+  // is another body. Until the hip is steady, the frames count as not seen.
+  let lastHip: Landmark | null = null;
+  let holdOff = false;
+  let steadyFrom: number | null = null;
+  const hipJumped = (hip: Landmark, t: number): boolean => {
+    if (!visible(hip)) return holdOff;
+    const jump = lastHip === null ? 0 : Math.hypot(hip.x - lastHip.x, (hip.y - lastHip.y) / aspect);
+    lastHip = hip;
+    if (jump > HIP_JUMP_FRACTION) {
+      holdOff = true;
+      steadyFrom = null;
+    } else if (holdOff) {
+      steadyFrom ??= t;
+      if (t - steadyFrom >= HIP_STEADY_MS) holdOff = false;
+    }
+    return holdOff;
+  };
+
   // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
   const unseen = (t: number): StepOutput => {
     filter.reset();
@@ -206,8 +229,12 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
       step(landmarks, t) {
-        if (landmarks === null) return unseen(t);
+        if (landmarks === null) {
+          lastHip = null;
+          return unseen(t);
+        }
         const [hip, knee, ankle] = selectLeg(landmarks, side);
+        if (hipJumped(hip, t)) return unseen(t);
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) return unseen(t);
         const f = filter.filter(raw, t);
