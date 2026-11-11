@@ -35,7 +35,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
   it('a jump to x 0.5 reads as not seen and lockedOut after 4 s. A press far from the start hip shows the other-person state, with no numbers', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) p.step(at(0.7), t);
+    for (; t < 2500; t += 33) p.step(at(0.7), t);
     const jump = t;
     let lockedAt: number | null = null;
     for (; t < jump + 6000; t += 33) {
@@ -58,7 +58,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
   it('two people, one pose: the patient at x 0.7, then the therapist at x 0.3. The numbers never follow the therapist, also after a press', () => {
     const p = make();
     let t = 0;
-    for (; t < 1000; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
+    for (; t < 2500; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
     for (let u = t + 8000; t < u; t += 33) expect(p.step(at(0.3, 100), t).flexion).toBeNull();
     p.followAgain();
     for (let u = t + 3000; t < u; t += 33) expect(p.step(at(0.3, 100), t).flexion).toBeNull();
@@ -67,7 +67,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
   it('a press re-anchors when the hip is back near the start hip (the anchor had drifted away)', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) p.step(at(0.5), t);
+    for (; t < 2500; t += 33) p.step(at(0.5), t);
     for (let x = 0.5; x < 0.62; x += 0.0025, t += 33) p.step(at(x), t); // a slow drift, accepted, the anchor follows
     const jump = t;
     for (; t < jump + 5000; t += 33) expect(p.step(at(0.5), t).flexion).toBeNull(); // 0.12 from the anchor
@@ -80,10 +80,10 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
   it('is not lockedOut before 4 s, and never without a press when the leg is not whole in view', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) p.step(at(0.7), t);
+    for (; t < 2500; t += 33) p.step(at(0.7), t);
     for (let u = t + 3900; t < u; t += 33) expect(p.step(at(0.5), t).lockedOut).toBeFalsy();
     const q = make();
-    for (t = 0; t < 500; t += 33) q.step(at(0.7), t);
+    for (t = 0; t < 2500; t += 33) q.step(at(0.7), t);
     for (let u = t + 8000; t < u; t += 33) expect(q.step(null, t).lockedOut).toBeFalsy(); // no pose is the plain cue
   });
 
@@ -98,7 +98,7 @@ describe('B3-02: a short bad pose does not drag the anchor', () => {
   it('15 frames of a hip that moves 0.04 each frame away, then back: the first hip reads again at once', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) expect(p.step(at(0.6), t).flexion).not.toBeNull();
+    for (; t < 2500; t += 33) expect(p.step(at(0.6), t).flexion).not.toBeNull();
     for (let i = 1; i <= 15; i++, t += 33) p.step(at(0.6 - 0.04 * i), t);
     expect(p.step(at(0.6), t).flexion).not.toBeNull();
   });

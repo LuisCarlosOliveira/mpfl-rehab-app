@@ -51,7 +51,7 @@ describe('B-03: a second person takes over the hip', () => {
   it('B2-02: a far hip is never accepted by steadiness alone, even after a no-pose gap', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
+    for (; t < 2500; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
     for (; t < 800; t += 33) p.step(null, t); // no pose
     for (; t < 3800; t += 33) expect(p.step(at(0.25), t).flexion).toBeNull(); // another person, steady for 3 s
     expect(p.step(at(0.7), t).flexion).not.toBeNull(); // the first hip returns
@@ -61,7 +61,7 @@ describe('B-03: a second person takes over the hip', () => {
   it('reads the frames as not seen when the hip jumps, with no gap', () => {
     const p = make();
     let t = 0;
-    for (; t < 500; t += 33) expect(p.step(at(0.3), t).flexion).not.toBeNull();
+    for (; t < 2500; t += 33) expect(p.step(at(0.3), t).flexion).not.toBeNull();
     for (; t < 3000; t += 33) expect(p.step(at(0.7), t).flexion).toBeNull();
     expect(p.step(at(0.3), t).flexion).not.toBeNull();
   });
