@@ -47,12 +47,11 @@ describe('describeNewPlan with home exercises', () => {
     expect(lines.join(' ')).not.toMatch(/undefined|NaN/);
   });
 
-  it('shows the dose once, as the whole range of the guideline, with the population and the label', () => {
+  it('shows the dose once, as the whole range of the guideline, with the names of the exercises (the source note of the Confirm screen holds the population and the label)', () => {
     const lines = describeNewPlan(plan(3).protocol);
     const dose = lines.filter((l) => l.includes('2 sets of 10 to 15, then 3 sets as tolerated'));
     expect(dose).toHaveLength(1);
-    expect(dose[0]).toContain('ages 8 to 25, not for adults');
-    expect(dose[0]).toContain('Not approved by a clinician');
+    expect(dose[0]).toMatch(/^Sets and reps: straight leg raise, /);
   });
 });
 

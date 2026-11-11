@@ -141,7 +141,7 @@ export function describeNewPlan(protocol: Protocol): string[] {
     if (!hasDose(h)) askDose = true;
     lines.push(`${HOME_NAMES[h.kind]} (at home).`);
   }
-  if ([...exercises, ...home].some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}. P2 is a guideline for ages 8 to 25, not for adults. ${NOT_APPROVED}.`);
+  if ([...exercises, ...home].some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}.`);
   if (exercises.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined)) lines.push(HOLD_TIME_LINE);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
   if (home.length > 0) lines.push('The app does not check the exercises at home.');
