@@ -10,17 +10,47 @@ export function overByteCap(raw: string): boolean {
   return raw.length * 3 > MAX_FILE_BYTES && new TextEncoder().encode(raw).length > MAX_FILE_BYTES;
 }
 
+type Issue = { path: ReadonlyArray<PropertyKey>; message: string; code?: string; origin?: string; minimum?: unknown; maximum?: unknown };
+
+// A message that Zod wrote starts with one of these words. A message that the schema wrote is already plain.
+const ZOD_DEFAULT = /^(Invalid |Too |Unrecognized |Input )/;
+
+/** Plain words for one issue of the schema. The key path stays in the sentence. */
+export function plainIssue(issue: Issue | undefined): string {
+  if (!issue) return 'unknown problem';
+  if (!ZOD_DEFAULT.test(issue.message)) return issue.message;
+  const kind = issue.origin === 'string' ? 'text' : issue.origin === 'array' || issue.origin === 'set' ? 'list' : 'number';
+  switch (issue.code) {
+    case 'invalid_type':
+      return /received undefined/.test(issue.message) ? 'the value is missing' : 'the value has the wrong type';
+    case 'invalid_value':
+      return 'the value is not one of the allowed values';
+    case 'unrecognized_keys':
+      return 'the file has a key that the app does not know';
+    case 'too_small':
+      return kind === 'number' ? `the number is too small (at least ${String(issue.minimum)})` : kind === 'text' ? `the text is too short (at least ${String(issue.minimum)} characters)` : `the list has too few items (at least ${String(issue.minimum)})`;
+    case 'too_big':
+      return kind === 'number' ? `the number is too large (at most ${String(issue.maximum)})` : kind === 'text' ? `the text is too long (at most ${String(issue.maximum)} characters)` : `the list has too many items (at most ${String(issue.maximum)})`;
+    case 'invalid_format':
+      return 'the text does not have the required format';
+    case 'invalid_union':
+      return 'the value does not match any allowed form';
+    default:
+      return 'the value is not valid';
+  }
+}
+
 /**
  * One plain sentence for the first problem of a file. The text is cut, because
  * a message can repeat a key name from the file and the key can be very long.
  */
 export function describeFirstIssue(
-  error: { issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }> },
+  error: { issues: ReadonlyArray<Issue> },
   subject: string,
 ): string {
   const first = error.issues[0];
   const where = first && first.path.length > 0 ? first.path.map(String).join('.') : 'file';
-  const sentence = `The ${subject} is not valid at "${where}": ${first?.message ?? 'unknown problem'}`;
+  const sentence = `The ${subject} is not valid at "${where}": ${plainIssue(first)}`;
   const cut = sentence.length > MAX_MESSAGE_CHARS ? `${sentence.slice(0, MAX_MESSAGE_CHARS)}...` : sentence;
   return cut.endsWith('.') ? cut : `${cut}.`;
 }

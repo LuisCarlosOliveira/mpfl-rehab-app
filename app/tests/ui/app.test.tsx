@@ -111,7 +111,7 @@ describe('App flow', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('The example protocol cannot be used in patient mode.');
   });
 
-  it('opens Privacy from My data and returns to Home', async () => {
+  it('opens Privacy from My data and returns to My data', async () => {
     const db = freshDb();
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
@@ -122,7 +122,7 @@ describe('App flow', () => {
     click('Privacy notice');
     await heading('Privacy');
     click('I understand');
-    await heading('Home');
+    await heading('My data');
   });
 
   it('a red flag blocks the path to the camera', async () => {

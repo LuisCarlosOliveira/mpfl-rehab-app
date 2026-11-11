@@ -242,6 +242,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
+              onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
               onUpdatePlan={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'update' }) : undefined}
             />
           );

@@ -28,7 +28,7 @@ export function Referral({ draft, onLoadFile, onBack }: Props) {
       <div className="action-bar">
         <button type="button" className="btn btn-primary btn-lg" onClick={onLoadFile}>
           <Icon name="file-up" size={20} />
-          Load a plan file
+          Load protocol file
         </button>
         <button type="button" className="btn btn-lg" onClick={onBack}>
           <Icon name="arrow-left" size={18} />

@@ -51,7 +51,7 @@ describe('Referral', () => {
 
   it('goes to the plan file and back to the start', () => {
     const { onLoadFile, onBack } = setup({ writtenPlan: 'yes' });
-    fireEvent.click(screen.getByRole('button', { name: 'Load a plan file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Load protocol file' }));
     expect(onLoadFile).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Back to the start' }));
     expect(onBack).toHaveBeenCalledTimes(1);

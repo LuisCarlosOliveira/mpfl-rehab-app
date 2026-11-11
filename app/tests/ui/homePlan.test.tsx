@@ -1,10 +1,11 @@
 // Home, the plan that the app made: "Update my plan" and the B3 phase review card (adaptation design 5.4, 5.5).
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
 import { Home } from '../../src/ui/Home';
-import { freshDb, protocolText } from './helpers';
+import { saveGeneratorInputs, saveSession } from '../../src/lib/storage';
+import { freshDb, protocolText, sessionInput } from './helpers';
 import { hasVerdictWord } from './verdict';
 
 beforeEach(() => localStorage.clear());
@@ -83,12 +84,22 @@ describe('Home, the phase review card (B3)', () => {
     expect(screen.getByText(CARD)).toBeInTheDocument();
   });
 
-  it('offers Export for my care team and no Update my plan for a care team file', () => {
-    const { onOpenData } = setup(careTeam('2026-03-01'), '2026-03-20');
+  it('offers Export for my care team and no Update my plan for a care team file', async () => {
+    const db = freshDb();
+    await saveSession(db, sessionInput());
+    const { onOpenData } = setup(careTeam('2026-03-01'), '2026-03-20', { db });
+    await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
     expect(screen.getByText(CARD)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Update my plan' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Export for my care team' }));
     expect(onOpenData).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no Export button when there are no sessions (A-09)', async () => {
+    setup(careTeam('2026-03-01'), '2026-03-20');
+    await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
+    expect(screen.getByText(CARD)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export for my care team' })).toBeNull();
   });
 
   it('shows no card when the plan has no review date', () => {
@@ -100,5 +111,36 @@ describe('Home, the phase review card (B3)', () => {
     const { view } = setup(generated(), '2026-11-26');
     expect(hasVerdictWord(view.container.textContent ?? '')).toBeNull();
     expect(view.container.querySelector('[style]')).toBeNull();
+  });
+});
+
+describe('Home, after week 11 (A-03)', () => {
+  const later = '2027-01-14'; // week 13 after the surgery date 2026-10-15
+  it('says the app has no plan and shows no Update my plan, in the card and in the protocol card', async () => {
+    const db = freshDb();
+    await saveGeneratorInputs(db, inputs as never);
+    setup(generated(), later, { db });
+    await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
+    expect(screen.getByText('The app has no plan after week 11. Contact your care team for your next plan.')).toBeInTheDocument();
+    expect(screen.queryByText(/check your plan again/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Update my plan' })).toBeNull();
+  });
+
+  it('keeps the update text and the button up to week 11', async () => {
+    const db = freshDb();
+    await saveGeneratorInputs(db, inputs as never);
+    setup(generated(), '2026-12-20', { db });
+    await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
+    expect(screen.getByText(/check your plan again/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Update my plan' })).toHaveLength(1);
+  });
+});
+
+describe('Home, Privacy link (A-13)', () => {
+  it('shows a Privacy link that opens the notice', () => {
+    const onOpenPrivacy = vi.fn();
+    setup(careTeam(undefined), '2026-03-20', { onOpenPrivacy });
+    fireEvent.click(screen.getByRole('button', { name: 'Privacy' }));
+    expect(onOpenPrivacy).toHaveBeenCalledTimes(1);
   });
 });

@@ -120,3 +120,13 @@ describe('clinician template', () => {
     expect(loadProtocol(JSON.stringify(filled), 'patient').ok).toBe(false);
   });
 });
+
+describe('load message for the unfilled template (A-10)', () => {
+  it('uses plain words and names the first placeholder only', () => {
+    const r = loadProtocol(raw, 'demo');
+    if (r.ok) throw new Error('the unfilled template must be refused');
+    expect(r.error.message).toMatch(/^The protocol is not valid at "[^"]+": /);
+    expect(r.error.message).not.toMatch(/Invalid input|expected|received|undefined/i);
+    expect(r.error.message.match(/not valid at/g)).toHaveLength(1);
+  });
+});
