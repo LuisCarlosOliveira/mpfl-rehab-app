@@ -54,9 +54,9 @@ const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ?
 /** The peak knee bend. A leg raise peak above the plausibility value shows a sentence. The file keeps the number (M8). */
 const peakCell = (s: SessionRecord) => (peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.peakFlexion));
 
-function Table({ label, head, children }: { label: string; head: ReactNode[]; children: ReactNode }) {
+function Table({ label, head, natural, children }: { label: string; head: ReactNode[]; natural?: boolean; children: ReactNode }) {
   return (
-    <TableScroll label={label}>
+    <TableScroll label={label} natural={natural}>
       <table className="data-table" aria-label={label}>
         <thead>
           <tr>
@@ -300,7 +300,7 @@ function ReviewSummaryBlock({
       {rows.length === 0 ? (
         <p>This phase has no review criteria.</p>
       ) : (
-        <Table label="Review criteria" head={['Criterion', 'Limit', 'Evidence', 'Measured', 'Margin', 'State', 'Data']}>
+        <Table natural label="Review criteria" head={['Criterion', 'Limit', 'Evidence', 'Measured', 'Margin', 'State', 'Data']}>
           {rows.map((row, i) => (
             <CriterionRow key={i} row={row} />
           ))}

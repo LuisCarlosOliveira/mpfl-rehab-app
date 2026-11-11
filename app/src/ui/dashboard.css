@@ -96,6 +96,9 @@
   border-radius: var(--r-s);
   background: var(--raised);
 }
+.table-scroll--natural {
+  max-height: none; /* every row shows, only the sideways scroll stays */
+}
 .data-table {
   width: 100%;
   border-collapse: separate;

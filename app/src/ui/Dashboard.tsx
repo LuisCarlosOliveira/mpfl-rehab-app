@@ -123,10 +123,10 @@ function summaryText(rows: TableRow[]): string {
   return `${known.length} ${known.length === 1 ? 'value' : 'values'}. Lowest ${shown(byValue[0]!.valueText)}. Highest ${shown(byValue[byValue.length - 1]!.valueText)}. Last ${shown(known[known.length - 1]!.valueText)}.`;
 }
 
-/** A table box that a keyboard user can scroll. */
-export function TableScroll({ label, children }: { label: string; children: ReactNode }) {
+/** A table box that a keyboard user can scroll. A long table keeps a height limit. A short table (natural) shows every row. */
+export function TableScroll({ label, natural = false, children }: { label: string; natural?: boolean; children: ReactNode }) {
   return (
-    <div className="table-scroll" role="region" aria-label={label} tabIndex={0}>
+    <div className={natural ? 'table-scroll table-scroll--natural' : 'table-scroll'} role="region" aria-label={label} tabIndex={0}>
       {children}
     </div>
   );
