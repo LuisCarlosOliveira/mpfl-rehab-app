@@ -50,6 +50,7 @@ import { StatusLine } from './StatusLine';
 import './sessionV2.css';
 
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
+const LOCK_HOLD_MS = 500; // ENGINEERING: the lock box stays this long after the lock ends. The same time as PAUSED_CUE_MS.
 const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
 const STALE_MS = 2000; // PROPOSAL, no source: no frame for this long shows the camera notice
 // ENGINEERING, not clinical: the over-limit beep repeats this often while the knee stays past the limit (M5).
@@ -85,6 +86,9 @@ const total = (sets: SetsState) => sets.repsPerSet.reduce((a, b) => a + b, 0);
 
 interface Live {
   lockedOut: boolean; // the pipeline reads a far hip for more than 4 s with the whole leg visible (B3-01)
+  otherPerson: boolean; // a press found the hip far from the start hip. No numbers show until the person starts again (B4-01)
+  lockKind: 'locked' | 'other'; // the text of the lock box the last time it showed
+  lockUntil: number; // performance.now() until which the lock box stays after the lock ended (B4-05)
   otherLegMoves: boolean; // the last moving-leg windows named the other leg, in a row (F1)
   flexion: number | null;
   shown: number | null; // the whole-degree angle of the last tick. The map draws this number, so map and readout agree (B2-01).
@@ -104,7 +108,7 @@ interface View {
   waiting: boolean;
   stale: boolean;
   identity: boolean;
-  lockedOut: boolean;
+  lock: 'locked' | 'other' | null; // the lock box under the camera: the prompt with the button, or the other-person text
   /** Whole seconds of the current hold, never more than the hold time. 0 outside a hold. */
   holdSec: number;
   /** The capture while it looks for a starting angle: progress in whole percent and whether the choice can be used. */
@@ -125,7 +129,7 @@ const INITIAL_VIEW: View = {
   waiting: true,
   stale: false,
   identity: false,
-  lockedOut: false,
+  lock: null,
   holdSec: 0,
   capture: null,
 };
@@ -188,6 +192,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const map = useRef<BodyMapHandle>(null);
   const live = useRef<Live>({
     lockedOut: false,
+    otherPerson: false,
+    lockKind: 'locked',
+    lockUntil: 0,
     otherLegMoves: false,
     flexion: null,
     shown: null,
@@ -205,6 +212,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     source: BaselineSource;
   } | null>(null);
   const foundRef = useRef(found);
+  const lockRef = useRef<HTMLDivElement>(null);
+  const angleRef = useRef<HTMLParagraphElement>(null);
+  const focusAfterLock = useRef(false);
   const watcher = useRef<ReturnType<typeof createIdentityWatcher> | null>(null);
   const pipeline = useRef<Pipeline | null>(null);
   const ended = useRef(false);
@@ -262,6 +272,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     const minRepMs = exercise.minRepSeconds === undefined ? null : exercise.minRepSeconds * 1000;
     live.current.shown = null;
     live.current.lockedOut = false;
+    live.current.otherPerson = false;
+    live.current.lockUntil = 0;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
     live.current.holdMs = 0;
@@ -294,6 +306,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       }
       state.flexion = out.flexion;
       state.lockedOut = out.lockedOut === true;
+      state.otherPerson = out.otherPerson === true;
       state.frameAt = now;
       // The hold timer for the screen. It follows the band rule of holdStep and never decides a hold (the counter does).
       if (setup.ok && setup.kind === 'hold') {
@@ -349,6 +362,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const stale = state.frameAt !== null && now - state.frameAt > STALE_MS;
       const cue = state.cue && now < state.cue.until ? state.cue : null;
       const sum = pipeline.current?.summary();
+      // B4-05: the lock box has the same 500 ms hold on hide as the leg cue, so a short blip near a cut never flashes it.
+      const lockNow = !stale && (state.lockedOut || state.otherPerson);
+      if (lockNow) {
+        state.lockKind = state.otherPerson ? 'other' : 'locked';
+        state.lockUntil = now + LOCK_HOLD_MS;
+      }
+      const lock = lockNow || now < state.lockUntil ? state.lockKind : null;
       const angle = stale || state.flexion === null ? null : Math.round(state.flexion);
       state.shown = angle;
       map.current?.setShownAngle(angle);
@@ -356,12 +376,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         angle,
         top: sum ? topAngleText(sum.topFlexion) : null,
         topNote: sum ? topAngleNote(sum.topFlexion) : null,
-        cue: cue && !cue.alert ? cue.text : '',
+        cue: cue && !cue.alert && !(lock !== null && cue.paused) ? cue.text : '', // B4-04: the lock box replaces "Show your whole leg."
         alert: cue?.alert ? cue.text : '',
         waiting,
         stale,
         identity: state.otherLegMoves,
-        lockedOut: !stale && state.lockedOut,
+        lock,
         holdSec: stale || !(setup.ok && setup.kind === 'hold') ? 0 : Math.floor(Math.min(state.holdMs, setup.config.minHoldMs) / 1000),
         capture:
           state.capture === null || foundRef.current !== null
@@ -369,7 +389,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
             : {
                 phase: state.capture.phase,
                 progress: Math.round(state.capture.progress * 100),
-                canUseLowest: state.capture.canUseLowest && !state.lockedOut, // d: no start angle from a person who is locked out
+                canUseLowest: state.capture.canUseLowest && !state.lockedOut && !state.otherPerson, // d: no start angle from a person who is locked out
                 tooBent: state.capture.tooBent,
               },
       };
@@ -410,6 +430,14 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     document.addEventListener('visibilitychange', onChange);
     return () => document.removeEventListener('visibilitychange', onChange);
   }, []);
+
+  // B4-06: when the lock box goes after a press, the focus moves to the angle, so a keyboard user keeps the place.
+  useEffect(() => {
+    if (view.lock === null && focusAfterLock.current) {
+      focusAfterLock.current = false;
+      angleRef.current?.focus();
+    }
+  }, [view.lock]);
 
   // U8: the focus moves to the rest panel title when a set ends.
   useEffect(() => {
@@ -465,7 +493,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // The person pressed the button. Only now does the app take the lowest steady angle.
   function useLowestAngle() {
-    if (live.current.lockedOut) return;
+    if (live.current.lockedOut || live.current.otherPerson) return;
     const chosen = capture.current?.useLowest();
     if (chosen) adopt(chosen);
   }
@@ -474,7 +502,10 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   function followAgain() {
     pipeline.current?.followAgain();
     live.current.lockedOut = false;
-    setView((v) => ({ ...v, lockedOut: false }));
+    live.current.lockUntil = performance.now() + LOCK_HOLD_MS;
+    // B4-06: the button goes away, so the focus moves to the status box. If the box goes too, it moves to the angle.
+    focusAfterLock.current = true;
+    lockRef.current?.focus();
   }
 
   function retryCamera() {
@@ -609,12 +640,14 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 <p role="status" aria-live="polite" className="cue">
                   {view.cue}
                 </p>
-                {view.lockedOut && (
-                  <div className="stack-s" role="status">
-                    <p>{CAPTURE_TEXT.lockedOut}</p>
-                    <button type="button" className="btn" onClick={followAgain}>
-                      {CAPTURE_TEXT.followAgain}
-                    </button>
+                {view.lock !== null && (
+                  <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
+                    {view.lock === 'locked' && (
+                      <button type="button" className="btn" onClick={followAgain}>
+                        {CAPTURE_TEXT.followAgain}
+                      </button>
+                    )}
+                    <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : CAPTURE_TEXT.otherPerson}</p>
                   </div>
                 )}
                 {/* R3-02: the button sits in the slot, right under the camera and before the numbers, so it stays in the first view. */}
@@ -669,7 +702,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   )}
                   <div className="readout">
                     <p className="readout-label">Knee bend</p>
-                    <p className="readout-line">
+                    <p className="readout-line" tabIndex={-1} ref={angleRef}>
                       <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree')}</span>
                     </p>
                   </div>
