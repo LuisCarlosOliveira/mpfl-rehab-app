@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
-import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue } from '../lib/planView';
-import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, type MpflDb, type SessionRecord } from '../lib/storage';
+import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
+import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
@@ -77,17 +77,23 @@ interface Props {
 }
 
 export const REVIEW_TITLE = 'Review your plan with your care team';
+/** The generator makes a plan only for weeks 0 to 11 after surgery. */
+export const LAST_PLAN_WEEK = 11;
+export const NO_PLAN_AFTER_WEEK = `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`;
 
 export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
   const [dismissed, setDismissed] = useState(getContactDismissed);
+  const [weeks, setWeeks] = useState<number | null>(null);
   useEffect(() => {
     let alive = true;
     // A failed read shows no reminder and no contact card. It must not become an unhandled rejection.
     void db.sessions.count().then((n) => alive && setHasSessions(n > 0), () => undefined);
     void lastSession(db).then((s) => alive && setLast(s), () => undefined);
+    // The weeks come from the stored answers. Without them the app cannot tell, and the update stays open.
+    void loadGeneratorInputs(db).then((i) => alive && setWeeks(i?.surgeryDate ? weeksSince(i.surgeryDate, localIsoDate(now())) : null), () => undefined);
     return () => {
       alive = false;
     };
@@ -105,6 +111,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
   const reviewDate = phase?.reviewDate;
   const review = reviewDue(reviewDate, localIsoDate(now()));
   const madeByApp = protocol.generated !== undefined;
+  const pastPlanWeeks = weeks !== null && weeks > LAST_PLAN_WEEK;
+  const canUpdate = madeByApp && !pastPlanWeeks && onUpdatePlan !== undefined;
 
   const exercises = phase?.exercises ?? [];
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
@@ -137,12 +145,14 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
               The review date in your plan is <span className="num">{reviewDate}</span>.
             </p>
             <p className="detail">
-              {madeByApp
+              {madeByApp && pastPlanWeeks
+                ? NO_PLAN_AFTER_WEEK
+                : madeByApp
                 ? 'The app can check your plan again from today\'s date. You confirm the change or keep your plan.'
                 : 'Your care team decides about the next stage. Export your sessions for the review.'}
             </p>
             <div className="actions">
-              {madeByApp && onUpdatePlan && (
+              {canUpdate && (
                 <button type="button" className="btn btn-primary" onClick={onUpdatePlan}>
                   <Icon name="refresh-cw" size={18} />
                   Update my plan
@@ -254,7 +264,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
               )}
             </dl>
             <div className="actions">
-              {madeByApp && onUpdatePlan && !review && (
+              {canUpdate && !review && (
                 <button type="button" className="btn btn-primary" onClick={onUpdatePlan}>
                   <Icon name="refresh-cw" size={18} />
                   Update my plan
