@@ -274,9 +274,17 @@ export interface WhyView {
   conservative?: string;
   sources: string[];
   applied: string[];
+  /** Who the person asks, as the text of the rule says it: "Ask your surgeon" or "Ask your care team". null when the text names neither. */
+  ask: string | null;
   /** True when a clinician has not reviewed the value, as the rule says. */
   needsReview: boolean;
 }
+
+const ASKS = ['Ask your surgeon', 'Ask your care team'] as const;
+
+/** The first "Ask your ..." that a text holds. The chip of a rule follows its own line. */
+export const askOf = (text: string): string | null =>
+  ASKS.map((a) => ({ a, at: text.indexOf(a) })).filter((x) => x.at >= 0).sort((x, y) => x.at - y.at)[0]?.a ?? null;
 
 /** One rule of "Why this plan" as plain fields, so the screen holds no rule logic. */
 export function whyView(e: WhyEntry): WhyView {
@@ -289,6 +297,7 @@ export function whyView(e: WhyEntry): WhyView {
     conservative: e.conservative,
     sources: e.sourceIds.map(sourceLine),
     applied: e.applied.map(appliedLine),
+    ask: askOf(e.text),
     needsReview: e.flag === 'clinical-review-needed',
   };
 }

@@ -134,3 +134,29 @@ describe('PlanResult', () => {
     expect(screen.getByText('Phase 2 Strengthening')).toBeInTheDocument();
   });
 });
+
+describe('A-17: the chip of a rule that is not in the plan matches its own line', () => {
+  const chipOf = (title: string) => {
+    const entry = screen.getByRole('heading', { name: title, level: 3 }).closest('li') as HTMLElement;
+    return { entry, chip: entry.querySelector('.why-head .chip-accent')?.textContent ?? null };
+  };
+
+  it('names the care team where the text says care team, the surgeon where it says surgeon, and shows no chip where it names neither', () => {
+    setup();
+    for (const title of ['Session frequency', 'Repetition tempo', 'Hold time']) expect(chipOf(title).chip, title).toBe('Ask your care team');
+    expect(chipOf('Weight-bearing and brace').chip).toBe('Ask your surgeon');
+    expect(chipOf('Knee-bend ceiling').chip).toBe('Ask your surgeon');
+    expect(chipOf('Dose of every exercise').chip).toBe('Ask your care team');
+    const pause = chipOf('Pain and swelling pause');
+    expect(pause.chip).toBeNull();
+    expect(pause.entry).toHaveTextContent('The pause rule of the app stays');
+  });
+
+  it('never shows a chip that the text of the line does not support', () => {
+    setup();
+    for (const li of document.querySelectorAll('.why-list[aria-label="Not in your plan, and why"] .why-entry')) {
+      const chip = li.querySelector('.why-head .chip-accent')?.textContent;
+      if (chip) expect(li.querySelector('.why-body p')?.textContent).toContain(chip);
+    }
+  });
+});
