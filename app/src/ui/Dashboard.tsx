@@ -97,11 +97,12 @@ const dayText = (iso: string, year = false) => {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}${year ? ` ${y}` : ''}`;
 };
 
-/** A number for display with one decimal at most, so a raw value like 126.199999 shows as 126.2. A value that is not a number gives an empty text. */
-export const roundTo1 = (n: number): string => (Number.isFinite(n * 10) ? String(Math.round(n * 10) / 10) : '');
+/** A number for display in whole degrees, as the Summary shows it, so a raw value like 141.1 shows as 141. A value that is not a number gives an empty text.
+ *  The stored value and the export keep their digits. */
+export const roundWhole = (n: number): string => (Number.isFinite(n) ? String(Math.round(n)) : '');
 
-/** The text of a table row for display. The numbers inside it get one decimal at most. */
-const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d{2,}/g, (m) => roundTo1(Number(m)));
+/** The text of a table row for display. The numbers inside it show as whole numbers. */
+const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d+/g, (m) => roundWhole(Number(m)));
 
 /** The camera errors that the sessions stored: "9", or "6 to 9". */
 function marginText(data: ChartPoint[]): string {
@@ -244,7 +245,7 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
                 <tr key={i}>
                   <td>{whenText(r.when)}</td>
                   <td className="num-cell">{shown(r.valueText)}</td>
-                  {chart.angle && <td className="num-cell">{band && roundTo1(band[0]) !== '' && roundTo1(band[1]) !== '' ? `${roundTo1(band[0])} to ${roundTo1(band[1])} degrees` : 'no value'}</td>}
+                  {chart.angle && <td className="num-cell">{band && roundWhole(band[0]) !== '' && roundWhole(band[1]) !== '' ? `${roundWhole(band[0])} to ${roundWhole(band[1])} degrees` : 'no value'}</td>}
                 </tr>
               );
             })}
@@ -284,7 +285,7 @@ const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
   // The straight leg raise has no angle chart, so its peak is not the last peak either.
-  const lastPeak = [...ordered].reverse().find((x) => x.exercise !== 'straight-leg-raise' && typeof x.peakFlexion === 'number' && roundTo1(x.peakFlexion) !== '');
+  const lastPeak = [...ordered].reverse().find((x) => x.exercise !== 'straight-leg-raise' && typeof x.peakFlexion === 'number' && roundWhole(x.peakFlexion) !== '');
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
   const last = days[days.length - 1];
@@ -299,7 +300,7 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
         {lastPeak ? (
           <p className="stat-value">
             <data className="stat-number" value={lastPeak.peakFlexion as number}>
-              {roundTo1(lastPeak.peakFlexion as number)}
+              {roundWhole(lastPeak.peakFlexion as number)}
             </data>
             <span className="stat-unit">degrees</span>
           </p>

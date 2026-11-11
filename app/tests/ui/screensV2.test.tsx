@@ -97,12 +97,12 @@ describe('C3 Your sessions', () => {
     session({ date: '2026-11-03T10:00:00.000Z', exercise: 'mini-squat', peakFlexion: 90, reps: 5, pain: 1 }),
   ];
 
-  it('rounds raw numbers in every table cell to one decimal (D4)', () => {
+  it('rounds raw numbers in every table cell to whole numbers (D4, C-07)', () => {
     const { container } = render(<Dashboard sessions={list()} onBack={vi.fn()} />);
     const cells = [...container.querySelectorAll('td')].map((c) => c.textContent ?? '');
-    expect(cells.some((t) => t.includes('126.2'))).toBe(true);
-    for (const t of cells) expect(t).not.toMatch(/\d\.\d{2,}/);
-    expect(container.textContent).not.toMatch(/\d\.\d{2,}/);
+    expect(cells.some((t) => t.includes('126 '))).toBe(true);
+    for (const t of cells) expect(t).not.toMatch(/\d\.\d/);
+    expect(container.textContent).not.toMatch(/\d\.\d/);
   });
 
   it('has a stat strip with the last peak, the range, and a legend list with counts and no percent', () => {
