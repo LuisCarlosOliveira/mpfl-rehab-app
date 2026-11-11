@@ -48,15 +48,22 @@ describe('B-03: a second person takes over the hip', () => {
   };
   const at = (x: number) => legLandmarks('right', 40, { hip: { x, y: 0.3 } });
 
-  it('reads the frames as not seen when the hip jumps, until the hip is steady', () => {
+  it('B2-02: a far hip is never accepted by steadiness alone, even after a no-pose gap', () => {
+    const p = make();
+    let t = 0;
+    for (; t < 500; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
+    for (; t < 800; t += 33) p.step(null, t); // no pose
+    for (; t < 3800; t += 33) expect(p.step(at(0.25), t).flexion).toBeNull(); // another person, steady for 3 s
+    expect(p.step(at(0.7), t).flexion).not.toBeNull(); // the first hip returns
+    expect(p.step(at(0.7), t + 33).flexion).not.toBeNull();
+  });
+
+  it('reads the frames as not seen when the hip jumps, with no gap', () => {
     const p = make();
     let t = 0;
     for (; t < 500; t += 33) expect(p.step(at(0.3), t).flexion).not.toBeNull();
-    expect(p.step(at(0.7), t).flexion).toBeNull(); // another person: the hip jumps 0.4 of the width
-    t += 33;
-    expect(p.step(at(0.7), t).flexion).toBeNull(); // still not steady
-    for (t += 33; t < 3000; t += 33) p.step(at(0.7), t);
-    expect(p.step(at(0.7), t).flexion).not.toBeNull(); // steady again
+    for (; t < 3000; t += 33) expect(p.step(at(0.7), t).flexion).toBeNull();
+    expect(p.step(at(0.3), t).flexion).not.toBeNull();
   });
 
   it('keeps a slow hip drift in view', () => {

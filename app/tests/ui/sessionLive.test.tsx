@@ -35,6 +35,31 @@ describe('B-05: one angle on the screen', () => {
     expect(mapText.replace('°', '').trim()).toBe(readout);
   });
 
+  // B2-01: the map redraws at frame rate and the readout every 250 ms. After EVERY frame the two must read the same.
+  it('the map text equals the readout after every frame, also between two ticks', () => {
+    const source = mockSource();
+    const audio = audioHarness();
+    const view = render(<Session exercise={SLR} side="left" baselineDeg={0} source={source} sound={audio.sound} onEnd={vi.fn()} />);
+    const readout = () => view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+    const mapText = () => {
+      const el = view.container.querySelector('[data-k="arc-text"]') as SVGElement;
+      if (el.getAttribute('display') === 'none') return '--';
+      return el.querySelector('tspan')!.textContent!.replace('°', '').trim();
+    };
+    let t = 0;
+    for (let i = 0; i < 60; i++) {
+      t += 33;
+      act(() => source.emit(legLandmarks('left', 10 + ((i * 7) % 50)), t));
+      act(() => void vi.advanceTimersByTime(33));
+      expect(mapText(), `frame ${i}`).toBe(readout());
+    }
+    // no pose: both show nothing
+    act(() => source.emit(null, t + 33));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(readout()).toBe('--');
+    expect(mapText()).toBe('--');
+  });
+
   it('the map shows no angle text when the shown angle is null', () => {
     const handle = createRef<BodyMapHandle>();
     const v = render(<BodyMap ref={handle} leg="left" />);

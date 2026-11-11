@@ -76,7 +76,7 @@ describe('Summary: the leg raise top angle (F5a)', () => {
 
   it('shows the plain sentence and no number when the top angle is above 30 degrees', () => {
     summaryOf(SLR, { ...base, topFlexion: 85 });
-    expect(screen.getByText(PEAK_UNREADABLE_TEXT)).toBeInTheDocument();
+    expect(screen.getAllByText(PEAK_NO_VALUE_TEXT).length).toBeGreaterThan(0);
     expect(document.body.textContent).not.toMatch(/at the top: 85/);
     expect(document.body.textContent).not.toMatch(/\b85\b/);
   });

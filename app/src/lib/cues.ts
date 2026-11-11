@@ -57,7 +57,7 @@ export function cueFor(event: CueEvent, ctx: CueContext): string | null {
 // Reason: too many texts in a row hide the one that matters, and one text must not repeat as a storm.
 export const CUE_MIN_GAP_MS = 3000; // ENGINEERING: at most one non-safety cue in this time
 export const CUE_REPEAT_MS = 10000; // ENGINEERING: the same text does not come again in this time
-export const PAUSED_CUE_MS = 500; // ENGINEERING: the leg must stay out of view this long before the cue shows. The body map uses the same time (no blink).
+export const PAUSED_CUE_MS = 500; // ENGINEERING: the leg must stay out of view this long before the cue shows, and in view this long before it hides. The body map uses the same time (no blink).
 
 // Order, first to last. The "knee gave way or hurts" button is before all of them and is not a cue.
 const CUE_ORDER: CueEvent[] = ['over-limit', 'near-limit', 'paused', 'too-fast', 'shallow', 'hold-restart'];
@@ -73,6 +73,8 @@ const isSafety = (event: CueEvent) => event === 'over-limit' || event === 'near-
 export interface CueGate {
   /** Call on every frame with its event. The leg gate cue waits until the leg has been out of view for PAUSED_CUE_MS. */
   note(event: CueEvent | null, nowMs: number): void;
+  /** True while the leg gate cue is on screen. It shows after PAUSED_CUE_MS of no pose. It hides after PAUSED_CUE_MS of a seen leg (B2-04). */
+  pausedVisible(nowMs: number): boolean;
   /** True when the cue can show now. `safetyActive` is true while a limit alert is on screen. */
   allow(event: CueEvent, text: string, nowMs: number, safetyActive: boolean): boolean;
 }
@@ -81,15 +83,25 @@ export function createCueGate(): CueGate {
   let lastAt = -Infinity;
   const lastText = new Map<string, number>();
   let pausedSince: number | null = null;
+  let seenSince: number | null = null;
+  let shown = false;
   return {
     note(event, nowMs) {
-      if (event !== 'paused') pausedSince = null;
-      else pausedSince ??= nowMs;
+      if (event !== 'paused') {
+        pausedSince = null;
+        seenSince ??= nowMs;
+        if (shown && nowMs - seenSince >= PAUSED_CUE_MS) shown = false;
+      } else {
+        seenSince = null;
+        pausedSince ??= nowMs;
+        if (nowMs - pausedSince >= PAUSED_CUE_MS) shown = true;
+      }
     },
+    pausedVisible: () => shown,
     allow(event, text, nowMs, safetyActive) {
       // A limit cue is never delayed or dropped. The leg gate cue is a state: it stays while the leg is lost, after PAUSED_CUE_MS.
       if (isSafety(event)) return true;
-      if (event === 'paused') return pausedSince !== null && nowMs - pausedSince >= PAUSED_CUE_MS;
+      if (event === 'paused') return shown;
       if (safetyActive) return false;
       if (nowMs - lastAt < CUE_MIN_GAP_MS) return false;
       if (nowMs - (lastText.get(text) ?? -Infinity) < CUE_REPEAT_MS) return false;
@@ -131,7 +143,7 @@ export const topUnreadable = (topFlexion: number | null): boolean => topFlexion 
 
 /** The angle at the top of the straight leg raise, as a number with its label. Above the limit it shows the plain sentence. */
 export function topAngleText(topFlexion: number | null): string | null {
-  if (topUnreadable(topFlexion)) return PEAK_UNREADABLE_TEXT;
+  if (topUnreadable(topFlexion)) return PEAK_NO_VALUE_TEXT; // B2-06: neutral, because reps and a number can show next to it
   return topFlexion === null ? null : `Estimated angle at the top: ${Math.round(topFlexion)} ${plural(Math.round(topFlexion), 'degree')} (${LABEL}).`;
 }
 
