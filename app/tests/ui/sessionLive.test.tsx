@@ -45,3 +45,19 @@ describe('B-05: one angle on the screen', () => {
     expect(arc().textContent).toContain('55');
   });
 });
+
+describe('B-06: "Show your whole leg." does not flicker', () => {
+  it('shows no cue for 3 null frames that are shorter than 500 ms', () => {
+    const source = mockSource();
+    const audio = audioHarness();
+    const view = render(<Session exercise={SLR} side="left" baselineDeg={0} source={source} sound={audio.sound} onEnd={vi.fn()} />);
+    act(() => source.emit(legLandmarks('left', 5), 0));
+    for (const t of [30, 63, 96]) {
+      act(() => source.emit(null, t));
+      act(() => void vi.advanceTimersByTime(100));
+    }
+    act(() => source.emit(legLandmarks('left', 5), 130));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(view.container.textContent).not.toContain('Show your whole leg.');
+  });
+});

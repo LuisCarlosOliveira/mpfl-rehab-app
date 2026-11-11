@@ -57,6 +57,7 @@ export function cueFor(event: CueEvent, ctx: CueContext): string | null {
 // Reason: too many texts in a row hide the one that matters, and one text must not repeat as a storm.
 export const CUE_MIN_GAP_MS = 3000; // ENGINEERING: at most one non-safety cue in this time
 export const CUE_REPEAT_MS = 10000; // ENGINEERING: the same text does not come again in this time
+export const PAUSED_CUE_MS = 500; // ENGINEERING: the leg must stay out of view this long before the cue shows. The body map uses the same time (no blink).
 
 // Order, first to last. The "knee gave way or hurts" button is before all of them and is not a cue.
 const CUE_ORDER: CueEvent[] = ['over-limit', 'near-limit', 'paused', 'too-fast', 'shallow', 'hold-restart'];
@@ -70,6 +71,8 @@ export const cuePriority = (event: CueEvent): number => {
 const isSafety = (event: CueEvent) => event === 'over-limit' || event === 'near-limit';
 
 export interface CueGate {
+  /** Call on every frame with its event. The leg gate cue waits until the leg has been out of view for PAUSED_CUE_MS. */
+  note(event: CueEvent | null, nowMs: number): void;
   /** True when the cue can show now. `safetyActive` is true while a limit alert is on screen. */
   allow(event: CueEvent, text: string, nowMs: number, safetyActive: boolean): boolean;
 }
@@ -77,10 +80,16 @@ export interface CueGate {
 export function createCueGate(): CueGate {
   let lastAt = -Infinity;
   const lastText = new Map<string, number>();
+  let pausedSince: number | null = null;
   return {
+    note(event, nowMs) {
+      if (event !== 'paused') pausedSince = null;
+      else pausedSince ??= nowMs;
+    },
     allow(event, text, nowMs, safetyActive) {
-      // A limit cue is never delayed or dropped. The leg gate cue is a state: it stays while the leg is lost.
-      if (isSafety(event) || event === 'paused') return true;
+      // A limit cue is never delayed or dropped. The leg gate cue is a state: it stays while the leg is lost, after PAUSED_CUE_MS.
+      if (isSafety(event)) return true;
+      if (event === 'paused') return pausedSince !== null && nowMs - pausedSince >= PAUSED_CUE_MS;
       if (safetyActive) return false;
       if (nowMs - lastAt < CUE_MIN_GAP_MS) return false;
       if (nowMs - (lastText.get(text) ?? -Infinity) < CUE_REPEAT_MS) return false;

@@ -161,10 +161,12 @@ describe('Session screen', () => {
     const { source } = setup();
     act(() => source.emit(legLandmarks('left', 20), 0));
     act(() => source.emit(null, 30));
+    tick(600); // the cue waits 500 ms (B-06)
+    act(() => source.emit(null, 630));
     tick();
     expect(polite()).toHaveTextContent('Show your whole leg.');
     expect(screen.getByText('--')).toBeInTheDocument();
-    act(() => source.emit(legLandmarks('left', 20), 60));
+    act(() => source.emit(legLandmarks('left', 20), 700));
     tick();
     expect(polite()).toBeEmptyDOMElement();
   });
@@ -275,6 +277,8 @@ describe('Session sound (FR10, FR23)', () => {
     audio.sound.unlock();
     act(() => source.emit(legLandmarks('left', 20), 0));
     act(() => source.emit(null, 30));
+    tick(600); // the cue waits 500 ms (B-06)
+    act(() => source.emit(null, 630));
     tick();
     expect(polite()).toHaveTextContent('Show your whole leg.');
     expect(audio.oscillators).toHaveLength(0);

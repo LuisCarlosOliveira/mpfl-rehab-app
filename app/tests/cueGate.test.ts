@@ -1,5 +1,5 @@
 // Cue order and rate limit. The 3 s and 10 s values are ENGINEERING values, not clinical values.
-import { CUE_MIN_GAP_MS, CUE_REPEAT_MS, allCueTexts, createCueGate, cueFor, cuePriority, stillOverLimit } from '../src/lib/cues';
+import { CUE_MIN_GAP_MS, CUE_REPEAT_MS, PAUSED_CUE_MS, allCueTexts, createCueGate, cueFor, cuePriority, stillOverLimit } from '../src/lib/cues';
 import { notReadyText } from '../src/ui/notReady';
 
 const BANNED = /\b(correct|incorrect|good|bad|perfect|wrong|mistake|safe|dangerous|score|grade|pass|fail|goal|milestone|met|streak|badge|improved|worse)\b|on track|risk of injury/i;
@@ -46,9 +46,27 @@ describe('cue gate', () => {
     expect(gate.allow('too-fast', 'a', 0, true)).toBe(false);
   });
 
-  it('keeps the leg gate cue on, because the leg is lost and no other cue can fire', () => {
+  it('keeps the leg gate cue on once the leg was lost for 500 ms, because no other cue can fire', () => {
     const gate = createCueGate();
-    for (let t = 0; t < 20000; t += 33) expect(gate.allow('paused', 'p', t, false)).toBe(true);
+    for (let t = 0; t < 20000; t += 33) {
+      gate.note('paused', t);
+      expect(gate.allow('paused', 'p', t, false)).toBe(t >= PAUSED_CUE_MS);
+    }
+  });
+
+  it('B-06: gives no leg gate cue for a gap shorter than 500 ms, and starts the wait again after a seen frame', () => {
+    const gate = createCueGate();
+    for (let t = 0; t < 400; t += 33) {
+      gate.note('paused', t);
+      expect(gate.allow('paused', 'p', t, false)).toBe(false);
+    }
+    gate.note(null, 450); // the leg is back
+    for (let t = 500; t < 900; t += 33) {
+      gate.note('paused', t);
+      expect(gate.allow('paused', 'p', t, false)).toBe(false);
+    }
+    for (let t = 900; t < 1100; t += 33) gate.note('paused', t);
+    expect(gate.allow('paused', 'p', 1100, false)).toBe(true);
   });
 
   it('never shows a storm: 1000 frames of mixed events give at most one non-safety cue each 3 s', () => {

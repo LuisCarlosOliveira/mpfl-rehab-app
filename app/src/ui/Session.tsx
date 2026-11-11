@@ -311,6 +311,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       });
       // A limit alert on screen blocks every other cue. A limit cue itself is never delayed (cue order, design 4.2).
       const alertOn = state.cue !== null && state.cue.alert && now < state.cue.until;
+      gate.note(out.event as CueEvent, now);
       if (text !== null && gate.allow(out.event as CueEvent, text, now, alertOn)) {
         state.cue = {
           text,
