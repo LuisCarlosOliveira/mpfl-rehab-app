@@ -39,10 +39,12 @@ export interface RepsState {
   repStart: number | null;
   peak: number;
   nearLimit: boolean;
-  overLimit: boolean;
+  overLimit: boolean; // the knee went above the limit plus the margin in this rep. The rep does not count.
+  overAlerted: boolean; // the alert fired for the present time above the limit. A gap of no leg clears it (B4-02).
   reps: number;
   lastRepMs: number | null;
   blocked: CountBlock | null; // why no rep can count, or null
+  lostSince: number | null; // the time of the first sample with no leg in the present gap (B4-02)
 }
 
 /** Why no rep can count: the protocol sets no return value, or Setup measured no resting angle. */
@@ -56,6 +58,10 @@ export function countBlock(cfg: Pick<RepsConfig, 'baseline' | 'returnWithin'>): 
 
 export type RepsEvent = 'rep' | 'too-fast' | 'shallow' | 'near-limit' | 'over-limit' | 'paused' | null;
 
+// ENGINEERING, not clinical. No source sets this value. A gap of no leg of this length ends the present time above the limit,
+// so the alert fires again when the knee comes back above it (B4-02, FR8). A shorter gap, for example one lost frame, does not repeat it.
+export const LIMIT_GAP_RESET_MS = 500;
+
 export const repsInitial = (): RepsState => ({
   phase: 'EXTENDED',
   candidateSince: null,
@@ -63,9 +69,11 @@ export const repsInitial = (): RepsState => ({
   peak: 0,
   nearLimit: false,
   overLimit: false,
+  overAlerted: false,
   reps: 0,
   lastRepMs: null,
   blocked: null,
+  lostSince: null,
 });
 
 export function repsStep(
@@ -73,16 +81,24 @@ export function repsStep(
   sample: Sample,
   cfg: RepsConfig,
 ): { state: RepsState; event: RepsEvent } {
-  if (sample.flexion === null) return { state: { ...state, candidateSince: null }, event: 'paused' };
+  if (sample.flexion === null) {
+    const lostSince = state.lostSince ?? sample.t;
+    const longGap = sample.t - lostSince >= LIMIT_GAP_RESET_MS;
+    return {
+      state: { ...state, candidateSince: null, lostSince, nearLimit: longGap ? false : state.nearLimit, overAlerted: longGap ? false : state.overAlerted },
+      event: 'paused',
+    };
+  }
   const { flexion, t } = sample;
   const margin = cfg.margin ?? 0;
-  const s = { ...state, blocked: countBlock(cfg) };
+  const s = { ...state, blocked: countBlock(cfg), lostSince: null };
   const exit = s.blocked === null ? (cfg.baseline as number) + (cfg.returnWithin as number) : null;
   let event: RepsEvent = null;
 
   if (cfg.maxFlexion !== undefined) {
-    if (flexion > cfg.maxFlexion + margin && !s.overLimit) {
+    if (flexion > cfg.maxFlexion + margin && !s.overAlerted) {
       s.overLimit = true;
+      s.overAlerted = true;
       event = 'over-limit';
     } else if (flexion >= cfg.maxFlexion - margin && !s.nearLimit && !s.overLimit) {
       s.nearLimit = true;
@@ -95,6 +111,7 @@ export function repsStep(
     if (flexion < cfg.enter) {
       s.nearLimit = false;
       s.overLimit = false;
+      s.overAlerted = false;
     }
     return { state: s, event };
   }
@@ -118,6 +135,7 @@ export function repsStep(
       s.peak = 0;
       s.nearLimit = false;
       s.overLimit = false;
+      s.overAlerted = false;
     }
   } else {
     s.peak = Math.max(s.peak, flexion);
@@ -140,6 +158,8 @@ export function repsStep(
         s.peak = 0;
         s.nearLimit = false;
         s.overLimit = false;
+        s.overAlerted = false;
+      s.overAlerted = false;
       }
     } else {
       s.candidateSince = null;
