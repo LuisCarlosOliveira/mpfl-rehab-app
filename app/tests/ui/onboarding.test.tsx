@@ -330,6 +330,52 @@ describe('Onboarding, the summary and the plan', () => {
     expect(onDone.mock.calls[0]![0].inputs).toMatchObject({ walksWithoutCrutches: 'unknown', legRaiseStraight: 'unknown', seatedHoldCleared: 'unknown' });
   });
 
+  it('shows the three questions by default with a plain text, keeps each answer on Back, and shows a summary row for each', () => {
+    setup();
+    walk('2026-09-15');
+    expect(h1()).toMatch(/Has your surgeon or physiotherapist said/);
+    choose('Yes'); next();
+    expect(h1()).toBe('Do you walk without crutches?');
+    choose('Yes'); next();
+    expect(h1()).toBe('Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?');
+    choose('No'); next();
+    expect(h1()).toBe('Did your surgeon say that you can do knee straightening exercises while you sit?');
+    choose('Yes');
+    back();
+    expect(h1()).toMatch(/Can you lift your leg/);
+    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
+    back();
+    expect(h1()).toBe('Do you walk without crutches?');
+    expect(screen.getByRole('radio', { name: 'Yes' })).toBeChecked();
+    next(); next(); next();
+    expect(h1()).toBe('Check your answers');
+    for (const label of ['Walking without crutches', 'Leg raise with a straight knee', 'Knee straightening while you sit, said by your surgeon']) {
+      expect(screen.getByText(label), label).toBeInTheDocument();
+    }
+    for (const name of ['Change the walking answer', 'Change the leg raise answer', 'Change the seated exercise answer']) {
+      expect(screen.getByRole('button', { name }), name).toBeInTheDocument();
+    }
+  });
+
+  it('leaves the mini squat and the seated hold out for a no or an unknown answer, and says so with the words of the guideline', () => {
+    const { onDone } = setup();
+    walk('2026-09-15', () => {
+      choose('Yes'); next();
+      choose('No'); next();
+      choose('I do not know'); next();
+      choose('I do not know'); next();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
+    const draft = onDone.mock.calls[0]![0];
+    const kinds = draft.protocol.phases.find((p: { id: number }) => p.id === 2).exercises.map((e: { kind: string }) => e.kind);
+    expect(kinds).not.toContain('mini-squat');
+    expect(kinds).not.toContain('seated-extension-hold');
+    const squat = draft.why.find((w: { ruleId: string }) => w.ruleId === 'SQUAT_P2');
+    expect(squat.text).toMatch(/not in your plan/);
+    expect(squat.text).toMatch(/P3 lists the mini squat/);
+    expect(draft.why.find((w: { ruleId: string }) => w.ruleId === 'HOLD').text).toMatch(/P1 and P2 avoid/);
+  });
+
   it('adds the mini squat to the plan when both answers are yes, and no hold without the surgeon answer', () => {
     const { onDone } = setup();
     walk('2026-09-15', () => {
