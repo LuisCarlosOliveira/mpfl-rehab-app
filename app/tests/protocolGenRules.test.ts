@@ -1,5 +1,5 @@
 import { GRADES, SOURCES } from '../src/lib/protocolGen/sources';
-import { RULES, RULE_IDS, type Rule } from '../src/lib/protocolGen/rules';
+import { NO_NUMBER, RANGE_REFERENCE, RULES, RULE_IDS, type Rule } from '../src/lib/protocolGen/rules';
 
 const rules = RULE_IDS.map((id) => RULES[id] as Rule);
 const words = (s: string) => s.trim().split(/\s+/).length;
@@ -105,7 +105,7 @@ describe('rules data', () => {
     expect(RULES.DOSE_NONE.values).toEqual({});
     expect(RULES.DOSE_NONE.text).toMatch(/heel slide/);
     expect(RULES.DOSE_NONE.text).toMatch(/ankle pump/);
-    expect(RULES.DOSE_NONE.text).toMatch(/No number in the guideline/);
+    expect(RULES.DOSE_NONE.text).toMatch(/Ask your care team/);
   });
 
   it('gives the depth rule the depth 50, its sources, the audit rows V95 and V116, and the source that disagrees', () => {
@@ -116,6 +116,17 @@ describe('rules data', () => {
     expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116']);
     expect(RULES.SQUAT_DEPTH.text).toMatch(/A limit from your surgeon can only lower it/);
     expect(RULES.SQUAT_DEPTH.conservative).toMatch(/disagree/);
+  });
+
+  it('gives the one reference line for the knee bend by week from S1, and says that it is not a limit', () => {
+    expect(RANGE_REFERENCE).toBe(
+      'Typical practice: start at 0 to 30 degrees in week 1 or 2 and add 20 to 30 degrees each week (Hsu 2025). This is not a limit. Your surgeon sets your limit.',
+    );
+    expect(NO_NUMBER).toBe('No number in the guideline.');
+    expect(RULES.RANGE_NONE.kind).toBe('none');
+    expect(RULES.RANGE_NONE.values).toEqual({});
+    expect(RULES.RANGE_NONE.auditRows).toEqual(['V10']);
+    expect(RULES.RANGE_NONE.sourceIds).toContain('S1');
   });
 
   it('keeps the camera values labelled ENGINEERING', () => {

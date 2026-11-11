@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
-import { DOSE_SHOWN } from '../lib/protocolGen';
+import { DOSE_SHOWN, NO_NUMBER, RANGE_REFERENCE } from '../lib/protocolGen';
 import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
@@ -229,6 +229,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
           <HomeExerciseList items={phase?.homeExercises ?? []} />
           {protocol.generated?.rules.includes('DOSE') === true && <SourceNote rule="DOSE" label="Sets and reps" />}
           <PlanLines protocol={protocol} />
+          {madeByApp && (
+            <p className="detail range-reference">
+              Knee bend by week: {NO_NUMBER} {RANGE_REFERENCE}
+            </p>
+          )}
         </section>
 
         <div className="stack">

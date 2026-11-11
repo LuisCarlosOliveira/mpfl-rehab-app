@@ -136,6 +136,33 @@ describe('PlanResult', () => {
   });
 });
 
+describe('values that no guideline gives', () => {
+  const open = (title: string) => {
+    const entry = screen.getByRole('heading', { name: title, level: 3 }).closest('li') as HTMLElement;
+    return entry;
+  };
+
+  it('shows the plain line and the words of the guideline in each rule of kind none, and the line in no rule that holds a number', () => {
+    setup();
+    for (const title of ['Knee-bend ceiling', 'Hold time', 'Repetition tempo', 'Session frequency', 'Numeric pain or swelling stop', 'Weight-bearing and brace']) {
+      const entry = open(title);
+      expect(within(entry).getByText('No number in the guideline.'), title).toBeInTheDocument();
+    }
+    expect(open('Knee-bend ceiling')).toHaveTextContent('passive range targets');
+    expect(open('Hold time')).toHaveTextContent('test of the straight leg raise');
+    expect(within(open('Straight leg raise')).queryByText('No number in the guideline.')).toBeNull();
+    expect(within(open('Dose of the strengthening exercise')).queryByText('No number in the guideline.')).toBeNull();
+  });
+
+  it('shows the one reference line for the knee bend by week, once, as typical practice and not a limit', () => {
+    const { container } = setup().view;
+    const line = container.querySelector('.range-reference') as HTMLElement;
+    expect(line).toHaveTextContent('Typical practice: start at 0 to 30 degrees in week 1 or 2 and add 20 to 30 degrees each week (Hsu 2025). This is not a limit. Your surgeon sets your limit.');
+    expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
+    expect(container.textContent).not.toMatch(/week 3 |week 4 |undefined|NaN/);
+  });
+});
+
 describe('A-17: the chip of a rule that is not in the plan matches its own line', () => {
   const chipOf = (title: string) => {
     const entry = screen.getByRole('heading', { name: title, level: 3 }).closest('li') as HTMLElement;

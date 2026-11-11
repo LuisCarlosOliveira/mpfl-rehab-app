@@ -34,7 +34,7 @@ const NOT_CHECKED = 'The app does not check this exercise.';
 const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 const HOME_GROUP_TITLE = 'At home';
 const HOME_HOW_MANY = 'How many: 2 sets of 10 to 15, then 3 sets as tolerated.';
-const HOME_ASK_ANKLE = 'Ankle pump: ask your care team.';
+const HOME_ASK_ANKLE = 'Ankle pump: No number in the guideline. Ask your care team.';
 
 describe('PlanResult, home exercises and text lines', () => {
   it('lists the home exercises under one visible heading, with the dose sentence and the not-checked sentence once for the group (A-05)', () => {
@@ -211,6 +211,13 @@ describe('Home, a plan with home exercises', () => {
     show(r.protocol);
     expect(screen.queryByRole('list', { name: 'Exercises that the app does not check' })).toBeNull();
     expect(screen.queryByText(RULES.PT_VISITS.text)).toBeNull();
+  });
+
+  it('shows the reference line for the knee bend once, as typical practice and not a limit, and no per-week table', () => {
+    const { container } = show(protocol());
+    expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
+    expect(container.querySelector('.range-reference')).toHaveTextContent('This is not a limit. Your surgeon sets your limit.');
+    expect(container.textContent).not.toMatch(/week 3 |week 4 |week 5 /);
   });
 
   it('shows the dose range in the exercise chips and "ask your care team" for the heel slide, and no undefined or NaN', () => {

@@ -206,6 +206,9 @@ describe('properties of the generator', () => {
   it('never fills a value that the knowledge base leaves as NONE', () => {
     for (const { seed, protocol } of protocols) {
       expect(protocol.painPauseThreshold, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.brace, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.weightBearing, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.depthLimit, `seed ${seed}`).toBeUndefined();
       expect(protocol.approvedOn, `seed ${seed}`).toBeUndefined();
       expect(protocol.generated, `seed ${seed}`).toMatchObject({ on: TODAY });
       for (const ph of protocol.phases) {
@@ -230,6 +233,22 @@ describe('properties of the generator', () => {
         }
       }
     }
+  });
+
+  it('gives no number where the guideline gives none: a rule of kind none has no value and no applied value', () => {
+    let checked = 0;
+    for (const seed of SEEDS) {
+      const r = generateProtocol(randomInputs(seed), TODAY);
+      if (r.kind !== 'protocol') continue;
+      for (const w of r.why) {
+        if (RULES[w.ruleId].kind !== 'none') continue;
+        checked += 1;
+        expect(w.applied, `seed ${seed} ${w.ruleId}`).toEqual([]);
+        expect(w.outcome, `seed ${seed} ${w.ruleId}`).toBe('refused');
+        expect(RULES[w.ruleId].values, `seed ${seed} ${w.ruleId}`).toEqual({});
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 
   it('never gives a mini squat ceiling above 50, lowers it only with a surgeon number, and never gives a squat without the gates', () => {

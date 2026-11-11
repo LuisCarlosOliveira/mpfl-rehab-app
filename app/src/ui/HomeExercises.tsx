@@ -2,7 +2,7 @@
 // The list has no Start button and no count. The text comes from the rules, so one sentence has one place.
 import { ASK_HOW_MANY, HOME_NAMES, NOT_CHECKED_GROUP } from '../lib/planView';
 import type { HomeExercise, Protocol } from '../lib/protocol';
-import { DOSE_SHOWN, RULES } from '../lib/protocolGen';
+import { DOSE_SHOWN, NO_NUMBER, RULES } from '../lib/protocolGen';
 import './screensV2.css';
 
 /**
@@ -28,7 +28,7 @@ export function HomeExerciseList({ items }: { items: readonly HomeExercise[] }) 
       {dosed && <p className="detail home-note">How many: {DOSE_SHOWN}.</p>}
       {askDose && (
         <p className="detail home-note">
-          {dosed ? `${items.filter((h) => !hasDose(h)).map((h) => HOME_NAMES[h.kind]).join(', ')}: ask your care team.` : `${ASK_HOW_MANY}.`}
+          {dosed ? `${items.filter((h) => !hasDose(h)).map((h) => HOME_NAMES[h.kind]).join(', ')}: ${NO_NUMBER} Ask your care team.` : `${ASK_HOW_MANY}.`}
         </p>
       )}
       <p className="detail home-note">{NOT_CHECKED_GROUP}</p>

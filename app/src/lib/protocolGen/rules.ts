@@ -60,6 +60,13 @@ export const REFERRAL_LINE = 'The app cannot make a plan for you.';
 const ADULT_ISO = 'Adults after a first, isolated MPFL reconstruction. The sources state no age limit.';
 const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not studied in adults after MPFL reconstruction.';
 
+/** The one line of reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
+export const RANGE_REFERENCE =
+  'Typical practice: start at 0 to 30 degrees in week 1 or 2 and add 20 to 30 degrees each week (Hsu 2025). This is not a limit. Your surgeon sets your limit.';
+
+/** The plain line for a value that no source gives. */
+export const NO_NUMBER = 'No number in the guideline.';
+
 /** The dose as P2 rec 26 gives it. The plan shows the whole range. */
 export const DOSE_SHOWN = '2 sets of 10 to 15, then 3 sets as tolerated';
 
@@ -303,13 +310,14 @@ const defs = {
     grade: 'NONE',
     population: 'Not applicable',
     reason: 'P2 gives a dose for strengthening exercises only. No source gives a dose for the heel slide or the ankle pump.',
-    text: 'The app sets no dose for the heel slide and the ankle pump. No number in the guideline. Ask your care team how many to do.',
+    text: 'The app sets no dose for the heel slide and the ankle pump. Ask your care team how many to do.',
   },
   // Range
   RANGE_NONE: {
     title: 'Knee-bend ceiling',
     kind: 'none',
     values: {},
+    auditRows: ['V10'],
     sourceIds: ['P2', 'P1', 'S1', 'N3'],
     grade: 'NONE',
     population: 'Not applicable',

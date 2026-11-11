@@ -242,6 +242,11 @@
   gap: var(--s-1);
 }
 
+/* The plain line for a value that no guideline gives, in "Why this plan". */
+.v2-screens .why-body .no-number {
+  font-weight: 650;
+}
+
 /* ---------- C3 Your sessions ---------- */
 .v2-sessions .stat-strip {
   display: grid;

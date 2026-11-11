@@ -3,7 +3,7 @@
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
 import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
-import { RULES } from '../lib/protocolGen';
+import { NO_NUMBER, RANGE_REFERENCE, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
@@ -40,6 +40,12 @@ function WhyList({ entries, label, asks }: { entries: PlanOnly['why']; label: st
               </summary>
               <div className="why-body">
             <p>{v.text}</p>
+            {v.noNumber !== null && (
+              <>
+                <p className="no-number">{NO_NUMBER}</p>
+                {v.noNumber.words !== '' && <p className="detail">{v.noNumber.words}</p>}
+              </>
+            )}
             <dl className="facts">
               <div className="fact-row">
                 <dt>Evidence</dt>
@@ -154,6 +160,9 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
             </Notice>
           )}
           <PlanLines protocol={protocol} />
+          <p className="detail range-reference">
+            Knee bend by week: {NO_NUMBER} {RANGE_REFERENCE}
+          </p>
           <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
         </section>
 

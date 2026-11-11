@@ -249,3 +249,13 @@ describe('one movesForward rule (R-03)', () => {
     expect(raisesLimit(base({ painPauseThreshold: 3 }, {}), base({}, {}))).toBe(true);
   });
 });
+
+describe('whyView for a value that no guideline gives', () => {
+  it('holds the words of the guideline for a rule of kind none and nothing for the other rules', () => {
+    const entries = plan(4).why;
+    const none = entries.filter((e) => RULES[e.ruleId].kind === 'none');
+    expect(none.length).toBeGreaterThan(5);
+    for (const e of none) expect(whyView(e).noNumber, e.ruleId).toEqual({ words: RULES[e.ruleId].reason });
+    for (const e of entries.filter((x) => RULES[x.ruleId].kind !== 'none')) expect(whyView(e).noNumber, e.ruleId).toBeNull();
+  });
+});

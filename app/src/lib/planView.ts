@@ -60,9 +60,6 @@ export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 
-/** The plain line for a value that the guideline does not give. */
-export const NO_NUMBER = 'No number in the guideline.';
-
 /** The rules whose number comes from a published source and shows with a source note. */
 export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2';
 
@@ -298,6 +295,8 @@ export interface WhyView {
   ask: string | null;
   /** True when a clinician has not reviewed the value, as the rule says. */
   needsReview: boolean;
+  /** For a value that no source gives: the words of the guideline (the reason of the rule). null for the other rules. */
+  noNumber: { words: string } | null;
 }
 
 const ASKS = ['Ask your surgeon', 'Ask your care team'] as const;
@@ -319,6 +318,7 @@ export function whyView(e: WhyEntry): WhyView {
     applied: e.applied.map(appliedLine),
     ask: askOf(e.text),
     needsReview: e.flag === 'clinical-review-needed',
+    noNumber: RULES[e.ruleId].kind === 'none' ? { words: RULES[e.ruleId].reason ?? '' } : null,
   };
 }
 
