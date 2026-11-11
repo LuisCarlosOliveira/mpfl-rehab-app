@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
-import { DOSE_SHOWN, NO_NUMBER } from '../lib/protocolGen';
+import { DOSE_SHOWN } from '../lib/protocolGen';
 import { ASK_HOW_MANY, ASK_LIMIT, NO_LIMIT_GIVEN, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
@@ -232,8 +232,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
           <PlanLines protocol={protocol} />
           {madeByApp && (
             <div className="range-reference">
-              <p className="detail">Knee bend by week: {NO_NUMBER}</p>
-              <SourceNote rule="RANGE_NONE" label="Knee bend by week" />
+              <SourceNote rule="RANGE_NONE" />
             </div>
           )}
         </section>

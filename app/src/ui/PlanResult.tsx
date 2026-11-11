@@ -151,9 +151,8 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
           )}
           <PlanLines protocol={protocol} />
           <div className="range-reference">
-            <p className="detail">Knee bend by week: {NO_NUMBER}</p>
-            <SourceNote rule="RANGE_NONE" label="Knee bend by week" />
-          </div>
+              <SourceNote rule="RANGE_NONE" />
+            </div>
           <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
         </section>
 

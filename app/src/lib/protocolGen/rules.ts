@@ -68,7 +68,7 @@ const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not
 
 /** The one reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
 export const RANGE_REFERENCE =
-  'Typical practice in the guideline, not a limit and not your plan: patients start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. Your surgeon sets your limit.';
+  'Knee bend limit by week: no number in the guideline. Typical practice: start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. This is not a limit and not your plan. Your surgeon sets your limit.';
 
 /** The plain line for a value that no source gives. */
 export const NO_NUMBER = 'No number in the guideline.';

@@ -83,7 +83,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
     const d = RULES.RANGE_NONE.display;
     expect(d?.evidence).toBe('OPINION (level 5, clinical commentary)');
     expect(d?.population).toMatch(/no age limit stated/);
-    expect(d?.value).toMatch(/^Typical practice in the guideline, not a limit and not your plan:/);
+    expect(d?.value).toMatch(/^Knee bend limit by week: no number in the guideline. Typical practice:/);
     expect(d?.value).not.toMatch(/\badd\b/);
     expect(RULES.RANGE_NONE.auditRows).toEqual(expect.arrayContaining(['V10', 'V11', 'V12']));
   });

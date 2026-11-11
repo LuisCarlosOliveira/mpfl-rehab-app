@@ -216,7 +216,7 @@ describe('Home, a plan with home exercises', () => {
     const { container } = show(protocol());
     expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
     expect(container.querySelector('.range-reference')).toHaveTextContent('Your surgeon sets your limit.');
-    expect(screen.getByLabelText('Source of: Knee bend by week')).toBeInTheDocument();
+    expect(screen.getByLabelText('Source of: Knee bend limit by week')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/week 3 |week 4 |week 5 /);
   });
 

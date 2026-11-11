@@ -157,14 +157,18 @@ describe('values that no guideline gives', () => {
   it('shows the reference for the knee bend by week once, as a source note with evidence, population and the label, and as typical practice', () => {
     const { container } = setup().view;
     expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
-    const note = screen.getByLabelText('Source of: Knee bend by week');
+    const note = screen.getByLabelText('Source of: Knee bend limit by week');
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hsu CJ, Lee C, Christensen RS, Liu TY, 2025|^Source: Hsu/);
     expect(lines[1]).toBe('Evidence: OPINION (level 5, clinical commentary)');
     expect(lines[2]).toMatch(/^Population: Isolated and combined MPFL reconstruction, no age limit stated/);
     expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
     const root = container.querySelector('.range-reference') as HTMLElement;
-    expect(root).toHaveTextContent('Typical practice in the guideline, not a limit and not your plan:');
+    expect(root).toHaveTextContent('Knee bend limit by week: no number in the guideline. Typical practice: start at 0 to 30 degrees');
+    expect(root).toHaveTextContent('This is not a limit and not your plan. Your surgeon sets your limit.');
+    // One note, one label. The words "No number in the guideline." stand once, in the sentence of the note.
+    expect(root.querySelectorAll('.source-note')).toHaveLength(1);
+    expect(root.textContent?.match(/[Nn]o number in the guideline/g)).toHaveLength(1);
     expect(root).toHaveTextContent('Your surgeon sets your limit.');
     expect(container.textContent).not.toMatch(/add 20 to 30|week 3 |week 4 |undefined|NaN/);
   });
