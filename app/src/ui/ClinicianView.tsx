@@ -8,7 +8,7 @@ import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
 import { BANNER, buildReviewSummary, EVENT_LABEL, painText, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
-import { DashboardCharts, TableScroll } from './Dashboard';
+import { DashboardCharts, TableScroll, WhenCell } from './Dashboard';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { stripHidden } from '../lib/plainText';
 import { Icon } from './Icon';
@@ -233,7 +233,9 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
             >
               {sessions.map((s) => (
                 <tr key={s.id}>
-                  <td>{utcMinute(s.date)}</td>
+                  <td>
+                    <WhenCell when={s.date} />
+                  </td>
                   <td>{EXERCISE_NAMES[s.exercise]}</td>
                   <td className="num-cell">{s.phase}</td>
                   <td>{s.protocolId}</td>
@@ -338,7 +340,9 @@ function ReviewSummaryBlock({
       <Table label="Pain and swelling by session" head={['Date and time (UTC)', 'Exercise', 'Pain (0 to 10)', 'Swelling']}>
         {painSwellingTable.map((r) => (
           <tr key={r.sessionId}>
-            <td>{utcMinute(r.date)}</td>
+            <td>
+              <WhenCell when={r.date} />
+            </td>
             <td>{EXERCISE_NAMES[r.exerciseKind] ?? r.exercise}</td>
             <td className="num-cell">{r.painText}</td>
             <td>{r.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[r.swelling]}</td>

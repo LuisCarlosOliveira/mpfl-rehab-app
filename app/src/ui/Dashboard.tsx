@@ -136,7 +136,7 @@ function marginText(data: ChartPoint[]): string {
 }
 
 /** A timestamp as "2026-11-01 10:00". A day stays a day. The date never breaks inside. A narrow cell can wrap between the date and the time. */
-function WhenCell({ when }: { when: string }) {
+export function WhenCell({ when }: { when: string }) {
   const [date, time] = (when.length === 10 ? when : when.slice(0, 16).replace('T', ' ')).split(' ');
   return (
     <>
