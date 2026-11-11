@@ -92,7 +92,6 @@ function CriterionRow({ row }: { row: ReviewRow }) {
 
 /** A file name for display: no control or direction characters, at most 80 characters. React shows it as text. */
 const NAME_LIMIT = 80;
-// eslint-disable-next-line no-control-regex
 const shownName = (name: string) => {
   const clean = name.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '');
   return clean.length > NAME_LIMIT ? `${clean.slice(0, NAME_LIMIT)}…` : clean;
