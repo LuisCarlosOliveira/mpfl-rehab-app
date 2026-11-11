@@ -12,6 +12,7 @@ import './screensV2.css';
 import { QrCode } from '../pairing/qrCode';
 import { startQrScan } from '../pairing/qrReader';
 import { startCamera, stopCamera, type CameraResult } from '../pose/camera';
+import { focusHeading } from './focusHeading';
 
 export interface HostDeps {
   startCamera: () => Promise<CameraResult>;
@@ -66,7 +67,7 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTr
   const { status } = view;
   const active = status === 'starting' || status === 'offer' || status === 'connecting';
 
-  useEffect(() => h1.current?.focus(), [status, hostStep]);
+  useEffect(() => focusHeading(h1.current), [status, hostStep]);
 
   const release = () => {
     stopScan.current?.();
