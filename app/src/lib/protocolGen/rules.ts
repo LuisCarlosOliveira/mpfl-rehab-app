@@ -260,6 +260,17 @@ const defs = {
       'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. The app takes the stricter rule.',
     text: 'The app adds no seated knee hold in weeks 0 to 6, and none from week 7 without your report that your surgeon cleared it. P1 and P2 avoid straightening the knee against the weight of the leg.',
   },
+  HOLD_ARC_LIMIT: {
+    title: 'Seated knee hold with a low knee-bend limit',
+    kind: 'protective',
+    values: {},
+    auditRows: ['V105'],
+    sourceIds: ['P1'],
+    grade: 'OPINION',
+    population: ADULT_ISO,
+    conservative: 'P1 gives an arc of 90 to 40 degrees. A knee-bend limit below 90 degrees leaves no part of the arc that the surgeon allows.',
+    text: 'The seated hold is not in your plan because the knee-bend limit your surgeon gave is below the start of the guideline arc (90 degrees).',
+  },
   HOLD_P2: {
     title: 'Seated knee hold in a limited arc',
     kind: 'generated',
