@@ -21,7 +21,7 @@ export function SourceNote({ rule, label }: { rule: SourceNoteId; label?: string
   );
 }
 
-const LABELS: Record<SourceNoteId, string> = { DOSE: 'Sets and reps', SQUAT_DEPTH: 'Mini squat depth', HOLD_P2: 'Seated hold arc' };
+const LABELS: Record<SourceNoteId, string> = { DOSE: 'Sets and reps', SQUAT_DEPTH: 'Mini squat depth', HOLD_P2: 'Seated hold arc', RANGE_NONE: 'Knee bend by week' };
 
 /** The source notes of the numbers that the plan holds, as one group under the exercises. A row holds the value and no source. */
 export function SourceNotes({ made }: { made: readonly string[] }) {

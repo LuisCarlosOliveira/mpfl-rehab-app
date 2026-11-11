@@ -217,7 +217,7 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
 
   it('rests the depth on audited sources and shows the source that disagrees', () => {
     expect(RULES.SQUAT_DEPTH.sourceIds).toEqual(expect.arrayContaining(['N3', 'S16', 'P2']));
-    expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116']);
+    expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116', 'V119', 'V117']);
     expect(RULES.SQUAT_DEPTH.population).toMatch(/weeks 0 to 6/);
     expect(RULES.SQUAT_DEPTH.population).toMatch(/healthy/);
     expect(RULES.SQUAT_DEPTH.display?.disagree).toMatch(/45 degrees/);
@@ -274,10 +274,10 @@ describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)
     expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'none' } })).toBeDefined();
   });
 
-  it('rests the arc on P1 and P2 with the more conservative end, and on the audit row V105', () => {
+  it('rests the arc on P1 and P2 with the more conservative end, and on the audit rows V105 and V114', () => {
     expect(RULES.HOLD_P2.sourceIds).toEqual(expect.arrayContaining(['P1', 'P2']));
     expect(RULES.HOLD_P2.values).toEqual({ minFlexion: 40, arcStart: 90 });
-    expect(RULES.HOLD_P2.auditRows).toEqual(['V105']);
+    expect(RULES.HOLD_P2.auditRows).toEqual(['V105', 'V114']);
     expect(RULES.HOLD_P2.conservative).toMatch(/90-30|90 to 30/);
     expect(RULES.HOLD_P2.display?.disagree).toMatch(/90 to 30 degrees/);
     expect(RULES.ENG_HOLD.grade).toBe('ENGINEERING');
@@ -400,8 +400,8 @@ describe('audit defects D3, D4, D5 and D2 (flag ON)', () => {
     expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: false })).protocol, 2, 'seated-extension-hold')).toBeDefined();
   });
 
-  it('D3: the heel slide for an unknown limit carries the P1 line about 120 degrees and the care team', () => {
-    expect(RULES.HEEL_P2_UNKNOWN.text).toMatch(/120 degrees/);
+  it('D3: the heel slide for an unknown limit carries the P1 line without a knee angle and the care team', () => {
+    expect(RULES.HEEL_P2_UNKNOWN.text).toMatch(/P1 starts the heel slide only when the knee has bent far enough/);
     expect(RULES.HEEL_P2_UNKNOWN.text).toMatch(/Ask your care team/);
   });
 

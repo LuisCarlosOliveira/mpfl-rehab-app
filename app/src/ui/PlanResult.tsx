@@ -3,13 +3,13 @@
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
 import { answerLines, countStartText, whyView, type PlanDraft } from '../lib/planView';
-import { NO_NUMBER, RANGE_REFERENCE, RULES } from '../lib/protocolGen';
+import { NO_NUMBER, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { prescription } from './Home';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
-import { SourceNotes } from './SourceNote';
+import { SourceNote, SourceNotes } from './SourceNote';
 import './screensV2.css';
 
 type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
@@ -150,9 +150,10 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
             </Notice>
           )}
           <PlanLines protocol={protocol} />
-          <p className="detail range-reference">
-            Knee bend by week: {NO_NUMBER} {RANGE_REFERENCE}
-          </p>
+          <div className="range-reference">
+            <p className="detail">Knee bend by week: {NO_NUMBER}</p>
+            <SourceNote rule="RANGE_NONE" label="Knee bend by week" />
+          </div>
           <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
         </section>
 

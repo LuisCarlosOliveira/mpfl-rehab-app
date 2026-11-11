@@ -154,12 +154,19 @@ describe('values that no guideline gives', () => {
     expect(within(open('Dose of the strengthening exercise')).queryByText('No number in the guideline.')).toBeNull();
   });
 
-  it('shows the one reference line for the knee bend by week, once, as typical practice and not a limit', () => {
+  it('shows the reference for the knee bend by week once, as a source note with evidence, population and the label, and as typical practice', () => {
     const { container } = setup().view;
-    const line = container.querySelector('.range-reference') as HTMLElement;
-    expect(line).toHaveTextContent('Typical practice: start at 0 to 30 degrees in week 1 or 2 and add 20 to 30 degrees each week (Hsu 2025). This is not a limit. Your surgeon sets your limit.');
     expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
-    expect(container.textContent).not.toMatch(/week 3 |week 4 |undefined|NaN/);
+    const note = screen.getByLabelText('Source of: Knee bend by week');
+    const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(lines[0]).toMatch(/^Source: Hsu CJ, Lee C, Christensen RS, Liu TY, 2025|^Source: Hsu/);
+    expect(lines[1]).toBe('Evidence: OPINION (level 5, clinical commentary)');
+    expect(lines[2]).toMatch(/^Population: Isolated and combined MPFL reconstruction, no age limit stated/);
+    expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
+    const root = container.querySelector('.range-reference') as HTMLElement;
+    expect(root).toHaveTextContent('Typical practice in the guideline, not a limit and not your plan:');
+    expect(root).toHaveTextContent('Your surgeon sets your limit.');
+    expect(container.textContent).not.toMatch(/add 20 to 30|week 3 |week 4 |undefined|NaN/);
   });
 });
 

@@ -104,7 +104,7 @@ describe('PlanResult, home exercises and text lines', () => {
     const { container } = render(<PlanResult draft={draftFor(week8)} onUse={vi.fn()} onBack={vi.fn()} />);
     expect(hasVerdictWord(container.textContent ?? '')).toBeNull();
     expect(screen.getAllByText(/Not approved by a clinician/).length).toBeGreaterThan(0);
-    expect(screen.getByText('Not approved by a clinician. No clinician has reviewed this value.')).toBeInTheDocument();
+    expect(screen.getAllByText('Not approved by a clinician. No clinician has reviewed this value.').length).toBeGreaterThan(0);
     expect(container.querySelector('[style]')).toBeNull();
   });
 });
@@ -123,7 +123,7 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     const note = screen.getByLabelText('Source of: Mini squat depth');
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hysing-Dahl, 2024, N3/);
-    expect(lines[1]).toBe('Evidence: OPINION');
+    expect(lines[1]).toBe('Evidence: OPINION (level 5)');
     expect(lines[2]).toMatch(/^Population: N3: MPFL reconstruction, weeks 0 to 6\./);
     expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
     expect(lines[4]).toMatch(/^Another source: Cincinnati Children's, 2015, P2 starts wall squats at 45 degrees/);
@@ -163,7 +163,7 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     const note = screen.getByLabelText('Source of: Seated hold arc');
     const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(lines[0]).toMatch(/^Source: Hospital for Special Surgery, 2024, P1/);
-    expect(lines[1]).toBe('Evidence: OPINION');
+    expect(lines[1]).toBe('Evidence: OPINION (level 5)');
     expect(lines[2]).toMatch(/^Population: Adults after a first, isolated MPFL reconstruction/);
     expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
     expect(lines[4]).toBe("Another source: Cincinnati Children's, 2015, P2 gives 90 to 30 degrees, in a Note.");
@@ -212,10 +212,11 @@ describe('Home, a plan with home exercises', () => {
     expect(screen.queryByText(RULES.PT_VISITS.text)).toBeNull();
   });
 
-  it('shows the reference line for the knee bend once, as typical practice and not a limit, and no per-week table', () => {
+  it('shows the reference for the knee bend once, as typical practice and not a limit, with the source lines, and no per-week table', () => {
     const { container } = show(protocol());
     expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
-    expect(container.querySelector('.range-reference')).toHaveTextContent('This is not a limit. Your surgeon sets your limit.');
+    expect(container.querySelector('.range-reference')).toHaveTextContent('Your surgeon sets your limit.');
+    expect(screen.getByLabelText('Source of: Knee bend by week')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/week 3 |week 4 |week 5 /);
   });
 

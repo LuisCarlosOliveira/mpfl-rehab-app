@@ -61,7 +61,7 @@ export const ASK_HOW_MANY = 'How many: ask your care team';
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 
 /** The rules whose number comes from a published source and shows with a source note. */
-export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2';
+export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2' | 'RANGE_NONE';
 
 /**
  * The lines of a source note, in the fixed order: the value, the source, the evidence, the population, the label of the app,
@@ -71,7 +71,7 @@ export function sourceLines(id: SourceNoteId): string[] {
   const r = RULES[id];
   const d = r.display;
   if (d === undefined) return [];
-  return [d.value, `Source: ${d.cite}`, `Evidence: ${d.evidence}`, `Population: ${r.population}`, `${NOT_APPROVED}. No clinician has reviewed this value.`, ...(d.disagree === undefined ? [] : [`Another source: ${d.disagree}`])];
+  return [d.value, `Source: ${d.cite}`, `Evidence: ${d.evidence}`, `Population: ${d.population ?? r.population}`, `${NOT_APPROVED}. No clinician has reviewed this value.`, ...(d.disagree === undefined ? [] : [`Another source: ${d.disagree}`])];
 }
 
 /** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */

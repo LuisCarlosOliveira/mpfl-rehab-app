@@ -37,8 +37,12 @@ export interface Rule {
   flag?: 'clinical-review-needed';
   /** Rows of research/citation-audit.md (V ids, verdict EXACT) that hold the quote behind each number of `values`. */
   auditRows?: readonly string[];
+  /** True when a number in the text is the own number of the app and no source gives it. The text must say so. */
+  appOwn?: true;
   /** The words that the plan screens show next to a number from a published source. One place for each sentence. */
   display?: {
+    /** The population line of the note, when it is not the population of the rule. */
+    population?: string;
     /** The value as the guideline gives it. */
     value: string;
     /** Author, year and guideline, as the line "Source: ..." shows it. */
@@ -60,9 +64,9 @@ export const REFERRAL_LINE = 'The app cannot make a plan for you.';
 const ADULT_ISO = 'Adults after a first, isolated MPFL reconstruction. The sources state no age limit.';
 const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not studied in adults after MPFL reconstruction.';
 
-/** The one line of reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
+/** The one reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
 export const RANGE_REFERENCE =
-  'Typical practice: start at 0 to 30 degrees in week 1 or 2 and add 20 to 30 degrees each week (Hsu 2025). This is not a limit. Your surgeon sets your limit.';
+  'Typical practice in the guideline, not a limit and not your plan: patients start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. Your surgeon sets your limit.';
 
 /** The plain line for a value that no source gives. */
 export const NO_NUMBER = 'No number in the guideline.';
@@ -97,13 +101,14 @@ const defs = {
   PH2: {
     title: 'Phase 2',
     kind: 'structure',
+    appOwn: true,
     values: { firstWeek: 7 },
     sourceIds: ['S1', 'P1'],
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'S1 starts the next stage at week 6 and P1 at week 7. The app takes week 7. Time alone never starts phase 2. You must report that your care team said you can start it.',
-    text: 'Phase 2 starts from week 7. It needs your report that your care team said you can start the next stage.',
+      'S1 lists the second stage as 6-12 weeks. Week 7 is the own boundary of the app. Time alone never starts phase 2. You must report that your care team said you can start it.',
+    text: 'Phase 2 starts from week 7, the own boundary of the app. It needs your report that your care team said you can start the next stage.',
   },
   // Exercises
   SLR: {
@@ -140,7 +145,7 @@ const defs = {
     population: ADULT_ISO,
     conservative:
       'The phase 2 rules of P1 do not repeat the limit of the surgeon. S1 and P3 expect full range in this stage. The app sets no ceiling. If your surgeon gave you a limit, enter it. The app then uses it.',
-    text: 'In phase 2 the heel slide is in your plan also when you do not know a limit. If your surgeon gave you a limit, enter it. P1 starts the heel slide when the knee bends more than 120 degrees. The app cannot check this. Ask your care team.',
+    text: 'In phase 2 the heel slide is in your plan also when you do not know a limit. If your surgeon gave you a limit, enter it. P1 starts the heel slide only when the knee has bent far enough. The app cannot check this. Ask your care team.',
   },
   HOME: {
     title: 'Home exercises that the camera does not count',
@@ -155,6 +160,7 @@ const defs = {
     title: 'Ankle pumps',
     kind: 'generated',
     values: {},
+    auditRows: ['V109', 'V4'],
     sourceIds: ['P1', 'P3'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -166,6 +172,7 @@ const defs = {
     title: 'Check of your knee bend at about 4 weeks',
     kind: 'generated',
     values: {},
+    auditRows: ['V12'],
     sourceIds: ['P1'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -175,6 +182,7 @@ const defs = {
     title: 'Physiotherapy visits',
     kind: 'generated',
     values: {},
+    auditRows: ['V111'],
     sourceIds: ['P2'],
     grade: 'OPINION',
     population: P2_POPULATION,
@@ -184,6 +192,7 @@ const defs = {
     title: 'Mini squat in weeks 0 to 6',
     kind: 'protective',
     values: {},
+    auditRows: ['V41', 'V117', 'V95', 'V4'],
     sourceIds: ['P1', 'P3', 'N3', 'P2'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -195,11 +204,12 @@ const defs = {
     title: 'Mini squat from week 7',
     kind: 'generated',
     values: {},
+    auditRows: ['V41', 'V96', 'V108', 'V117'],
     sourceIds: ['P3', 'P2', 'N3', 'S1'],
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in weeks 7 to 11 and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
+      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in its second phase and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
     text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. P1 starts free squats later, at week 12.',
   },
   SQUAT_DEPTH: {
@@ -207,7 +217,7 @@ const defs = {
     kind: 'generated',
     values: { maxFlexion: 50 },
     personEntered: ['maxFlexion'], // only a lower number from the surgeon, as entered by the person
-    auditRows: ['V95', 'V116'],
+    auditRows: ['V95', 'V116', 'V119', 'V117'],
     sourceIds: ['N3', 'S16', 'P2'],
     grade: 'OPINION',
     population: 'N3: MPFL reconstruction, weeks 0 to 6. S16: 18 healthy people, a lab study. The sources give no depth for weeks 7 to 11.',
@@ -216,7 +226,7 @@ const defs = {
     display: {
       value: 'Depth limit 50 degrees of estimated knee bend. A limit from your surgeon can only lower it.',
       cite: 'Hysing-Dahl, 2024, N3 Table 1 (mini squats 0 to 50 degrees, weeks 0 to 6). Escamilla, 2009, S16 (0 to 50 degrees, healthy people)',
-      evidence: 'OPINION',
+      evidence: 'OPINION (level 5)',
       disagree:
         "Cincinnati Children's, 2015, P2 starts wall squats at 45 degrees and goes to higher and lower levels of flexion. HSS, 2024, P1 starts free squats at week 12. No source gives a depth for weeks 7 to 11.",
     },
@@ -226,6 +236,7 @@ const defs = {
     title: 'Answers needed for the mini squat',
     kind: 'protective',
     values: {},
+    auditRows: ['V55', 'V100', 'V101', 'V107'],
     sourceIds: ['S1', 'P1'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -237,6 +248,7 @@ const defs = {
     title: 'Seated knee hold without a clearance',
     kind: 'protective',
     values: {},
+    auditRows: ['V106', 'V45', 'V4'],
     sourceIds: ['P2', 'P1', 'P3'],
     grade: 'OPINION',
     population: P2_POPULATION,
@@ -248,7 +260,7 @@ const defs = {
     title: 'Seated knee hold in a limited arc',
     kind: 'generated',
     values: { minFlexion: 40, arcStart: 90 },
-    auditRows: ['V105'],
+    auditRows: ['V105', 'V114'],
     sourceIds: ['P1', 'P2'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -257,7 +269,7 @@ const defs = {
     display: {
       value: 'Arc from 90 to 40 degrees of knee bend. The knee never goes straight. No hold time.',
       cite: 'Hospital for Special Surgery, 2024, P1 phase 2 (open chain strengthening in a limited arc of motion, 90-40 degrees)',
-      evidence: 'OPINION',
+      evidence: 'OPINION (level 5)',
       disagree: "Cincinnati Children's, 2015, P2 gives 90 to 30 degrees, in a Note.",
     },
     text: 'From week 7, after you report that your surgeon cleared it, the seated hold stays between 90 and 40 degrees of knee bend (P1). The app sets no hold time.',
@@ -266,6 +278,7 @@ const defs = {
     title: 'Held back: mini squat, seated hold and heel slide with an unknown limit',
     kind: 'protective',
     values: {},
+    auditRows: ['V117', 'V110', 'V96'],
     sourceIds: ['P1', 'P3', 'N3'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -317,12 +330,18 @@ const defs = {
     title: 'Knee-bend ceiling',
     kind: 'none',
     values: {},
-    auditRows: ['V10'],
+    auditRows: ['V10', 'V11', 'V12'],
     sourceIds: ['P2', 'P1', 'S1', 'N3'],
     grade: 'NONE',
     population: 'Not applicable',
     reason:
       'The P2 values of 90 and 120 degrees are passive range targets. P1 has no explicit cap. S1 says "Typically" and describes practice. N3 gives passive flexion above 125 degrees. None of these is a ceiling for an active camera angle.',
+    display: {
+      value: RANGE_REFERENCE,
+      cite: 'Hsu CJ, Lee C, Christensen RS, Liu TY, 2025, S1, text of the protection phase',
+      evidence: 'OPINION (level 5, clinical commentary)',
+      population: 'Isolated and combined MPFL reconstruction, no age limit stated',
+    },
     text: 'The app sets no knee-bend limit of its own. Ask your surgeon for your limit.',
   },
   RANGE_SURGEON: {
@@ -374,6 +393,7 @@ const defs = {
   PAIN: {
     title: 'Pain and swelling pause',
     kind: 'appRule',
+    appOwn: true,
     values: {},
     sourceIds: ['RR'],
     grade: 'NONE',
@@ -418,6 +438,7 @@ const defs = {
     title: 'Hold time',
     kind: 'none',
     values: {},
+    auditRows: ['V39'],
     sourceIds: ['RR', 'P2'],
     grade: 'NONE',
     population: 'Not applicable',
@@ -428,6 +449,7 @@ const defs = {
     title: 'Numeric pain or swelling stop',
     kind: 'none',
     values: {},
+    auditRows: ['V52'],
     sourceIds: ['RR', 'P2'],
     grade: 'NONE',
     population: 'Not applicable',
@@ -438,6 +460,7 @@ const defs = {
     title: 'Knee valgus threshold',
     kind: 'none',
     values: {},
+    auditRows: ['V81'],
     sourceIds: ['RR', 'S1'],
     grade: 'NONE',
     population: 'Not applicable',
@@ -561,6 +584,7 @@ const defs = {
     title: 'Week 12 or later',
     kind: 'referral',
     values: {},
+    auditRows: ['V3', 'V4'],
     sourceIds: ['S1', 'P3'],
     grade: 'OPINION',
     population: ADULT_ISO,

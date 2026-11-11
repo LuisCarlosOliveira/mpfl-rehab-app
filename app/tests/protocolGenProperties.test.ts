@@ -287,11 +287,25 @@ describe('properties of the generator', () => {
         holds += 1;
         expect(ph.id, `seed ${seed}`).toBe(2);
         expect(i.seatedHoldCleared, `seed ${seed}`).toBe('yes');
+        if (i.surgeonLimit.kind === 'degrees') expect(i.surgeonLimit.degrees, `seed ${seed}`).toBeGreaterThanOrEqual(RULES.HOLD_P2.values.arcStart);
         expect(hold.minFlexion, `seed ${seed}`).toBeGreaterThan(0);
         expect(hold.holdSeconds, `seed ${seed}`).toBeUndefined();
       }
     }
     expect(holds).toBeGreaterThan(0);
+  });
+
+  it('gives no seated hold when the surgeon limit is below the start of the arc, whatever the other answers are', () => {
+    let below = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      if (i.surgeonLimit.kind !== 'degrees' || i.surgeonLimit.degrees >= RULES.HOLD_P2.values.arcStart) continue;
+      const r = generateProtocol({ ...i, seatedHoldCleared: 'yes', phaseClearance: 'yes', kneeGaveWay: false }, TODAY);
+      if (r.kind !== 'protocol') continue;
+      below += 1;
+      for (const ph of r.protocol.phases) expect(ph.exercises.map((e) => e.kind), `seed ${seed}`).not.toContain('seated-extension-hold');
+    }
+    expect(below).toBeGreaterThan(0);
   });
 
   it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {
