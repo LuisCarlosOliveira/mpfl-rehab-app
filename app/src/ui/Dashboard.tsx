@@ -326,7 +326,8 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
         )}
         {lastPeak && (
           <p className="stat-note">
-            {exerciseName(String(lastPeak.exercise))}. {ANGLE_LABEL}
+            {exerciseName(String(lastPeak.exercise))}. {ANGLE_LABEL.charAt(0).toUpperCase()}
+            {ANGLE_LABEL.slice(1)}.
           </p>
         )}
         <p className="stat-range">
