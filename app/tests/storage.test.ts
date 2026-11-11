@@ -12,6 +12,7 @@ import {
   parseExport,
   saveSession,
   getLastExport,
+  lastSession,
   type SessionInput,
 } from '../src/lib/storage';
 
@@ -61,6 +62,23 @@ describe('save and read', () => {
     await saveSession(db, session());
     await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z' }));
     expect(persist).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('last session with bad rows (final review, Home crash)', () => {
+  it('skips a stored row that fails the schema and returns the latest valid one', async () => {
+    const db = freshDb();
+    await saveSession(db, session({ date: '2026-11-01T10:00:00.000Z' }));
+    // A row written outside the app, with a later date and a string where a list belongs.
+    await db.sessions.add({ ...session({ date: '2026-11-05T10:00:00.000Z' }), setPain: 'bad', schemaVersion: 1 } as never);
+    const last = await lastSession(db);
+    expect(last?.date).toBe('2026-11-01T10:00:00.000Z');
+  });
+
+  it('gives undefined when every stored row is invalid', async () => {
+    const db = freshDb();
+    await db.sessions.add({ date: 5, exercise: {}, schemaVersion: 1 } as never);
+    expect(await lastSession(db)).toBeUndefined();
   });
 });
 

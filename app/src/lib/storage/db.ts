@@ -137,9 +137,10 @@ export async function updateSessionAnswers(db: MpflDb, id: number, answers: Pick
   if ((await db.sessions.update(id, { pain, swelling })) === 0) throw new Error(`No session record ${id}.`);
 }
 
-/** The session with the latest date, or undefined when none is stored. */
+/** The valid session with the latest date, or undefined when none is stored. A row that fails the schema is skipped, so a row written outside the app cannot crash Home. */
 export async function lastSession(db: MpflDb): Promise<SessionRecord | undefined> {
-  return db.sessions.orderBy('date').last();
+  const { rows } = readValidRows(await db.sessions.toArray());
+  return rows.reduce<SessionRecord | undefined>((best, row) => (best === undefined || row.date >= best.date ? row : best), undefined);
 }
 
 /** Check a protocol file and keep it, so the patient loads it once. A new one replaces the old one. */
