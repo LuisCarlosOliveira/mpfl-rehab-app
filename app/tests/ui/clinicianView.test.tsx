@@ -83,6 +83,16 @@ describe('ClinicianView session file', () => {
     expect(value).not.toMatch(/T\d|Z/);
   });
 
+  it('uses the same capitalised exercise name in the pain table and the session list', async () => {
+    setup();
+    await loadFile(exportText([session({ date: day(1), exercise: 'heel-slide' }), session({ date: day(2), exercise: 'seated-extension-hold' })]));
+    pick(protocolPicker(), protocolFileText([peakCriterion()]));
+    const pain = await screen.findByRole('table', { name: /pain and swelling by session/i });
+    const names = (t: HTMLElement) => within(t).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell')[1]?.textContent);
+    expect(names(pain)).toEqual(['Heel slide', 'Seated knee extension hold']);
+    expect(names(screen.getByRole('table', { name: /^session list$/i }))).toEqual(names(pain));
+  });
+
   it('shows the named error as plain text for each refused file', async () => {
     setup();
     pick(sessionPicker(), 'not json');

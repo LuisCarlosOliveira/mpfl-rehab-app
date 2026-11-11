@@ -323,7 +323,7 @@ function ReviewSummaryBlock({
         {painSwellingTable.map((r) => (
           <tr key={r.sessionId}>
             <td>{utcMinute(r.date)}</td>
-            <td>{r.exercise}</td>
+            <td>{EXERCISE_NAMES[r.exerciseKind] ?? r.exercise}</td>
             <td className="num-cell">{r.painText}</td>
             <td>{r.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[r.swelling]}</td>
           </tr>

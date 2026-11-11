@@ -106,7 +106,7 @@ export interface ReviewSummary {
   };
   rows: ReviewRow[];
   clinicianChecks: { key: (typeof CLINICIAN_CHECKS)[number]; text: string; evidenceLabel: string; answer: null }[];
-  painSwellingTable: { sessionId: number; date: string; exercise: string; painText: string; swelling: SessionRecord['swelling'] }[];
+  painSwellingTable: { sessionId: number; date: string; exercise: string; exerciseKind: SessionRecord['exercise']; painText: string; swelling: SessionRecord['swelling'] }[];
 }
 
 export interface ReviewInput {
@@ -263,7 +263,7 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
     rows,
     clinicianChecks: CLINICIAN_CHECKS.map((key) => ({ key, text: CHECK_TEXT[key], evidenceLabel: evidenceOf(key), answer: null })),
     painSwellingTable: phaseSessions.map((s) => ({
-      sessionId: s.id, date: s.date, exercise: exerciseLabel(s.exercise), painText: painText(s), swelling: s.swelling,
+      sessionId: s.id, date: s.date, exercise: exerciseLabel(s.exercise), exerciseKind: s.exercise, painText: painText(s), swelling: s.swelling,
     })),
   };
 }
