@@ -95,6 +95,13 @@ describe('Home, the phase review card (B3)', () => {
     expect(onOpenData).toHaveBeenCalledTimes(1);
   });
 
+  it('offers no Export button when there are no sessions (A-09)', async () => {
+    setup(careTeam('2026-03-01'), '2026-03-20');
+    await act(async () => void (await new Promise((r) => setTimeout(r, 30))));
+    expect(screen.getByText(CARD)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export for my care team' })).toBeNull();
+  });
+
   it('shows no card when the plan has no review date', () => {
     setup(careTeam(undefined), '2026-03-20');
     expect(screen.queryByText(CARD)).toBeNull();

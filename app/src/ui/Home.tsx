@@ -158,7 +158,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                   Update my plan
                 </button>
               )}
-              {!madeByApp && onOpenData && (
+              {!madeByApp && onOpenData && hasSessions && (
                 <button type="button" className="btn btn-primary" onClick={onOpenData}>
                   <Icon name="download" size={18} />
                   Export for my care team
