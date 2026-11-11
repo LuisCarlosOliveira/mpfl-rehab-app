@@ -5,7 +5,6 @@
 // colour, no status and no trend field (guardrails skill, section Wording).
 
 import type { SessionRecord } from './storage';
-import { peakUnreadable } from './cues';
 
 export const EXERCISE_LABEL = {
   'heel-slide': 'heel slide',
@@ -16,9 +15,21 @@ export const EXERCISE_LABEL = {
 
 type ExerciseKind = SessionRecord['exercise'];
 
+/**
+ * The plain name of an exercise for a title. A stored name that is not one of the four known kinds (a corrupt file, or a key such as
+ * `__proto__`) shows as short plain text. It never reads a property of the label table, so it never shows "[object Object]".
+ */
+export function exerciseLabel(kind: string): string {
+  if (typeof kind === 'string' && Object.hasOwn(EXERCISE_LABEL, kind)) return EXERCISE_LABEL[kind as keyof typeof EXERCISE_LABEL];
+  if (typeof kind !== 'string') return 'unknown exercise';
+  const text = kind.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  if (text === '') return 'unknown exercise';
+  return text.length > 60 ? `${text.slice(0, 60)}…` : text;
+}
+
 /** Series titles. Units sit next to the numbers. The angle label is the one in the guardrails skill. */
 export const SERIES_TITLE = {
-  peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${EXERCISE_LABEL[exercise]}, in degrees (estimated angle, not a medical measurement)`,
+  peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
   repsPerDay: 'Reps for each day, in reps',
   pain: 'Pain after each session, from 0 to 10',
 } as const;
@@ -67,8 +78,10 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
   const byExercise = new Map<ExerciseKind, PeakPoint[]>();
   for (const s of sorted) {
     const points = byExercise.get(s.exercise) ?? [];
-    // A straight leg raise peak above the plausible limit is a camera misread: the chart plots no value for it (audit 3, M8).
-    points.push({ sessionId: s.id, date: s.date, degrees: peakUnreadable(s.exercise, s.peakFlexion) ? null : s.peakFlexion });
+    // The straight leg raise has no angle chart (clinical decision): no source sets its plausibility limit, and a chart would show a sensor fault as a trend.
+    // The stored numbers stay in the record, the clinician table and the export.
+    if (s.exercise === 'straight-leg-raise') continue;
+    points.push({ sessionId: s.id, date: s.date, degrees: s.peakFlexion });
     byExercise.set(s.exercise, points);
   }
 

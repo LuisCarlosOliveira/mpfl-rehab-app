@@ -110,6 +110,21 @@ export function createDb(name = 'mpfl-rehab'): MpflDb {
   return db;
 }
 
+/**
+ * Keep the stored rows that pass the same schema as the import. A row that fails is left out and counted. Nothing is deleted or changed.
+ * Every read of the rows for a screen or for the export goes through this, so a bad row (an old bug, a hand edit) cannot crash a screen.
+ */
+export function readValidRows(rows: readonly unknown[]): { rows: SessionRecord[]; skipped: number } {
+  const valid: SessionRecord[] = [];
+  for (const row of rows) {
+    if (typeof row !== 'object' || row === null) continue;
+    const { id, ...data } = row as Record<string, unknown>;
+    const parsed = sessionSchema.safeParse(data);
+    if (parsed.success && typeof id === 'number' && Number.isFinite(id)) valid.push({ ...parsed.data, id });
+  }
+  return { rows: valid, skipped: rows.length - valid.length };
+}
+
 /** Save one session. The first save asks the browser for persistent storage. */
 export async function saveSession(db: MpflDb, input: SessionInput): Promise<number> {
   await requestPersistOnce();

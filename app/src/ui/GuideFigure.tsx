@@ -89,7 +89,7 @@ function Marks({ marks, where, box, size }: { marks: Mark[]; where: (at: Mark['a
           y: Math.min(box.y + box.h - r - 1, Math.max(box.y + r + 1, p.y + size * dy)),
         };
         return (
-          <g key={n}>
+          <g key={n} className="fg-mark" data-n={n}>
             <line className="fg-mark-line" x1={num(p.x)} y1={num(p.y)} x2={num(c.x)} y2={num(c.y)} />
             <circle className="fg-mark-dot" cx={num(c.x)} cy={num(c.y)} r={num(r)} />
             <text className="fg-mark-text" x={num(c.x)} y={num(c.y)} fontSize={num(size * 1.1)} textAnchor="middle" dominantBaseline="central">

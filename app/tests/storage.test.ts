@@ -162,15 +162,23 @@ describe('CSV export', () => {
     }
   });
 
+  // The cell writer still defends itself. A stored row with such a text no longer reaches it, because it fails the schema (next test).
   it.each(['=1+1', '+1', '-1', '@SUM(A1)', '\tx', '\rx'])('puts a leading quote in a text cell that starts with %j', async (evil) => {
-    const csv = await csvFor({ protocolId: evil });
-    const row = csv.split('\n').slice(2).join('\n');
-    expect(row).toContain(`"'${evil}"`);
+    const { textCell } = await import('../src/lib/storage/export');
+    expect(textCell(evil)).toBe(`"'${evil}"`);
+  });
+
+  it('leaves a stored row with a formula-like or comma text out of the CSV, because it fails the schema', async () => {
+    for (const evil of ['=1+1', '+1', '-1', '@SUM(A1)', '\tx', 'a,"b"']) {
+      const csv = await csvFor({ protocolId: evil });
+      expect(csv.split('\n').slice(2).join('')).toBe('');
+    }
   });
 
   it('quotes every text cell, keeps commas inside quotes and doubles quotes', async () => {
-    const csv = await csvFor({ protocolId: 'a,"b"' });
-    expect(csv).toContain('"a,""b"""');
+    const { textCell } = await import('../src/lib/storage/export');
+    expect(textCell('a,"b"')).toBe('"a,""b"""');
+    expect(await csvFor({})).toContain('"p-001"');
   });
 
   it('writes numbers as numbers and null as an empty cell', async () => {
@@ -235,5 +243,38 @@ describe('erase (FR16)', () => {
     const before = getPseudonymId();
     await eraseAll(db);
     expect(getPseudonymId()).not.toBe(before);
+  });
+});
+
+describe('rows that fail the schema (the read path and the export)', () => {
+  const good = (over: Record<string, unknown> = {}) => ({ id: 1, ...session(), schemaVersion: 1, ...over });
+
+  it('readValidRows keeps the good rows and counts the others', async () => {
+    const { readValidRows } = await import('../src/lib/storage');
+    const rows = [
+      good({ id: 1 }),
+      good({ id: 2, date: 12345 }),
+      good({ id: 3, peakFlexion: -5 }),
+      good({ id: 4, reps: 1e21 }),
+      good({ id: 5, exercise: undefined }),
+      null,
+      'text',
+      good({ id: 6, date: '2026-11-02T10:00:00.000Z' }),
+    ];
+    const out = readValidRows(rows);
+    expect(out.rows.map((r) => r.id)).toEqual([1, 6]);
+    expect(out.skipped).toBe(6);
+    expect(readValidRows([]).skipped).toBe(0);
+  });
+
+  it('the export leaves out a stored row that fails the schema, and the row stays in the database', async () => {
+    const db = freshDb();
+    await saveSession(db, session());
+    await db.sessions.add({ ...session({ date: '2026-11-03T10:00:00.000Z' }), peakFlexion: -5, schemaVersion: 1 } as never);
+    await db.sessions.add({ ...session(), date: 12345, schemaVersion: 1 } as never);
+    const file = JSON.parse(await exportJson(db));
+    expect(file.sessions).toHaveLength(1);
+    expect(parseExport(JSON.stringify(file)).ok).toBe(true);
+    expect(await db.sessions.count()).toBe(3);
   });
 });

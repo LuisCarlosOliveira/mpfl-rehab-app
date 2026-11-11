@@ -47,6 +47,7 @@ async function connect(pairing: Pairing) {
   const offer = decodeOffer(pairing.getView().offerText!);
   if (!offer.ok) throw new Error('offer');
   const secret = offer.value.secret;
+  fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' })); // the paste field is in step 2
   fireEvent.change(screen.getByLabelText('Or paste the phone code'), { target: { value: answerText(secret) } });
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Use this code' })));
   act(() => lastPeer().channels[0]!.receive(JSON.stringify(makeHello(secret))));
@@ -181,6 +182,21 @@ describe('Setup with the optional second camera step', () => {
     press('Cancel');
     expect(lastPeer().closed).toBe(true);
     expect(pairing.getView().status).toBe('closed');
+  });
+
+  it('shows one step indicator on the laptop pairing step: the list of Setup, not a second track', async () => {
+    setup();
+    press(OPEN);
+    expect(screen.getAllByRole('list', { name: /steps/i })).toHaveLength(1);
+    press('Start pairing');
+    await screen.findByRole('img', { name: 'Pairing code of this laptop' });
+    expect(screen.getByRole('list', { name: 'Steps' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Pairing steps' })).toBeNull();
+    // The headings still name the two pairing steps.
+    expect(screen.getByRole('heading', { level: 2, name: /^Step 1\./ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' }));
+    expect(screen.getAllByRole('list', { name: /steps/i })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: /^Step 2\./ })).toBeInTheDocument();
   });
 
   it('Back returns to the guide and closes the link', async () => {

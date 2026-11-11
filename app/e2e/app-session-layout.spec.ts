@@ -1,5 +1,6 @@
 // R3-02 and R3-03: the buttons that the person needs sit in the first view of the Session, with real geometry.
 // "First view" means: the top of the page, no scroll, and above the top of the fixed bar.
+// V2: the status slot under the camera, the ruler and the angle caption must also be inside the viewport (D1 passed the old checks).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, expectScreen, startCamera } from "./helpers/app";
@@ -24,9 +25,9 @@ async function toSessionOf(page: Page, startName: string, protocol?: string) {
   await page.goto("/");
   await page.getByRole("button", { name: "I understand" }).click();
   if (protocol === undefined)
-    await page.getByLabel("Protocol file (.json)").setInputFiles(EXAMPLE);
+    await page.getByLabel("Choose a file from your care team").setInputFiles(EXAMPLE);
   else
-    await page.getByLabel("Protocol file (.json)").setInputFiles({
+    await page.getByLabel("Choose a file from your care team").setInputFiles({
       name: "p.json",
       mimeType: "application/json",
       buffer: Buffer.from(protocol),
@@ -74,8 +75,234 @@ for (const size of SIZES) {
           `${k} must end above the bar (gap in px: ${JSON.stringify(room)})`,
         ).toBeGreaterThanOrEqual(0);
     });
+
+    test("V2: the status slot is under the camera, not on it, and ends above the bar and inside the viewport", async ({
+      page,
+    }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.locator(".status-slot")).toBeVisible({
+        timeout: 40_000,
+      });
+      const bar = await box(page, "bar", page.locator(".session-bar"));
+      const video = await box(page, "video", page.locator("video.preview"));
+      const slot = await box(page, "slot", page.locator(".status-slot"));
+      const caption = await box(
+        page,
+        "caption",
+        page.locator(".readout-caption"),
+      );
+      expect(slot.y, "the slot starts under the camera").toBeGreaterThanOrEqual(
+        video.y + video.height - 1,
+      );
+      expect(slot.y + slot.height, "the slot ends above the bar").toBeLessThanOrEqual(bar.y);
+      expect(slot.y + slot.height, "the slot is inside the viewport").toBeLessThanOrEqual(
+        size.height,
+      );
+      expect(caption.x, "the angle caption starts inside the viewport").toBeGreaterThanOrEqual(0);
+      expect(caption.x + caption.width, "the angle caption ends inside the viewport").toBeLessThanOrEqual(size.width);
+      expect(caption.y + caption.height, "the angle caption ends above the bar").toBeLessThanOrEqual(bar.y);
+      expect(
+        await page.evaluate(() => {
+          const el = document.querySelector(".readout-caption") as HTMLElement;
+          return el.scrollWidth <= el.clientWidth + 1;
+        }),
+        "the caption is not clipped",
+      ).toBe(true);
+    });
+
+    test("V2: an over-limit alert in the slot is inside the viewport and above the bar", async ({
+      page,
+    }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.locator(".status-slot")).toBeVisible({
+        timeout: 40_000,
+      });
+      // The fake camera sees no leg, so no real alert can show. The text is the real cue text. The geometry is what counts here.
+      // Wait until the capture line shows, because the alert must also win over it (the first frame of the fake camera starts it).
+      await expect(page.locator(".capture-status")).toBeVisible({
+        timeout: 20_000,
+      });
+      await page.evaluate(() => {
+        const alert = document.querySelector(".cue-alert") as HTMLElement;
+        alert.textContent = "Stop at your limit, do not push.";
+      });
+      const alert = await box(page, "alert", page.locator(".cue-alert"));
+      const bar = await box(page, "bar", page.locator(".session-bar"));
+      expect(alert.y + alert.height, "inside the viewport").toBeLessThanOrEqual(size.height);
+      expect(alert.y + alert.height, "above the bar").toBeLessThanOrEqual(bar.y);
+      expect(alert.x + alert.width).toBeLessThanOrEqual(size.width);
+    });
   });
 }
+
+test.describe("V2: the camera is big enough on a short phone", () => {
+  test.use({ viewport: SIZES[1] });
+  test("360 x 640: the camera is 150 px high or more", async ({ page }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({
+      timeout: 40_000,
+    });
+    const video = await box(page, "video", page.locator("video.preview"));
+    expect(video.height).toBeGreaterThanOrEqual(150);
+  });
+});
+
+test.describe("V2: the ruler at 390 x 844", () => {
+  test.use({ viewport: SIZES[0] });
+  test("the whole ruler is inside the viewport, above the bar", async ({
+    page,
+  }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({
+      timeout: 40_000,
+    });
+    const bar = await box(page, "bar", page.locator(".session-bar"));
+    const ruler = await box(page, "ruler", page.locator(".readout-gauge"));
+    expect(ruler.y).toBeGreaterThanOrEqual(0);
+    expect(ruler.y + ruler.height, "the ruler ends above the bar").toBeLessThanOrEqual(bar.y);
+    expect(ruler.y + ruler.height).toBeLessThanOrEqual(844);
+  });
+});
+
+// V3: everything the person reads is inside the viewport above the bar, with 2 bar buttons (Heel slide) and 3 bar buttons (Straight leg raise),
+// also in the capture "choose" state (the extra button sits in the status slot). The unit stays on the line of the angle number.
+// The numbers are 56 px or more. The camera is 150 px or more.
+async function readLayout(page: Page) {
+  return page.evaluate(() => {
+    const r = (sel: string) => {
+      const el = document.querySelector(sel);
+      if (el === null) return null;
+      const b = el.getBoundingClientRect();
+      return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, height: b.height };
+    };
+    const num = document.querySelector(".readout:not(.readout-reps) .readout-number") as HTMLElement | null;
+    return {
+      bar: r(".session-bar"),
+      video: r("video.preview"),
+      slot: r(".status-slot"),
+      lowest: r(".status-slot > .btn"),
+      angle: r(".readout:not(.readout-reps) .readout-line"),
+      count: r(".readout-reps .readout-line"),
+      num: r(".readout:not(.readout-reps) .readout-number"),
+      unit: r(".readout:not(.readout-reps) .unit"),
+      caption: r(".readout-caption"),
+      ruler: r(".readout-gauge"),
+      numberFont: num === null ? 0 : parseFloat(getComputedStyle(num).fontSize),
+      barButtons: document.querySelectorAll(".session-bar .btn").length,
+    };
+  });
+}
+type Layout = Awaited<ReturnType<typeof readLayout>>;
+function expectAboveBar(l: Layout, names: (keyof Layout)[], height: number) {
+  const barTop = l.bar!.top;
+  for (const n of names) {
+    const b = l[n] as { bottom: number } | null;
+    if (b === null) continue;
+    expect(b.bottom, `${String(n)} ends above the bar (bar top ${barTop})`).toBeLessThanOrEqual(barTop + 0.5);
+    expect(b.bottom, `${String(n)} is inside the viewport`).toBeLessThanOrEqual(height);
+  }
+  expect(l.unit!.top, "the unit is on the line of the angle number, not under it").toBeLessThan(l.num!.bottom - 2);
+  expect(l.numberFont, "the number is 56 px or more").toBeGreaterThanOrEqual(56);
+  if (height >= 800) expect(l.numberFont, "the number is 72 px on a tall phone").toBeGreaterThanOrEqual(72);
+  expect(l.video!.height, "the camera is 150 px or more").toBeGreaterThanOrEqual(149.5);
+}
+for (const size of SIZES) {
+  test.describe(`V3 at ${size.width} x ${size.height}`, () => {
+    test.use({ viewport: size });
+
+    test("2 bar buttons, capture choose state: camera, slot, button, numbers, caption and ruler are above the bar", async ({ page }) => {
+      await toSessionOf(page, "Start Heel slide");
+      await expect(page.getByRole("button", { name: "Use my lowest steady angle as the start" })).toBeVisible({ timeout: 40_000 });
+      const l = await readLayout(page);
+      expect(l.barButtons).toBe(2);
+      expectAboveBar(l, ["video", "slot", "lowest", "angle", "count", "caption", "ruler"], size.height);
+    });
+
+    test("3 bar buttons: camera, slot, numbers and caption are above the bar", async ({ page }) => {
+      await toSessionOf(page, "Start Straight leg raise");
+      await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+      const l = await readLayout(page);
+      expect(l.barButtons).toBe(3);
+      expectAboveBar(l, ["video", "slot", "angle", "count", "caption"], size.height);
+    });
+  });
+}
+
+// V4: the unit of each number (degrees, reps) is fully inside the card that holds it and sits next to its number.
+// At 320 x 568 the angle unit may wrap under its number, but it stays inside the card.
+for (const size of [...SIZES, { width: 320, height: 568 }, { width: 1280, height: 800 }]) {
+  test(`V4 at ${size.width} x ${size.height}: the units are not clipped and sit next to their numbers`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+    const m = await page.evaluate(() => {
+      const card = document.querySelector(".counters")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".counters .readout")].map((readout) => {
+        // The digits, not the box: the box keeps a minimum width, so the digits can sit away from the unit.
+        const range = document.createRange();
+        range.selectNodeContents(readout.querySelector(".readout-number")!);
+        const num = range.getBoundingClientRect();
+        const unit = readout.querySelector(".unit")!;
+        const u = unit.getBoundingClientRect();
+        const text = unit.textContent ?? "";
+        return { text, unitLeft: u.left, unitRight: u.right, cardLeft: card.left, cardRight: card.right, gap: u.left - num.right, sameLine: u.top < num.bottom - 2, clippedByBox: unit.scrollWidth > unit.clientWidth + 1 };
+      });
+    });
+    expect(m).toHaveLength(2);
+    for (const u of m) {
+      expect(u.unitRight, `"${u.text}" ends inside the card`).toBeLessThanOrEqual(u.cardRight + 0.5);
+      expect(u.unitLeft, `"${u.text}" starts inside the card`).toBeGreaterThanOrEqual(u.cardLeft - 0.5);
+      expect(u.clippedByBox).toBe(false);
+      if (size.width !== 320) {
+        expect(u.sameLine, `"${u.text}" is on the line of its number`).toBe(true);
+        expect(u.gap, `"${u.text}" is next to its number`).toBeLessThanOrEqual(24);
+      }
+    }
+  });
+}
+
+// V5: text at 200 percent (root font 200 percent) on a tall phone. The title keeps its words, Stop stays a pill,
+// the counters card does not clip, and the numbers can be scrolled above the bar.
+test.describe("V5: Session with text at 200 percent, 390 x 844", () => {
+  test.use({ viewport: SIZES[0] });
+  test("title in whole words, Stop is a pill, no clip, numbers reachable", async ({ page }) => {
+    await toSessionOf(page, "Start Heel slide");
+    await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
+    await page.evaluate(() => document.documentElement.style.setProperty("font-size", "200%", "important"));
+    await page.waitForTimeout(400);
+    const m = await page.evaluate(() => {
+      const h1 = document.querySelector(".session-head h1") as HTMLElement;
+      const lineHeight = parseFloat(getComputedStyle(h1).lineHeight) || parseFloat(getComputedStyle(h1).fontSize) * 1.2;
+      const stop = document.querySelector(".btn-stop")!.getBoundingClientRect();
+      const card = document.querySelector(".counters") as HTMLElement;
+      return {
+        titleLines: Math.round(h1.getBoundingClientRect().height / lineHeight),
+        stopW: stop.width,
+        stopH: stop.height,
+        clipX: card.scrollWidth - card.clientWidth,
+        clipY: card.scrollHeight - card.clientHeight,
+        scrollW: document.documentElement.scrollWidth,
+      };
+    });
+    expect(m.titleLines, "Heel slide fits in one or two lines, so no word breaks inside").toBeLessThanOrEqual(2);
+    expect(m.stopW, "Stop is wider than it is high").toBeGreaterThan(m.stopH);
+    expect(m.clipX).toBeLessThanOrEqual(1);
+    expect(m.clipY).toBeLessThanOrEqual(1);
+    expect(m.scrollW).toBeLessThanOrEqual(390);
+    // The numbers scroll into view above the bar.
+    await page.locator(".readout:not(.readout-reps) .readout-number").scrollIntoViewIfNeeded();
+    const room = await page.evaluate(() => {
+      const bar = document.querySelector(".session-bar")!.getBoundingClientRect().top;
+      const num = document.querySelector(".readout:not(.readout-reps) .readout-number")!.getBoundingClientRect();
+      const reps = document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect();
+      return { bar, angleBottom: num.bottom, repsBottom: reps.bottom };
+    });
+    expect(room.angleBottom).toBeLessThanOrEqual(room.bar + 0.5);
+    await page.locator(".readout-reps .readout-number").scrollIntoViewIfNeeded();
+    const reps = await page.evaluate(() => ({ bar: document.querySelector(".session-bar")!.getBoundingClientRect().top, bottom: document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect().bottom }));
+    expect(reps.bottom).toBeLessThanOrEqual(reps.bar + 0.5);
+  });
+});
 
 // R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {

@@ -62,7 +62,7 @@ describe('DataScreen export', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await setup();
     expect(getLastExport()).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Export JSON file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as JSON' }));
     await waitFor(() => expect(stub.clicked).toHaveLength(1));
     expect(stub.clicked[0]!.download).toMatch(/^mpfl-sessions-\d{4}-\d{2}-\d{2}\.json$/);
     const text = await readBlob(stub.created[0]!);
@@ -78,7 +78,7 @@ describe('DataScreen export', () => {
 
   it('downloads the CSV text with the angle method in the first row', async () => {
     await setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as CSV' }));
     await waitFor(() => expect(stub.clicked).toHaveLength(1));
     expect(stub.clicked[0]!.download).toMatch(/\.csv$/);
     const text = await readBlob(stub.created[0]!);
@@ -90,8 +90,8 @@ describe('DataScreen export', () => {
     const db = freshDb();
     render(<DataScreen db={db} onBack={vi.fn()} onErased={vi.fn()} />);
     await waitFor(() => expect(screen.getByText(/no sessions are stored/i)).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Export JSON file' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Export CSV file' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export as JSON' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Export as CSV' })).toBeDisabled();
     expect(getLastExport()).toBeNull();
   });
 
@@ -106,7 +106,7 @@ describe('DataScreen export', () => {
     vi.spyOn(db.sessions, 'orderBy').mockImplementation(() => {
       throw new Error('boom');
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Export JSON file' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export 1 session as JSON' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/export did not work/i);
     expect(getLastExport()).toBeNull();
     expect(stub.clicked).toHaveLength(0);

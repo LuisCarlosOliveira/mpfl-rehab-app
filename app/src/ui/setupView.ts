@@ -41,6 +41,18 @@ export function orderedRuleRows(current: SetupRuleId): RuleRowState[] {
   return [...rows.filter((r) => r.word === 'not seen'), ...rows.filter((r) => r.word === 'seen')];
 }
 
+/** The first rule that is not seen, as the words of one chip (A4). When every rule is seen it reads Ready. */
+export function chipFor(current: SetupRuleId): { text: string; seen: boolean } {
+  const first = ruleRows(current).find((r) => r.word === 'not seen');
+  return first ? { text: `${first.label}: not seen`, seen: false } : { text: 'Ready', seen: true };
+}
+
+// The step card before the camera starts (A3). The words "Camera is off" and the help line are plain and neutral.
+export const IDLE_TEXT = {
+  line: 'Camera is off',
+  help: 'Press Start camera. The app asks for the camera.',
+} as const;
+
 /**
  * Bytes that the model load fetches: the WASM file and the model file of public/models.
  * A test reads both files and keeps this number equal to their size.
@@ -106,3 +118,9 @@ export const CAPTURE_TEXT = {
 
 /** The side that the person did not choose. */
 export const otherLeg = (side: 'left' | 'right') => (side === 'left' ? 'right' : 'left');
+
+/** The first sentence and the rest of a message. A camera message has a title and one sentence with the fix (A6). */
+export function firstSentence(message: string): { title: string; rest: string } {
+  const at = message.indexOf('. ');
+  return at === -1 ? { title: message, rest: '' } : { title: message.slice(0, at + 1), rest: message.slice(at + 2) };
+}

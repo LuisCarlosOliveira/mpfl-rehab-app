@@ -351,7 +351,8 @@ describe('red flags against research/clinical.md section 7 and the Cincinnati gu
   });
 });
 
-// The schema now refuses free text in marginSource (A1-3). These tests force a text into the cell writer on purpose.
+// The schema refuses free text in marginSource (A1-3), and the export now leaves out a stored row that fails the schema.
+// So these tests call the cell writer directly with the text. A row with such a text never reaches the CSV (see the last test).
 describe('CSV formula guard', () => {
   const csvWith = async (over: Partial<SessionInput>) => {
     const db = freshDb();
@@ -360,24 +361,34 @@ describe('CSV formula guard', () => {
   };
 
   it.each(['＝1+1', '＋1', '－1', '＠SUM(A1)'])('quotes a cell that starts with the wide sign %j', async (start) => {
-    const csv = await csvWith({ marginSource: `${start}` as SessionInput['marginSource'] });
-    expect(csv).toContain(`"'${start}"`);
+    const { textCell } = await import('../src/lib/storage/export');
+    expect(textCell(start)).toBe(`"'${start}"`);
   });
 
   it.each(['=1+1', '+1', '-1', '@x', '\tx', '\rx'])('keeps the leading-quote rule for the ASCII start %j', async (start) => {
-    const csv = await csvWith({ marginSource: start as SessionInput['marginSource'] });
-    expect(csv).toContain(`"'${start}"`);
+    const { textCell } = await import('../src/lib/storage/export');
+    expect(textCell(start)).toBe(`"'${start}"`);
   });
 
   it('does not change a plain text cell', async () => {
-    expect(await csvWith({ marginSource: 'plain text' as SessionInput['marginSource'] })).toContain('"plain text"');
+    const { textCell } = await import('../src/lib/storage/export');
+    expect(textCell('plain text')).toBe('"plain text"');
+    expect(await csvWith({})).toContain('"p-001"');
+  });
+
+  it('leaves a stored row with a text that fails the schema out of the CSV, so no such text reaches a cell', async () => {
+    for (const bad of ['＝1+1', '=1+1', '\tx', 'a,b', 'say "hi"']) {
+      const csv = await csvWith({ marginSource: bad as SessionInput['marginSource'] });
+      expect(csv.trimEnd().split('\n')).toHaveLength(2); // the method row and the header
+    }
   });
 
   it('has the same number of cells in the header and in every row', async () => {
     const db = freshDb();
-    await saveSession(db, session({ marginSource: 'a,b' as SessionInput['marginSource'] }));
-    await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z', marginSource: 'say "hi"' as SessionInput['marginSource'], peakFlexion: null }));
+    await saveSession(db, session({}));
+    await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z', peakFlexion: null }));
     const lines = (await exportCsv(db)).trimEnd().split('\n').slice(1);
+    expect(lines).toHaveLength(3);
     const count = (l: string) => l.replace(/"(?:[^"]|"")*"/g, 'T').split(',').length;
     expect(new Set(lines.map(count)).size).toBe(1);
   });

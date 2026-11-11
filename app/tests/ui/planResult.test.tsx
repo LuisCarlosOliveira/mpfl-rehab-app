@@ -39,7 +39,9 @@ describe('PlanResult', () => {
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).getByText('Straight leg raise')).toBeInTheDocument();
     expect(within(list).getByText('Heel slide')).toBeInTheDocument();
-    expect(within(list).getByText(`${RULES.DOSE.values.sets} sets of ${RULES.DOSE.values.reps} reps`)).toBeInTheDocument();
+    // The generator sets no dose. The row says to ask the care team. The surgeon number is the limit.
+    expect(within(list).queryByText(/sets of/)).toBeNull();
+    expect(within(list).getAllByText('How many: ask your care team').length).toBe(2);
     expect(within(list).getByText('Limit 60 degrees')).toBeInTheDocument();
   });
 
@@ -72,7 +74,7 @@ describe('PlanResult', () => {
     const details = view.container.querySelector('details') as HTMLDetailsElement;
     expect(details.open).toBe(false);
     expect(within(details).getByText('Why this plan')).toBeInTheDocument();
-    for (const id of ['W1', 'PH1', 'SLR', 'DOSE', 'HEEL', 'RANGE_SURGEON', 'REVIEW'] as const) {
+    for (const id of ['W1', 'PH1', 'SLR', 'HEEL', 'RANGE_SURGEON', 'REVIEW'] as const) {
       const rule = RULES[id];
       const entry = screen.getByRole('heading', { name: rule.title, level: 3 }).closest('li') as HTMLElement;
       expect(entry).toHaveTextContent(rule.text);

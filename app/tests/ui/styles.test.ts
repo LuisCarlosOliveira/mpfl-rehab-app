@@ -54,7 +54,7 @@ describe('styles.css rules', () => {
     expect(colours.length).toBeGreaterThan(40);
     for (const c of colours) {
       const { c: chroma, h } = oklch(c);
-      // OKLCH red sits near 29 degrees and green near 142 degrees. The warm paper neutrals have a hue near 38 and a chroma below 0.04.
+      // OKLCH red sits near 29 degrees and green near 142 degrees. The Plaster neutrals have a chroma below 0.01.
       const red = h < 40 || h > 340;
       const green = h > 100 && h < 175;
       expect(chroma < 0.04 || !(red || green), `${c} is a red or green colour (chroma ${chroma.toFixed(3)}, hue ${h.toFixed(0)})`).toBe(true);
@@ -93,13 +93,26 @@ describe('styles.css rules', () => {
     expect(contrast(t('disabled-ink'), t('disabled-bg'))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(t('on-primary'), t('primary'))).toBeGreaterThanOrEqual(4.5); // primary button text
     expect(contrast(t('on-accent'), t('accent'))).toBeGreaterThanOrEqual(4.5); // banner and strong notice text
+    expect(contrast(t('banner-ink'), t('banner-bg'))).toBeGreaterThanOrEqual(4.5); // prototype banner strip
+    for (const bg of ['sunken', 'primary-soft', 'accent-soft']) expect(contrast(t('ink'), t(bg)), `ink on ${bg}`).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(t('muted'), t('sunken')), 'muted on sunken').toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(THEMES)('has control edges and the focus ring of at least 3 to 1 on the page (%s)', (_name, block) => {
     const t = (n: string) => tokenIn(block, n);
-    expect(contrast(t('edge'), t('bg')), 'edge on bg').toBeGreaterThanOrEqual(3);
+    for (const bg of ['bg', 'surface', 'raised', 'sunken']) expect(contrast(t('edge'), t(bg)), `edge on ${bg}`).toBeGreaterThanOrEqual(3);
+    expect(contrast(t('focus'), t('raised')), 'focus on raised').toBeGreaterThanOrEqual(3);
     expect(contrast(t('focus'), t('bg')), 'focus on bg').toBeGreaterThanOrEqual(3);
     expect(contrast(t('primary'), t('bg')), 'primary on bg').toBeGreaterThanOrEqual(3);
+  });
+
+  it('has no second chart colour and no trace colour (one series per chart, white leg trace)', () => {
+    expect(rules).not.toMatch(/--chart-2|--trace/);
+  });
+
+  it('uses four radii by rank and no old large radius', () => {
+    expect(rules).not.toMatch(/--r-l\b|--r-xl\b/);
+    for (const t of ['r-xs', 'r-s', 'r-m', 'r-full']) expect(lightBlock).toContain(`--${t}:`);
   });
 
   it('sets the live angle number at 72 px or more at the smallest size', () => {

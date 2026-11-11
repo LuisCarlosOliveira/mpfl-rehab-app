@@ -7,6 +7,10 @@
 // would mislead (live frames of clip 05 and 06). The bones to that joint are hidden. The names and the gate are the ones of the
 // setup rules (src/lib/setupRules.ts).
 //
+// A8: the angle text is two lines (the number, then "estimated angle"). It stays inside the picture: it flips or shifts at the edge.
+// A3: with `labels` (Setup only) each joint of the chosen leg gets a name chip with an elbow leader line. A joint that is not seen
+// gets "<name> not seen" at the last place where it was seen, with a dashed ring. Without `labels` (Session) nothing of this is drawn.
+//
 // Place it in a screen like this (one line each):
 //   const map = useRef<BodyMapHandle>(null);
 //   inside the frame that holds the video:  <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} />  and give the video className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`}
@@ -29,6 +33,8 @@ interface Props {
   leg: Side;
   /** Give the same value as the picture. */
   mirrored?: boolean;
+  /** Setup only: name chips with leader lines for hip, knee and ankle (A3). */
+  labels?: boolean;
 }
 
 // Landmark ids of MediaPipe. A leg is hip, knee, ankle and foot index.
@@ -46,6 +52,10 @@ const SPIKE_FRACTION = 0.02;
 const MAX_HOLD = 2; // ENGINEERING. Some spikes last two updates (a point on the other leg for 170 ms). A real jump, such as a cut, waits at most this many updates.
 // ENGINEERING. A text sits on the inner side of the picture. It changes side only when the point is this far past the middle, so it does not hop.
 const SIDE_BAND = 0.06;
+// The width of a text is estimated: a letter is about 0.6 of the font size wide. The estimate is on the wide side, so a text stays inside.
+const LETTER = 0.6;
+const textWidth = (chars: number, size: number) => chars * LETTER * size;
+const finite = (n: number) => Number.isFinite(n);
 const POINT_IDS: readonly number[] = [...new Set([...SOFT.flat(), ...LEG_IDS.left, ...LEG_IDS.right])];
 
 const seen = (p: Landmark | undefined): p is Landmark => p !== undefined && (p.visibility ?? 1) >= MIN_VISIBILITY;
@@ -77,7 +87,7 @@ export function BodyMapSwitch() {
   );
 }
 
-export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, mirrored = false }, ref) {
+export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, mirrored = false, labels = false }, ref) {
   const isHidden = useHidden();
   const svg = useRef<SVGSVGElement>(null);
   const els = useRef<Record<string, SVGElement>>({});
@@ -86,6 +96,8 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const lowSince = useRef<(number | null)[]>([null, null, null]);
   const track = useRef(new Map<number, { last: Landmark; prev: Landmark; held: number }>());
   const sides = useRef({ arc: 1, chosen: 1 });
+  const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 }); // the box of the angle text in view box units, for the leg label
+  const lastAt = useRef<({ x: number; y: number } | null)[]>([null, null, null]); // the last place where each joint of the chosen leg was seen
 
   const layout = () => {
     const root = svg.current;
@@ -97,6 +109,10 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
     const px = unit.current;
     for (const side of SIDES) [0, 1, 2].forEach((j) => els.current[`${side}-j${j}`]?.setAttribute('r', String(r1((j === 1 ? 7 : 4.5) * px))));
     root.querySelectorAll('.bm-label').forEach((t) => t.setAttribute('stroke-width', String(r1(3.5 * px))));
+    for (const j of [0, 1, 2]) {
+      els.current[`ghost-${j}`]?.setAttribute('r', String(r1(9 * px)));
+      els.current[`jl-${j}-t`]?.setAttribute('stroke-width', '0'); // the dark chip replaces the outline of this text
+    }
   };
 
   useLayoutEffect(() => {
@@ -105,6 +121,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
     if (!root) return;
     root.querySelectorAll<SVGElement>('[data-k]').forEach((el) => (els.current[el.dataset.k!] = el));
     lowSince.current = [null, null, null];
+    lastAt.current = [null, null, null];
     layout();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(layout);
@@ -183,8 +200,9 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
 
         if (!landmarks || landmarks.length < 33) {
           // Hide the groups only. The lines inside a bone group keep no display value of their own.
-          Object.keys(e).forEach((k) => !/-[hc]$/.test(k) && e[k]!.setAttribute('display', 'none'));
+          Object.keys(e).forEach((k) => !/-[hc]$/.test(k) && !/^jl-\d-[ltr]$/.test(k) && e[k]!.setAttribute('display', 'none'));
           lowSince.current = [null, null, null];
+          lastAt.current = [null, null, null];
           track.current.clear();
           return;
         }
@@ -227,15 +245,74 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         // The label of a joint that the camera does not see. The labels stack in the top corner. Only the chosen leg has them.
         let row = 0;
         for (let j = 0; j < 3; j++) {
-          show(`lost-${j}`, lost[j]!);
-          if (!lost[j]) continue;
+          show(`lost-${j}`, lost[j]! && !labels);
+          if (!lost[j] || labels) continue;
           text(`lost-${j}`, 14 * px, (26 + 22 * row++) * px, 'start');
+        }
+
+        // A3: name chips with elbow leader lines (Setup only). A lost joint reads "<name> not seen" at its last place, with a dashed ring.
+        if (labels) {
+          type Chip = { j: number; pos: { x: number; y: number } | null; name: string; dir: -1 | 1; y: number; w: number };
+          const chips: Chip[] = [];
+          const size = 18 * px;
+          let corner = 0;
+          for (let j = 0; j < 3; j++) {
+            if (seen(chosen[j])) lastAt.current[j] = at(chosen[j]!);
+            const ghost = lost[j]! && lastAt.current[j] !== null;
+            show(`ghost-${j}`, ghost);
+            if (ghost) move(`ghost-${j}`, lastAt.current[j]!);
+            const pos = (!lost[j] ? at(chosen[j]!) : lastAt.current[j]) ?? null;
+            const name = lost[j] ? `${JOINT_NAMES[j]} not seen` : JOINT_NAMES[j]!;
+            const w = textWidth(name.length, size);
+            if (pos === null) {
+              chips.push({ j, pos, name, dir: -1, y: (30 + 36 * corner++) * px, w });
+            } else if (finite(pos.x) && finite(pos.y)) {
+              chips.push({ j, pos, name, dir: pos.x < W / 2 ? -1 : 1, y: Math.max(pos.y - 18 * px, 30 * px), w });
+            }
+          }
+          // Two chips on the same side keep a gap, so they never lie on each other.
+          for (const dir of [-1, 1] as const) {
+            const same = chips.filter((c) => c.dir === dir).sort((a, b) => a.y - b.y);
+            same.forEach((c, i) => {
+              if (i > 0) c.y = Math.max(c.y, same[i - 1]!.y + 34 * px);
+            });
+          }
+          const shownJ = new Set(chips.map((c) => c.j));
+          for (let j = 0; j < 3; j++) show(`jl-${j}`, shownJ.has(j));
+          const pad = 12 * px;
+          const gap = 8 * px;
+          for (const c of chips) {
+            const x0 = c.dir === -1 ? pad : W - pad - c.w;
+            const chip = e[`jl-${c.j}-r`];
+            const t = e[`jl-${c.j}-t`];
+            if (!chip || !t) continue;
+            t.textContent = c.name;
+            t.setAttribute('font-size', String(r1(size)));
+            t.setAttribute('text-anchor', 'start');
+            t.setAttribute('x', String(r1(x0)));
+            t.setAttribute('y', String(r1(c.y + 6 * px)));
+            chip.setAttribute('x', String(r1(x0 - gap)));
+            chip.setAttribute('y', String(r1(c.y - 16 * px)));
+            chip.setAttribute('width', String(r1(c.w + 2 * gap)));
+            chip.setAttribute('height', String(r1(32 * px)));
+            chip.setAttribute('rx', String(r1(6 * px)));
+            const leader = e[`jl-${c.j}-l`];
+            if (!leader) continue;
+            if (c.pos === null) {
+              leader.setAttribute('points', '');
+              continue;
+            }
+            const endX = c.dir === -1 ? x0 + c.w + gap : x0 - gap; // the chip edge that faces the leg
+            const rise = Math.max(c.pos.y - c.y, 0);
+            const kneeX = c.dir === -1 ? Math.max(c.pos.x - rise, endX) : Math.min(c.pos.x + rise, endX);
+            leader.setAttribute('points', `${r1(c.pos.x)},${r1(c.pos.y)} ${r1(kneeX)},${r1(c.y)} ${r1(endX)},${r1(c.y)}`);
+          }
         }
 
         // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
         const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
         const thighOn = !lost[0] && !lost[1];
-        show('chosen-label', thighOn);
+        show('chosen-label', thighOn && !labels); // the joint chips name the leg on Setup
 
         // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
         const angle = kneeAngle(hip, knee, ankle, aspect.current);
@@ -254,8 +331,29 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           e['arc-core']!.setAttribute('d', d);
           e['arc-halo']!.setAttribute('d', d);
           const inward = innerSide('arc', k.x);
-          text('arc-text', k.x + inward * (r + 12 * px), k.y + 4 * px, inward === 1 ? 'start' : 'end');
-          e['arc-text']!.textContent = `${Math.round(bend)}° estimated angle`;
+          // A8: two lines, the number and then the words. The text is clamped to the picture, so the right edge never cuts it.
+          const first = `${Math.round(bend)}° `;
+          const second = 'estimated angle';
+          const sizeA = 20 * px;
+          const sizeB = 14 * px;
+          const w = Math.max(textWidth(first.length, sizeA), textWidth(second.length, sizeB));
+          const pad = 8 * px;
+          const anchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
+          let x = k.x + inward * (r + 12 * px);
+          if (anchor === 'start' && x + w > W - pad) x = Math.max(W - pad - w, pad);
+          if (anchor === 'end' && x - w < pad) x = Math.min(pad + w, W - pad);
+          const y = Math.min(Math.max(k.y + 4 * px, 24 * px), H - 24 * px);
+          text('arc-text', x, y, anchor, 14);
+          const lines = e['arc-text']!.children;
+          for (const [i, str, size] of [[0, first, sizeA], [1, second, sizeB]] as const) {
+            const el = lines[i];
+            if (!el) continue;
+            el.textContent = str;
+            el.setAttribute('x', String(r1(x)));
+            el.setAttribute('font-size', String(r1(size)));
+          }
+          lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
+          arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
         }
 
         if (thighOn) {
@@ -271,7 +369,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           text('chosen-label', m.x + inward * 16 * px, m.y - 20 * px, inward === 1 ? 'start' : 'end');
           if (arcOn) {
             const a = box(e['chosen-label']!);
-            const b = box(e['arc-text']!);
+            const b = arcBox.current;
             // The two texts must not lie on each other. The leg label moves above the angle text.
             if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) e['chosen-label']!.setAttribute('y', String(r1(b.top - 4 * px)));
           }
@@ -315,9 +413,23 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
       {JOINT_NAMES.map((name, j) => (
         <text key={name} data-k={`lost-${j}`} className="bm-label" display="none">{`${name} not seen`}</text>
       ))}
+      {labels &&
+        [0, 1, 2].map((j) => (
+          <g key={`jl-${j}`} data-k={`jl-${j}`} display="none">
+            <polyline data-k={`jl-${j}-l`} className="bm-leader" />
+            <rect data-k={`jl-${j}-r`} className="bm-chip" />
+            <text data-k={`jl-${j}-t`} className="bm-label bm-jlabel">
+              {JOINT_NAMES[j]}
+            </text>
+          </g>
+        ))}
+      {labels && [0, 1, 2].map((j) => <circle key={`ghost-${j}`} data-k={`ghost-${j}`} className="bm-ghost" r={9} display="none" />)}
       <path data-k="arc-halo" className="bm-halo bm-arc" display="none" />
       <path data-k="arc-core" className="bm-core bm-arc" display="none" />
-      <text data-k="arc-text" className="bm-label" display="none" />
+      <text data-k="arc-text" className="bm-label" display="none">
+        <tspan />
+        <tspan />
+      </text>
       <text data-k="chosen-label" className="bm-label" display="none">
         Chosen leg
       </text>

@@ -149,7 +149,9 @@ test('Create my plan: questions, plan, Why this plan, a real click on Confirm, a
   await page.getByRole('heading', { name: 'Why this plan' }).click();
   const rules = page.getByRole('list', { name: 'Rules behind your plan' });
   await expect(rules.getByRole('heading', { name: 'Straight leg raise' })).toBeVisible();
-  await rules.getByRole('heading', { name: 'Dose of the strengthening exercise' }).click();
+  // The generator sets no dose, so the rule that shows a source and a population is the physiotherapy line (P2). The dose is not in the rules behind the plan.
+  await expect(rules.getByRole('heading', { name: 'Dose of the strengthening exercise' })).toHaveCount(0);
+  await rules.getByRole('heading', { name: 'Physiotherapy visits' }).click();
   const open = page.locator('.why-details[open]');
   await expect(open.getByText('Expert opinion (OPINION)')).toBeVisible();
   await expect(open.getByText(/P2: Cincinnati/)).toBeVisible();
@@ -252,7 +254,9 @@ test('Keep my plan changes nothing, and Confirm saves a lower limit after a real
   await page.getByLabel('Limit in degrees').fill('50');
   await press(page, 'Check my plan');
   await expectScreen(page, 'Confirm the change');
-  await expect(page.getByText(/Knee-bend limit in your plan: from 60 degrees to 50 degrees/)).toBeVisible();
+  const row = page.locator('.change-row', { hasText: 'Knee-bend limit in your plan' });
+  await expect(row.locator('.before')).toHaveText('60 degrees');
+  await expect(row.locator('.after')).toHaveText('50 degrees');
   expect(((await readStore(page, 'protocol')) as { raw: string }[])[0]!.raw).toBe(before!.raw);
   await press(page, 'Keep my plan');
   await expectScreen(page, 'Home');

@@ -9,6 +9,7 @@ import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { prescription } from './Home';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
+import './screensV2.css';
 
 type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
 
@@ -99,7 +100,7 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
       : 'Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.';
 
   return (
-    <section aria-labelledby="plan-title" className="narrow">
+    <section aria-labelledby="plan-title" className="narrow v2-screens">
       <header className="page-head">
         <h1 id="plan-title" tabIndex={-1}>
           Your plan
@@ -112,22 +113,27 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
 
         <section className="stack-s" aria-labelledby="plan-phase">
           <h2 id="plan-phase">{phase ? `Phase ${phase.id} ${phase.name}` : `Phase ${protocol.activePhase}`}</h2>
-          <ul className="plan-exercises" aria-label="Exercises in your plan">
-            {exercises.map((e) => (
-              <li key={e.kind} className="card plan-exercise">
-                <p className="exercise-name">{EXERCISE_NAMES[e.kind]}</p>
-                <ul className="chips">
-                  {prescription(e, true).map((line) => (
-                    <li key={line.text} className="chip">
-                      <Icon name={line.icon} size={16} />
-                      {line.text}
-                    </li>
-                  ))}
-                </ul>
-                {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail">Hold time: ask your care team.</p>}
-                {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail">{countStartText(e.targetFlexion)}.</p>}
-              </li>
-            ))}
+          <ul className="plan-exercises dose-list" aria-label="Exercises in your plan">
+            {exercises.map((e) => {
+              const lines = prescription(e, true);
+              // The first line is the dose (sets and reps, or sets, or the hold). The other lines stay under the name as plain text.
+              const [dose, ...rest] = lines;
+              return (
+                <li key={e.kind} className="dose-row">
+                  <p className="exercise-name dose-name">{EXERCISE_NAMES[e.kind]}</p>
+                  {dose && <p className="dose">{dose.text}</p>}
+                  {rest.length > 0 && (
+                    <ul className="dose-notes">
+                      {rest.map((line) => (
+                        <li key={line.text}>{line.text}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">Hold time: ask your care team.</p>}
+                  {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
+                </li>
+              );
+            })}
           </ul>
           <HomeExerciseList items={phase?.homeExercises ?? []} />
           {!hasHeel && (

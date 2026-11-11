@@ -74,8 +74,8 @@ describe('My data', () => {
     expect(screen.getByText(/no export yet/i)).toBeInTheDocument();
     click('My data');
     await heading('My data');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Export JSON file' })).toBeEnabled());
-    click('Export JSON file');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export 2 sessions as JSON' })).toBeEnabled());
+    click('Export 2 sessions as JSON');
     await waitFor(() => expect(stub.clicked).toHaveLength(1));
     await waitFor(() => expect(getLastExport()).not.toBeNull());
     expect(JSON.parse(await stub.created[0]!.text()).sessions).toHaveLength(2);
@@ -96,8 +96,8 @@ describe('My data', () => {
     await openHome();
     click('My data');
     await heading('My data');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Export JSON file' })).toBeEnabled());
-    click('Export JSON file');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Export 2 sessions as JSON' })).toBeEnabled());
+    click('Export 2 sessions as JSON');
     await waitFor(() => expect(stub.created).toHaveLength(1));
     const text = await stub.created[0]!.text();
     click(/open a session file \(care team\)/i);

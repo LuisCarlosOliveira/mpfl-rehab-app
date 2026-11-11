@@ -47,6 +47,24 @@ describe('ClinicianView session file', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
+  it('shows the peak and the angle at the top with one decimal in the session list, and keeps the stored values', async () => {
+    setup();
+    const raw = [session({ date: day(1), peakFlexion: 87.34567891, topFlexion: 21.98765 }), session({ date: day(2), peakFlexion: 100 })];
+    const text = exportText(raw);
+    await loadFile(text);
+    const list = screen.getByRole('table', { name: /session list/i });
+    const rows = within(list).getAllByRole('row').slice(1);
+    const cells = rows.map((r) => within(r).getAllByRole('cell').map((c) => c.textContent));
+    const texts = cells.flat().join('|');
+    expect(texts).toContain('87.3');
+    expect(texts).toContain('22');
+    expect(texts).not.toMatch(/87\.3456|21\.987/);
+    // The row with a whole peak shows it without a decimal.
+    expect(cells.some((c) => c.includes('100'))).toBe(true);
+    // Display only: the file text that the page read still holds the raw numbers.
+    expect(text).toContain('87.34567891');
+  });
+
   it('shows the named error as plain text for each refused file', async () => {
     setup();
     pick(sessionPicker(), 'not json');

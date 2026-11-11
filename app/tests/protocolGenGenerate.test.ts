@@ -119,11 +119,17 @@ describe('week 0 to 6, phase 1', () => {
     expect(kinds(protocol, 1)).toEqual(['straight-leg-raise']);
   });
 
-  it('generates the conservative dose of the guideline for the straight leg raise', () => {
-    const slr = exercise(plan(at(3)).protocol, 1, 'straight-leg-raise');
-    expect(slr).toMatchObject({ sets: 2, reps: 10 });
-    expect(slr?.source).toMatch(/OPINION/);
+  // Guardrail: no number from a published source goes into a plan. A dose is a clinical number, so the plan has none.
+  it.each([0, 3, 6])('gives the straight leg raise no sets and no reps at week %i, and says why', (w) => {
+    const { protocol, why } = plan(at(w));
+    const slr = exercise(protocol, 1, 'straight-leg-raise');
+    expect(slr).not.toHaveProperty('sets');
+    expect(slr).not.toHaveProperty('reps');
+    expect(slr?.source).toMatch(/No dose \(DOSE_NONE\)/);
     expect(slr?.source).toMatch(/Not approved by a clinician/);
+    expect(why.some((x) => (x.ruleId as string) === 'DOSE')).toBe(false);
+    expect(why.find((x) => x.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
+    expect(JSON.stringify(protocol)).not.toMatch(/"sets"|"reps"/);
   });
 
   it('never fills a hold time, a tempo, a top angle or a pain threshold', () => {
@@ -236,7 +242,8 @@ describe('what every generated plan carries', () => {
     const ids = r.protocol.generated?.rules ?? [];
     const made = r.why.filter((w) => w.outcome === 'generated').map((w) => w.ruleId);
     expect(ids).toEqual([...new Set(made)]);
-    expect(ids).toEqual(expect.arrayContaining(['W1', 'PH1', 'SLR', 'DOSE', 'REVIEW', 'RANGE_SURGEON', 'HEEL', 'ENG_TARGET', 'ENG_RETURN']));
+    expect(ids).not.toContain('DOSE');
+    expect(ids).toEqual(expect.arrayContaining(['W1', 'PH1', 'SLR', 'REVIEW', 'RANGE_SURGEON', 'HEEL', 'ENG_TARGET', 'ENG_RETURN']));
     for (const w of r.why.filter((x) => x.outcome === 'refused')) expect(ids).not.toContain(w.ruleId);
     expect(ids.length).toBeLessThanOrEqual(40);
   });
@@ -269,9 +276,9 @@ describe('what every generated plan carries', () => {
       expect(w.population.length).toBeGreaterThan(0);
       expect(w.label).toBe('Not approved by a clinician');
     }
-    const dose = why.find((w) => w.ruleId === 'DOSE');
-    expect(dose).toMatchObject({ grade: 'OPINION', outcome: 'generated' });
-    expect(dose?.sourceIds).toContain('P2');
+    const dose = why.find((w) => w.ruleId === 'DOSE_NONE');
+    expect(dose).toMatchObject({ grade: 'NONE', outcome: 'refused' });
+    expect(dose?.text).toMatch(/no dose for any exercise/);
   });
 
   it('says what it does not generate and asks for the surgeon or the care team', () => {

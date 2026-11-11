@@ -32,6 +32,8 @@ function mount(load: () => Promise<{ default: () => ReactElement }>) {
   return { onBack, view };
 }
 
+const OFFLINE_TEXT = 'You are offline. Reconnect, then press Try again. Saved sessions stay on this device. Unsaved answers are lost.';
+
 describe('LoadError and retryableLazy', () => {
   it('shows a focused heading, the text and two buttons when the import rejects', async () => {
     mount(() => Promise.reject(new Error('chunk')));
@@ -62,5 +64,36 @@ describe('LoadError and retryableLazy', () => {
   it('shows the children when nothing fails', async () => {
     mount(() => Promise.resolve({ default: () => <h1>Fine</h1> }));
     expect(await screen.findByRole('heading', { name: 'Fine' })).toBeInTheDocument();
+  });
+
+  describe('when the device is offline', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('shows the offline text with the same title and both buttons', async () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      mount(() => Promise.reject(new Error('chunk')));
+      const h1 = await screen.findByRole('heading', { level: 1, name: 'Screen not loaded' });
+      expect(h1).toHaveFocus();
+      expect(screen.getByText(OFFLINE_TEXT)).toBeInTheDocument();
+      expect(screen.queryByText(TEXT)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Back to Home' })).toBeInTheDocument();
+      expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
+    });
+
+    it('still reloads on Try again', async () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      mount(() => Promise.reject(new Error('chunk')));
+      await screen.findByText(OFFLINE_TEXT);
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the existing text when the device is online', async () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+      mount(() => Promise.reject(new Error('chunk')));
+      expect(await screen.findByText(TEXT)).toBeInTheDocument();
+      expect(screen.queryByText(OFFLINE_TEXT)).toBeNull();
+    });
   });
 });

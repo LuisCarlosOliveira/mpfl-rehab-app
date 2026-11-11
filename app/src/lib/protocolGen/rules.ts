@@ -168,20 +168,8 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in weeks 7 to 11 and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
-    text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. P1 starts free squats later, at week 12.',
-  },
-  SQUAT_DEPTH: {
-    title: 'Depth limit of the mini squat',
-    kind: 'generated',
-    values: { maxFlexion: 50 },
-    personEntered: ['maxFlexion'], // only a lower number from the surgeon, as entered by the person
-    sourceIds: ['N3', 'S16', 'P2'],
-    grade: 'OPINION',
-    population: 'N3: MPFL reconstruction, weeks 0 to 6. S16: 18 healthy people, a lab study. The sources give no depth for weeks 7 to 11.',
-    conservative:
-      'N3 gives a mini squat range of 0 to 50 degrees in the first weeks and gives no depth later. S16 gives the same range for healthy people. P2 starts wall squats at 45 degrees and goes deeper later. The sources disagree and none gives a depth for weeks 7 to 11. The app takes 50 degrees. A limit from your surgeon can only lower it.',
-    text: 'The mini squat stops at 50 degrees of estimated knee bend (N3). A limit from your surgeon can only lower it.',
+      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in weeks 7 to 11 and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise. The sources disagree on a depth and none gives one for weeks 7 to 11, so the app sets none. Only a limit from your surgeon, as entered by you, is the ceiling.',
+    text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. The app sets no depth limit. Ask your surgeon for one. P1 starts free squats later, at week 12.',
   },
   SQUAT_GATE: {
     title: 'Answers needed for the mini squat',
@@ -195,26 +183,15 @@ const defs = {
     text: 'The mini squat needs your report that you walk without crutches and lift your leg without the knee bending. The app does not check this. Reported by you. Not checked by the app.',
   },
   HOLD: {
-    title: 'Seated knee hold without a clearance',
+    title: 'Seated knee hold',
     kind: 'protective',
     values: {},
     sourceIds: ['P2', 'P1', 'P3'],
     grade: 'OPINION',
     population: P2_POPULATION,
     conservative:
-      'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. The app takes the stricter rule.',
-    text: 'The app adds no seated knee hold in weeks 0 to 6, and none from week 7 without your report that your surgeon cleared it. P1 and P2 avoid straightening the knee against the weight of the leg.',
-  },
-  HOLD_P2: {
-    title: 'Seated knee hold in a limited arc',
-    kind: 'generated',
-    values: { minFlexion: 40, arcStart: 90 },
-    sourceIds: ['P1', 'P2'],
-    grade: 'OPINION',
-    population: ADULT_ISO,
-    conservative:
-      'P1 gives an arc of 90 to 40 degrees in phase 2 and follows the preference of the surgeon. P2 gives 90 to 30 degrees in a Note. Sanford gives 0 to 60 degrees and is not audited. The app takes 40 degrees, the more bent end. The knee never goes straight.',
-    text: 'From week 7, after you report that your surgeon cleared it, the seated hold stays between 90 and 40 degrees of knee bend (P1). The app sets no hold time.',
+      'P2 and P1 avoid active knee extension against the weight of the leg in the first weeks. P3 allows it from week 2. P1 gives an arc for later weeks that follows the preference of the surgeon. The app adds no seated hold and no arc, because the arc is a clinical number.',
+    text: 'The app adds no seated knee hold. Ask your surgeon about it. P1 and P2 avoid straightening the knee against the weight of the leg in the first weeks.',
   },
   EXTENDED_OFF: {
     title: 'Held back: mini squat, seated hold and heel slide with an unknown limit',
@@ -227,37 +204,15 @@ const defs = {
       'P3 lists mini squats in its second stage. P1 starts free squats at week 12. No source gives a depth or the answers for a mini squat in weeks 7 to 11.',
     text: 'The app adds no mini squat, no seated hold and no heel slide for an unknown limit. Ask your care team about these exercises.',
   },
-  ENG_HOLD: {
-    title: 'Hold angle of the seated hold',
-    kind: 'engineering',
-    values: { targetFlexion: 40 + 2 * MARGIN_DEG },
-    sourceIds: ['F1', 'F3'],
-    grade: 'ENGINEERING',
-    population: 'Camera error from 20 healthy adults in still photos (F1). Error on exercise video is larger (F3).',
-    reason:
-      'The hold angle is the arc end of 40 degrees plus twice the camera margin. The schema needs a hold angle of more than the arc end plus one margin. It is not a range target.',
-    flag: 'clinical-review-needed',
-    text: 'The app counts the hold at the arc end plus 2 times the camera margin. It is an engineering value and not a range for your knee.',
-  },
-  DOSE: {
-    title: 'Dose of the strengthening exercise',
-    kind: 'generated',
-    values: { sets: 2, reps: 10 },
-    sourceIds: ['P2'],
-    grade: 'OPINION',
-    population: P2_POPULATION,
-    conservative: 'P2 gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated. The app takes the lowest bound: 2 sets of 10.',
-    text: 'Every strengthening exercise in your plan gets 2 sets of 10 repetitions. P2 says this dose applies to all strengthening exercises. P2 is a guideline for ages 8 to 25. The dose is the lowest bound of its start dose.',
-  },
   DOSE_NONE: {
-    title: 'Dose of the heel slide and the ankle pump',
+    title: 'Dose of every exercise',
     kind: 'none',
     values: {},
     sourceIds: ['P2', 'RR'],
     grade: 'NONE',
     population: 'Not applicable',
-    reason: 'P2 gives a dose for strengthening exercises only. No source gives a dose for the heel slide or the ankle pump.',
-    text: 'The app sets no dose for the heel slide and the ankle pump. Ask your care team how many to do.',
+    reason: 'A dose is a clinical number. The app puts no number from a published source into a plan. Only your care team sets sets, reps and hold times.',
+    text: 'The app sets no dose for any exercise. Ask your care team how many to do.',
   },
   // Range
   RANGE_NONE: {

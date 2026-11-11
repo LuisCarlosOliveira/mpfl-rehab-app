@@ -106,6 +106,8 @@ export function stillOverLimit(exercise: Pick<Exercise, 'kind' | 'maxFlexion' | 
 
 // ENGINEERING plausibility value, not clinical (M8): the knee of a straight leg raise stays near straight. A peak above this
 // many degrees is a camera misread (live test R2-08: 165 and 85 degrees for a leg that stayed straight). No source sets it.
+// CLINICIAN BLOCKER: no source sets 30. Open questions: is any limit valid, and is a chart of the top angle useful at all?
+// Your sessions draws no straight leg raise angle chart for this reason. The stored numbers stay in the export and the care team view.
 export const SLR_PEAK_PLAUSIBLE_MAX_DEG = 30;
 export const PEAK_UNREADABLE_TEXT = 'The camera could not read this leg raise.';
 

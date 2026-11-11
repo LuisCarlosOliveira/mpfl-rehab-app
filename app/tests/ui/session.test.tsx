@@ -201,7 +201,7 @@ describe('Session screen', () => {
     source.nextStart = { ok: false, error: { kind: 'other', message: 'The camera could not start. Test text.' } };
     setup(HEEL_SLIDE, source);
     await act(async () => void (await Promise.resolve()));
-    expect(screen.getByText('The camera could not start. Test text.')).toBeInTheDocument();
+    expect(document.querySelector('.notice[role="alert"]')).toHaveTextContent('The camera could not start. Test text.'); // a title and one sentence since V2 (A6)
     expect(screen.getByRole('button', { name: 'Stop' })).toBeVisible();
   });
 

@@ -2,7 +2,6 @@
 import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { generateProtocol, RULES, type GeneratorInputs } from '../src/lib/protocolGen';
-import { counterSetup, createPipeline } from '../src/lib/exercises';
 
 const TODAY = '2026-11-08';
 const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -42,13 +41,15 @@ const ex = (p: Protocol, id: number, kind: string) => phase(p, id)?.exercises.fi
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 afterEach(() => vi.unstubAllEnvs());
 
-describe('step A: home exercises (HOME, ANKLE, DOSE)', () => {
-  it.each([0, 3, 6])('adds the four home exercises with 2 sets of 10 and ankle pumps with no dose at week %i', (w) => {
+describe('step A: home exercises (HOME, ANKLE, DOSE_NONE)', () => {
+  // Guardrail: the generator sets no dose. The plan says to ask the care team.
+  it.each([0, 3, 6])('adds the four home exercises and the ankle pump with no sets and no reps at week %i', (w) => {
     const { protocol } = plan(at(w));
     expect(homeKinds(protocol, 1)).toEqual(['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
     for (const e of home(protocol, 1)) {
-      if (e.kind === 'ankle-pump') expect(e).not.toHaveProperty('sets');
-      else expect(e).toMatchObject({ sets: 2, reps: 10 });
+      expect(e).not.toHaveProperty('sets');
+      expect(e).not.toHaveProperty('reps');
+      expect(e.source).toMatch(/No dose \(DOSE_NONE\)/);
       expect(e.source).toMatch(/Not approved by a clinician/);
     }
     expect(protocolSchema.safeParse(protocol).success).toBe(true);
@@ -60,22 +61,19 @@ describe('step A: home exercises (HOME, ANKLE, DOSE)', () => {
     expect(homeKinds(protocol, 2)).toEqual(['quad-set', 'gluteal-set', 'leg-raise-side', 'leg-raise-back']);
   });
 
-  it('records HOME, ANKLE and DOSE in the why list and the generated rule ids', () => {
+  it('records HOME and ANKLE as generated and DOSE_NONE as refused, and never DOSE', () => {
     const r = plan(at(3));
-    for (const id of ['HOME', 'ANKLE', 'DOSE'] as const) expect(r.why.find((w) => w.ruleId === id)).toMatchObject({ outcome: 'generated' });
-    expect(r.protocol.generated?.rules).toEqual(expect.arrayContaining(['HOME', 'ANKLE', 'DOSE']));
-    const dose = r.why.find((w) => w.ruleId === 'DOSE')!;
-    expect(dose.applied.map((a) => a.path)).toEqual(
-      expect.arrayContaining(['phase1.straight-leg-raise.sets', 'phase1.quad-set.sets', 'phase1.gluteal-set.reps', 'phase1.leg-raise-side.reps', 'phase1.leg-raise-back.sets']),
-    );
-    expect(dose.applied.map((a) => a.path)).not.toContain('phase1.ankle-pump.sets');
+    for (const id of ['HOME', 'ANKLE'] as const) expect(r.why.find((w) => w.ruleId === id)).toMatchObject({ outcome: 'generated' });
+    expect(r.protocol.generated?.rules).toEqual(expect.arrayContaining(['HOME', 'ANKLE']));
+    expect(r.protocol.generated?.rules).not.toContain('DOSE');
+    expect(r.why.some((w) => (w.ruleId as string) === 'DOSE')).toBe(false);
+    expect(r.why.find((w) => w.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
   });
 
-  it('keeps the dose of the heel slide and the ankle pump as NONE', () => {
+  it('keeps the dose of every exercise as NONE', () => {
     expect(RULES.DOSE_NONE.kind).toBe('none');
-    expect(RULES.DOSE_NONE.text).toMatch(/heel slide/);
-    expect(RULES.DOSE_NONE.text).toMatch(/ankle pump/);
-    expect(plan(at(3)).why.find((w) => w.ruleId === 'DOSE_NONE')?.outcome).toBe('refused');
+    expect(RULES.DOSE_NONE.text).toMatch(/no dose for any exercise/);
+    expect(RULES.DOSE_NONE.text).toMatch(/Ask your care team/);
   });
 });
 
@@ -150,13 +148,18 @@ describe('what stays refused (design section 4)', () => {
   });
 });
 
-describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)', () => {
-  it('adds the mini squat from week 7 only with clearance and both gate answers yes', () => {
+describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_GATE)', () => {
+  it('adds the mini squat from week 7 only with clearance and both gate answers yes, with no dose and no depth', () => {
     for (const w of [7, 9, 11]) {
       const r = plan(at(w, gates));
-      expect(ex(r.protocol, 2, 'mini-squat'), `week ${w}`).toMatchObject({ sets: 2, reps: 10, maxFlexion: 50, targetFlexion: 2 * MARGIN_DEG, returnWithinDeg: MARGIN_DEG });
+      const squat = ex(r.protocol, 2, 'mini-squat');
+      expect(squat, `week ${w}`).toMatchObject({ targetFlexion: 2 * MARGIN_DEG, returnWithinDeg: MARGIN_DEG });
+      expect(squat).not.toHaveProperty('sets');
+      expect(squat).not.toHaveProperty('reps');
+      expect(squat?.maxFlexion).toBeUndefined();
       expect(kinds(r.protocol, 1)).not.toContain('mini-squat');
-      for (const id of ['SQUAT_P2', 'SQUAT_DEPTH', 'SQUAT_GATE'] as const) expect(r.why.find((x) => x.ruleId === id), id).toMatchObject({ outcome: 'generated' });
+      for (const id of ['SQUAT_P2', 'SQUAT_GATE'] as const) expect(r.why.find((x) => x.ruleId === id), id).toMatchObject({ outcome: 'generated' });
+      expect(r.why.some((x) => (x.ruleId as string) === 'SQUAT_DEPTH')).toBe(false);
       expect(protocolSchema.safeParse(r.protocol).success).toBe(true);
     }
   });
@@ -180,14 +183,14 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
     expect(r.why.find((x) => x.ruleId === 'SQUAT_GATE')?.outcome).toBe('refused');
   });
 
-  it('sets the squat ceiling to 50, or to the lower surgeon number, and never above 50', () => {
-    const ceil = (surgeonLimit: GeneratorInputs['surgeonLimit']) => ex(plan(at(8, { ...gates, surgeonLimit })).protocol, 2, 'mini-squat')?.maxFlexion;
-    expect(ceil({ kind: 'unknown' })).toBe(RULES.SQUAT_DEPTH.values.maxFlexion);
-    expect(ceil({ kind: 'none' })).toBe(50);
-    expect(ceil({ kind: 'degrees', degrees: 120 })).toBe(50);
-    expect(ceil({ kind: 'degrees', degrees: 50 })).toBe(50);
-    expect(ceil({ kind: 'degrees', degrees: 40 })).toBe(40);
-    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
+  // Guardrail: the depth of the squat is a surgeon number. No number from a published source.
+  it('sets no squat ceiling without a surgeon number, and uses the surgeon number as the ceiling', () => {
+    const squat = (surgeonLimit: GeneratorInputs['surgeonLimit']) => ex(plan(at(8, { ...gates, surgeonLimit })).protocol, 2, 'mini-squat');
+    expect(squat({ kind: 'unknown' })?.maxFlexion).toBeUndefined();
+    expect(squat({ kind: 'none' })?.maxFlexion).toBeUndefined();
+    for (const degrees of [40, 50, 90, 120]) expect(squat({ kind: 'degrees', degrees })?.maxFlexion, `${degrees}`).toBe(degrees);
+    const r = plan(at(8, { ...gates, surgeonLimit: { kind: 'degrees', degrees: 90 } }));
+    expect(r.why.find((x) => x.ruleId === 'RANGE_SURGEON')?.applied.map((a) => a.path)).toContain('phase2.mini-squat.maxFlexion');
   });
 
   it('leaves out the mini squat when the surgeon limit is below the camera minimum', () => {
@@ -197,55 +200,34 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
     expect(squat(lowest)).toBe(true);
   });
 
-  it('rests the depth on an audited source and shows the source that disagrees', () => {
-    expect(RULES.SQUAT_DEPTH.sourceIds).toContain('N3');
+  it('shows the source that disagrees, says that the app sets no depth, and keeps the gate text', () => {
     expect(RULES.SQUAT_P2.conservative).toMatch(/P1/);
     expect(RULES.SQUAT_P2.conservative).toMatch(/week 12/);
+    expect(RULES.SQUAT_P2.conservative).toMatch(/disagree/);
+    expect(RULES.SQUAT_P2.text).toMatch(/no depth limit/);
     expect(RULES.SQUAT_GATE.text).toMatch(/not checked/i);
   });
 });
 
-describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)', () => {
-  const hold = (over: Partial<GeneratorInputs>, week = 8) => ex(plan(at(week, { ...cleared, ...over })).protocol, 2, 'seated-extension-hold');
+// Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, with any answers and in any phase.
+describe('the seated hold is never generated', () => {
+  const all = { ...gates, seatedHoldCleared: 'yes' } as const;
 
-  it('adds the seated hold in phase 2 only with the report that the surgeon cleared it', () => {
-    expect(hold({ seatedHoldCleared: 'yes' })).toMatchObject({ minFlexion: 40, targetFlexion: 40 + 2 * MARGIN_DEG });
-    for (const a of ['no', 'unknown'] as const) expect(hold({ seatedHoldCleared: a })).toBeUndefined();
-    expect(hold({})).toBeUndefined();
-    expect(kinds(plan(at(8, { phaseClearance: 'no', seatedHoldCleared: 'yes' })).protocol, 1)).not.toContain('seated-extension-hold');
+  it('adds no seated hold in any phase, for any answer, limit or week', () => {
+    for (const w of [0, 3, 6, 7, 8, 9, 11]) {
+      for (const surgeonLimit of [{ kind: 'unknown' }, { kind: 'none' }, { kind: 'degrees', degrees: 100 }] as const) {
+        const r = plan(at(w, { ...all, surgeonLimit }));
+        for (const id of [1, 2]) expect(kinds(r.protocol, id), `week ${w}`).not.toContain('seated-extension-hold');
+        expect(r.why.find((x) => x.ruleId === 'HOLD')?.outcome, `week ${w}`).toBe('refused');
+        for (const id of ['HOLD_P2', 'ENG_HOLD']) expect(r.why.some((x) => (x.ruleId as string) === id), id).toBe(false);
+      }
+    }
   });
 
-  it('never gives a straight arc and never a hold time', () => {
-    const h = hold({ seatedHoldCleared: 'yes' })!;
-    expect(h.minFlexion).toBe(RULES.HOLD_P2.values.minFlexion);
-    expect(h.minFlexion).toBeGreaterThan(0);
-    expect(h.holdSeconds).toBeUndefined();
-    expect(h.sets).toBeUndefined();
-  });
-
-  it('leaves out the hold when the surgeon knee-bend limit is below the start of the arc', () => {
-    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees: 89 } })).toBeUndefined();
-    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees: 90 } })).toBeDefined();
-    expect(hold({ seatedHoldCleared: 'yes', surgeonLimit: { kind: 'none' } })).toBeDefined();
-  });
-
-  it('rests the arc on P1 and P2 with the more conservative end', () => {
-    expect(RULES.HOLD_P2.sourceIds).toEqual(expect.arrayContaining(['P1', 'P2']));
-    expect(RULES.HOLD_P2.conservative).toMatch(/90-30|90 to 30/);
-    expect(RULES.ENG_HOLD.grade).toBe('ENGINEERING');
-  });
-
-  // The hold counter needs a hold time. The design did not verify this (docs/generator-v2-design.md section 8).
-  it('verifies the hold counter: with no hold time it refuses to run and names the hold time', () => {
-    const h = hold({ seatedHoldCleared: 'yes' })!;
-    expect(counterSetup(h)).toEqual({ ok: false, reason: 'ask-your-surgeon', missing: 'holdSeconds' });
-    expect(createPipeline(h, 'left', 1.78)).toMatchObject({ ok: false, missing: 'holdSeconds' });
-  });
-
-  it('verifies the hold counter: the same exercise runs once a clinician sets a hold time', () => {
-    const h = { ...hold({ seatedHoldCleared: 'yes' })!, holdSeconds: 5 };
-    expect(counterSetup(h)).toMatchObject({ ok: true, kind: 'hold' });
-    expect(createPipeline(h, 'left', 1.78).ok).toBe(true);
+  it('says in the plan that the app adds no seated hold and to ask the surgeon', () => {
+    expect(RULES.HOLD.text).toMatch(/adds no seated knee hold/);
+    expect(RULES.HOLD.text).toMatch(/Ask your surgeon/);
+    expect(RULES.HOLD.conservative).toMatch(/clinical number/);
   });
 });
 
@@ -279,7 +261,7 @@ describe('flag OFF (the default): the held back items', () => {
       const r = plan(at(w, { ...cleared, ...all }));
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('mini-squat');
       expect(kinds(r.protocol, 2), `week ${w}`).not.toContain('seated-extension-hold');
-      for (const id of ['SQUAT_P2', 'SQUAT_GATE', 'SQUAT_DEPTH', 'HOLD_P2', 'ENG_HOLD'] as const) {
+      for (const id of ['SQUAT_P2', 'SQUAT_GATE'] as const) {
         expect(r.protocol.generated?.rules, id).not.toContain(id);
       }
     }
@@ -308,10 +290,10 @@ describe('flag OFF (the default): the held back items', () => {
   });
 });
 
-describe('audit defects D3, D4, D5, D6 and D2 (flag ON)', () => {
-  it('D4: a knee gave way event removes the seated hold as well as the mini squat', () => {
-    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: true })).protocol, 2, 'seated-extension-hold')).toBeUndefined();
-    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: false })).protocol, 2, 'seated-extension-hold')).toBeDefined();
+describe('audit defects D3, D4, D5 and D2 (flag ON)', () => {
+  it('D4: a knee gave way event removes the mini squat', () => {
+    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: true })).protocol, 2, 'mini-squat')).toBeUndefined();
+    expect(ex(plan(at(8, { ...gates, seatedHoldCleared: 'yes', kneeGaveWay: false })).protocol, 2, 'mini-squat')).toBeDefined();
   });
 
   it('D3: the heel slide for an unknown limit carries the P1 line about 120 degrees and the care team', () => {
@@ -319,20 +301,13 @@ describe('audit defects D3, D4, D5, D6 and D2 (flag ON)', () => {
     expect(RULES.HEEL_P2_UNKNOWN.text).toMatch(/Ask your care team/);
   });
 
-  it('D2: the squat depth entry shows the P2 start of wall squats at 45 degrees and says that the sources disagree', () => {
-    expect(RULES.SQUAT_DEPTH.sourceIds).toContain('P2');
-    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/45 degrees/);
-    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/disagree/);
-    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
+  it('D2: the squat entry says that the sources disagree on a depth, so the app sets none', () => {
+    expect(RULES.SQUAT_P2.conservative).toMatch(/disagree/);
+    expect(RULES.SQUAT_P2.conservative).toMatch(/sets none/);
   });
 
   it('D5: the ankle pump rule says what P1 and P3 say and no more', () => {
     expect(RULES.ANKLE.conservative).toMatch(/acute care/);
     expect(RULES.ANKLE.conservative).not.toMatch(/first stage only/);
-  });
-
-  it('D6: the dose text keeps the ages 8 to 25 visible', () => {
-    expect(RULES.DOSE.text).toMatch(/ages 8 to 25/);
-    expect(RULES.DOSE.population).toMatch(/8 to 25/);
   });
 });

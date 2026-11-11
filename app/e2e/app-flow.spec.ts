@@ -46,7 +46,7 @@ test('Privacy shows once: a reload goes to the Load screen', async ({ page }) =>
 
 test('a bad file shows its named error as plain text', async ({ page }) => {
   await toLoad(page);
-  const input = page.getByLabel('Protocol file (.json)');
+  const input = page.getByLabel('Choose a file from your care team');
   await expectBanners(page, { example: false });
 
   await input.setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{not json') });
@@ -70,7 +70,7 @@ test('a bad file shows its named error as plain text', async ({ page }) => {
 test('text from the protocol file shows as plain text', async ({ page }) => {
   await toLoad(page);
   const raw = { ...JSON.parse(readFileSync(EXAMPLE, 'utf8')), authoredBy: '<img src=x onerror="window.__pwned=1">' };
-  await page.getByLabel('Protocol file (.json)').setInputFiles({ name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(raw)) });
+  await page.getByLabel('Choose a file from your care team').setInputFiles({ name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(raw)) });
   await expectScreen(page, 'Home');
   await expect(page.getByText('<img src=x onerror="window.__pwned=1">')).toBeVisible();
   expect(await page.locator('main img').count()).toBe(0);
@@ -188,13 +188,20 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
 test('the guide step, the camera step and the setup rules', async ({ page }) => {
   await toSetupGuide(page);
   await expectBanners(page, { example: true });
-  await expect(page.getByRole('heading', { name: 'Position guide' })).toBeVisible();
+  // B3: one step at a time. The title names the step. "Show all steps" lists the six notes.
+  await expect(page.getByRole('heading', { name: /^Step 1 of 6/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Show all steps' }).click();
   for (const label of ['Start position', 'Leg and camera', 'Hands and support', 'Range', 'Speed', 'What the camera must see']) {
     await expect(page.locator('dt', { hasText: label })).toBeVisible();
   }
-  // Three drawings (start, end and the camera guide), each an image with a text alternative.
+  // One drawing at a time (start, end or the camera guide), each an image with a text alternative.
   const drawings = page.getByRole('img');
-  await expect(drawings).toHaveCount(3);
+  await expect(drawings).toHaveCount(1);
+  for (const n of [4, 6]) {
+    await page.getByRole('button', { name: new RegExp(`^Step ${n},`) }).click();
+    await expect(page.getByRole('heading', { name: new RegExp(`^Step ${n} of 6`) })).toBeFocused();
+    await expect(drawings).toHaveCount(1);
+  }
   for (const svg of await drawings.all()) expect(((await svg.getAttribute('aria-label')) ?? '').length).toBeGreaterThan(20);
   await expect(page.getByText('Your limit is 90 degrees. Your care team sets it.')).toBeVisible();
 
@@ -285,3 +292,20 @@ test('a double press on Save keeps one record', async ({ page }) => {
   await expect(page.getByText('Session saved.')).toBeVisible();
   expect(await readStore(page, 'sessions')).toHaveLength(1);
 });
+
+// D6: the block is in the sticky bar. After one tick it is inside the window at any scroll position and on small screens.
+for (const [width, height] of [[390, 844], [320, 568]] as const) {
+  test(`red flag: the block is inside the window after one tick at ${width} x ${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await toRedFlag(page);
+    await page.evaluate(() => window.scrollTo(0, 0)); // the list is far above the old place of the block
+    await page.getByRole('checkbox').nth(1).check();
+    const alert = page.getByRole('alert').filter({ hasText: BLOCK_EMERGENCY });
+    await expect(alert).toBeVisible();
+    const box = (await alert.boundingBox())!;
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(height);
+    await expect(page.getByRole('button', { name: 'Back to Home' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: /None of these apply/ })).toBeDisabled();
+  });
+}

@@ -50,6 +50,7 @@ async function pairInSetup() {
   const decoded = decodeOffer(offer);
   if (!decoded.ok) throw new Error('offer');
   const secret = decoded.value.secret;
+  fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' })); // the paste field is in step 2
   fireEvent.change(screen.getByLabelText('Or paste the phone code'), { target: { value: answerText(secret) } });
   await act(async () => click('Use this code'));
   act(() => lastPeer().channels[0]!.open());

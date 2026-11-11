@@ -33,15 +33,32 @@ const draftFor = (over: Partial<GeneratorInputs> = {}) => {
 const NOT_CHECKED = 'The app does not check this exercise.';
 
 describe('PlanResult, home exercises and text lines', () => {
-  it('lists the home exercises that the camera does not count, each with its dose and the note', () => {
+  it('lists the home exercises that the camera does not count, each with "ask your care team" in place of a dose and the note', () => {
     render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
     for (const name of ['Quadriceps set', 'Gluteal set', 'Ankle pump', 'Leg raise to the side', 'Leg raise to the back']) {
       expect(within(list).getByText(name)).toBeInTheDocument();
     }
-    expect(within(list).getAllByText('2 sets of 10')).toHaveLength(4);
-    expect(within(list).getByText('How many: ask your care team')).toBeInTheDocument();
+    expect(within(list).queryByText(/sets of/)).toBeNull();
+    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(5);
     expect(within(list).getAllByText(NOT_CHECKED)).toHaveLength(5);
+  });
+
+  it('shows the home exercises as dose rows like the plan, with the same text and no cards', () => {
+    const { container } = render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
+    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
+    expect(list).toHaveClass('dose-list');
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows).toHaveLength(5);
+    for (const row of rows) {
+      expect(row).toHaveClass('dose-row');
+      expect(row).not.toHaveClass('card');
+      expect(row.querySelector('.dose-name')).not.toBeNull();
+      expect(row.querySelector('.dose')).not.toBeNull();
+      expect(within(row).getByText(NOT_CHECKED)).toHaveClass('dose-note');
+    }
+    expect(within(rows[0]!).getByText('Quadriceps set')).toBeInTheDocument();
+    expect(container.querySelectorAll('.plan-exercises .card')).toHaveLength(0);
   });
 
   it('shows no Start button and no count for a home exercise', () => {
@@ -85,17 +102,25 @@ describe('PlanResult, home exercises and text lines', () => {
 describe('PlanResult, the mini squat and the seated hold', () => {
   const gates = { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 
-  it('shows the mini squat with the limit of 50 degrees and says that the answers are not checked', () => {
+  // Guardrail: no depth and no dose from a published source. Without a surgeon number the screen says to ask the surgeon.
+  it('shows the mini squat with no limit and no dose, says ask your surgeon, and says that the answers are not checked', () => {
     render(<PlanResult draft={draftFor({ ...week8, ...gates })} onUse={vi.fn()} onBack={vi.fn()} />);
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     const item = within(list).getByText('Mini squat').closest('li') as HTMLElement;
-    expect(item).toHaveTextContent('Limit 50 degrees');
-    expect(item).toHaveTextContent('2 sets of 10 reps');
-    const entry = screen.getByRole('heading', { name: RULES.SQUAT_DEPTH.title, level: 3 }).closest('li') as HTMLElement;
-    expect(entry).toHaveTextContent('N3:');
-    expect(entry).toHaveTextContent(RULES.SQUAT_DEPTH.conservative as string);
+    expect(item).not.toHaveTextContent(/Limit \d/);
+    expect(item).not.toHaveTextContent(/sets of|50 degrees/);
+    expect(item).toHaveTextContent('How many: ask your care team');
+    expect(item).toHaveTextContent('Knee-bend limit: ask your surgeon');
+    expect(screen.queryByRole('heading', { name: 'Depth limit of the mini squat', level: 3 })).toBeNull();
     const gate = screen.getByRole('heading', { name: RULES.SQUAT_GATE.title, level: 3 }).closest('li') as HTMLElement;
     expect(gate).toHaveTextContent('Reported by you. Not checked by the app.');
+  });
+
+  it('uses the surgeon number as the limit of the mini squat', () => {
+    render(<PlanResult draft={draftFor({ ...week8, ...gates, surgeonLimit: { kind: 'degrees', degrees: 80 } })} onUse={vi.fn()} onBack={vi.fn()} />);
+    const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Mini squat').closest('li') as HTMLElement;
+    expect(item).toHaveTextContent('Limit 80 degrees');
+    expect(item).not.toHaveTextContent('Knee-bend limit: ask your surgeon');
   });
 
   it('lists the mini squat among the refused rules when an answer is no', () => {
@@ -105,14 +130,11 @@ describe('PlanResult, the mini squat and the seated hold', () => {
     expect(within(refused).getByRole('heading', { name: RULES.SQUAT_P2.title, level: 3 })).toBeInTheDocument();
   });
 
-  it('shows the seated hold with the arc end of 40 degrees, a note about the hold time and no Start button', () => {
+  it('shows no seated hold, with any answer, and says that the app adds none', () => {
     render(<PlanResult draft={draftFor({ ...week8, seatedHoldCleared: 'yes' })} onUse={vi.fn()} onBack={vi.fn()} />);
-    const item = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Seated knee extension hold').closest('li') as HTMLElement;
-    expect(item).toHaveTextContent('Straightest knee angle: 40 degrees');
-    expect(item).toHaveTextContent('Hold time: ask your care team');
-    const entry = screen.getByRole('heading', { name: RULES.HOLD_P2.title, level: 3 }).closest('li') as HTMLElement;
-    expect(entry).toHaveTextContent('P1:');
-    expect(entry).toHaveTextContent('P2:');
+    expect(within(screen.getByRole('list', { name: 'Exercises in your plan' })).queryByText('Seated knee extension hold')).toBeNull();
+    const refused = screen.getByRole('list', { name: 'Not in your plan, and why' });
+    expect(within(refused).getByRole('heading', { name: RULES.HOLD.title, level: 3 }).closest('li')).toHaveTextContent('The app adds no seated knee hold');
   });
 });
 
@@ -124,7 +146,7 @@ describe('Home, a plan with home exercises', () => {
   };
   const show = (p: Protocol) => {
     const phase = p.phases.find((x) => x.id === p.activePhase);
-    return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onOpenPrivacy={vi.fn()} onLoadProtocol={vi.fn()} />);
+    return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
   };
 
   it('shows the home exercises as a list with no Start button, and the lines of the plan', () => {
@@ -147,10 +169,13 @@ describe('Home, a plan with home exercises', () => {
     expect(screen.queryByText(RULES.PT_VISITS.text)).toBeNull();
   });
 
-  it('shows a seated hold with no hold time as not ready and keeps Start closed', () => {
-    show(protocol({ ...week8, seatedHoldCleared: 'yes' }));
-    expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
-    expect(screen.getByText(/Hold time missing/)).toBeInTheDocument();
+  it('shows the exercise chips with "ask your care team" and no number from the generator, and no undefined or NaN', () => {
+    const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
+    expect(screen.queryByRole('button', { name: 'Start Seated knee extension hold' })).toBeNull();
+    const text = container.textContent ?? '';
+    expect(text).not.toMatch(/sets of|undefined|NaN|50 degrees|40 degrees/);
+    expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(1);
+    expect(screen.getAllByText('Knee-bend limit: ask your surgeon').length).toBeGreaterThan(0);
   });
 });
 

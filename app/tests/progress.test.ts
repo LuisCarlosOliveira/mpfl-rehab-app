@@ -1,5 +1,5 @@
 import { MARGIN_SOURCE } from '../src/lib/margin';
-import { buildProgressSeries, toTableRows, type ProgressSeries } from '../src/lib/progress';
+import { buildProgressSeries, exerciseLabel, toTableRows, type ProgressSeries } from '../src/lib/progress';
 import type { SessionRecord } from '../src/lib/storage';
 
 let nextId = 1;
@@ -59,20 +59,25 @@ describe('buildProgressSeries', () => {
     expect(s.peakFlexion[0]?.points[0]?.degrees).toBeNull();
   });
 
-  // Audit 3 and live test R2-08: a straight leg raise peak above the plausible limit is a camera misread. The chart and
-  // its table must not plot it as a knee bend. The stored value in the record stays as it is.
-  it('plots no peak for a straight leg raise above the plausible limit, and keeps a plausible one', () => {
+  // Clinical decision: the straight leg raise has no angle chart. No source sets the 30 degree plausibility limit (cues.ts),
+  // and a chart of the angle at the top would show a sensor fault as a trend. The stored values and the export keep the numbers.
+  it('draws no series for the straight leg raise and keeps the other series', () => {
     const list = [
-      session({ exercise: 'straight-leg-raise', peakFlexion: 165, date: '2026-11-01T10:00:00.000Z' }),
-      session({ exercise: 'straight-leg-raise', peakFlexion: 12, date: '2026-11-02T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 12, topFlexion: 22, reps: 4, pain: 2, date: '2026-11-01T10:00:00.000Z' }),
+      session({ exercise: 'straight-leg-raise', peakFlexion: 165, topFlexion: 12, reps: 6, pain: 1, date: '2026-11-02T10:00:00.000Z' }),
       session({ exercise: 'mini-squat', peakFlexion: 90, date: '2026-11-01T10:00:00.000Z' }),
     ];
     const s = buildProgressSeries(list);
-    const slr = s.peakFlexion.find((x) => x.exercise === 'straight-leg-raise')!;
-    expect(slr.points.map((p) => p.degrees)).toEqual([null, 12]);
-    const squat = s.peakFlexion.find((x) => x.exercise === 'mini-squat')!;
-    expect(squat.points.map((p) => p.degrees)).toEqual([90]);
-    expect(list[0]!.peakFlexion).toBe(165);
+    expect(s.peakFlexion.map((x) => x.exercise)).toEqual(['mini-squat']);
+    expect(s.peakFlexion[0]!.points.map((p) => p.degrees)).toEqual([90]);
+    expect(s.peakFlexion[0]!.title).toContain('Peak knee bend, mini squat');
+    expect(JSON.stringify(s)).not.toMatch(/straight leg raise|Angle at the top/);
+    // Reps per day and pain still count every session.
+    expect(s.repsPerDay.points.map((p) => p.reps)).toEqual([14, 6]);
+    expect(s.pain.points).toHaveLength(3);
+    // The input and the stored numbers do not change.
+    expect(list[0]!.topFlexion).toBe(22);
+    expect(list[1]!.peakFlexion).toBe(165);
   });
 
   it('does not change the input list', () => {
@@ -117,5 +122,31 @@ describe('toTableRows', () => {
     expect(rows.some((r) => r.valueText === '10 (0 to 10)')).toBe(true);
     expect(rows.some((r) => r.valueText === 'no value')).toBe(true);
     expect(series.peakFlexion[0]?.title).toContain('estimated angle, not a medical measurement');
+  });
+});
+
+describe('chart titles for a corrupt exercise name', () => {
+  const corrupt = (name: string) => session({ exercise: name as unknown as SessionRecord['exercise'] });
+
+  it.each(['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'prototype'])('reads %s as plain text, never as [object Object]', (name) => {
+    const series = buildProgressSeries([corrupt(name)]);
+    const title = series.peakFlexion[0]?.title ?? '';
+    expect(title).not.toContain('[object');
+    expect(title).not.toContain('function');
+    expect(title).toContain(name);
+    expect(toTableRows(series).every((r) => !r.series.includes('[object'))).toBe(true);
+  });
+
+  it('keeps the known labels', () => {
+    expect(exerciseLabel('heel-slide')).toBe('heel slide');
+    expect(exerciseLabel('seated-extension-hold')).toBe('seated extension hold');
+  });
+
+  it('gives a plain fallback for an empty, long or non-text name and removes control characters', () => {
+    expect(exerciseLabel('')).toBe('unknown exercise');
+    expect(exerciseLabel(undefined as unknown as string)).toBe('unknown exercise');
+    expect(exerciseLabel({} as unknown as string)).toBe('unknown exercise');
+    expect(exerciseLabel('a\u0000b\nc')).toBe('a b c');
+    expect(exerciseLabel('x'.repeat(200)).length).toBeLessThanOrEqual(61);
   });
 });

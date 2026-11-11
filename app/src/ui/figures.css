@@ -23,7 +23,7 @@
   margin-inline: auto;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
 }
 .fg-floor {
   stroke: var(--fig-object-line);

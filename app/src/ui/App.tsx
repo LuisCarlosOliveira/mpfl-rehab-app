@@ -5,7 +5,7 @@ import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
 import { selfProgressionOn } from '../lib/protocol/accept';
-import { hasSeenPrivacyNotice, loadStoredProtocol, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
+import { hasSeenPrivacyNotice, loadStoredProtocol, readValidRows, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
@@ -23,7 +23,9 @@ import { runToSessionInput } from './sessionRecord';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
+import { BottomNav, isNavScreen, type NavScreen } from './BottomNav';
 import { useBackButton } from './useBackButton';
+import { useBarHeight } from '../lib/useBarHeight';
 
 // These three screens pull in Recharts. They load when the patient opens them, so Home stays small.
 // A chunk that cannot load shows the message of LoadError, and a new try asks for it again (L2-02).
@@ -54,7 +56,7 @@ function FocusHeading({ children }: { children: ReactNode }) {
   return children;
 }
 
-type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[] };
+type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[]; skipped: number };
 
 /** Reads the sessions in the parent, so the dashboard stays a pure view (plan FR13). */
 function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
@@ -64,7 +66,11 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
     Promise.resolve()
       .then(() => db.sessions.orderBy('date').toArray())
       .then(
-        (sessions) => alive && setRows({ state: 'ready', sessions }),
+        // A stored row that fails the schema is left out and counted. It is not deleted.
+        (stored) => {
+          const { rows: sessions, skipped } = readValidRows(stored);
+          if (alive) setRows({ state: 'ready', sessions, skipped });
+        },
         () => alive && setRows({ state: 'error' }),
       );
     return () => {
@@ -94,7 +100,7 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
   }
   return (
     <FocusHeading>
-      <Dashboard sessions={rows.sessions} title="Your sessions" onBack={onBack} />
+      <Dashboard sessions={rows.sessions} skipped={rows.skipped} title="Your sessions" onBack={onBack} />
     </FocusHeading>
   );
 }
@@ -114,6 +120,7 @@ export interface AppProps {
 type Boot = { ready: false } | { ready: true; protocol: Protocol | null; error: { title: string; message: string } | null };
 
 export function App({ db, mode, source, now = () => new Date(), sound, pairingDeps }: AppProps) {
+  useBarHeight();
   const [soundInUse] = useState(() => sound ?? createSound());
   const [boot, setBoot] = useState<Boot>({ ready: false });
 
@@ -232,9 +239,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               db={db}
               now={now}
               onStart={(kind) => dispatch({ type: 'choose-exercise', exercise: kind })}
-              onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
-              onOpenProgress={() => dispatch({ type: 'open', screen: 'dashboard' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
               onUpdatePlan={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'update' }) : undefined}
@@ -322,6 +327,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
           <DataScreen
             db={db}
             onBack={() => dispatch({ type: 'open', screen: 'home' })}
+            onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
             onErased={() => {
               // Nothing of the old protocol stays in memory.
               setProtocol(null);
@@ -422,17 +428,21 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     );
   })();
 
+  // The bottom bar shows on Home, Your sessions and My data only, and only when a protocol is stored. Flow screens never show it.
+  const showNav = isNavScreen(state.screen) && protocol !== null && store !== null;
+
   return (
     <div className="app">
       <Banners texts={banners} />
       <Brand />
-      <main ref={main}>
+      <main ref={main} className={showNav ? 'has-nav' : undefined}>
         <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
           <Suspense fallback={<LoadingScreen />}>
             {LAZY_SCREENS.has(state.screen) ? <FocusHeading key={state.screen}>{screen}</FocusHeading> : screen}
           </Suspense>
         </LoadError>
       </main>
+      {showNav && <BottomNav current={state.screen as NavScreen} onOpen={(next) => dispatch({ type: 'open', screen: next })} />}
     </div>
   );
 }

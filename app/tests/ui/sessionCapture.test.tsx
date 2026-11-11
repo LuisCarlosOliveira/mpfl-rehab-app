@@ -69,12 +69,14 @@ describe('Session with no baseline: the finding state', () => {
   });
 
   // R2-04: the card took room above the numbers, so a phone showed the angle and the count under the bar.
-  it('takes no room between the camera and the numbers: the text sits on the camera picture, and no card shows yet', () => {
+  // V2 (spec section 5): the line and the progress sit in the status slot right under the camera. The slot has a reserved height, so nothing moves.
+  it('takes no room between the camera and the numbers: the text sits in the status slot under the camera, and no card shows yet', () => {
     const { source } = open();
     moveAll(source, 0, 300);
-    const frame = document.querySelector('.frame')!;
-    expect(frame).toContainElement(screen.getByText(CAPTURE_TEXT.hold));
-    expect(frame).toContainElement(screen.getByRole('progressbar'));
+    const slot = document.querySelector('.status-slot')!;
+    expect(slot).toContainElement(screen.getByText(CAPTURE_TEXT.hold));
+    expect(slot).toContainElement(screen.getByRole('progressbar'));
+    expect(document.querySelector('.frame')!).not.toContainElement(screen.getByRole('progressbar'));
     expect(screen.queryByText(CAPTURE_TEXT.title)).toBeNull();
     expect(document.querySelector('.capture')).toBeNull();
   });

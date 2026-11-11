@@ -5,18 +5,22 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
-import { localIsoDate, reviewDue } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
-import { CompanionEntry } from './CompanionEntry';
+import { COMPANION_BUTTON } from './CompanionEntry';
 import { HomeExerciseList, PlanLines } from './HomeExercises';
 import { Icon, type IconName } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { notReadyText } from './notReady';
 import type { ExerciseKind } from './appState';
+import './flowV2.css';
+
+// The words of the phone card, now one row of the facts list. They stay as they were.
+const COMPANION_TEXT = 'This phone can be the second camera of the app on your laptop. It sends body points only. It records nothing and counts nothing.';
 
 const SURGEON_LABELS: Record<SurgeonField, string> = {
   brace: 'Brace',
@@ -42,12 +46,15 @@ const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
  */
 export function prescription(e: Exercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
+  // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
+  if (madeByApp && e.sets === undefined && e.holdSeconds === undefined) lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
   if (e.sets !== undefined && e.reps !== undefined) lines.push({ text: `${plural(e.sets, 'set')} of ${plural(e.reps, 'rep')}`, icon: 'list-checks' });
   else if (e.sets !== undefined) lines.push({ text: plural(e.sets, 'set'), icon: 'list-checks' });
   if (e.holdSeconds !== undefined) lines.push({ text: `Hold ${plural(e.holdSeconds, 'second')}`, icon: 'clock' });
   if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   if (e.minFlexion !== undefined) lines.push({ text: `Straightest knee angle: ${e.minFlexion} degrees`, icon: 'ruler' });
+  if (madeByApp && e.maxFlexion === undefined && (e.kind === 'heel-slide' || e.kind === 'mini-squat')) lines.push({ text: ASK_LIMIT, icon: 'ruler' });
   return lines;
 }
 
@@ -59,11 +66,9 @@ interface Props {
   db: MpflDb;
   now: () => Date;
   onStart: (kind: ExerciseKind) => void;
-  onOpenPrivacy: () => void;
   /** Goes to the Load screen. It erases nothing. Old sessions stay (ux-flow U6). */
   onLoadProtocol: () => void;
   /** The two buttons show only when the handler is given, as in the data screen. */
-  onOpenProgress?: () => void;
   onOpenData?: () => void;
   /** T12b: opens the phone screen. It shows only when the handler is given. */
   onOpenCompanion?: () => void;
@@ -73,7 +78,7 @@ interface Props {
 
 export const REVIEW_TITLE = 'Review your plan with your care team';
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPrivacy, onLoadProtocol, onOpenProgress, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onUpdatePlan }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -105,7 +110,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
 
   return (
-    <section aria-labelledby="home-title">
+    <section aria-labelledby="home-title" className="v2-flow v2-home">
       <header className="page-head">
         <h1 id="home-title" tabIndex={-1}>
           Home
@@ -165,9 +170,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
               const featured = i === 0 && ready;
               return (
                 <li key={e.kind} className={featured ? 'exercise exercise-featured' : 'exercise'}>
-                  <span className="exercise-icon">
-                    <Icon name={EXERCISE_ICONS[e.kind]} size={featured ? 36 : 28} />
-                  </span>
+                  {featured && (
+                    <span className="exercise-icon">
+                      <Icon name={EXERCISE_ICONS[e.kind]} size={28} />
+                    </span>
+                  )}
                   <div className="exercise-body">
                     <h3 className="exercise-name">{name}</h3>
                     <ul className="chips">
@@ -233,6 +240,18 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                 <dt>Active phase</dt>
                 <dd>{phase ? `${phase.id}, ${phase.name}` : activePhase}</dd>
               </div>
+              {onOpenCompanion && (
+                <div className="fact-row fact-action">
+                  <dt>Second camera</dt>
+                  <dd>
+                    <button type="button" className="btn" onClick={onOpenCompanion}>
+                      <Icon name="phone" size={18} />
+                      {COMPANION_BUTTON}
+                    </button>
+                    <span className="detail">{COMPANION_TEXT}</span>
+                  </dd>
+                </div>
+              )}
             </dl>
             <div className="actions">
               {madeByApp && onUpdatePlan && !review && (
@@ -293,27 +312,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onOpenPri
                 </Notice>
               </div>
             )}
-            <div className="tiles actions">
-              {onOpenProgress && (
-                <button type="button" className="btn btn-tile" onClick={onOpenProgress}>
-                  <Icon name="chart-line" />
-                  Your sessions
-                </button>
-              )}
-              {onOpenData && (
-                <button type="button" className="btn btn-tile" onClick={onOpenData}>
-                  <Icon name="database" />
-                  My data
-                </button>
-              )}
-              <button type="button" className="btn btn-tile" onClick={onOpenPrivacy}>
-                <Icon name="lock" />
-                Privacy notice
-              </button>
-            </div>
           </section>
 
-          {onOpenCompanion && <CompanionEntry onOpen={onOpenCompanion} />}
         </div>
       </div>
     </section>

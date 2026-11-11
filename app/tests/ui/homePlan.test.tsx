@@ -28,7 +28,7 @@ const careTeam = (reviewDate?: string): Protocol => {
 
 function setup(p: Protocol, day: string, props: Record<string, unknown> = {}) {
   const phase = p.phases.find((x) => x.id === p.activePhase);
-  const handlers = { onStart: vi.fn(), onOpenPrivacy: vi.fn(), onLoadProtocol: vi.fn(), onOpenData: vi.fn(), onUpdatePlan: vi.fn() };
+  const handlers = { onStart: vi.fn(), onLoadProtocol: vi.fn(), onOpenData: vi.fn(), onUpdatePlan: vi.fn() };
   const view = render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${day}T10:00:00`)} {...handlers} {...props} />);
   return { ...handlers, view };
 }

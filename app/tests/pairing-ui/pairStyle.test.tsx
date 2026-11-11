@@ -1,5 +1,5 @@
 // T12b: the two pairing screens use the shared design (cards, .btn, Notice, steps) and the tokens of styles.css.
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPairing } from '../../src/pairing/pairing';
@@ -60,7 +60,7 @@ describe('PairHost design', () => {
   it('uses .btn buttons, a card, and no inline style or old pair button class', () => {
     const pairing = createPairing({ createPeer: makePeer });
     const { container } = render(<PairHost pairing={pairing} view={pairing.getView()} onDone={vi.fn()} onSkip={vi.fn()} />);
-    expect(container.querySelector('.card')).not.toBeNull();
+    expect(container.querySelector('.pair-step')).not.toBeNull();
     const buttons = [...container.querySelectorAll('button')];
     expect(buttons.length).toBeGreaterThan(0);
     buttons.forEach((b) => expect(b).toHaveClass('btn'));
@@ -98,7 +98,11 @@ describe('the code fields (web interface guidelines)', () => {
     const { container } = render(
       <PairHost pairing={pairing} view={{ status: 'offer', offerText: 'MPFL1.abc', message: null }} onDone={vi.fn()} onSkip={vi.fn()} />,
     );
+    // One step at a time: the laptop code in step 1, the paste field in step 2.
     const boxes = [...container.querySelectorAll('textarea')];
+    expect(boxes).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Next: scan the phone code' }));
+    boxes.push(...container.querySelectorAll('textarea'));
     expect(boxes).toHaveLength(2);
     for (const box of boxes) {
       expect(box.getAttribute('name')).toBeTruthy();
@@ -113,7 +117,7 @@ describe('PairCompanion design', () => {
     const { container } = render(<PairCompanion onExit={vi.fn()} />);
     const steps = screen.getByRole('list', { name: 'Pairing steps' });
     expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Start');
-    expect(container.querySelector('.card')).not.toBeNull();
+    expect(container.querySelector('.pair-step')).not.toBeNull();
     container.querySelectorAll('button').forEach((b) => expect(b).toHaveClass('btn'));
     expect(container.querySelector('[style], [class*="pair-btn"]:not(.pair-btn-stop)')).toBeNull();
   });

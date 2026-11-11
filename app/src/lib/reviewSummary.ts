@@ -5,7 +5,7 @@
 // that a limit was met. The app never changes the phase (FR4).
 
 import { classifyAgainstLimit, MARGIN_DEG, MARGIN_SOURCE } from './margin';
-import { EXERCISE_LABEL, sortByDate } from './progress';
+import { exerciseLabel, sortByDate } from './progress';
 import { CLINICIAN_CHECKS, type Protocol, type ReviewCriterion } from './protocol/schema';
 import { PAIN_FLOOR } from './safety';
 import type { SessionRecord } from './storage';
@@ -61,7 +61,7 @@ type Measure = NumericCriterion['measure'];
 
 // Criterion text from a template: what is measured, the operator, the limit and the unit.
 const MEASURE_TEXT: Record<Measure, (c: NumericCriterion) => string> = {
-  peakFlexionDeg: (c) => `Peak knee bend, ${EXERCISE_LABEL[c.exerciseId ?? 'mini-squat']}, ${OP_TEXT[c.op]} ${c.limit} degrees`,
+  peakFlexionDeg: (c) => `Peak knee bend, ${exerciseLabel(c.exerciseId ?? 'mini-squat')}, ${OP_TEXT[c.op]} ${c.limit} degrees`,
   topFlexionDeg: (c) => `Knee angle at the top, straight leg raise, ${OP_TEXT[c.op]} ${c.limit} degrees`,
   painMax: (c) => `Highest pain after a session, ${OP_TEXT[c.op]} ${c.limit} on a scale from 0 to 10`,
   sessionsDone: (c) => `Sessions done in this phase, ${OP_TEXT[c.op]} ${c.limit}`,
@@ -250,7 +250,7 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
     rows,
     clinicianChecks: CLINICIAN_CHECKS.map((key) => ({ key, text: CHECK_TEXT[key], evidenceLabel: evidenceOf(key), answer: null })),
     painSwellingTable: phaseSessions.map((s) => ({
-      sessionId: s.id, date: s.date, exercise: EXERCISE_LABEL[s.exercise], painText: s.pain === undefined ? 'Not answered' : `${s.pain} (0 to 10)`, swelling: s.swelling,
+      sessionId: s.id, date: s.date, exercise: exerciseLabel(s.exercise), painText: s.pain === undefined ? 'Not answered' : `${s.pain} (0 to 10)`, swelling: s.swelling,
     })),
   };
 }
