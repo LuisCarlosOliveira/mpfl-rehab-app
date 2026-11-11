@@ -55,6 +55,7 @@ describe('B-06: "Show your whole leg." does not flicker', () => {
     for (const t of [30, 63, 96]) {
       act(() => source.emit(null, t));
       act(() => void vi.advanceTimersByTime(100));
+      expect(view.container.textContent).not.toContain('Show your whole leg.');
     }
     act(() => source.emit(legLandmarks('left', 5), 130));
     act(() => void vi.advanceTimersByTime(300));
