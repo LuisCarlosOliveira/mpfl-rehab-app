@@ -212,6 +212,7 @@ describe('ClinicianView review summary', () => {
     pick(protocolPicker(), protocolFileText([peakCriterion()]));
     const events = await screen.findByRole('table', { name: /events/i });
     expect(within(within(events).getByText('Sessions with bends over the limit').closest('tr')!).getAllByRole('cell')[1]!.textContent).toBe('2');
+    expect(events.closest('.table-scroll--natural')).not.toBeNull(); // every event row shows at 390 px
     const list = screen.getByRole('table', { name: /session list/i });
     const heads = within(list).getAllByRole('columnheader').map((h) => h.textContent);
     const over = heads.indexOf('Bends over the limit');

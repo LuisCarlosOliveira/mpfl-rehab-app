@@ -307,7 +307,7 @@ function ReviewSummaryBlock({
       </section>
 
       <h3 className="section-gap">Events in this file</h3>
-      <Table label="Events in this file" head={['Event', 'Count']}>
+      <Table natural label="Events in this file" head={['Event', 'Count']}>
         {(Object.keys(EVENT_LABEL) as (keyof typeof EVENT_LABEL)[]).map((key) => (
           <tr key={key}>
             <td>{EVENT_LABEL[key]}</td>
