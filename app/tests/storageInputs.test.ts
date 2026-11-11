@@ -10,6 +10,7 @@ import {
   loadGeneratorInputs,
   parseExport,
   saveGeneratorInputs,
+  saveProtocol,
   saveSession,
   storedInputsSchema,
   type SessionInput,
@@ -164,5 +165,33 @@ describe('database version', () => {
     const db = freshDb();
     expect(db.verno).toBe(3);
     expect(db.tables.map((t) => t.name).sort()).toEqual(['generatorInputs', 'protocol', 'sessions']);
+  });
+});
+
+describe('export of the generator answers follows the stored plan (A-14)', () => {
+  const generatedPlan = JSON.stringify({ schemaVersion: 1, id: 'g-1', side: 'left', generated: { on: '2026-11-08', rules: [] }, activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
+  const careTeamPlan = JSON.stringify({ schemaVersion: 1, id: 'c-1', example: true, side: 'left', activePhase: 1, phases: [{ id: 1, name: 'P', exercises: [] }], surgeon: {} });
+
+  it('holds the answers while the stored plan is a generated plan', async () => {
+    const db = freshDb();
+    await saveSession(db, session());
+    await saveGeneratorInputs(db, inputs);
+    await saveProtocol(db, generatedPlan, 'demo');
+    expect(JSON.parse(await exportJson(db)).generatorInputs).toEqual(inputs);
+  });
+
+  it('has no answers after a care team plan replaces the plan', async () => {
+    const db = freshDb();
+    await saveSession(db, session());
+    await saveGeneratorInputs(db, inputs);
+    await saveProtocol(db, generatedPlan, 'demo');
+    await saveProtocol(db, careTeamPlan, 'demo');
+    expect('generatorInputs' in JSON.parse(await exportJson(db))).toBe(false);
+  });
+
+  it('has no answers when no plan is stored', async () => {
+    const db = freshDb();
+    await saveGeneratorInputs(db, inputs);
+    expect('generatorInputs' in JSON.parse(await exportJson(db))).toBe(false);
   });
 });

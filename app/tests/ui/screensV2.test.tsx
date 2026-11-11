@@ -117,7 +117,7 @@ describe('C3 Your sessions', () => {
     const legend = within(container as HTMLElement).getByRole('list', { name: 'Exercises in your sessions' });
     const heel = within(legend).getByText('Heel slide').closest('li')!;
     expect(heel).toHaveTextContent('2 sessions');
-    expect(heel).toHaveTextContent('14 reps');
+    expect(heel).not.toHaveTextContent(/reps/);
     expect(legend.textContent).not.toMatch(/%/);
   });
 

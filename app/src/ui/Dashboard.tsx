@@ -321,14 +321,11 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
       <ul className="legend-list" aria-label="Exercises in your sessions">
         {kinds.map((kind) => {
           const mine = ordered.filter((x) => String(x.exercise) === kind);
-          const withReps = mine.filter((x) => typeof x.reps === 'number' && Number.isFinite(x.reps));
-          const reps = withReps.reduce((sum, x) => sum + (x.reps as number), 0);
           return (
             <li key={kind} className="legend-row">
               <span className="legend-name">{exerciseName(kind)}</span>
               <span className="legend-count">
                 {plural(mine.length, 'session')}
-                {withReps.length > 0 && Number.isFinite(reps) ? `, ${plural(reps, 'rep')}` : ''}
               </span>
             </li>
           );
