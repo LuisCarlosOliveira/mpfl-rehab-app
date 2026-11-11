@@ -226,7 +226,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
 
           <section className="data-section stack-s" aria-labelledby="import-title">
             <h2 id="import-title">Import</h2>
-            <p>Import adds the sessions of a file to this device. It stops and adds nothing if any session is already stored.</p>
+            <p>Import adds the sessions of a file to this device. It adds nothing if a session of the file is already stored, or if the file belongs to another record.</p>
             <div
               className="dropzone field"
               data-state={state}
