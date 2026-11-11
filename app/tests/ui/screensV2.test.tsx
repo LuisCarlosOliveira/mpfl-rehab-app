@@ -111,7 +111,7 @@ describe('C3 Your sessions', () => {
     expect(strip).toHaveTextContent('Last peak knee bend');
     expect(strip.querySelector('.stat-number')).toHaveTextContent('90');
     expect(strip).toHaveTextContent('degrees');
-    expect(strip).toHaveTextContent('estimated');
+    expect(strip).toHaveTextContent(/estimated angle, not a medical measurement/i);
     expect(strip).toHaveTextContent('3 sessions');
     expect(strip).toHaveTextContent('1 Nov 2026 to 3 Nov 2026');
     const legend = within(container as HTMLElement).getByRole('list', { name: 'Exercises in your sessions' });

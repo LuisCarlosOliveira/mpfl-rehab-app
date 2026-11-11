@@ -67,12 +67,23 @@ export function describeFirstIssue(
 
 const PLACEHOLDER_TEXT = 'SET BY CLINICIAN';
 
-/** How many values of the clinician template are still unset: the text "SET BY CLINICIAN" or null. */
-function countPlaceholders(v: unknown): number {
-  if (v === PLACEHOLDER_TEXT || v === null) return 1;
-  if (Array.isArray(v)) return v.reduce<number>((n, x) => n + countPlaceholders(x), 0);
-  if (v && typeof v === 'object') return Object.values(v).reduce<number>((n, x) => n + countPlaceholders(x), 0);
-  return 0;
+const PLACEHOLDER_SCAN_LIMIT = 20000;
+
+/** How many values of the clinician template are still unset: the text "SET BY CLINICIAN" or null.
+ * The file is untrusted. The walk uses a list and not recursion, so a deeply nested file cannot overflow the stack.
+ * It stops after PLACEHOLDER_SCAN_LIMIT values (ENGINEERING value, no source). */
+function countPlaceholders(root: unknown): number {
+  let count = 0;
+  let seen = 0;
+  const todo: unknown[] = [root];
+  while (todo.length > 0 && seen < PLACEHOLDER_SCAN_LIMIT) {
+    const v = todo.pop();
+    seen += 1;
+    if (v === PLACEHOLDER_TEXT || v === null) count += 1;
+    else if (Array.isArray(v)) for (const x of v) todo.push(x);
+    else if (v && typeof v === 'object') for (const x of Object.values(v)) todo.push(x);
+  }
+  return count;
 }
 
 export type Mode = 'demo' | 'patient';

@@ -94,3 +94,18 @@ describe('loader messages for the clinician template', () => {
     expect(messageOf({ id: undefined })).not.toContain('placeholder');
   });
 });
+
+describe('hostile shapes cannot overflow the placeholder count', () => {
+  it('a file nested 200000 levels deep is refused without a throw', () => {
+    const deep = '['.repeat(200000) + ']'.repeat(200000);
+    expect(() => loadProtocol(deep, 'patient')).not.toThrow();
+  });
+
+  it('an object with a very long list of nulls is refused without a throw and in good time', () => {
+    const raw = JSON.stringify({ id: null, list: new Array(400000).fill(null) });
+    const t = Date.now();
+    const result = loadProtocol(raw, 'patient');
+    expect(result.ok).toBe(false);
+    expect(Date.now() - t).toBeLessThan(3000);
+  });
+});
