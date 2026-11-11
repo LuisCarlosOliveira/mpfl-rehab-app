@@ -6,7 +6,8 @@ import { legLandmarks } from '../helpers/leg';
 import type { Exercise } from '../../src/lib/protocol';
 import { BodyMap, resetBodyMapHidden, type BodyMapHandle } from '../../src/ui/BodyMap';
 import { Session } from '../../src/ui/Session';
-import { audioHarness, mockSource } from './helpers';
+import { LEG_TEXT } from '../../src/ui/setupView';
+import { audioHarness, mockSource, twoLegs } from './helpers';
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance', 'Date'] });
@@ -60,5 +61,20 @@ describe('B-06: "Show your whole leg." does not flicker', () => {
     act(() => source.emit(legLandmarks('left', 5), 130));
     act(() => void vi.advanceTimersByTime(300));
     expect(view.container.textContent).not.toContain('Show your whole leg.');
+  });
+});
+
+describe('B-07: the moving-leg note for the seated hold', () => {
+  const HOLD: Exercise = { kind: 'seated-extension-hold', sets: 1, reps: 1, holdSeconds: 5, minFlexion: 0, targetFlexion: 70, source: 'test' };
+  const swing = (i: number) => 30 * (1 - Math.cos((2 * Math.PI * i) / 40));
+
+  it('shows the note when the other leg moves more over two windows and the chosen leg stays still', () => {
+    const source = mockSource();
+    const audio = audioHarness();
+    const view = render(<Session exercise={HOLD} side="right" baselineDeg={null} source={source} sound={audio.sound} onEnd={vi.fn()} />);
+    let i = 0;
+    for (let t = 0; t <= 13_000; t += 100, i++) act(() => source.emit(twoLegs(swing(i), 62), t));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(view.container.textContent).toContain(LEG_TEXT.identity);
   });
 });
