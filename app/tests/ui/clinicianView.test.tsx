@@ -197,12 +197,31 @@ describe('ClinicianView review summary', () => {
     expect(count('Presses of "knee gave way or hurts"')).toBe('1');
     expect(count('Sessions with swelling "more than before"')).toBe('1');
     expect(count('Sessions with pain at or above the pause threshold')).toBe('1');
+    expect(count('Sessions with bends over the limit')).toBe('0');
     const checks = screen.getByRole('list', { name: /checks for the visit/i });
     expect(within(checks).getAllByRole('listitem')).toHaveLength(8);
     expect(within(checks).getByText('Quadriceps strength. Needs a dynamometer.')).toBeInTheDocument();
     const log = screen.getByRole('table', { name: /pain and swelling/i });
     expect(within(log).getAllByRole('row')).toHaveLength(4);
     expect(within(log).getByText('8 (0 to 10)')).toBeInTheDocument();
+  });
+
+  it('shows the over-limit count in the events block and in the session list', async () => {
+    setup();
+    await loadFile(exportText([session({ date: day(1), overLimit: 7, nearLimit: 3 }), session({ date: day(2), overLimit: 0 }), session({ date: day(3), overLimit: 2 })]));
+    pick(protocolPicker(), protocolFileText([peakCriterion()]));
+    const events = await screen.findByRole('table', { name: /events/i });
+    expect(within(within(events).getByText('Sessions with bends over the limit').closest('tr')!).getAllByRole('cell')[1]!.textContent).toBe('2');
+    expect(events.closest('.table-scroll--natural')).not.toBeNull(); // every event row shows at 390 px
+    const list = screen.getByRole('table', { name: /session list/i });
+    const heads = within(list).getAllByRole('columnheader').map((h) => h.textContent);
+    const over = heads.indexOf('Bends over the limit');
+    const near = heads.indexOf('Bends near the limit');
+    expect(over).toBeGreaterThan(-1);
+    expect(near).toBeGreaterThan(-1);
+    const rows = within(list).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell').map((c) => c.textContent));
+    expect(rows.map((r) => r[over])).toEqual(['7', '0', '2']);
+    expect(rows[0]![near]).toBe('3');
   });
 
   it('shows an explicit text for the swelling row, which has no limit number and no state', async () => {

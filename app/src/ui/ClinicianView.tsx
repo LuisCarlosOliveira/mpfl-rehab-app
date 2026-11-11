@@ -227,7 +227,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
             <Table
               label="Session list"
               head={[
-                'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling',
+                'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling', 'Bends near the limit', 'Bends over the limit',
                 ...(showFront ? [FRONT_HEADER] : []),
               ]}
             >
@@ -245,6 +245,8 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.topFlexion)}</td>
                   <td className="num-cell">{painText(s)}</td>
                   <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
+                  <td className="num-cell">{s.nearLimit}</td>
+                  <td className="num-cell">{s.overLimit}</td>
                   {showFront && <td className="num-cell">{frontCell(s)}</td>}
                 </tr>
               ))}
@@ -305,7 +307,7 @@ function ReviewSummaryBlock({
       </section>
 
       <h3 className="section-gap">Events in this file</h3>
-      <Table label="Events in this file" head={['Event', 'Count']}>
+      <Table natural label="Events in this file" head={['Event', 'Count']}>
         {(Object.keys(EVENT_LABEL) as (keyof typeof EVENT_LABEL)[]).map((key) => (
           <tr key={key}>
             <td>{EVENT_LABEL[key]}</td>

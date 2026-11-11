@@ -205,14 +205,20 @@ describe('header, events and tables', () => {
 
   it('counts events after the last export only', () => {
     const s = buildReviewSummary({ protocol, phaseId: 1, sessions, lastExportAt: day(2), now: NOW });
-    expect(s.events).toEqual({ redFlagBlocks: 5, gaveWayPresses: 5, painAtPause: 2, swellingMore: 1 });
+    expect(s.events).toEqual({ redFlagBlocks: 5, gaveWayPresses: 5, painAtPause: 2, swellingMore: 1, overLimit: 0 });
     expect(s.header.sessionsSinceExport).toBe(3);
   });
 
   it('counts all sessions when there was no export', () => {
     const s = buildReviewSummary({ protocol, phaseId: 1, sessions, lastExportAt: null, now: NOW });
-    expect(s.events).toEqual({ redFlagBlocks: 6, gaveWayPresses: 7, painAtPause: 3, swellingMore: 2 });
+    expect(s.events).toEqual({ redFlagBlocks: 6, gaveWayPresses: 7, painAtPause: 3, swellingMore: 2, overLimit: 0 });
     expect(s.header.sessionsSinceExport).toBe(4);
+  });
+
+  it('counts the sessions with at least one bend over the limit', () => {
+    const list = [session({ date: day(1), overLimit: 7 }), session({ date: day(2), overLimit: 1 }), session({ date: day(3), overLimit: 0 })];
+    const s = buildReviewSummary({ protocol, phaseId: 1, sessions: list, lastExportAt: null, now: NOW });
+    expect(s.events.overLimit).toBe(2);
   });
 
   it('uses the safety floor of 7 when the protocol sets no pain threshold', () => {
