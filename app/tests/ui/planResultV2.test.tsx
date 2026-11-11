@@ -230,7 +230,8 @@ describe('Home, a plan with home exercises', () => {
     expect(screen.getAllByText('Limit 50 degrees').length).toBeGreaterThan(0);
     expect(screen.getAllByText('2 sets of 10 to 15, then 3 sets as tolerated').length).toBeGreaterThan(1);
     expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Knee-bend limit: ask your surgeon').length).toBeGreaterThan(0);
+    // The plan has the answer "No limit", so the heel slide row says that the surgeon gave none (A3-10).
+    expect(screen.getAllByText('No knee-bend limit was given by your surgeon').length).toBeGreaterThan(0);
   });
 });
 
@@ -244,5 +245,29 @@ describe('PlanResult with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
     const refused = screen.getByRole('list', { name: 'Not in your plan, and why' });
     const entry = within(refused).getByRole('heading', { name: RULES.EXTENDED_OFF.title, level: 3 }).closest('li') as HTMLElement;
     expect(entry).toHaveTextContent('Ask your care team');
+  });
+});
+
+// A3-10: the heel slide row names the answer. "No limit" is not "I do not know".
+describe('the knee-bend limit line of the heel slide (A3-10)', () => {
+  const NONE_LINE = 'No knee-bend limit was given by your surgeon';
+  const rowOf = (over: Partial<GeneratorInputs>) => {
+    const { unmount } = render(<PlanResult draft={draftFor(over)} onUse={vi.fn()} onBack={vi.fn()} />);
+    const row = within(screen.getByRole('list', { name: 'Exercises in your plan' })).getByText('Heel slide').closest('li') as HTMLElement;
+    const text = row.textContent ?? '';
+    unmount();
+    return text;
+  };
+
+  it('says that no limit was given for the answer "No limit", and keeps "ask your surgeon" for "I do not know"', () => {
+    const none = rowOf({ ...week8, surgeonLimit: { kind: 'none' } });
+    expect(none).toContain(NONE_LINE);
+    expect(none).not.toContain('Knee-bend limit: ask your surgeon');
+    const unknown = rowOf({ ...week8, surgeonLimit: { kind: 'unknown' } });
+    expect(unknown).toContain('Knee-bend limit: ask your surgeon');
+    expect(unknown).not.toContain(NONE_LINE);
+    const number = rowOf({ ...week8, surgeonLimit: { kind: 'degrees', degrees: 60 } });
+    expect(number).toContain('Limit 60 degrees');
+    expect(number).not.toContain(NONE_LINE);
   });
 });

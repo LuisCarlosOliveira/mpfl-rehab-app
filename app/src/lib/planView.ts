@@ -59,6 +59,8 @@ export const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
 export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
+/** The line for a heel slide after the answer "No limit". The surgeon gave none, so the person has nothing to ask for. */
+export const NO_LIMIT_GIVEN = 'No knee-bend limit was given by your surgeon';
 
 /** The rules whose number comes from a published source and shows with a source note. */
 export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2' | 'RANGE_NONE';

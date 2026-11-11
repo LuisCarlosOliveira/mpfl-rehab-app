@@ -6,7 +6,7 @@ import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN, NO_NUMBER } from '../lib/protocolGen';
-import { ASK_HOW_MANY, ASK_LIMIT, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, NO_LIMIT_GIVEN, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
@@ -58,7 +58,10 @@ export function prescription(e: Exercise, madeByApp = false): { text: string; ic
   if (e.targetFlexion !== undefined && !madeByApp) lines.push({ text: `Knee bend set by your care team: ${e.targetFlexion} degrees`, icon: 'circle-dot' });
   if (e.maxFlexion !== undefined) lines.push({ text: `Limit ${e.maxFlexion} degrees`, icon: 'ruler' });
   if (e.minFlexion !== undefined) lines.push({ text: `Straightest knee angle: ${e.minFlexion} degrees`, icon: 'ruler' });
-  if (madeByApp && e.maxFlexion === undefined && (e.kind === 'heel-slide' || e.kind === 'mini-squat')) lines.push({ text: ASK_LIMIT, icon: 'ruler' });
+  if (madeByApp && e.maxFlexion === undefined && (e.kind === 'heel-slide' || e.kind === 'mini-squat')) {
+    // The generator writes "No limit entered" in the source of a heel slide after the answer "No limit". "I do not know" keeps the question for the surgeon.
+    lines.push({ text: e.kind === 'heel-slide' && e.source.includes('No limit entered') ? NO_LIMIT_GIVEN : ASK_LIMIT, icon: 'ruler' });
+  }
   return lines;
 }
 
