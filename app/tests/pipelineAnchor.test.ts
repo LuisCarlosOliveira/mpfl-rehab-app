@@ -30,7 +30,9 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
     expect(p.summary().reps).toBeGreaterThan(0);
   });
 
-  it('a person who jumps to x 0.5 and stays reads as not seen, then lockedOut after 4 s, then a press reads again', () => {
+  // B4-01: the pose model follows ONE person. After a jump the new hip can be another person. A press that would anchor
+  // far from the start hip does not move the anchor. The frames stay not seen until the person starts again from Setup.
+  it('a jump to x 0.5 reads as not seen and lockedOut after 4 s. A press far from the start hip shows the other-person state, with no numbers', () => {
     const p = make();
     let t = 0;
     for (; t < 500; t += 33) p.step(at(0.7), t);
@@ -46,9 +48,33 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
     expect(lockedAt!).toBeLessThan(4200);
     p.followAgain();
     const o = p.step(at(0.5), t);
+    expect(o.flexion).toBeNull();
+    expect(o.otherPerson).toBe(true);
+    expect(o.lockedOut).toBeFalsy(); // the button has nothing more to do
+    for (t += 33; t < 12000; t += 33) expect(p.step(at(0.5), t).flexion).toBeNull();
+    expect(p.step(at(0.7), t).flexion).toBeNull(); // also when the first place is seen again: the person starts again from Setup
+  });
+
+  it('two people, one pose: the patient at x 0.7, then the therapist at x 0.3. The numbers never follow the therapist, also after a press', () => {
+    const p = make();
+    let t = 0;
+    for (; t < 1000; t += 33) expect(p.step(at(0.7), t).flexion).not.toBeNull();
+    for (let u = t + 8000; t < u; t += 33) expect(p.step(at(0.3, 100), t).flexion).toBeNull();
+    p.followAgain();
+    for (let u = t + 3000; t < u; t += 33) expect(p.step(at(0.3, 100), t).flexion).toBeNull();
+  });
+
+  it('a press re-anchors when the hip is back near the start hip (the anchor had drifted away)', () => {
+    const p = make();
+    let t = 0;
+    for (; t < 500; t += 33) p.step(at(0.5), t);
+    for (let x = 0.5; x < 0.62; x += 0.0025, t += 33) p.step(at(x), t); // a slow drift, accepted, the anchor follows
+    const jump = t;
+    for (; t < jump + 5000; t += 33) expect(p.step(at(0.5), t).flexion).toBeNull(); // 0.12 from the anchor
+    p.followAgain();
+    const o = p.step(at(0.5), t);
     expect(o.flexion).not.toBeNull();
-    expect(o.lockedOut).toBeFalsy();
-    expect(p.step(at(0.5), t + 33).flexion).not.toBeNull();
+    expect(o.otherPerson).toBeFalsy();
   });
 
   it('is not lockedOut before 4 s, and never without a press when the leg is not whole in view', () => {
