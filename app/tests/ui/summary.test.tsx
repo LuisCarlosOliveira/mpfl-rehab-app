@@ -54,6 +54,27 @@ const answer = (pain: number, swelling: RegExp) => {
 const painRadio = (n: number) => fireEvent.click(screen.getByRole('radio', { name: String(n) }));
 const save = () => fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
+describe('Summary, bends past the limit (AC4-02)', () => {
+  it('says how many bends went past the limit and why no rep counted', () => {
+    setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, eventCounts: { nearLimit: 0, overLimit: 7, tooFast: 0 } } } });
+    expect(screen.getByText('Bends past your limit: 7.')).toBeInTheDocument();
+    expect(screen.getByText('No repetitions were counted. Each bend went past your limit.')).toBeInTheDocument();
+    expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
+  });
+
+  it('shows the count but not the reason line when some reps counted', () => {
+    setup({ run: { reason: 'stop', summary: { ...summary, reps: 3, eventCounts: { nearLimit: 0, overLimit: 1, tooFast: 0 } } } });
+    expect(screen.getByText('Bends past your limit: 1.')).toBeInTheDocument();
+    expect(screen.queryByText(/Each bend went past/)).toBeNull();
+  });
+
+  it('shows neither line when no bend went past the limit', () => {
+    setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, eventCounts: { nearLimit: 0, overLimit: 0, tooFast: 0 } } } });
+    expect(screen.queryByText(/Bends past your limit/)).toBeNull();
+    expect(screen.getByText('No repetitions were counted.')).toBeInTheDocument();
+  });
+});
+
 describe('Summary, where the starting angle came from (live test F1)', () => {
   it('saves baselineSource when the run carries it, and none when it does not', async () => {
     const withSource = setup({ run: { reason: 'stop', summary: { ...summary, baselineSource: 'lowest' } } });
@@ -196,7 +217,7 @@ describe('Summary screen', () => {
   });
 
   it('says that no repetitions were counted for an empty session, and Save stays available', () => {
-    setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, peakFlexion: null } } });
+    setup({ run: { reason: 'stop', summary: { ...summary, reps: 0, peakFlexion: null, eventCounts: { nearLimit: 0, overLimit: 0, tooFast: 0 } } } });
     expect(screen.getByText('No repetitions were counted.')).toBeInTheDocument();
     answer(1, /no swelling/i);
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();

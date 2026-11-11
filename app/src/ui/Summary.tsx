@@ -124,6 +124,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
 
   const top = topAngleText(storedWhole(summary.topFlexion));
   const peakWhole = storedWhole(summary.peakFlexion);
+  const overLimit = summary.eventCounts.overLimit; // the stored count: bends past the limit of the care team
   const unit = summary.holds === null ? 'rep' : 'hold';
 
   return (
@@ -190,8 +191,9 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             ))}
           </ul>
         )}
+        {overLimit > 0 && <p>{`Bends past your limit: ${overLimit}.`}</p>}
         {top && <p>{top}</p>}
-        {summary.reps === 0 && <p>No repetitions were counted.</p>}
+        {summary.reps === 0 && <p>{overLimit > 0 ? 'No repetitions were counted. Each bend went past your limit.' : 'No repetitions were counted.'}</p>}
 
         {!saved && !discarded ? (
           <>

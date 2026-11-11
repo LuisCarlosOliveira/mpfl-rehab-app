@@ -39,6 +39,7 @@ export const EVENT_LABEL = {
   gaveWayPresses: 'Presses of "knee gave way or hurts"',
   painAtPause: 'Sessions with pain at or above the pause threshold',
   swellingMore: 'Sessions with swelling "more than before"',
+  overLimit: 'Sessions with bends over the limit',
 } as const;
 
 // Fixed texts for the visit checks. The key list is CLINICIAN_CHECKS (progression.md section 5.1).
@@ -103,6 +104,7 @@ export interface ReviewSummary {
     gaveWayPresses: number;
     painAtPause: number;
     swellingMore: number;
+    overLimit: number;
   };
   rows: ReviewRow[];
   clinicianChecks: { key: (typeof CLINICIAN_CHECKS)[number]; text: string; evidenceLabel: string; answer: null }[];
@@ -265,6 +267,7 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
       gaveWayPresses: since.reduce((n, s) => n + s.gaveWayPresses, 0),
       painAtPause: since.filter((s) => (highestPain(s) ?? -1) >= painThreshold).length,
       swellingMore: since.filter((s) => s.swelling === 'more').length,
+      overLimit: since.filter((s) => s.overLimit > 0).length,
     },
     rows,
     clinicianChecks: CLINICIAN_CHECKS.map((key) => ({ key, text: CHECK_TEXT[key], evidenceLabel: evidenceOf(key), answer: null })),
