@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { draftOf, type PlanDraft } from '../../src/lib/planView';
 import { generateProtocol, RULES, type GeneratorInputs } from '../../src/lib/protocolGen';
+import { GENERAL_GUIDANCE_NOTE, MESSAGES } from '../../src/lib/redflags';
 import { Referral } from '../../src/ui/Referral';
 import { hasVerdictWord } from './verdict';
 
@@ -62,5 +63,33 @@ describe('Referral', () => {
     expect(view.container.querySelector('[style]')).toBeNull();
     for (const svg of view.container.querySelectorAll('svg')) expect(svg).toHaveAttribute('aria-hidden', 'true');
     expect(hasVerdictWord(view.container.textContent ?? '')).toBeNull();
+  });
+});
+
+// A3-02: the emergency screen tells the person to call emergency services. It offers no file load as the main action.
+describe('Referral, a red flag', () => {
+  it('shows the general guidance note under the text for an emergency flag and for a care team flag', () => {
+    for (const flag of ['breathless-chest', 'calf']) {
+      const { view } = setup({ redFlags: { [flag]: true } });
+      expect(screen.getByText(GENERAL_GUIDANCE_NOTE), flag).toBeInTheDocument();
+      view.unmount();
+    }
+  });
+
+  it('has no Load protocol file button in the emergency case, and a quiet Back to Home as the only action', () => {
+    const { onBack } = setup({ redFlags: { 'breathless-chest': true } });
+    expect(screen.getByRole('alert')).toHaveTextContent(MESSAGES.emergency);
+    expect(screen.queryByRole('button', { name: 'Load protocol file' })).toBeNull();
+    const home = screen.getByRole('button', { name: 'Back to Home' });
+    expect(home).not.toHaveClass('btn-primary');
+    fireEvent.click(home);
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the care team case as it is: Load protocol file stays and Back to the start stays', () => {
+    setup({ redFlags: { calf: true } });
+    expect(screen.getByRole('button', { name: 'Load protocol file' })).toHaveClass('btn-primary');
+    expect(screen.getByRole('button', { name: 'Back to the start' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to Home' })).toBeNull();
   });
 });
