@@ -124,7 +124,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
     const forward = movesForward(protocol, result.protocol);
     const heldText = raisesKneeLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
     const hold = !forward ? null : !selfProgression ? heldText : events > 0 ? HOLD_EVENT : null;
-    onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol), hold));
+    onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol, inputs), hold));
   }
 
   return (
