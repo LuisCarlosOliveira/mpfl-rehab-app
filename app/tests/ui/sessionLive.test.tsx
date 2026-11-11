@@ -1,13 +1,13 @@
 // P-LIVE: the angle text on the body map and the readout show one value (B-05).
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';
 import type { Exercise } from '../../src/lib/protocol';
 import { BodyMap, resetBodyMapHidden, type BodyMapHandle } from '../../src/ui/BodyMap';
 import { Session } from '../../src/ui/Session';
-import { LEG_TEXT } from '../../src/ui/setupView';
-import { audioHarness, mockSource, twoLegs } from './helpers';
+import { CAPTURE_TEXT, LEG_TEXT } from '../../src/ui/setupView';
+import { HEEL_SLIDE, audioHarness, mockSource, twoLegs } from './helpers';
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance', 'Date'] });
@@ -101,5 +101,49 @@ describe('B-07: the moving-leg note for the seated hold', () => {
     for (let t = 0; t <= 13_000; t += 100, i++) act(() => source.emit(twoLegs(swing(i), 62), t));
     act(() => void vi.advanceTimersByTime(300));
     expect(view.container.textContent).toContain(LEG_TEXT.identity);
+  });
+});
+
+// B3-01 (c, d), B3-03: after 4 s of far hips with the whole leg visible, the screen names both causes and offers one press.
+describe('B3-01: Follow me again', () => {
+  const TEXT = 'The camera can follow another person, or you moved. Press Follow me again, or stop and start again from Setup.';
+  const open = (baselineDeg: number | null) => {
+    const source = mockSource();
+    const view = render(<Session exercise={HEEL_SLIDE} side="left" baselineDeg={baselineDeg} source={source} sound={audioHarness().sound} onEnd={vi.fn()} />);
+    return { source, view };
+  };
+  const at = (x: number, deg = 20) => legLandmarks('left', deg, { hip: { x, y: 0.3 } });
+  const feedAt = (source: ReturnType<typeof mockSource>, x: number, from: number, ms: number) => {
+    let t = from;
+    for (; t < from + ms; t += 100) act(() => source.emit(at(x, 20 + (t % 800) / 20), t));
+    act(() => void vi.advanceTimersByTime(300));
+    return t;
+  };
+  const readout = (view: ReturnType<typeof render>) => view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+
+  it('shows nothing for a short lost time, then the text and a 48 px button, and a press clears it', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 1000);
+    t = feedAt(source, 0.4, t, 3000);
+    expect(view.container.textContent).not.toContain(TEXT);
+    t = feedAt(source, 0.4, t, 2000);
+    expect(readout(view)).toBe('--');
+    expect(view.container.textContent).toContain(TEXT);
+    const button = screen.getByRole('button', { name: 'Follow me again' });
+    expect(button.closest('[role="status"], .status-slot')).not.toBeNull();
+    expect(view.container.querySelector('[role="alert"]')?.textContent ?? '').not.toContain('Follow me again');
+    fireEvent.click(button);
+    feedAt(source, 0.4, t, 600);
+    expect(readout(view)).not.toBe('--');
+    expect(view.container.textContent).not.toContain(TEXT);
+  });
+
+  it('d: the lowest-angle button is not offered while the person is locked out', () => {
+    const { source, view } = open(null);
+    const t = feedAt(source, 0.7, 0, 2000);
+    feedAt(source, 0.4, t, 16000);
+    expect(view.container.textContent).toContain(TEXT);
+    const b = screen.queryByRole('button', { name: CAPTURE_TEXT.lowestButton });
+    expect(b === null || (b as HTMLButtonElement).disabled).toBe(true);
   });
 });

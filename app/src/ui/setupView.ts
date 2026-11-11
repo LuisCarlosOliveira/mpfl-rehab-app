@@ -113,6 +113,9 @@ export const CAPTURE_TEXT = {
   bentShort: 'Your knee stays bent. Straighten it, then hold still.',
   chooseShort: 'No still moment yet. Use the button under this picture.',
   lowestButton: 'Use my lowest steady angle as the start',
+  // B3-01, B3-03: the camera reads a hip far from the first one for more than 4 s. The cause is not known, so the text names both.
+  lockedOut: 'The camera can follow another person, or you moved. Press Follow me again, or stop and start again from Setup.',
+  followAgain: 'Follow me again',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
   startingAngle: (deg: number) => `Starting angle: ${deg} ${plural(deg, 'degree')} (estimated)`,
   setupNoRest: 'The app has no resting angle yet.',

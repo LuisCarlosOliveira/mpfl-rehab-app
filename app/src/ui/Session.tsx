@@ -84,6 +84,7 @@ const COUNTED_EVENTS = new Set(['rep', 'too-fast', 'hold-complete']);
 const total = (sets: SetsState) => sets.repsPerSet.reduce((a, b) => a + b, 0);
 
 interface Live {
+  lockedOut: boolean; // the pipeline reads a far hip for more than 4 s with the whole leg visible (B3-01)
   otherLegMoves: boolean; // the last moving-leg windows named the other leg, in a row (F1)
   flexion: number | null;
   shown: number | null; // the whole-degree angle of the last tick. The map draws this number, so map and readout agree (B2-01).
@@ -103,6 +104,7 @@ interface View {
   waiting: boolean;
   stale: boolean;
   identity: boolean;
+  lockedOut: boolean;
   /** Whole seconds of the current hold, never more than the hold time. 0 outside a hold. */
   holdSec: number;
   /** The capture while it looks for a starting angle: progress in whole percent and whether the choice can be used. */
@@ -123,6 +125,7 @@ const INITIAL_VIEW: View = {
   waiting: true,
   stale: false,
   identity: false,
+  lockedOut: false,
   holdSec: 0,
   capture: null,
 };
@@ -184,6 +187,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const videoRef = useRef<HTMLVideoElement>(null);
   const map = useRef<BodyMapHandle>(null);
   const live = useRef<Live>({
+    lockedOut: false,
     otherLegMoves: false,
     flexion: null,
     shown: null,
@@ -257,6 +261,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     let overBeepAt: number | null = null; // the time of the last over-limit beep of the present alert
     const minRepMs = exercise.minRepSeconds === undefined ? null : exercise.minRepSeconds * 1000;
     live.current.shown = null;
+    live.current.lockedOut = false;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
     live.current.holdMs = 0;
@@ -288,6 +293,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         }
       }
       state.flexion = out.flexion;
+      state.lockedOut = out.lockedOut === true;
       state.frameAt = now;
       // The hold timer for the screen. It follows the band rule of holdStep and never decides a hold (the counter does).
       if (setup.ok && setup.kind === 'hold') {
@@ -355,6 +361,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         waiting,
         stale,
         identity: state.otherLegMoves,
+        lockedOut: !stale && state.lockedOut,
         holdSec: stale || !(setup.ok && setup.kind === 'hold') ? 0 : Math.floor(Math.min(state.holdMs, setup.config.minHoldMs) / 1000),
         capture:
           state.capture === null || foundRef.current !== null
@@ -362,7 +369,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
             : {
                 phase: state.capture.phase,
                 progress: Math.round(state.capture.progress * 100),
-                canUseLowest: state.capture.canUseLowest,
+                canUseLowest: state.capture.canUseLowest && !state.lockedOut, // d: no start angle from a person who is locked out
                 tooBent: state.capture.tooBent,
               },
       };
@@ -458,8 +465,16 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // The person pressed the button. Only now does the app take the lowest steady angle.
   function useLowestAngle() {
+    if (live.current.lockedOut) return;
     const chosen = capture.current?.useLowest();
     if (chosen) adopt(chosen);
+  }
+
+  // B3-01: the person presses. Only now does the anchor move to the hip of the present frame.
+  function followAgain() {
+    pipeline.current?.followAgain();
+    live.current.lockedOut = false;
+    setView((v) => ({ ...v, lockedOut: false }));
   }
 
   function retryCamera() {
@@ -594,6 +609,14 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 <p role="status" aria-live="polite" className="cue">
                   {view.cue}
                 </p>
+                {view.lockedOut && (
+                  <div className="stack-s" role="status">
+                    <p>{CAPTURE_TEXT.lockedOut}</p>
+                    <button type="button" className="btn" onClick={followAgain}>
+                      {CAPTURE_TEXT.followAgain}
+                    </button>
+                  </div>
+                )}
                 {/* R3-02: the button sits in the slot, right under the camera and before the numbers, so it stays in the first view. */}
                 {captureOn && view.capture?.phase === 'choose' && (
                   <button type="button" className="btn" disabled={!view.capture.canUseLowest} onClick={useLowestAngle}>
