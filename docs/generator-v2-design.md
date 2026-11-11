@@ -373,3 +373,10 @@ With the flag off, these items are not in the plan. The three extra questions ar
 With the flag on, the behaviour is as built. The audit defects are fixed. The seated hold now also leaves the plan after a knee gave way press. The heel slide text now carries the P1 line about 120 degrees and says to ask the care team. The squat depth entry now shows that P2 starts wall squats at 45 degrees and that the sources disagree. The ankle pump text now says what P1 and P3 say. The dose text keeps "ages 8 to 25".
 
 The guardrails skill still holds the narrow exception for the squat depth. While the flag is off, that exception has no effect. The user decides whether to revert it.
+
+## 11. Update of 2026-11-11: the extended items are on by default
+
+The user decided that the app proposes the full plan from the guidelines. The function `generatorExtendedOn` in `app/src/lib/mode.ts` now returns true unless `VITE_GENERATOR_EXTENDED` is the exact text `false` or `0`.
+The flag gates four things: the mini squat (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE), the seated hold (HOLD_P2, ENG_HOLD), the heel slide in phase 2 for an unknown limit (HEEL_P2_UNKNOWN), and the three questions about walking, the leg raise and the clearance of the hold (`gatesAsked` in `app/src/lib/onboarding.ts`, and the Update my plan screen).
+The flag value `false` keeps the old behaviour, with the rule EXTENDED_OFF. `VITE_SELF_PROGRESSION` is unchanged. Every number of these rules has an EXACT audit row or is marked as an own value of the app (test `app/tests/protocolGenAudit.test.ts`, run with the flag unset, `true` and `false`).
+

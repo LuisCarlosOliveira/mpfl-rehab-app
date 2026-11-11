@@ -1,5 +1,5 @@
 import { GRADES, SOURCES } from '../src/lib/protocolGen/sources';
-import { RULES, RULE_IDS, type Rule } from '../src/lib/protocolGen/rules';
+import { NO_NUMBER, RANGE_REFERENCE, RULES, RULE_IDS, type Rule } from '../src/lib/protocolGen/rules';
 
 const rules = RULE_IDS.map((id) => RULES[id] as Rule);
 const words = (s: string) => s.trim().split(/\s+/).length;
@@ -87,26 +87,47 @@ describe('rules data', () => {
     }
   });
 
-  // Guardrail: the generator never puts a number from a published source into a plan. Every clinical number is a clinician or surgeon field.
-  it('has no rule for a dose, a mini squat depth or a seated hold arc, and no rule that carries such a number', () => {
-    for (const id of ['DOSE', 'SQUAT_DEPTH', 'HOLD_P2', 'ENG_HOLD']) expect(Object.keys(RULES), id).not.toContain(id);
-    const generated = rules.filter((r) => r.kind === 'generated');
-    for (const r of generated) {
-      for (const key of ['sets', 'reps', 'maxFlexion', 'minFlexion', 'arcStart', 'holdSeconds']) expect(Object.keys(r.values), `${r.id} ${key}`).not.toContain(key);
-    }
+  // User decision 2026-11-11: the app proposes the plan from the guidelines. A number needs a real source and an EXACT audit row.
+  it('gives the dose rule the whole range of P2, its population and the audit row V49', () => {
+    expect(RULES.DOSE.values).toEqual({ sets: 2, reps: 10 });
+    expect(RULES.DOSE.grade).toBe('OPINION');
+    expect(RULES.DOSE.sourceIds).toEqual(['P2']);
+    expect(RULES.DOSE.population).toMatch(/8 to 25/);
+    expect(RULES.DOSE.population).toMatch(/Not studied in adults/);
+    expect(RULES.DOSE.text).toMatch(/2 sets of 10 to 15, then 3 sets as tolerated/);
+    expect(RULES.DOSE.text).toMatch(/ages 8 to 25, not for adults/);
+    expect(RULES.DOSE.conservative).toMatch(/start of the range/);
+    expect(RULES.DOSE.auditRows).toEqual(['V49']);
   });
 
-  it('says that the app sets no dose for any exercise', () => {
+  it('keeps the dose of the heel slide and the ankle pump as NONE', () => {
     expect(RULES.DOSE_NONE.kind).toBe('none');
     expect(RULES.DOSE_NONE.values).toEqual({});
-    expect(RULES.DOSE_NONE.text).toMatch(/no dose for any exercise/);
+    expect(RULES.DOSE_NONE.text).toMatch(/heel slide/);
+    expect(RULES.DOSE_NONE.text).toMatch(/ankle pump/);
     expect(RULES.DOSE_NONE.text).toMatch(/Ask your care team/);
   });
 
-  it('says that the app adds no seated hold and no mini squat depth', () => {
-    expect(RULES.HOLD.text).toMatch(/adds no seated knee hold/);
-    expect(RULES.SQUAT_P2.text).toMatch(/no depth limit/);
-    expect(RULES.SQUAT_P2.text).toMatch(/Ask your surgeon/);
+  it('gives the depth rule the depth 50, its sources, the audit rows V95, V116, V119 and V117, and the source that disagrees', () => {
+    expect(RULES.SQUAT_DEPTH.values).toEqual({ maxFlexion: 50 });
+    expect(RULES.SQUAT_DEPTH.personEntered).toEqual(['maxFlexion']);
+    expect(RULES.SQUAT_DEPTH.sourceIds).toEqual(['N3', 'S16', 'P2']);
+    expect(RULES.SQUAT_DEPTH.grade).toBe('OPINION');
+    expect(RULES.SQUAT_DEPTH.auditRows).toEqual(['V95', 'V116', 'V119', 'V117']);
+    expect(RULES.SQUAT_DEPTH.text).toMatch(/A limit from your surgeon can only lower it/);
+    expect(RULES.SQUAT_DEPTH.conservative).toMatch(/disagree/);
+  });
+
+  it('gives the one reference line for the knee bend by week from S1, as typical practice and not an order', () => {
+    expect(RANGE_REFERENCE).toBe(
+      'Typical practice in the guideline, not a limit and not your plan: patients start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. Your surgeon sets your limit.',
+    );
+    expect(RANGE_REFERENCE).not.toMatch(/\badd\b/);
+    expect(RULES.RANGE_NONE.display?.value).toBe(RANGE_REFERENCE);
+    expect(NO_NUMBER).toBe('No number in the guideline.');
+    expect(RULES.RANGE_NONE.kind).toBe('none');
+    expect(RULES.RANGE_NONE.values).toEqual({});
+    expect(RULES.RANGE_NONE.sourceIds).toContain('S1');
   });
 
   it('keeps the camera values labelled ENGINEERING', () => {

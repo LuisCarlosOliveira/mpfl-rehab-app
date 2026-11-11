@@ -39,9 +39,10 @@ describe('PlanResult', () => {
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).getByText('Straight leg raise')).toBeInTheDocument();
     expect(within(list).getByText('Heel slide')).toBeInTheDocument();
-    // The generator sets no dose. The row says to ask the care team. The surgeon number is the limit.
-    expect(within(list).queryByText(/sets of/)).toBeNull();
-    expect(within(list).getAllByText('How many: ask your care team').length).toBe(2);
+    // The straight leg raise shows the whole dose range of P2. The heel slide has no dose in the guideline, so its row asks the care team.
+    expect(within(list).getAllByText('2 sets of 10 to 15, then 3 sets as tolerated')).toHaveLength(1);
+    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(1);
+    expect(list.textContent).not.toMatch(/undefined|NaN|2 sets of 10 reps/);
     expect(within(list).getByText('Limit 60 degrees')).toBeInTheDocument();
   });
 
@@ -135,6 +136,40 @@ describe('PlanResult', () => {
   });
 });
 
+describe('values that no guideline gives', () => {
+  const open = (title: string) => {
+    const entry = screen.getByRole('heading', { name: title, level: 3 }).closest('li') as HTMLElement;
+    return entry;
+  };
+
+  it('shows the plain line and the words of the guideline in each rule of kind none, and the line in no rule that holds a number', () => {
+    setup();
+    for (const title of ['Knee-bend ceiling', 'Hold time', 'Repetition tempo', 'Session frequency', 'Numeric pain or swelling stop', 'Weight-bearing and brace']) {
+      const entry = open(title);
+      expect(within(entry).getByText('No number in the guideline.'), title).toBeInTheDocument();
+    }
+    expect(open('Knee-bend ceiling')).toHaveTextContent('passive range targets');
+    expect(open('Hold time')).toHaveTextContent('test of the straight leg raise');
+    expect(within(open('Straight leg raise')).queryByText('No number in the guideline.')).toBeNull();
+    expect(within(open('Dose of the strengthening exercise')).queryByText('No number in the guideline.')).toBeNull();
+  });
+
+  it('shows the reference for the knee bend by week once, as a source note with evidence, population and the label, and as typical practice', () => {
+    const { container } = setup().view;
+    expect(container.querySelectorAll('.range-reference')).toHaveLength(1);
+    const note = screen.getByLabelText('Source of: Knee bend by week');
+    const lines = within(note).getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(lines[0]).toMatch(/^Source: Hsu CJ, Lee C, Christensen RS, Liu TY, 2025|^Source: Hsu/);
+    expect(lines[1]).toBe('Evidence: OPINION (level 5, clinical commentary)');
+    expect(lines[2]).toMatch(/^Population: Isolated and combined MPFL reconstruction, no age limit stated/);
+    expect(lines[3]).toBe('Not approved by a clinician. No clinician has reviewed this value.');
+    const root = container.querySelector('.range-reference') as HTMLElement;
+    expect(root).toHaveTextContent('Typical practice in the guideline, not a limit and not your plan:');
+    expect(root).toHaveTextContent('Your surgeon sets your limit.');
+    expect(container.textContent).not.toMatch(/add 20 to 30|week 3 |week 4 |undefined|NaN/);
+  });
+});
+
 describe('A-17: the chip of a rule that is not in the plan matches its own line', () => {
   const chipOf = (title: string) => {
     const entry = screen.getByRole('heading', { name: title, level: 3 }).closest('li') as HTMLElement;
@@ -146,7 +181,7 @@ describe('A-17: the chip of a rule that is not in the plan matches its own line'
     for (const title of ['Session frequency', 'Repetition tempo', 'Hold time']) expect(chipOf(title).chip, title).toBe('Ask your care team');
     expect(chipOf('Weight-bearing and brace').chip).toBe('Ask your surgeon');
     expect(chipOf('Knee-bend ceiling').chip).toBe('Ask your surgeon');
-    expect(chipOf('Dose of every exercise').chip).toBe('Ask your care team');
+    expect(chipOf('Dose of the heel slide and the ankle pump').chip).toBe('Ask your care team');
     const pause = chipOf('Pain and swelling pause');
     expect(pause.chip).toBeNull();
     expect(pause.entry).toHaveTextContent('The pause rule of the app stays');

@@ -16,3 +16,20 @@ describe('Load rows', () => {
     expect(css).toMatch(/\.action-rows > li:has\(\.row-detail-out\) \.action-row\s*\{[^}]*padding-bottom/);
   });
 });
+
+// A2-01: the name leads each row of the plan. The dose, the depth and the arc are quiet supporting text.
+describe('plan rows', () => {
+  const weight = (selector: string) => Number(/font-weight:\s*(\d+)/.exec(rule(selector))?.[1] ?? 400);
+
+  it('sets the dose line lighter than the exercise name, in the muted colour, under the name', () => {
+    expect(weight('.v2-screens .dose')).toBeLessThan(weight('.v2-screens .dose-name'));
+    expect(weight('.v2-screens .dose')).toBeLessThanOrEqual(500);
+    expect(rule('.v2-screens .dose')).toMatch(/color:\s*var\(--muted\)/);
+    expect(rule('.v2-screens .dose')).toMatch(/grid-column:\s*1\s*\/\s*-1/);
+  });
+
+  it('sets the source lines in the muted colour at the small size', () => {
+    expect(rule('.source-note')).toMatch(/color:\s*var\(--muted\)/);
+    expect(rule('.source-note')).toMatch(/font-size:\s*var\(--step-m1\)/);
+  });
+});

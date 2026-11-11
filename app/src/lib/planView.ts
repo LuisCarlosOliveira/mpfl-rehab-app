@@ -3,7 +3,7 @@
 
 import { contactReason } from './contactCard';
 import type { Exercise, HomeExercise, Protocol } from './protocol';
-import { RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
+import { DOSE_SHOWN, NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
 /**
@@ -60,9 +60,19 @@ export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
 export const ASK_LIMIT = 'Knee-bend limit: ask your surgeon';
 
-/** The dose of a home exercise as plain words. With no dose in the plan, the person asks the care team. */
-export const homeDose = (h: HomeExercise): string =>
-  h.sets !== undefined && h.reps !== undefined ? `${h.sets} sets of ${h.reps}` : ASK_HOW_MANY;
+/** The rules whose number comes from a published source and shows with a source note. */
+export type SourceNoteId = 'DOSE' | 'SQUAT_DEPTH' | 'HOLD_P2' | 'RANGE_NONE';
+
+/**
+ * The lines of a source note, in the fixed order: the value, the source, the evidence, the population, the label of the app,
+ * and the source that disagrees. Every line comes from the rule, so one sentence has one place.
+ */
+export function sourceLines(id: SourceNoteId): string[] {
+  const r = RULES[id];
+  const d = r.display;
+  if (d === undefined) return [];
+  return [d.value, `Source: ${d.cite}`, `Evidence: ${d.evidence}`, `Population: ${d.population ?? r.population}`, `${NOT_APPROVED}. No clinician has reviewed this value.`, ...(d.disagree === undefined ? [] : [`Another source: ${d.disagree}`])];
+}
 
 /** The calendar date of the device clock, as year-month-day. It is not the date in UTC. */
 export function localIsoDate(d: Date): string {
@@ -98,21 +108,27 @@ const phaseName = (p: Protocol) => {
 };
 const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
-/** One plain line for each part of the new plan. One dose rule: a dose shows only when the plan holds it, and the missing dose is said once at the end. */
+/**
+ * One plain line for each part of the new plan. A dose shows once for the group, as the guideline gives it (the whole range, with the
+ * population and the label). The exercises without a dose in the guideline show the missing dose once, at the end.
+ */
 export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
+  const hasDose = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
+  const exercises = activeExercises(protocol);
+  const home = activeHome(protocol);
   let askDose = false;
-  for (const e of activeExercises(protocol)) {
-    const dose = e.sets !== undefined && e.reps !== undefined ? `${e.sets} sets of ${e.reps}` : e.holdSeconds !== undefined ? `hold ${e.holdSeconds} seconds` : null;
-    if (dose === null) askDose = true;
-    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...(dose === null ? [] : [dose])];
+  for (const e of exercises) {
+    if (!hasDose(e) && e.holdSeconds === undefined) askDose = true;
+    const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
+    const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
   }
-  const home = activeHome(protocol);
   for (const h of home) {
-    if (h.sets === undefined || h.reps === undefined) askDose = true;
-    lines.push(`${HOME_NAMES[h.kind]}${h.sets !== undefined && h.reps !== undefined ? `, ${homeDose(h)}` : ''} (at home).`);
+    if (!hasDose(h)) askDose = true;
+    lines.push(`${HOME_NAMES[h.kind]} (at home).`);
   }
+  if ([...exercises, ...home].some(hasDose)) lines.push(`${RULES.DOSE.text} ${NOT_APPROVED}.`);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
   if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
@@ -150,11 +166,21 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
   for (const h of homeBefore) {
     if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
   }
+  // A stored plan from before the dose rule has no sets and reps. The new plan adds the dose of the guideline.
+  const hadNoDose = (old: { sets?: number } | undefined) => old !== undefined && old.sets === undefined;
+  const newDose = [
+    ...after.filter((e) => e.sets !== undefined && hadNoDose(before.find((x) => x.kind === e.kind))).map((e) => NAMES[e.kind]),
+    ...activeHome(next).filter((h) => h.sets !== undefined && hadNoDose(homeBefore.find((x) => x.kind === h.kind))).map((h) => HOME_NAMES[h.kind]),
+  ];
+  if (newDose.length > 0) {
+    lines.push(`Sets and reps added for ${newDose.join(', ')}. Reason: P2 gives ${DOSE_SHOWN} for strengthening exercises, for ages 8 to 25, not for adults (${RULES.DOSE.id}).`);
+  }
   return lines;
 }
 
 const ADDED_REASON = (e: Exercise, next: Protocol): string => {
   if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
+  if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
   if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
   return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
 };
@@ -162,7 +188,7 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'heel-slide': `the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id})`,
   'straight-leg-raise': `the app adds this exercise in every plan (${RULES.SLR.id})`,
   'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
-  'seated-extension-hold': `the app adds no seated hold, because its arc is a clinical number (${RULES.HOLD.id})`,
+  'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
 };
 
 const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
@@ -242,8 +268,8 @@ const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
   maxFlexion: { label: 'knee-bend limit', unit: ' degrees' },
   minFlexion: { label: 'straightest knee angle', unit: ' degrees' },
   returnWithinDeg: { label: 'return within', unit: ' degrees' },
-  sets: { label: 'sets' },
-  reps: { label: 'reps' },
+  sets: { label: 'sets, start of the range' },
+  reps: { label: 'reps, start of the range 10 to 15' },
   reviewDate: { label: 'review date' },
 };
 
@@ -278,6 +304,8 @@ export interface WhyView {
   ask: string | null;
   /** True when a clinician has not reviewed the value, as the rule says. */
   needsReview: boolean;
+  /** For a value that no source gives: the words of the guideline (the reason of the rule). null for the other rules. */
+  noNumber: { words: string } | null;
 }
 
 const ASKS = ['Ask your surgeon', 'Ask your care team'] as const;
@@ -299,6 +327,7 @@ export function whyView(e: WhyEntry): WhyView {
     applied: e.applied.map(appliedLine),
     ask: askOf(e.text),
     needsReview: e.flag === 'clinical-review-needed',
+    noNumber: RULES[e.ruleId].kind === 'none' ? { words: RULES[e.ruleId].reason ?? '' } : null,
   };
 }
 

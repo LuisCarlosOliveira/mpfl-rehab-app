@@ -4,10 +4,9 @@ import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { RED_FLAGS } from '../src/lib/redflags';
 import { generateProtocol, RULES, type GeneratorInputs, type WhyEntry } from '../src/lib/protocolGen';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
-vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
-beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file runs with the default.
+// A second block at the end runs the same inputs with the value false.
+afterEach(() => vi.unstubAllEnvs());
 
 // Plain case tables. A small seeded generator gives many inputs. No extra package.
 const TODAY = '2026-11-08';
@@ -206,6 +205,9 @@ describe('properties of the generator', () => {
   it('never fills a value that the knowledge base leaves as NONE', () => {
     for (const { seed, protocol } of protocols) {
       expect(protocol.painPauseThreshold, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.brace, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.weightBearing, `seed ${seed}`).toBeUndefined();
+      expect(protocol.surgeon.depthLimit, `seed ${seed}`).toBeUndefined();
       expect(protocol.approvedOn, `seed ${seed}`).toBeUndefined();
       expect(protocol.generated, `seed ${seed}`).toMatchObject({ on: TODAY });
       for (const ph of protocol.phases) {
@@ -214,23 +216,43 @@ describe('properties of the generator', () => {
           expect(e.holdSeconds).toBeUndefined();
           expect(e.minRepSeconds).toBeUndefined();
           expect(e.maxTopFlexion).toBeUndefined();
-          // Guardrail: no dose, no mini squat depth and no hold arc from a published source.
-          expect(e.sets, `seed ${seed}`).toBeUndefined();
-          expect(e.reps, `seed ${seed}`).toBeUndefined();
-          expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
+          // The heel slide and the seated hold have no dose (DOSE_NONE, NONE_HOLDTIME). The other exercises start at the dose range of P2 rec 26 (DOSE, V49).
+          if (e.kind === 'heel-slide' || e.kind === 'seated-extension-hold') {
+            expect(e.sets, `seed ${seed}`).toBeUndefined();
+            expect(e.reps, `seed ${seed}`).toBeUndefined();
+          } else {
+            expect(e, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
+          }
+          if (e.kind !== 'seated-extension-hold') expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
           expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
         }
         for (const h of ph.homeExercises ?? []) {
-          expect(h, `seed ${seed}`).not.toHaveProperty('sets');
-          expect(h, `seed ${seed}`).not.toHaveProperty('reps');
+          if (h.kind === 'ankle-pump') expect(h, `seed ${seed}`).not.toHaveProperty('sets');
+          else expect(h, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
         }
       }
     }
   });
 
-  it('gives a mini squat a ceiling only from the surgeon number, and never a squat without the gates', () => {
+  it('gives no number where the guideline gives none: a rule of kind none has no value and no applied value', () => {
+    let checked = 0;
+    for (const seed of SEEDS) {
+      const r = generateProtocol(randomInputs(seed), TODAY);
+      if (r.kind !== 'protocol') continue;
+      for (const w of r.why) {
+        if (RULES[w.ruleId].kind !== 'none') continue;
+        checked += 1;
+        expect(w.applied, `seed ${seed} ${w.ruleId}`).toEqual([]);
+        expect(w.outcome, `seed ${seed} ${w.ruleId}`).toBe('refused');
+        expect(RULES[w.ruleId].values, `seed ${seed} ${w.ruleId}`).toEqual({});
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('never gives a mini squat ceiling above 50, lowers it only with a surgeon number, and never gives a squat without the gates', () => {
     let squats = 0;
-    let withSurgeon = 0;
+    let lowered = 0;
     for (const seed of SEEDS) {
       const i = randomInputs(seed);
       const r = generateProtocol(i, TODAY);
@@ -240,27 +262,49 @@ describe('properties of the generator', () => {
         if (squat === undefined) continue;
         squats += 1;
         expect(ph.id, `seed ${seed}`).toBe(2);
-        if (i.surgeonLimit.kind === 'degrees') {
-          withSurgeon += 1;
-          expect(squat.maxFlexion, `seed ${seed}`).toBe(i.surgeonLimit.degrees);
-        } else {
-          expect(squat.maxFlexion, `seed ${seed}`).toBeUndefined();
-        }
+        expect(squat.maxFlexion, `seed ${seed}`).toBeLessThanOrEqual(RULES.SQUAT_DEPTH.values.maxFlexion);
+        const expected = i.surgeonLimit.kind === 'degrees' ? Math.min(50, i.surgeonLimit.degrees) : 50;
+        expect(squat.maxFlexion, `seed ${seed}`).toBe(expected);
+        if (expected < 50) lowered += 1;
         expect([i.walksWithoutCrutches, i.legRaiseStraight, i.phaseClearance], `seed ${seed}`).toEqual(['yes', 'yes', 'yes']);
         expect(i.kneeGaveWay, `seed ${seed}`).toBe(false);
       }
     }
     expect(squats).toBeGreaterThan(0);
-    expect(withSurgeon).toBeGreaterThan(0);
+    expect(lowered).toBeGreaterThan(0);
   });
 
-  // Guardrail: the arc of the seated hold is a clinical number. The generator never adds the hold, whatever the answers are.
-  it('never adds a seated hold, with any answers', () => {
+  it('never gives a seated hold without the reported clearance, in phase 1, or with a straight arc', () => {
+    let holds = 0;
     for (const seed of SEEDS) {
-      const r = generateProtocol(randomInputs(seed), TODAY);
+      const i = randomInputs(seed);
+      const r = generateProtocol(i, TODAY);
       if (r.kind !== 'protocol') continue;
+      for (const ph of r.protocol.phases) {
+        const hold = ph.exercises.find((e) => e.kind === 'seated-extension-hold');
+        if (hold === undefined) continue;
+        holds += 1;
+        expect(ph.id, `seed ${seed}`).toBe(2);
+        expect(i.seatedHoldCleared, `seed ${seed}`).toBe('yes');
+        if (i.surgeonLimit.kind === 'degrees') expect(i.surgeonLimit.degrees, `seed ${seed}`).toBeGreaterThanOrEqual(RULES.HOLD_P2.values.arcStart);
+        expect(hold.minFlexion, `seed ${seed}`).toBeGreaterThan(0);
+        expect(hold.holdSeconds, `seed ${seed}`).toBeUndefined();
+      }
+    }
+    expect(holds).toBeGreaterThan(0);
+  });
+
+  it('gives no seated hold when the surgeon limit is below the start of the arc, whatever the other answers are', () => {
+    let below = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      if (i.surgeonLimit.kind !== 'degrees' || i.surgeonLimit.degrees >= RULES.HOLD_P2.values.arcStart) continue;
+      const r = generateProtocol({ ...i, seatedHoldCleared: 'yes', phaseClearance: 'yes', kneeGaveWay: false }, TODAY);
+      if (r.kind !== 'protocol') continue;
+      below += 1;
       for (const ph of r.protocol.phases) expect(ph.exercises.map((e) => e.kind), `seed ${seed}`).not.toContain('seated-extension-hold');
     }
+    expect(below).toBeGreaterThan(0);
   });
 
   it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {
@@ -314,5 +358,32 @@ describe('the core stays pure', () => {
 
   it('never writes the active phase', () => {
     for (const f of files) expect(sourceOf(f), f).not.toMatch(/activePhase\s*=[^=]|setActivePhase/);
+  });
+});
+
+describe('properties of the generator with VITE_GENERATOR_EXTENDED=false', () => {
+  it('adds no mini squat, no seated hold and no phase 2 heel slide for an unknown limit, and no extra question changes a referral', () => {
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
+    let plans = 0;
+    for (const seed of SEEDS) {
+      const i = randomInputs(seed);
+      const off = generateProtocol(i, TODAY);
+      vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+      const on = generateProtocol(i, TODAY);
+      vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
+      // A referral is the same with the flag on and off: the extended items never change a safety decision.
+      expect(off.kind, `seed ${seed}`).toBe(on.kind);
+      if (off.kind === 'referral' && on.kind === 'referral') expect(off.reason, `seed ${seed}`).toBe(on.reason);
+      if (off.kind !== 'protocol') continue;
+      plans += 1;
+      for (const ph of off.protocol.phases) {
+        const kinds = ph.exercises.map((e) => e.kind);
+        expect(kinds, `seed ${seed}`).not.toContain('mini-squat');
+        expect(kinds, `seed ${seed}`).not.toContain('seated-extension-hold');
+        if (i.surgeonLimit.kind === 'unknown') expect(kinds, `seed ${seed}`).not.toContain('heel-slide');
+      }
+      expect(off.protocol.activePhase, `seed ${seed}`).toBe(on.kind === 'protocol' ? on.protocol.activePhase : off.protocol.activePhase);
+    }
+    expect(plans).toBeGreaterThan(0);
   });
 });

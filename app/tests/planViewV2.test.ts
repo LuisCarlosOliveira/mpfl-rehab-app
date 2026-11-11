@@ -3,8 +3,8 @@ import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { describeChanges, describeNewPlan, HOME_NAMES, movesForward, whyView } from '../src/lib/planView';
 import type { Protocol } from '../src/lib/protocol';
 
-// The extended generator items are behind VITE_GENERATOR_EXTENDED (off by default). This file tests them with the flag on.
-// The default (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
+// The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
+// The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 
@@ -44,7 +44,15 @@ describe('describeNewPlan with home exercises', () => {
     }
     expect(lines.filter((l) => l.includes('How many'))).toEqual(['How many: ask your care team.']);
     expect(lines.filter((l) => l.includes('does not check'))).toEqual(['The app does not check the exercises at home.']);
-    expect(lines.join(' ')).not.toMatch(/sets of|undefined|NaN/);
+    expect(lines.join(' ')).not.toMatch(/undefined|NaN/);
+  });
+
+  it('shows the dose once, as the whole range of the guideline, with the population and the label', () => {
+    const lines = describeNewPlan(plan(3).protocol);
+    const dose = lines.filter((l) => l.includes('2 sets of 10 to 15, then 3 sets as tolerated'));
+    expect(dose).toHaveLength(1);
+    expect(dose[0]).toContain('ages 8 to 25, not for adults');
+    expect(dose[0]).toContain('Not approved by a clinician');
   });
 });
 
@@ -69,42 +77,65 @@ describe('describeChanges with version 2 items', () => {
     expect(lines[0]).toContain('SQUAT_GATE');
   });
 
+  it('names the dose that a plan from before the dose rule gets, once, with the range and the rule', () => {
+    const next = plan(3).protocol;
+    const strip = <T extends { sets?: number; reps?: number }>(x: T): T => {
+      const copy = { ...x };
+      delete copy.sets;
+      delete copy.reps;
+      return copy;
+    };
+    const withoutDose: Protocol = {
+      ...next,
+      phases: next.phases.map((ph) => ({ ...ph, exercises: ph.exercises.map(strip), homeExercises: ph.homeExercises?.map(strip) })),
+    };
+    const lines = describeChanges(withoutDose, next);
+    const dose = lines.filter((l) => l.startsWith('Sets and reps added'));
+    expect(dose).toHaveLength(1);
+    expect(dose[0]).toContain('Straight leg raise');
+    expect(dose[0]).toContain('Quadriceps set');
+    expect(dose[0]).not.toContain('Ankle pump');
+    expect(dose[0]).toContain('2 sets of 10 to 15, then 3 sets as tolerated');
+    expect(dose[0]).toContain('(DOSE)');
+    expect(describeChanges(next, next)).toEqual([]);
+  });
+
   it('names the heel slide for an unknown limit with its own rule', () => {
     const lines = describeChanges(plan(8, { surgeonLimit: { kind: 'none' } }).protocol, plan(8, { surgeonLimit: { kind: 'unknown' } }).protocol);
     expect(lines.join(' ')).not.toContain('HEEL)');
   });
 
-  it('adds no seated hold, whatever the answer, and names the rule when a hold of an older plan goes', () => {
-    expect(describeChanges(plan(8).protocol, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toEqual([]);
-    const base = plan(8).protocol;
-    const withHold: Protocol = {
-      ...base,
-      phases: base.phases.map((ph) => (ph.id === 2 ? { ...ph, exercises: [...ph.exercises, { kind: 'seated-extension-hold' as const, minFlexion: 40, targetFlexion: 58, source: 'older plan' }] } : ph)),
-    };
-    const lines = describeChanges(withHold, base);
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain('Seated knee extension hold removed');
-    expect(lines[0]).toContain('HOLD)');
+  it('names the seated hold that is added, and the one that is removed', () => {
+    const lines = describeChanges(plan(8).protocol, plan(8, { seatedHoldCleared: 'yes' }).protocol);
+    expect(lines[0]).toContain('Seated knee extension hold added');
+    expect(lines[0]).toContain('HOLD_P2');
+    const back = describeChanges(plan(8, { seatedHoldCleared: 'yes' }).protocol, plan(8).protocol);
+    expect(back[0]).toContain('Seated knee extension hold removed');
+    expect(back[0]).toContain('HOLD_P2');
   });
 });
 
 describe('the forward check', () => {
-  it('counts a new mini squat as a move forward, a seated hold answer as no move, and a removal as no move', () => {
+  it('counts a new mini squat or a new seated hold as a move forward, and a removal as no move', () => {
     const base = plan(8).protocol;
     expect(movesForward(base, plan(8, gates).protocol)).toBe(true);
-    expect(movesForward(base, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toBe(false);
+    expect(movesForward(base, plan(8, { seatedHoldCleared: 'yes' }).protocol)).toBe(true);
     expect(movesForward(plan(8, gates).protocol, base)).toBe(false);
     expect(movesForward(base, plan(8).protocol)).toBe(false);
   });
 });
 
 describe('whyView for the new values', () => {
-  it('shows no dose and no hold values, and shows the surgeon number for the mini squat with the words of the person', () => {
+  it('shows the dose as the start of the range, the depth of the mini squat and the hold values with their own words', () => {
     const r = plan(8, { ...gates, seatedHoldCleared: 'yes' });
-    expect(r.why.some((w) => ['DOSE', 'HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId))).toBe(false);
-    const all = r.why.flatMap((w) => whyView(w).applied).join('\n');
-    expect(all).not.toMatch(/sets:|reps:|Seated knee extension hold|straightest knee angle/);
-    expect(all).toContain('Phase 2, Mini squat, knee-bend limit: 100 degrees (as entered by you)');
-    expect(all).not.toMatch(/starts counting a rep at 58/);
+    const lines = r.why.filter((w) => ['DOSE', 'HOLD_P2', 'ENG_HOLD', 'SQUAT_DEPTH'].includes(w.ruleId)).flatMap((w) => whyView(w).applied).join('\n');
+    expect(lines).toContain('Phase 2, Quadriceps set, sets, start of the range: 2');
+    expect(lines).toContain('Phase 2, Quadriceps set, reps, start of the range 10 to 15: 10');
+    expect(lines).toContain('Phase 2, Mini squat, knee-bend limit: 50 degrees');
+    expect(lines).toContain('Phase 2, Seated knee extension hold, straightest knee angle: 40 degrees');
+    expect(lines).toMatch(/Phase 2, Seated knee extension hold, the app counts the hold at 58 degrees/);
+    expect(lines).not.toMatch(/starts counting a rep at 58/);
+    const lower = plan(8, { ...gates, surgeonLimit: { kind: 'degrees', degrees: 40 } }).why.flatMap((w) => whyView(w).applied).join('\n');
+    expect(lower).toContain('Phase 2, Mini squat, knee-bend limit: 40 degrees (as entered by you)');
   });
 });

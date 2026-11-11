@@ -190,9 +190,9 @@ describe('whyView, the lines of "Values in your plan" (L2-08, L2-01, L2-09)', ()
       const lines = whyView(e).applied;
       expect(new Set(lines).size, `${e.ruleId}: ${lines.join(' | ')}`).toBe(lines.length);
     }
-    // The generator sets no dose, so no line shows sets or reps.
-    expect(entries.some((e) => (e.ruleId as string) === 'DOSE')).toBe(false);
-    for (const e of entries) for (const line of whyView(e).applied) expect(line, e.ruleId).not.toMatch(/sets:|reps:/);
+    const dose = whyView(entries.find((e) => e.ruleId === 'DOSE')!).applied;
+    expect(dose).toContain('Phase 1, Straight leg raise, sets, start of the range: 2');
+    expect(dose).toContain('Phase 2, Straight leg raise, sets, start of the range: 2');
     // A surgeon number still shows, with the phase.
     const surgeon = allEntries(8, { phaseClearance: 'yes', surgeonLimit: { kind: 'degrees', degrees: 90 } }).find((e) => e.ruleId === 'RANGE_SURGEON')!;
     const lines = whyView(surgeon).applied;
@@ -247,5 +247,15 @@ describe('one movesForward rule (R-03)', () => {
     expect(movesForward(base({}, { maxTopFlexion: 60 }), base({}, { maxTopFlexion: 70 }))).toBe(true);
     expect(movesForward(base({}, { minFlexion: 10 }), base({}, { minFlexion: 5 }))).toBe(true);
     expect(raisesLimit(base({ painPauseThreshold: 3 }, {}), base({}, {}))).toBe(true);
+  });
+});
+
+describe('whyView for a value that no guideline gives', () => {
+  it('holds the words of the guideline for a rule of kind none and nothing for the other rules', () => {
+    const entries = plan(4).why;
+    const none = entries.filter((e) => RULES[e.ruleId].kind === 'none');
+    expect(none.length).toBeGreaterThan(5);
+    for (const e of none) expect(whyView(e).noNumber, e.ruleId).toEqual({ words: RULES[e.ruleId].reason });
+    for (const e of entries.filter((x) => RULES[x.ruleId].kind !== 'none')) expect(whyView(e).noNumber, e.ruleId).toBeNull();
   });
 });
