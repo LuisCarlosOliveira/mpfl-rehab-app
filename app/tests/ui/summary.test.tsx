@@ -144,7 +144,7 @@ describe('Summary screen', () => {
     const { db, onDone } = setup();
     answer(8, /no swelling/i);
     fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
-    await screen.findByText('Session saved without answers.');
+    await screen.findByText('Session saved. Your pain and swelling answers are kept.');
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByText(PAUSE_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
@@ -161,7 +161,7 @@ describe('Summary screen', () => {
     const { db } = setup();
     painRadio(7);
     fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
-    await screen.findByText('Session saved without answers.');
+    await screen.findByText('Session saved. Your pain answer is kept.'); // B2-05: the text matches the record
     const row = (await db.sessions.toArray())[0]!;
     expect(row.pain).toBe(7);
     expect(row.swelling).toBeUndefined(); // the unanswered question stays out
@@ -182,7 +182,7 @@ describe('Summary screen', () => {
     render(<Summary run={{ reason: 'stop', summary, record: Promise.resolve(id) }} exercise={HEEL_SLIDE} protocol={protocolWith()} activePhase={1} redFlagBlocks={0} db={db} now={() => new Date('2026-03-04T10:00:00.000Z')} onDone={vi.fn()} />);
     painRadio(9);
     fireEvent.click(screen.getByRole('button', { name: 'Skip the questions' }));
-    await screen.findByText('Session saved without answers.');
+    await screen.findByText('Session saved. Your pain answer is kept.');
     expect((await db.sessions.toArray())).toHaveLength(1);
     expect((await db.sessions.get(id))!.pain).toBe(9);
   });

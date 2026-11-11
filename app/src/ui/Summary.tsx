@@ -42,6 +42,10 @@ interface Props {
   onDone: () => void;
 }
 
+// B2-05: the text must match the record. A kept answer is named. Without a kept answer the record holds none.
+const savedSkipText = (kept: string[]): string =>
+  kept.length === 0 ? 'Session saved without answers.' : `Session saved. Your ${kept.join(' and ')} ${kept.length === 1 ? 'answer is' : 'answers are'} kept.`;
+
 export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, legTracked, cameraSide, db, now, onDone }: Props) {
   const { summary, reason } = run;
   const [pain, setPain] = useState<number | null>(null);
@@ -49,6 +53,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false); // the write is running: the button says Saving
   const [discarded, setDiscarded] = useState(false);
+  const [kept, setKept] = useState<string[]>([]); // the answers that Skip wrote to the record (B2-05)
   const [saveError, setSaveError] = useState(false);
   const [recordFailed, setRecordFailed] = useState(false); // the write at the end of the run did not work
   const sets = summary.sets ?? null;
@@ -109,6 +114,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), ...answers });
       else await updateSessionAnswers(db, id, answers);
       setSaveError(false);
+      setKept([...(answers.pain === undefined ? [] : ['pain']), ...(answers.swelling === undefined ? [] : ['swelling'])]);
       setDiscarded(true);
     } catch {
       setSaveError(true); // the pause message stays on screen, because it comes from the live answers
@@ -208,7 +214,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <>
             <p role="status" tabIndex={-1} ref={savedNote} className="chip chip-soft">
               <Icon name="check" size={16} />
-              {discarded ? 'Session saved without answers.' : 'Session saved.'}
+              {discarded ? savedSkipText(kept) : 'Session saved.'}
             </p>
           </>
         )}
