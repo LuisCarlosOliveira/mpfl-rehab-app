@@ -7,7 +7,7 @@ import { describeChanges, draftOf, eventsSince, gaveWaySince, HOLD_LIMIT, HOLD_N
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
-import { ChoiceGroup, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO_UNKNOWN } from './answerControls';
+import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO_UNKNOWN } from './answerControls';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
@@ -124,7 +124,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
     const forward = movesForward(protocol, result.protocol);
     const heldText = raisesKneeLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
     const hold = !forward ? null : !selfProgression ? heldText : events > 0 ? HOLD_EVENT : null;
-    onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol), hold));
+    onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol, inputs), hold));
   }
 
   return (
@@ -176,21 +176,24 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
             <h2 id="update-gates">Your answers for the next exercises</h2>
             <ChoiceGroup
               name="walking"
-              legend="Do you walk without crutches?"
+              legend={GATE_QUESTIONS.walking}
+              showLegend
               value={form.walksWithoutCrutches}
               choices={YES_NO_UNKNOWN}
               onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })}
             />
             <ChoiceGroup
               name="legRaise"
-              legend="Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?"
+              legend={GATE_QUESTIONS.legRaise}
+              showLegend
               value={form.legRaiseStraight}
               choices={YES_NO_UNKNOWN}
               onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })}
             />
             <ChoiceGroup
               name="seatedHold"
-              legend="Did your surgeon say that you can do knee straightening exercises while you sit?"
+              legend={GATE_QUESTIONS.seatedHold}
+              showLegend
               value={form.seatedHoldCleared}
               choices={YES_NO_UNKNOWN}
               onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })}

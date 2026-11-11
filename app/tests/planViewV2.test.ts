@@ -114,6 +114,24 @@ describe('describeChanges with version 2 items', () => {
   });
 });
 
+describe('the reason for a removed seated hold (AC4-01)', () => {
+  const yes = { ...gates, seatedHoldCleared: 'yes' } as const;
+  const stored = () => plan(8, { ...yes, surgeonLimit: { kind: 'degrees', degrees: 90 } }).protocol;
+
+  it('names the arc start and not the clearance when the new limit is below 90 degrees', () => {
+    const line = describeChanges(stored(), plan(8, { ...yes, surgeonLimit: { kind: 'degrees', degrees: 60 } }).protocol).find((l) => l.startsWith('Seated knee extension hold removed'));
+    expect(line).toContain('60 degrees');
+    expect(line).toContain('90 degrees');
+    expect(line).toContain('HOLD_ARC_LIMIT');
+    expect(line).not.toContain('did not report');
+  });
+
+  it('names the clearance when the person no longer reports it', () => {
+    const line = describeChanges(stored(), plan(8, { ...yes, seatedHoldCleared: 'no' }).protocol).find((l) => l.startsWith('Seated knee extension hold removed'));
+    expect(line).toContain('you did not report that your surgeon cleared it');
+  });
+});
+
 describe('the dose scope and the hold time line (A3-06, A3-07)', () => {
   const holdPlan = () => plan(8, { ...gates, seatedHoldCleared: 'yes' }).protocol;
 

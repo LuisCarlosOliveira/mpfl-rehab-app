@@ -105,6 +105,7 @@ const defs = {
     kind: 'structure',
     appOwn: true,
     values: { firstWeek: 7 },
+    auditRows: ['V3'],
     sourceIds: ['S1', 'P1'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -211,7 +212,7 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 to 12. P1 names sit to stand and the leg press in its second phase and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
+      'P3 lists the mini squat in its second stage. N3 lists squats in weeks 6 or 8 to 12. P1 names sit to stand and the leg press in its second phase and starts free squats at week 12. The app starts at week 7, after the clearance answer and both answers about walking and the leg raise.',
     textRefused:
       'The mini squat is not in your plan. It needs your report that your care team said you can start the next stage. It also needs a yes to both answers about walking and the leg raise, and no knee that gave way. P3 lists the mini squat in its second stage. P1 starts free squats later, at week 12. Ask your care team.',
     text: 'From week 7, after your care team said you can start the next stage, the mini squat is in your plan. P1 starts free squats later, at week 12.',

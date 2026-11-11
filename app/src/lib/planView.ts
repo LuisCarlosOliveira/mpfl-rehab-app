@@ -136,6 +136,8 @@ export function describeNewPlan(protocol: Protocol): string[] {
     const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
     const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
+    // The same line as Home: the plan says that no limit was given, and does not leave it out.
+    if (e.kind === 'heel-slide' && e.maxFlexion === undefined && e.source.includes('No limit entered')) lines.push(`${NO_LIMIT_GIVEN}.`);
   }
   for (const h of home) {
     if (!hasDose(h)) askDose = true;
@@ -149,7 +151,7 @@ export function describeNewPlan(protocol: Protocol): string[] {
 }
 
 /** The changes between the stored plan and the proposal, each with its reason and rule id. Empty when nothing changes. */
-export function describeChanges(current: Protocol, next: Protocol): string[] {
+export function describeChanges(current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string }): string[] {
   const lines: string[] = [];
   if (next.activePhase !== current.activePhase) {
     const reason =
@@ -171,7 +173,7 @@ export function describeChanges(current: Protocol, next: Protocol): string[] {
     }
   }
   for (const old of before) {
-    if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${REMOVED_REASON[old.kind]}.`);
+    if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${removedReason(old.kind, next, inputs)}.`);
   }
   const homeBefore = activeHome(current);
   for (const h of activeHome(next)) {
@@ -205,6 +207,18 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
   'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
   'seated-extension-hold': `you did not report that your surgeon cleared it (${RULES.HOLD_P2.id})`,
 };
+
+/** The seated hold goes for one of three causes. The text names the real one: a limit below the arc start, no clearance, or something else. */
+function removedReason(kind: Exercise['kind'], next: Protocol, inputs?: { seatedHoldCleared?: string }): string {
+  if (kind !== 'seated-extension-hold') return REMOVED_REASON[kind];
+  const arcStart = RULES.HOLD_P2.values.arcStart;
+  const limit = activeExercises(next).find((e) => e.kind === 'heel-slide')?.maxFlexion;
+  if (limit !== undefined && limit < arcStart && inputs?.seatedHoldCleared !== 'no') {
+    return `the knee-bend limit from your surgeon (${limit} degrees) is below the start of the guideline arc (${arcStart} degrees) (${RULES.HOLD_ARC_LIMIT.id})`;
+  }
+  if (inputs?.seatedHoldCleared === 'yes') return `an answer changed, or the knee gave way since your plan. The app adds the seated hold only without these (${RULES.HOLD_P2.id})`;
+  return REMOVED_REASON[kind];
+}
 
 const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
 

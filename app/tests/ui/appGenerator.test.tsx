@@ -269,7 +269,7 @@ describe('Update my plan, in the whole app', () => {
       fireEvent.click(within(screen.getByRole('group', { name: q })).getByRole('radio', { name: 'I do not know' }));
     }
     click('Check my plan');
-    await heading('Confirm the change');
+    await heading('Change held');
     expect(screen.getByText('Ask your care team about the next stage.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
     click('Keep my plan');

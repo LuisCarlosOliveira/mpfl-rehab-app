@@ -116,3 +116,15 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
   });
 });
 
+
+// AC4-06: two numbers of the rule text were weakly traced.
+describe('AC4-06: the 6-12 weeks window and the N3 squat window match their audit rows', () => {
+  it('PH2 lists V3 for the 6-12 weeks of S1, and V3 is EXACT', () => {
+    expect(RULES.PH2.auditRows).toContain('V3');
+    expect(rowOf('V3')).toMatch(/\| EXACT \|/);
+  });
+  it('the N3 squat window reads 6 or 8 to 12 weeks, as V96 does', () => {
+    expect(RULES.SQUAT_P2.conservative).toContain('N3 lists squats in weeks 6 or 8 to 12');
+    expect(rowOf('V96')).toContain('6/8 to 12 weeks');
+  });
+});
