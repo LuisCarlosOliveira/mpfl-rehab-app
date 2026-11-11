@@ -252,65 +252,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           text(`lost-${j}`, 14 * px, (26 + 22 * row++) * px, 'start');
         }
 
-        // A3: name chips with elbow leader lines (Setup only). A lost joint reads "<name> not seen" at its last place, with a dashed ring.
-        if (labels) {
-          type Chip = { j: number; pos: { x: number; y: number } | null; name: string; dir: -1 | 1; y: number; w: number };
-          const chips: Chip[] = [];
-          const size = 18 * px;
-          let corner = 0;
-          for (let j = 0; j < 3; j++) {
-            if (seen(chosen[j])) lastAt.current[j] = at(chosen[j]!);
-            const ghost = lost[j]! && lastAt.current[j] !== null;
-            show(`ghost-${j}`, ghost);
-            if (ghost) move(`ghost-${j}`, lastAt.current[j]!);
-            const pos = (!lost[j] ? at(chosen[j]!) : lastAt.current[j]) ?? null;
-            const name = lost[j] ? `${JOINT_NAMES[j]} not seen` : JOINT_NAMES[j]!;
-            const w = textWidth(name.length, size);
-            if (pos === null) {
-              chips.push({ j, pos, name, dir: -1, y: (30 + 36 * corner++) * px, w });
-            } else if (finite(pos.x) && finite(pos.y)) {
-              chips.push({ j, pos, name, dir: pos.x < W / 2 ? -1 : 1, y: Math.max(pos.y - 18 * px, 30 * px), w });
-            }
-          }
-          // Two chips on the same side keep a gap, so they never lie on each other.
-          for (const dir of [-1, 1] as const) {
-            const same = chips.filter((c) => c.dir === dir).sort((a, b) => a.y - b.y);
-            same.forEach((c, i) => {
-              if (i > 0) c.y = Math.max(c.y, same[i - 1]!.y + 34 * px);
-            });
-          }
-          const shownJ = new Set(chips.map((c) => c.j));
-          for (let j = 0; j < 3; j++) show(`jl-${j}`, shownJ.has(j));
-          const pad = 12 * px;
-          const gap = 8 * px;
-          for (const c of chips) {
-            const x0 = c.dir === -1 ? pad : W - pad - c.w;
-            const chip = e[`jl-${c.j}-r`];
-            const t = e[`jl-${c.j}-t`];
-            if (!chip || !t) continue;
-            t.textContent = c.name;
-            t.setAttribute('font-size', String(r1(size)));
-            t.setAttribute('text-anchor', 'start');
-            t.setAttribute('x', String(r1(x0)));
-            t.setAttribute('y', String(r1(c.y + 6 * px)));
-            chip.setAttribute('x', String(r1(x0 - gap)));
-            chip.setAttribute('y', String(r1(c.y - 16 * px)));
-            chip.setAttribute('width', String(r1(c.w + 2 * gap)));
-            chip.setAttribute('height', String(r1(32 * px)));
-            chip.setAttribute('rx', String(r1(6 * px)));
-            const leader = e[`jl-${c.j}-l`];
-            if (!leader) continue;
-            if (c.pos === null) {
-              leader.setAttribute('points', '');
-              continue;
-            }
-            const endX = c.dir === -1 ? x0 + c.w + gap : x0 - gap; // the chip edge that faces the leg
-            const rise = Math.max(c.pos.y - c.y, 0);
-            const kneeX = c.dir === -1 ? Math.max(c.pos.x - rise, endX) : Math.min(c.pos.x + rise, endX);
-            leader.setAttribute('points', `${r1(c.pos.x)},${r1(c.pos.y)} ${r1(kneeX)},${r1(c.y)} ${r1(endX)},${r1(c.y)}`);
-          }
-        }
-
         // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
         const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
         const thighOn = !lost[0] && !lost[1];
@@ -357,6 +298,74 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           }
           lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
           arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
+        } else arcBox.current = { left: 0, right: 0, top: 0, bottom: 0 }; // no angle text: nothing to keep off
+
+        // A3: name chips with elbow leader lines (Setup only). A lost joint reads "<name> not seen" at its last place, with a dashed ring.
+        if (labels) {
+          type Chip = { j: number; pos: { x: number; y: number } | null; name: string; dir: -1 | 1; y: number; w: number };
+          const chips: Chip[] = [];
+          const size = 18 * px;
+          let corner = 0;
+          for (let j = 0; j < 3; j++) {
+            if (seen(chosen[j])) lastAt.current[j] = at(chosen[j]!);
+            const ghost = lost[j]! && lastAt.current[j] !== null;
+            show(`ghost-${j}`, ghost);
+            if (ghost) move(`ghost-${j}`, lastAt.current[j]!);
+            const pos = (!lost[j] ? at(chosen[j]!) : lastAt.current[j]) ?? null;
+            const name = lost[j] ? `${JOINT_NAMES[j]} not seen` : JOINT_NAMES[j]!;
+            const w = textWidth(name.length, size);
+            if (pos === null) {
+              chips.push({ j, pos, name, dir: -1, y: (30 + 36 * corner++) * px, w });
+            } else if (finite(pos.x) && finite(pos.y)) {
+              chips.push({ j, pos, name, dir: pos.x < W / 2 ? -1 : 1, y: Math.max(pos.y - 18 * px, 30 * px), w });
+            }
+          }
+          const pad = 12 * px;
+          const gap = 8 * px;
+          // Two chips on the same side keep a gap, so they never lie on each other. A chip also keeps off the angle text (B-04):
+          // it moves under the text, or above it when there is no room under it.
+          const arc = arcBox.current;
+          const onText = (c: Chip) => {
+            const left = (c.dir === -1 ? pad : W - pad - c.w) - gap;
+            return left < arc.right && arc.left < left + c.w + 2 * gap && c.y - 16 * px < arc.bottom && arc.top < c.y + 16 * px;
+          };
+          for (const dir of [-1, 1] as const) {
+            const same = chips.filter((c) => c.dir === dir).sort((a, b) => a.y - b.y);
+            same.forEach((c, i) => {
+              if (i > 0) c.y = Math.max(c.y, same[i - 1]!.y + 34 * px);
+              if (!onText(c)) return;
+              c.y = arc.bottom + 18 * px;
+              if (c.y + 16 * px > H) c.y = arc.top - 18 * px;
+            });
+          }
+          const shownJ = new Set(chips.map((c) => c.j));
+          for (let j = 0; j < 3; j++) show(`jl-${j}`, shownJ.has(j));
+          for (const c of chips) {
+            const x0 = c.dir === -1 ? pad : W - pad - c.w;
+            const chip = e[`jl-${c.j}-r`];
+            const t = e[`jl-${c.j}-t`];
+            if (!chip || !t) continue;
+            t.textContent = c.name;
+            t.setAttribute('font-size', String(r1(size)));
+            t.setAttribute('text-anchor', 'start');
+            t.setAttribute('x', String(r1(x0)));
+            t.setAttribute('y', String(r1(c.y + 6 * px)));
+            chip.setAttribute('x', String(r1(x0 - gap)));
+            chip.setAttribute('y', String(r1(c.y - 16 * px)));
+            chip.setAttribute('width', String(r1(c.w + 2 * gap)));
+            chip.setAttribute('height', String(r1(32 * px)));
+            chip.setAttribute('rx', String(r1(6 * px)));
+            const leader = e[`jl-${c.j}-l`];
+            if (!leader) continue;
+            if (c.pos === null) {
+              leader.setAttribute('points', '');
+              continue;
+            }
+            const endX = c.dir === -1 ? x0 + c.w + gap : x0 - gap; // the chip edge that faces the leg
+            const rise = Math.max(c.pos.y - c.y, 0);
+            const kneeX = c.dir === -1 ? Math.max(c.pos.x - rise, endX) : Math.min(c.pos.x + rise, endX);
+            leader.setAttribute('points', `${r1(c.pos.x)},${r1(c.pos.y)} ${r1(kneeX)},${r1(c.y)} ${r1(endX)},${r1(c.y)}`);
+          }
         }
 
         if (thighOn) {

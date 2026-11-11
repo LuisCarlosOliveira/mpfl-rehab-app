@@ -447,6 +447,14 @@ body:has(.v2-session) main {
 .v2-setup .frame > .notice > svg {
   margin: 0;
 }
+/* B-04: the status chip sits in a strip under the picture, so it never covers a joint label. The map keeps the picture area only.
+   The strip is two chip lines high, because the longest chip text wraps on a narrow phone. */
+.v2-setup .frame:has(> .body-map) {
+  padding-bottom: 4rem;
+}
+.v2-setup .frame > .body-map {
+  height: calc(100% - 4rem);
+}
 .v2-setup .frame > .status-line {
   position: absolute;
   inset-inline-start: var(--s-3);
