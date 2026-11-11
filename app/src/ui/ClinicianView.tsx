@@ -90,6 +90,14 @@ function CriterionRow({ row }: { row: ReviewRow }) {
   );
 }
 
+/** A file name for display: no control or direction characters, at most 80 characters. React shows it as text. */
+const NAME_LIMIT = 80;
+// eslint-disable-next-line no-control-regex
+const shownName = (name: string) => {
+  const clean = name.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '');
+  return clean.length > NAME_LIMIT ? `${clean.slice(0, NAME_LIMIT)}…` : clean;
+};
+
 interface Props {
   onBack: () => void;
   mode: Mode;
@@ -103,6 +111,8 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
   const [protocol, setProtocol] = useState<Protocol | null>(null);
   const [protocolError, setProtocolError] = useState<string | null>(null);
   const [phaseId, setPhaseId] = useState<number | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [protocolName, setProtocolName] = useState<string | null>(null);
 
   // The file has no row ids. They exist in memory only, for the summary module.
   const sessions = useMemo<SessionRecord[]>(() => (file ? file.sessions.map((s, i) => ({ ...s, id: i + 1 })) : []), [file]);
@@ -123,12 +133,14 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
     input.value = ''; // the same file can be picked again
     if (!picked) return;
     setFile(null); // an old file never stays under a new error
+    setFileName(null);
     const read = await readText(picked, MAX_IMPORT_BYTES);
     if (!read.ok) return setFileError(read.message);
     const parsed = parseExport(read.text);
     if (parsed.ok) {
       setFileError(null);
       setFile(parsed.file);
+      setFileName(shownName(picked.name));
     } else {
       setFileError(parsed.error.message);
     }
@@ -139,12 +151,14 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
     input.value = '';
     if (!picked) return;
     setProtocol(null);
+    setProtocolName(null);
     const read = await readText(picked, MAX_FILE_BYTES);
     if (!read.ok) return setProtocolError(read.message);
     const result = loadProtocol(read.text, mode);
     if (result.ok) {
       setProtocolError(null);
       setProtocol(result.protocol);
+      setProtocolName(shownName(picked.name));
       setPhaseId(result.protocol.activePhase);
     } else {
       setProtocolError(result.error.message);
@@ -171,6 +185,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
           <label htmlFor="clinician-session-file">Session file (.json)</label>
           <input id="clinician-session-file" type="file" accept=".json,application/json" onChange={(e) => void onSessionFile(e.target)} />
         </div>
+        {fileName !== null && <p className="dash-note">{`Session file loaded: ${fileName}`}</p>}
         {fileError && (
           <Notice role="alert" icon="triangle-alert" title="Session file not opened">
             <p>{fileError}</p>
@@ -193,6 +208,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
               <label htmlFor="clinician-protocol-file">Protocol file (.json), for the review summary</label>
               <input id="clinician-protocol-file" type="file" accept=".json,application/json" onChange={(e) => void onProtocolFile(e.target)} />
             </div>
+            {protocolName !== null && <p className="dash-note">{`Protocol file loaded: ${protocolName}`}</p>}
             {protocolError && (
               <Notice role="alert" icon="triangle-alert" title="Protocol file not opened">
                 <p>{protocolError}</p>
