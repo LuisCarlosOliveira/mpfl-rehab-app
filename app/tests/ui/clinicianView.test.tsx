@@ -255,6 +255,21 @@ describe('ClinicianView review summary', () => {
   });
 });
 
+describe('C2-02 criteria table shows all rows', () => {
+  it('has no height limit and keeps the keyboard-focusable scroll region', async () => {
+    setup();
+    await loadFile(exportText(threeSquats(120)));
+    pick(protocolPicker(), protocolFileText([peakCriterion(), peakCriterion({ limit: 100 })]));
+    await screen.findByRole('table', { name: /criteria/i });
+    const region = screen.getByRole('region', { name: 'Review criteria' });
+    expect(region).toHaveAttribute('tabindex', '0');
+    expect(region).toHaveClass('table-scroll--natural');
+    const css = readFileSync('src/ui/dashboard.css', 'utf8');
+    expect(css).toMatch(/\.table-scroll--natural\s*{[^}]*max-height:\s*none/);
+    expect(css).toMatch(/\.table-scroll\s*{[^}]*overflow:\s*auto/);
+  });
+});
+
 describe('ClinicianView words', () => {
   it('shows no verdict word, no total, no percentage and no colour field with a full summary', async () => {
     const { container } = setup();

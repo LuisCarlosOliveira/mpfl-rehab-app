@@ -70,9 +70,9 @@ describe('the camera error band (U16)', () => {
   });
 
   it('writes no value in the range cell of a session without a peak', () => {
-    const { container } = render(<DashboardCharts sessions={[session({ date: day(1), peakFlexion: null })]} />);
+    const { container } = render(<DashboardCharts sessions={[session({ date: day(1), peakFlexion: 60 }), session({ date: day(2), peakFlexion: null })]} />);
     const cells = within(within(section(container, 'Peak knee bend')).getByRole('table')).getAllByRole('cell');
-    expect(cells[2]).toHaveTextContent('no value');
+    expect(cells[5]).toHaveTextContent('no value');
   });
 
   it('draws no goal, target or reference line, and the band is an area, not a line', () => {
@@ -111,13 +111,16 @@ describe('clean chart cards (U15)', () => {
     expect(section(container, 'Pain after each session').querySelector('.dash-last')).toHaveTextContent('1 (0 to 10)');
   });
 
-  it('says that a chart without a value has no last value', () => {
-    const { container } = render(<DashboardCharts sessions={[session({ peakFlexion: null, reps: null })]} />);
-    // The words show once, in the summary line. The last-value line stays empty.
-    const card = section(container, 'Peak knee bend');
-    expect(card.querySelector('.dash-last')).toBeEmptyDOMElement();
-    expect(card.querySelector('.dash-note')).toHaveTextContent('No values.');
-    expect(card.textContent!.match(/No values\./g)).toHaveLength(1);
+  it('draws only the title and "No values." for a chart without a value', () => {
+    const { container } = render(<DashboardCharts sessions={[session({ peakFlexion: null, reps: null, pain: undefined })]} />);
+    for (const title of ['Peak knee bend', 'Reps for each day', 'Pain after each session']) {
+      const card = section(container, title);
+      expect(card.querySelector('h2')).not.toBeNull();
+      expect(card.querySelector('.dash-note')).toHaveTextContent('No values.');
+      expect(card.textContent!.match(/No values\./g)).toHaveLength(1);
+      expect(card.querySelector('.recharts-wrapper, svg, table, .dash-chart-box, .dash-last, .dash-range')).toBeNull();
+      expect(card.children).toHaveLength(2);
+    }
   });
 
   it('keeps the text of the summary for a screen reader, and hides the repeat of the last value', () => {
