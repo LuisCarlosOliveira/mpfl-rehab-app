@@ -83,9 +83,6 @@ const leaves = (p: Protocol) => {
     for (const e of ph.exercises) {
       for (const [k, v] of Object.entries(e)) if (typeof v === 'number') out.push([`phase${ph.id}.${e.kind}.${k}`, v]);
     }
-    for (const e of ph.homeExercises ?? []) {
-      for (const [k, v] of Object.entries(e)) if (typeof v === 'number') out.push([`phase${ph.id}.${e.kind}.${k}`, v]);
-    }
   }
   if (p.painPauseThreshold !== undefined) out.push(['painPauseThreshold', p.painPauseThreshold]);
   return out;
@@ -217,19 +214,16 @@ describe('properties of the generator', () => {
           expect(e.minRepSeconds).toBeUndefined();
           expect(e.maxTopFlexion).toBeUndefined();
           // The heel slide and the seated hold have no dose (DOSE_NONE, NONE_HOLDTIME). The other exercises start at the dose range of P2 rec 26 (DOSE, V49).
-          if (e.kind === 'heel-slide' || e.kind === 'seated-extension-hold') {
+          if (e.kind === 'heel-slide' || e.kind === 'seated-extension-hold' || e.kind === 'ankle-pump') {
             expect(e.sets, `seed ${seed}`).toBeUndefined();
             expect(e.reps, `seed ${seed}`).toBeUndefined();
           } else {
             expect(e, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
           }
           if (e.kind !== 'seated-extension-hold') expect(e.minFlexion, `seed ${seed}`).toBeUndefined();
-          expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold']).toContain(e.kind);
+          expect(['straight-leg-raise', 'heel-slide', 'mini-squat', 'seated-extension-hold', 'quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']).toContain(e.kind);
         }
-        for (const h of ph.homeExercises ?? []) {
-          if (h.kind === 'ankle-pump') expect(h, `seed ${seed}`).not.toHaveProperty('sets');
-          else expect(h, `seed ${seed}`).toMatchObject({ sets: 2, reps: 10 });
-        }
+        expect(ph.homeExercises, `seed ${seed}`).toBeUndefined();
       }
     }
   });
@@ -307,10 +301,10 @@ describe('properties of the generator', () => {
     expect(below).toBeGreaterThan(0);
   });
 
-  it('puts the home exercises in every plan and ankle pumps in phase 1 only', () => {
+  it('puts the five added exercises in every plan and ankle pumps in phase 1 only', () => {
     for (const { seed, protocol } of protocols) {
       for (const ph of protocol.phases) {
-        const kinds = (ph.homeExercises ?? []).map((h) => h.kind);
+        const kinds = ph.exercises.map((h) => h.kind);
         expect(kinds, `seed ${seed}`).toEqual(expect.arrayContaining(['quad-set', 'gluteal-set', 'leg-raise-side', 'leg-raise-back']));
         expect(kinds.includes('ankle-pump'), `seed ${seed}`).toBe(ph.id === 1);
       }

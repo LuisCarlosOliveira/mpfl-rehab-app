@@ -36,7 +36,7 @@ const plan = (i: GeneratorInputs) => {
   return r;
 };
 const kinds = (p: ReturnType<typeof plan>['protocol'], phaseId: number) =>
-  p.phases.find((x) => x.id === phaseId)?.exercises.map((e) => e.kind) ?? [];
+  p.phases.find((x) => x.id === phaseId)?.exercises.map((e) => e.kind).filter((k) => !ADDED.includes(k)) ?? [];
 const exercise = (p: ReturnType<typeof plan>['protocol'], phaseId: number, kind: string) =>
   p.phases.find((x) => x.id === phaseId)?.exercises.find((e) => e.kind === kind);
 
@@ -110,6 +110,9 @@ describe('fail closed', () => {
     expect(generateProtocol(at(3), 'yesterday')).toMatchObject({ reason: 'RX' });
   });
 });
+
+// The five added exercises (quad set and the others) are in every plan. These tests name the other exercises. A test in protocolGenV2 names the five.
+const ADDED = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'];
 
 describe('week 0 to 6, phase 1', () => {
   it.each([0, 3, 6])('makes phase 1 with the straight leg raise at week %i', (w) => {
