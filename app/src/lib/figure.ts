@@ -730,16 +730,14 @@ export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)
  * The distance in the picture is not to scale. The text carries the advice. Source: ux-flow 6.1, PROPOSAL.
  */
 export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLegend = 'operated'): CameraPlan {
-  // The leg raise to the side needs the camera in front of the person, at hip height. The old front plan drew the person on a mat
-  // with the phone beyond the feet, which is not in front of the body. The plan draws the person who stands and faces the phone.
+  // The leg raise to the side is done side-lying. The camera is in front of the person, at hip height, close to the floor.
+  // The plan draws the same lying figure as the side plan. The lens has the height of the hip, and the cone holds the whole leg.
   const hipHeight = view === 'front' && kind === 'leg-raise-side';
-  const poseKind: AnyGuideKind = hipHeight ? 'leg-raise-back' : kind;
+  const poseKind: AnyGuideKind = kind;
   const posture = POSTURE_OF[poseKind];
   const fig = figureFor(poseKind, 'start', view === 'side' ? 'left' : 'right');
   const bodyBox = unionBox([...bodyShapes(fig), ...fig.surface.rects.map((r): Shape => ({ k: 'rect', box: r }))].map(shapeBounds));
   const floorY = fig.floor?.y ?? fig.surface.rects.reduce((m, r) => Math.max(m, r.y + r.h), 0);
-  // The counter of the pose stands between the person and the phone, in the line of sight. The plan keeps its room and does not draw it.
-  const surface = hipHeight ? { ...fig.surface, rects: [] } : fig.surface;
   const knee = hipHeight ? fig.points.hip : fig.points.knee; // the height of the lens
   const legTop = Math.min(...fig.limbs.filter((l) => l.leg === 'near').map((l) => Math.min(fig.points[l.from].y, fig.points[l.to].y))) - 8;
 
@@ -786,7 +784,7 @@ export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLege
     view,
     posture,
     facing: fig.facing,
-    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface, floor: fig.floor, kneeRing: fig.kneeRing },
+    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface: fig.surface, floor: fig.floor, kneeRing: fig.kneeRing },
     box: boxOut,
     labelSize: size,
     phone: { body, lens, lensR: 2.6, stem: stand, foot },
