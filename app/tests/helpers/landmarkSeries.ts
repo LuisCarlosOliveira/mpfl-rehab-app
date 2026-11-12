@@ -25,7 +25,7 @@
  */
 import type { Landmark, Side } from '../../src/lib/angle';
 import { legLandmarks } from './leg';
-import { applyNoise, type SeriesNoiseSpec } from './seriesNoise';
+import { SEGMENT_LEN, applyNoise, type SeriesNoiseSpec } from './seriesNoise';
 
 export type PoseId =
   | 'quad-set'
@@ -102,8 +102,6 @@ export interface SeriesSpec extends SeriesNoiseSpec {
   mirror?: boolean;
   /** Leg raise to the side: the lower leg is out of view. */
   lowerLegHidden?: boolean;
-  /** Add a second, smaller person on the other side of the image (field `secondPerson` of each frame). */
-  secondPerson?: boolean;
 }
 
 const DEFAULT_VALUES: Record<PoseId, [number, number]> = {
@@ -117,7 +115,7 @@ const DEFAULT_VALUES: Record<PoseId, [number, number]> = {
   'mini-squat': [0, 40],
 };
 
-const LEN = 0.2; // length of the thigh and of the shank
+const LEN = SEGMENT_LEN; // length of the thigh and of the shank
 const FOOT = 0.08; // length from the ankle to the foot index
 const IDS: Record<Side, { hip: number; knee: number; ankle: number; heel: number; foot: number }> = {
   left: { hip: 23, knee: 25, ankle: 27, heel: 29, foot: 31 },
