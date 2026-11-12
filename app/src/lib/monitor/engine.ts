@@ -21,3 +21,12 @@ export function trackFor(needs: readonly Need[]): 'whole-leg' | 'knee-to-toe' | 
   if (needs.includes('knee-to-toe')) return 'knee-to-toe';
   return null;
 }
+
+/**
+ * False for an exercise that the camera cannot see and that the app only times: mode person-timer with measure none (quad set, gluteal set).
+ * Setup and Session start no camera for it. A kind with no definition keeps the camera.
+ */
+export const usesCamera = (kind: string): boolean => {
+  const spec = specFor(kind);
+  return spec === undefined || spec.mode !== 'person-timer' || spec.measure.kind !== 'none';
+};

@@ -12,7 +12,7 @@ import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
 import { Segmented } from './Segmented';
 import { StepGuide } from './StepGuide';
-import { LEG_TEXT } from './setupView';
+import { LEG_TEXT, TIMER_NOTE } from './setupView';
 import './flowV2.css';
 
 const SECOND_CAMERA_BUTTON = 'Add a second camera (optional)';
@@ -20,11 +20,16 @@ const SECOND_CAMERA_TEXT = 'A phone can be a second camera in front of you. It s
 // The numbers in the drawings match the six notes of the guide: 1 start position, 2 leg and camera, 3 hands, 4 range, 5 speed, 6 what the camera must see.
 const START_MARKS: Mark[] = [{ n: 1, at: 'hip', dx: 1, dy: -2.6 }, { n: 2, at: 'knee', dx: -0.5, dy: -2.8 }, { n: 3, at: 'hand', dx: 0, dy: -2.6 }];
 const END_MARKS: Mark[] = [{ n: 4, at: 'knee', dx: 3, dy: -3 }, { n: 5, at: 'arrow', dx: 0, dy: -2.6 }];
+// A timer exercise has four notes (no camera notes), so its marks have other numbers.
+const TIMER_START_MARKS: Mark[] = [{ n: 1, at: 'hip', dx: 1, dy: -2.6 }, { n: 2, at: 'hand', dx: 0, dy: -2.6 }];
+const TIMER_END_MARKS: Mark[] = [{ n: 3, at: 'knee', dx: 3, dy: -3 }, { n: 4, at: 'arrow', dx: 0, dy: -2.6 }];
 const SIDES: Side[] = ['left', 'right'];
 const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
 
 interface Props {
   kind: AnyGuideKind;
+  /** False for an exercise that the app only times (lib/monitor usesCamera). The guide then has no camera note and the button starts the exercise. */
+  usesCamera: boolean;
   /** False when the definition follows no chosen leg (the gluteal set). */
   askLeg: boolean;
   /** False when the camera side does not change the check (the front view and the exercises with no camera view). */
@@ -47,10 +52,13 @@ interface Props {
   /** Absent means that this app run offers one camera only. */
   onOpenPair?: () => void;
   onNext: () => void;
+  /** Timer exercises only: the button starts the exercise. */
+  onStart: () => void;
 }
 
 export function SetupGuide({
   kind,
+  usesCamera,
   askLeg,
   askCameraSide,
   side,
@@ -67,6 +75,7 @@ export function SetupGuide({
   onConfirmOther,
   onOpenPair,
   onNext,
+  onStart,
 }: Props) {
   const otherLegChosen = askLeg && leg !== side;
   const techniqueLines = techniqueFor(kind);
@@ -74,20 +83,30 @@ export function SetupGuide({
   const guide = guideFor(kind, legend);
   const notes: { icon: IconName; label: string; text: string }[] = [
     { icon: 'bed-single', label: 'Start position', text: guide.startPosition },
-    { icon: 'camera', label: 'Leg and camera', text: guide.legFacingCamera },
+    ...(usesCamera ? [{ icon: 'camera' as const, label: 'Leg and camera', text: guide.legFacingCamera }] : []),
     { icon: 'hand', label: 'Hands and support', text: guide.handsAndSupport },
     { icon: 'move-horizontal', label: 'Range', text: guide.range },
     { icon: 'clock', label: 'Speed', text: guide.speed },
-    { icon: 'video-off', label: 'What the camera must see', text: guide.cameraMustSee },
+    ...(usesCamera ? [{ icon: 'video-off' as const, label: 'What the camera must see', text: guide.cameraMustSee }] : []),
   ];
   const startFigure = (
-    <GuideFigure kind={kind} frame="start" side={leg} legend={legend} kneeDeg={targetFlexion} marks={START_MARKS} description={`Start position. ${guide.startPosition} ${guide.legFacingCamera}`} />
+    <GuideFigure
+      kind={kind}
+      frame="start"
+      side={leg}
+      legend={legend}
+      kneeDeg={targetFlexion}
+      marks={usesCamera ? START_MARKS : TIMER_START_MARKS}
+      description={usesCamera ? `Start position. ${guide.startPosition} ${guide.legFacingCamera}` : `Start position. ${guide.startPosition}`}
+    />
   );
-  const endFigure = <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={END_MARKS} description={`End position. ${guide.range}`} />;
-  // Steps 1 to 3 name the start drawing, steps 4 and 5 the end drawing, step 6 the camera drawing.
+  const endFigure = <GuideFigure kind={kind} frame="end" side={leg} legend={legend} kneeDeg={targetFlexion} marks={usesCamera ? END_MARKS : TIMER_END_MARKS} description={`End position. ${guide.range}`} />;
+  // With a camera: steps 1 to 3 name the start drawing, steps 4 and 5 the end drawing, step 6 the camera drawing. A timer has steps 1 and 2, then 3 and 4.
+  const startSteps = usesCamera ? 3 : 2;
+  const endSteps = usesCamera ? 5 : 4;
   const figureFor = (step: number) => (
     <>
-      {step <= 3 ? startFigure : step <= 5 || cameraGuide === null ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
+      {step <= startSteps ? startFigure : step <= endSteps || cameraGuide === null ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
       <p className="detail">The drawing shows the movement. It is not your limit.</p>
     </>
   );
@@ -131,6 +150,11 @@ export function SetupGuide({
           <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
         </Notice>
       )}
+      {!usesCamera && (
+        <Notice icon="video-off">
+          <p>{TIMER_NOTE}</p>
+        </Notice>
+      )}
       {returnNotice}
       <details className="card disclosure technique">
         <summary>
@@ -167,16 +191,23 @@ export function SetupGuide({
         </div>
       )}
       <div className="action-bar">
-        <button
-          type="button"
-          className="btn btn-primary btn-lg"
-          disabled={otherLegChosen && !confirmedOther}
-          aria-describedby={otherLegChosen && !confirmedOther ? 'other-leg-note' : undefined}
-          onClick={onNext}
-        >
-          Next: set up the camera
-          <Icon name="chevron-right" size={20} />
-        </button>
+        {usesCamera ? (
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            disabled={otherLegChosen && !confirmedOther}
+            aria-describedby={otherLegChosen && !confirmedOther ? 'other-leg-note' : undefined}
+            onClick={onNext}
+          >
+            Next: set up the camera
+            <Icon name="chevron-right" size={20} />
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary btn-lg" onClick={onStart}>
+            <Icon name="play" size={20} />
+            Start exercise
+          </button>
+        )}
       </div>
     </div>
   );

@@ -94,13 +94,42 @@ describe('figures of the five new exercises', () => {
     expect(Math.abs(away)).toBeLessThan(40);
   });
 
-  it('leg raise to the side: side-lying, the top leg goes up and stays straight', () => {
+  // N-05: a person who lies on the side, seen from the front. The body lies across the picture, the lower leg rests on the mat,
+  // the top leg starts on top of it and opens away from it (abduction). The old pose was a person on the back with a straight leg raise.
+  it('leg raise to the side: side-lying, the lower leg rests on the mat and the top leg stacks on it at the start', () => {
+    const a = figureFor('leg-raise-side', 'start', 'right');
+    const mat = a.surface.rects[0]!;
+    expect(a.points.farAnkle.y).toBeLessThan(mat.y);
+    expect(mat.y - a.points.farAnkle.y, 'the lower leg is on the mat').toBeLessThan(8);
+    expect(a.points.farHip.y - a.points.hip.y, 'the top leg lies above the lower leg').toBeGreaterThanOrEqual(5);
+    expect(angleOf(a.points.hip, a.points.ankle), 'both legs run the same way at the start').toBeCloseTo(angleOf(a.points.farHip, a.points.farAnkle), 3);
+  });
+
+  it('leg raise to the side: the top leg lifts away from the lower leg, stays straight, and the lower leg and the body stay put', () => {
     const a = figureFor('leg-raise-side', 'start', 'right');
     const b = figureFor('leg-raise-side', 'end', 'right');
     expect(b.points.ankle.y).toBeLessThan(a.points.ankle.y - 10);
     expect(angleOf(b.points.hip, b.points.knee)).toBeCloseTo(angleOf(b.points.knee, b.points.ankle), 3);
-    expect(b.points.farAnkle.y).toBeCloseTo(a.points.farAnkle.y, 3);
+    const open = Math.abs(angleOf(b.points.hip, b.points.ankle) - angleOf(b.points.farHip, b.points.farAnkle));
+    expect(open, 'the legs open by 25 to 60 degrees').toBeGreaterThanOrEqual(25);
+    expect(open).toBeLessThanOrEqual(60);
+    expect(b.points.farAnkle).toEqual(a.points.farAnkle);
     expect(b.points.hip.y).toBeCloseTo(b.points.shoulder.y, 3);
+    expect(b.ghost?.points.ankle).toEqual(a.points.ankle);
+  });
+
+  it('leg raise to the side: the top hand rests on the surface in front of the body, as the guide says', () => {
+    const b = figureFor('leg-raise-side', 'end', 'right');
+    expect(b.limbs.some((l) => l.part === 'arm')).toBe(true);
+    expect(b.points.hand.y).toBeGreaterThan(b.points.shoulder.y + 4);
+    expect(b.points.hand.y).toBeLessThan(b.surface.rects[0]!.y + 1);
+  });
+
+  it('leg raise to the side: the picture differs from the straight leg raise (a person on the back)', () => {
+    const side = figureFor('leg-raise-side', 'end', 'right');
+    const slr = figureFor('straight-leg-raise', 'end', 'right');
+    expect(side.points.farKnee.y).toBeCloseTo(side.points.farAnkle.y, 3); // the lower leg is straight, not a bent knee with the foot flat
+    expect(slr.points.farKnee.y).not.toBeCloseTo(slr.points.farAnkle.y, 0);
   });
 
   it('leg raise to the back: standing side-on with hand support, the leg goes behind the body', () => {

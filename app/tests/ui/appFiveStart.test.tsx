@@ -34,7 +34,9 @@ describe('App, the five new exercises', () => {
     await open();
     fireEvent.click(await screen.findByRole('button', { name: `Start ${name}` }));
     fireEvent.click(await screen.findByRole('button', { name: /none of these apply/i }));
-    await screen.findByRole('heading', { level: 1, name: 'Set up the camera' });
+    // The two timers use no camera, so their Setup is named "Get ready".
+    const timer = name === 'Quadriceps set' || name === 'Gluteal set';
+    await screen.findByRole('heading', { level: 1, name: timer ? 'Get ready' : 'Set up the camera' });
     expect(screen.getByText(`Exercise: ${name}`)).toBeInTheDocument();
   });
 });

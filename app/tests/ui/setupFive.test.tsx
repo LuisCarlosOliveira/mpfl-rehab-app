@@ -34,46 +34,65 @@ const send = (source: MockSource, lm: Landmark[], to = 1000) => {
 };
 const lyingFoot = () => withFoot(legLandmarks('left', 20, { length: 0.3, hip: { x: 0.5, y: 0.2 } }));
 
-describe('Setup, the two timers (quad-set, gluteal-set)', () => {
-  it.each([['quad-set', 'Quadriceps set'], ['gluteal-set', 'Gluteal set']] as const)('%s: no leg check, the camera picture and the Start button show', async (kind, name) => {
-    const { source, onReady } = await running(kind, name);
-    expect(screen.getAllByText(TIMER_NOTE).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('list', { name: 'Camera check' })).toBeNull();
-    expect(screen.queryByText('Waiting for your whole leg')).toBeNull();
-    expect(document.body.textContent).not.toMatch(/whole leg|knee to your toes/i);
-    send(source, legLandmarks('left', 20)); // frames change nothing
-    expect(screen.queryByTestId('countdown')).toBeNull();
-    expect(document.querySelector('video')).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Start exercise' }));
-    expect(onReady).toHaveBeenCalledTimes(1);
-  });
+const TIMERS = [['quad-set', 'Quadriceps set'], ['gluteal-set', 'Gluteal set']] as const;
 
-  it('has no countdown to extend: no More time button for a timer, and the line is said once', async () => {
-    await running('quad-set', 'Quadriceps set');
-    expect(screen.queryByRole('button', { name: 'More time' })).toBeNull();
-    expect(screen.getAllByText(TIMER_NOTE).filter((e) => !e.closest('.visually-hidden'))).toHaveLength(1);
-  });
-
-  it('shows no body map, so no angle text can show', async () => {
-    await running('quad-set', 'Quadriceps set');
-    expect(document.querySelector('svg.body-map')).toBeNull();
-  });
-
-  it('gluteal-set: no leg question and no camera side question', () => {
-    setup('gluteal-set', 'Gluteal set');
+describe('Setup, the two timers (quad-set, gluteal-set): no camera at all', () => {
+  it.each(TIMERS)('%s: no camera step, no camera question, no camera picture, and Start exercise shows', (kind, name) => {
+    const { source, onReady } = setup(kind, name);
+    expect(screen.queryByRole('button', { name: 'Start camera' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Next: set up the camera' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /second camera/i })).toBeNull();
+    expect(screen.queryByText('Hide body map')).toBeNull();
     expect(screen.queryByText('Which leg will you exercise?')).toBeNull();
     expect(screen.queryByText('Which side of you is the camera on?')).toBeNull();
+    expect(screen.queryByText('Camera is off')).toBeNull();
+    expect(document.querySelector('video')).toBeNull();
+    expect(document.querySelector('svg.body-map')).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Camera check' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'More time' })).toBeNull();
+    expect(document.body.textContent).not.toMatch(/camera picture shows/i);
+    expect(screen.getByText(TIMER_NOTE)).toBeInTheDocument();
+    expect(source.start).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Start exercise' }));
+    expect(onReady).toHaveBeenCalledTimes(1);
+    expect(source.start).not.toHaveBeenCalled();
   });
 
-  it('quad-set: keeps the leg question and the camera side question', () => {
-    setup('quad-set', 'Quadriceps set');
-    expect(screen.getByText('Which leg will you exercise?')).toBeInTheDocument();
-    expect(screen.getByText('Which side of you is the camera on?')).toBeInTheDocument();
+  it.each(TIMERS)('%s: shows the guide with the proposal note and the figure', (kind, name) => {
+    setup(kind, name);
+    expect(screen.getByText(PROPOSAL_NOTE)).toBeInTheDocument();
+    expect(document.querySelector('svg.fig')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Start exercise' })).toBeEnabled();
+  });
+
+  it.each(TIMERS)('%s: the guide names no camera step', (kind, name) => {
+    setup(kind, name);
+    expect(screen.queryByText('Leg and camera')).toBeNull();
+    expect(screen.queryByText('What the camera must see')).toBeNull();
+    expect(screen.queryByText(/camera is optional/i)).toBeNull();
   });
 
   it('shows no limit line for an exercise that has no knee limit', () => {
     setup('quad-set', 'Quadriceps set');
     expect(screen.queryByText(/^Your limit/)).toBeNull();
+  });
+});
+
+describe('Setup, the camera kinds still start the camera', () => {
+  it.each([
+    ['heel-slide', 'Heel slide'],
+    ['mini-squat', 'Mini squat'],
+    ['straight-leg-raise', 'Straight leg raise'],
+    ['seated-extension-hold', 'Seated knee extension hold'],
+    ['ankle-pump', 'Ankle pump'],
+    ['leg-raise-side', 'Leg raise to the side'],
+    ['leg-raise-back', 'Leg raise to the back'],
+  ] as const)('%s: Next, Start camera and the camera picture', async (kind, name) => {
+    const { source } = await running(kind, name);
+    expect(source.start).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('video')).not.toBeNull();
+    expect(screen.getByText('Hide body map')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/camera picture shows/i);
   });
 });
 

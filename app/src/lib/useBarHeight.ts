@@ -2,6 +2,7 @@
 // This hook measures them and sets --bar-h on the root element. styles.css uses it for scroll-padding-bottom,
 // so a control that gets keyboard focus scrolls fully above the bar, at any size and at any text size.
 // An action bar that would take more than 40 percent of the screen height (big text) becomes part of the page (data-static).
+// The Stop bar of a session with no camera (the timers) follows the same rule. The Stop bar of a camera session stays fixed.
 // A bar that holds a block message (data-blocked) always stays in view.
 // A focused tick row, scale box or segment scrolls in as a whole row, not only its small input.
 import { useEffect } from 'react';
@@ -15,7 +16,8 @@ export function measureBars(root: HTMLElement = document.documentElement): numbe
   for (const bar of document.querySelectorAll<HTMLElement>(BARS)) {
     const height = bar.getBoundingClientRect().height;
     if (!Number.isFinite(height)) continue;
-    if (bar.classList.contains('action-bar') && !bar.hasAttribute('data-blocked')) {
+    const mayBeStatic = bar.classList.contains('action-bar') || (bar.classList.contains('session-bar') && bar.closest('.session-solo') !== null);
+    if (mayBeStatic && !bar.hasAttribute('data-blocked')) {
       if (height > vh * MAX_SHARE) bar.setAttribute('data-static', '');
       else if (bar.hasAttribute('data-static') && height < vh * MAX_SHARE * 0.9) bar.removeAttribute('data-static');
     }

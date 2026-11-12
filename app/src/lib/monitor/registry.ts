@@ -180,7 +180,7 @@ const QUAD_SET: ExerciseSpec = {
   needs: [],
   guide: {
     startPosition: 'Lie on your back. Keep your operated leg straight on the surface.',
-    legFacingCamera: 'Put the camera at the side of your operated leg. The camera is optional for this exercise.',
+    legFacingCamera: 'The app does not use the camera for this exercise.',
     handsAndSupport: 'Keep your hands at your sides. Your care team can ask you to put a rolled towel under your knee.',
     range: 'Tighten the muscle at the front of your thigh. Press the back of your knee toward the surface. Hold, then relax.',
     speed: 'Press slowly. Hold for the time that your care team sets. Press the button to start and to end each hold.',
@@ -206,7 +206,7 @@ const GLUTEAL_SET: ExerciseSpec = {
   needs: [],
   guide: {
     startPosition: 'Lie on your back with your legs straight.',
-    legFacingCamera: 'No camera view is needed for this exercise.',
+    legFacingCamera: 'The app does not use the camera for this exercise.',
     handsAndSupport: 'Keep your hands at your sides.',
     range: 'Squeeze your buttock muscles together. Hold, then relax.',
     speed: 'Squeeze slowly. Hold for the time that your care team sets. Press the button to start and to end each hold.',
