@@ -735,6 +735,8 @@ export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLege
   const fig = figureFor(poseKind, 'start', view === 'side' ? 'left' : 'right');
   const bodyBox = unionBox([...bodyShapes(fig), ...fig.surface.rects.map((r): Shape => ({ k: 'rect', box: r }))].map(shapeBounds));
   const floorY = fig.floor?.y ?? fig.surface.rects.reduce((m, r) => Math.max(m, r.y + r.h), 0);
+  // The counter of the pose stands between the person and the phone, in the line of sight. The plan keeps its room and does not draw it.
+  const surface = hipHeight ? { ...fig.surface, rects: [] } : fig.surface;
   const knee = hipHeight ? fig.points.hip : fig.points.knee; // the height of the lens
   const legTop = Math.min(...fig.limbs.filter((l) => l.leg === 'near').map((l) => Math.min(fig.points[l.from].y, fig.points[l.to].y))) - 8;
 
@@ -781,7 +783,7 @@ export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLege
     view,
     posture,
     facing: fig.facing,
-    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface: fig.surface, floor: fig.floor, kneeRing: fig.kneeRing },
+    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface, floor: fig.floor, kneeRing: fig.kneeRing },
     box: boxOut,
     labelSize: size,
     phone: { body, lens, lensR: 2.6, stem: stand, foot },

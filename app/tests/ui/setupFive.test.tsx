@@ -48,6 +48,12 @@ describe('Setup, the two timers (quad-set, gluteal-set)', () => {
     expect(onReady).toHaveBeenCalledTimes(1);
   });
 
+  it('has no countdown to extend: no More time button for a timer, and the line is said once', async () => {
+    await running('quad-set', 'Quadriceps set');
+    expect(screen.queryByRole('button', { name: 'More time' })).toBeNull();
+    expect(screen.getAllByText(TIMER_NOTE).filter((e) => !e.closest('.visually-hidden'))).toHaveLength(1);
+  });
+
   it('shows no body map, so no angle text can show', async () => {
     await running('quad-set', 'Quadriceps set');
     expect(document.querySelector('svg.body-map')).toBeNull();

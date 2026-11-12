@@ -15,6 +15,10 @@ describe('cameraPlan front view for the leg raise to the side', () => {
     expect(plan.labels.map((l) => l.text)).toContain('Front view');
   });
 
+  it('leaves the counter out: nothing stands in the line between the person and the phone', () => {
+    expect(plan.figure.surface.rects).toEqual([]);
+  });
+
   it('keeps the phone in front of the person: right of the body with room, on the floor', () => {
     const f = plan.figure;
     const body = unionBox(f.limbs.map((l) => ({ x: Math.min(f.points[l.from].x, f.points[l.to].x), y: Math.min(f.points[l.from].y, f.points[l.to].y), w: Math.abs(f.points[l.from].x - f.points[l.to].x), h: Math.abs(f.points[l.from].y - f.points[l.to].y) })));

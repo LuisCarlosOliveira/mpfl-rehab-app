@@ -420,7 +420,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 {profile === null ? 'The camera picture shows while you exercise.' : 'The app uses the camera to find your leg.'} It does not record or send video.
               </p>
               <p>{CAMERA_PEOPLE_NOTE}</p>
-              <p>{beforeYouStart(profile)}</p>
+              {profile !== null && <p>{beforeYouStart(profile)}</p>}
               {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
             </div>
             {returnNotice}
@@ -434,9 +434,11 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                   <Icon name="play" size={20} />
                   Start exercise
                 </button>
-                <button type="button" className="btn btn-lg" onClick={() => stabilizer.moreTime()}>
-                  More time
-                </button>
+                {profile !== null && (
+                  <button type="button" className="btn btn-lg" onClick={() => stabilizer.moreTime()}>
+                    More time
+                  </button>
+                )}
               </>
             ) : (
               <button type="button" className="btn btn-primary btn-lg btn-swap" disabled={camera.kind === 'starting'} onClick={() => void startCamera()}>
