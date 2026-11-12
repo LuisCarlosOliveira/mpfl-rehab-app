@@ -17,7 +17,7 @@ export type {
   View,
 } from './spec';
 export { REGISTRY, specFor } from './registry';
-export { engineKinds, engineSpecFor, trackFor, usesNewEngine } from './engine';
+export { engineKinds, engineSpecFor, trackFor, usesCamera, usesNewEngine } from './engine';
 export { createCycleDriver, createLiftDriver, createPersonTimer, holdSeconds, liftStep } from './modes';
 export type { EndHoldResult, EngineData } from './modes';
 export { readMeasure } from './measure';

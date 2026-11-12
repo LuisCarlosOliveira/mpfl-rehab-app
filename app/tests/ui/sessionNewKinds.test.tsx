@@ -225,20 +225,42 @@ describe('the hold timer screen', () => {
     expect(onEnd).toHaveBeenCalledWith('gave-way', expect.objectContaining({ engine: expect.objectContaining({ holdList: [5] }) }));
   });
 
-  it('the gluteal set has no camera, no body map and no leg check', () => {
-    const { source, view } = setup(GLUTE);
+  it.each([[QUAD], [GLUTE]])('%j: no camera starts, no picture, no body map, no camera copy', (exercise) => {
+    const { source, view } = setup(exercise);
     expect(source.start).not.toHaveBeenCalled();
-    expect(view.container.querySelector('svg.bodymap, [data-k="arc-text"]')).toBeNull();
     expect(view.container.querySelector('video')).toBeNull();
+    expect(view.container.querySelector('svg.body-map')).toBeNull();
+    expect(screen.queryByText('Hide body map')).toBeNull();
     expect(screen.queryByText(/Follow me again|whole leg/)).toBeNull();
+    expect(screen.queryByText(/Asking for the camera|Try the camera again|No camera image/)).toBeNull();
+    expect(screen.getByText('The camera cannot see this effort. The app times your hold.')).toBeInTheDocument();
+    // The timer works, and the source stays unused through a hold, a stop and an unmount.
+    const button = screen.getByRole('button', { name: 'Start hold' });
+    fireEvent.click(button);
+    act(() => void vi.advanceTimersByTime(4000));
+    fireEvent.click(button);
+    expect(screen.getByText('Holds: 4 seconds')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Stop/ }));
+    expect(source.start).not.toHaveBeenCalled();
   });
 
-  it('the quad set starts the camera for the body map, and shows no lockout box', () => {
-    const { source } = setup(QUAD);
-    expect(source.start).toHaveBeenCalled();
-    act(() => source.emit(legLandmarks('left', 20), 0));
-    act(() => void vi.advanceTimersByTime(300));
-    expect(screen.queryByRole('button', { name: /Follow me again/ })).toBeNull();
+  it.each([[QUAD], [GLUTE]])('%j: Stop and "Knee gave way or hurts" save an open hold with no camera', (exercise) => {
+    for (const [name, reason] of [[/Stop/, 'stop'], ['Knee gave way or hurts', 'gave-way']] as const) {
+      const { source, onEnd, view } = setup(exercise);
+      fireEvent.click(screen.getByRole('button', { name: 'Start hold' }));
+      act(() => void vi.advanceTimersByTime(5000));
+      fireEvent.click(screen.getByRole('button', { name }));
+      expect(onEnd).toHaveBeenCalledWith(reason, expect.objectContaining({ holds: 1, engine: expect.objectContaining({ holdList: [5] }) }));
+      expect(source.start).not.toHaveBeenCalled();
+      view.unmount();
+    }
+  });
+
+  it.each([[PUMP], [BACK], [SIDE]])('%j: the camera kinds still start the camera and show the picture', (exercise) => {
+    const { source, view } = setup(exercise);
+    expect(source.start).toHaveBeenCalledTimes(1);
+    expect(view.container.querySelector('video')).not.toBeNull();
+    expect(screen.getByText('Hide body map')).toBeInTheDocument();
   });
 
   it('counts each hold into the set and gives the engine data at the end', () => {

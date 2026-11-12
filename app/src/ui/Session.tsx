@@ -27,7 +27,7 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
 import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type SetupResult, type Summary } from '../lib/exercises';
-import { engineSpecFor } from '../lib/monitor/engine';
+import { engineSpecFor, usesCamera as kindUsesCamera } from '../lib/monitor/engine';
 import { specFor } from '../lib/monitor/registry';
 import { countBlock } from '../lib/counters';
 import { createBaselineCapture, type BaselineSource, type CaptureState } from '../lib/baseline';
@@ -184,7 +184,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // The five new kinds run through the definitions of the registry. The engine has no protocol value that they wait for.
   const engine = engineSpecFor(exercise.kind);
   const timerMode = engine?.mode === 'person-timer';
-  const usesCamera = engine === undefined || engine.view.legs !== 'none'; // the gluteal set needs no camera
+  const usesCamera = kindUsesCamera(exercise.kind); // false for the two timers: no camera, no pose model, no video element
   const setup: SetupResult | { ok: true; kind: 'engine' } = engine === undefined ? counterSetup(exercise as Exercise) : { ok: true, kind: 'engine' };
   const ready = setup.ok;
   // Setup gave no resting angle and the protocol has a return value: Session finds the angle in place.
@@ -280,7 +280,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   const getPipeline = () => {
     if (!pipeline.current) {
-      const made = createPipeline(exercise, side, source.aspect(), {
+      const made = createPipeline(exercise, side, usesCamera ? source.aspect() : 1, {
         baselineDeg,
         cameraSide,
       });
@@ -632,7 +632,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // The notice is for the missing protocol value only. A missing resting angle is found in place (the capture state).
   const block = setup.ok && setup.kind === 'reps' && setup.config.returnWithin === undefined ? countBlock({ ...setup.config, baseline: baselineDeg ?? undefined }) : null;
-  const farLeg = cameraSide !== undefined && legRoleOf(side, cameraSide) === 'far';
+  const farLeg = usesCamera && cameraSide !== undefined && legRoleOf(side, cameraSide) === 'far';
   const paused = sets.phase === 'set-complete' || sets.phase === 'all-sets-complete';
   // H1: the same rule as the Summary. The floor of FR12 (an app rule, 7, a clinician must review it) stops the session here.
   // A lower protocol threshold stops earlier. A higher one does not lift the floor.

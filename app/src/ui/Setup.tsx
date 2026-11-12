@@ -17,11 +17,12 @@ import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
 import { countsReps, doneLying } from '../lib/exercises';
 import { isNumericKind } from '../lib/monitor/monitored';
+import { usesCamera as kindUsesCamera } from '../lib/monitor/engine';
 import { specFor } from '../lib/monitor/registry';
 import { distanceText, type CameraView } from '../lib/figure';
 import type { AnyGuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
-import { createSetupStabilizer, setupProfileFor, type SetupRuleId } from '../lib/setupRules';
+import { DEFAULT_PROFILE, createSetupStabilizer, setupProfileFor, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import type { FrameHandler, LandmarkSource, StartProgress } from '../pose/source';
 import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
@@ -30,7 +31,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -93,11 +94,11 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
   // The definition of the exercise sets the rules of the check, the views and the questions (lib/monitor/registry.ts).
   const spec = specFor(kind);
-  const profile = setupProfileFor(kind); // null: no leg check (the two timers)
-  const askLeg = spec === undefined || spec.view.legs === 'chosen';
-  const askCameraSide = spec === undefined || spec.view.cameraSide === 'operated-leg-near';
+  const usesCamera = kindUsesCamera(kind); // false: the two timers. The app times the hold and never starts the camera.
+  const profile = setupProfileFor(kind) ?? DEFAULT_PROFILE; // a timer never reaches the camera step, so its profile is not read
+  const askLeg = usesCamera && (spec === undefined || spec.view.legs === 'chosen');
+  const askCameraSide = usesCamera && (spec === undefined || spec.view.cameraSide === 'operated-leg-near');
   const primaryView: CameraView = spec?.view.angle === 'front' ? 'front' : 'side';
-  const noCameraView = spec?.view.angle === 'none';
   const lying = isNumericKind(kind) ? doneLying(kind) : spec?.posture[0] === 'supine';
   const countsRepsKind = isNumericKind(kind) && countsReps(kind);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -144,7 +145,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
-    if (profile === null) return; // a timer exercise: the camera picture shows and no landmark is checked
     const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: lying ? 'lying' : 'upright', profile }, timeMs);
     // svg attributes only, no React state. U1: the angle text shows only when the check shows the needed joints as seen. Otherwise it is empty.
     map.current?.update(landmarks, timeMs, source.aspect(), jointsSeen(out.rule, profile) ? undefined : null);
@@ -213,10 +213,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     onCancel();
   }
   const connected = pair?.view.status === 'connected';
-  const cameraViews: CameraView[] = noCameraView ? [] : connected ? SIDE_AND_FRONT : primaryView === 'front' ? FRONT_ONLY : SIDE_ONLY;
+  const cameraViews: CameraView[] = !usesCamera ? [] : connected ? SIDE_AND_FRONT : primaryView === 'front' ? FRONT_ONLY : SIDE_ONLY;
 
   const running = camera.kind === 'running';
-  const chip = chipFor(live?.rule ?? 'no-pose', profile ?? undefined);
+  const chip = chipFor(live?.rule ?? 'no-pose', profile);
   const fixLine = firstSentence(camera.kind === 'error' ? camera.message : '');
   const needsReturnValue = countsRepsKind && returnWithinDeg === undefined;
   const chooseLeg = (value: Side) => {
@@ -238,9 +238,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     </figure>
   ));
 
-  const order: readonly (typeof step)[] = pairUsed ? ['guide', 'pair', 'camera'] : ['guide', 'camera'];
+  // A timer exercise has one step: the guide and the start button. No camera runs.
+  const order: readonly (typeof step)[] = !usesCamera ? ['guide'] : pairUsed ? ['guide', 'pair', 'camera'] : ['guide', 'camera'];
   const labels = { guide: 'Position guide', pair: 'Second camera', camera: 'Camera' } as const;
-  const stepList = (
+  const stepList = usesCamera && (
     <ol className="steps" aria-label="Steps">
       {order.map((id, i) => {
         const here = order.indexOf(step);
@@ -287,7 +288,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       <header className="page-head">
         <div className="stack-s">
           <h1 id="setup-title" tabIndex={-1} ref={titleRef}>
-            Set up the camera
+            {usesCamera ? 'Set up the camera' : 'Get ready'}
           </h1>
           <p className="detail">Exercise: {exerciseName}</p>
         </div>
@@ -301,6 +302,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       {step === 'guide' ? (
         <SetupGuide
           kind={kind}
+          usesCamera={usesCamera}
           askLeg={askLeg}
           askCameraSide={askCameraSide}
           side={side}
@@ -318,8 +320,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
             setCameraSide(value);
           }}
           onConfirmOther={() => setConfirmedOther(true)}
-          onOpenPair={pair ? openPair : undefined}
+          onOpenPair={pair && usesCamera ? openPair : undefined}
           onNext={() => setStep('camera')}
+          onStart={begin}
         />
       ) : (
         <div className="setup-grid">
@@ -331,8 +334,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
             <div className="frame" ref={frameRef}>
               <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
-              {running && profile !== null && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
-              {running && profile !== null && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
+              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
+              {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
               {camera.kind === 'idle' && <SetupStateCard icon="camera" line={IDLE_TEXT.line} help={IDLE_TEXT.help} />}
               {camera.kind === 'starting' && (
                 <SetupStateCard
@@ -355,16 +358,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 </Notice>
               )}
             </div>
-            {running && profile !== null && <BodyMapSwitch />}
+            {running && <BodyMapSwitch />}
 
-            {running && profile === null && (
-              <div className="stack-s setup-live">
-                <p data-testid="instruction" className="instruction-large">
-                  {TIMER_NOTE}
-                </p>
-              </div>
-            )}
-            {running && profile !== null && (
+            {running && (
               <div className="stack-s setup-live">
                 <p data-testid="instruction" className="instruction-large">
                   {live ? live.text : 'Waiting for the camera.'}
@@ -389,7 +385,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                   </Notice>
                 )}
                 <ul className="rule-list" aria-label="Camera check">
-                  {orderedRuleRows(live?.rule ?? 'no-pose', profile ?? undefined).map((row) => {
+                  {orderedRuleRows(live?.rule ?? 'no-pose', profile).map((row) => {
                     const seen = row.word === 'seen';
                     return (
                       <li key={row.label} className={seen ? 'rule rule-seen' : 'rule rule-missing'}>
@@ -408,7 +404,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
             {running && (
               <p className="start-status visually-hidden" role="status" tabIndex={-1} ref={runningStatusRef}>
-                {profile === null ? TIMER_NOTE : cameraStatusText(live?.rule ?? 'no-pose', profile)}
+                {cameraStatusText(live?.rule ?? 'no-pose', profile)}
               </p>
             )}
           </div>
@@ -416,11 +412,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           <aside className="stack">
             <div className="card card-flat stack-s">
               <h2>Before you start</h2>
-              <p>
-                {profile === null ? 'The camera picture shows while you exercise.' : 'The app uses the camera to find your leg.'} It does not record or send video.
-              </p>
+              <p>The app uses the camera to find your leg. It does not record or send video.</p>
               <p>{CAMERA_PEOPLE_NOTE}</p>
-              {profile !== null && <p>{beforeYouStart(profile)}</p>}
+              <p>{beforeYouStart(profile)}</p>
               {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
             </div>
             {returnNotice}
@@ -434,11 +428,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                   <Icon name="play" size={20} />
                   Start exercise
                 </button>
-                {profile !== null && (
-                  <button type="button" className="btn btn-lg" onClick={() => stabilizer.moreTime()}>
-                    More time
-                  </button>
-                )}
+                <button type="button" className="btn btn-lg" onClick={() => stabilizer.moreTime()}>
+                  More time
+                </button>
               </>
             ) : (
               <button type="button" className="btn btn-primary btn-lg btn-swap" disabled={camera.kind === 'starting'} onClick={() => void startCamera()}>
