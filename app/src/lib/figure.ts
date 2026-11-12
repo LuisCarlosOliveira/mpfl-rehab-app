@@ -727,11 +727,17 @@ export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)
  * The distance in the picture is not to scale. The text carries the advice. Source: ux-flow 6.1, PROPOSAL.
  */
 export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLegend = 'operated'): CameraPlan {
-  const posture = POSTURE_OF[kind];
-  const fig = figureFor(kind, 'start', view === 'side' ? 'left' : 'right');
+  // The leg raise to the side needs the camera in front of the person, at hip height. The old front plan drew the person on a mat
+  // with the phone beyond the feet, which is not in front of the body. The plan draws the person who stands and faces the phone.
+  const hipHeight = view === 'front' && kind === 'leg-raise-side';
+  const poseKind: AnyGuideKind = hipHeight ? 'leg-raise-back' : kind;
+  const posture = POSTURE_OF[poseKind];
+  const fig = figureFor(poseKind, 'start', view === 'side' ? 'left' : 'right');
   const bodyBox = unionBox([...bodyShapes(fig), ...fig.surface.rects.map((r): Shape => ({ k: 'rect', box: r }))].map(shapeBounds));
   const floorY = fig.floor?.y ?? fig.surface.rects.reduce((m, r) => Math.max(m, r.y + r.h), 0);
-  const knee = fig.points.knee;
+  // The counter of the pose stands between the person and the phone, in the line of sight. The plan keeps its room and does not draw it.
+  const surface = hipHeight ? { ...fig.surface, rects: [] } : fig.surface;
+  const knee = hipHeight ? fig.points.hip : fig.points.knee; // the height of the lens
   const legTop = Math.min(...fig.limbs.filter((l) => l.leg === 'near').map((l) => Math.min(fig.points[l.from].y, fig.points[l.to].y))) - 8;
 
   // The phone stands to the right of the person, at knee height.
@@ -765,7 +771,7 @@ export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLege
   const legendY = dy + 6.5;
   const ringR = RING_R * 0.55;
   const legend1 = L('operatedLeg', LEG_LEGEND_TEXT[legend], pad.x + 2 + 2 * ringR + 3, legendY);
-  const legend2 = L('height', 'At knee height', pad.x + 2 + 2 * ringR + 3, legendY + legend1.box.h + 1);
+  const legend2 = L('height', hipHeight ? 'At hip height' : 'At knee height', pad.x + 2 + 2 * ringR + 3, legendY + legend1.box.h + 1);
   const legendRing = { center: { x: round1(pad.x + 2 + ringR), y: round1(legendY + legend1.box.h / 2) }, r: round1(ringR) };
   const legendLevel = { from: { x: round1(pad.x + 2), y: round1(legend2.box.y + legend2.box.h / 2) }, to: { x: round1(pad.x + 2 + 2 * ringR), y: round1(legend2.box.y + legend2.box.h / 2) } };
 
@@ -777,7 +783,7 @@ export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLege
     view,
     posture,
     facing: fig.facing,
-    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface: fig.surface, floor: fig.floor, kneeRing: fig.kneeRing },
+    figure: { points: fig.points, head: fig.head, limbs: fig.limbs, surface, floor: fig.floor, kneeRing: fig.kneeRing },
     box: boxOut,
     labelSize: size,
     phone: { body, lens, lensR: 2.6, stem: stand, foot },

@@ -3,8 +3,8 @@
 // the active phase comes in as a prop from the read-only store.
 import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
-import { surgeonField, SURGEON_FIELDS, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
-import { isEngineExercise } from '../lib/monitor/monitored';
+import { surgeonField, SURGEON_FIELDS, type Exercise, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
+import { isMonitored, isNumericKind } from '../lib/monitor/monitored';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
 import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, monitorLine, NO_LIMIT_GIVEN, PLAN_NAMES, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
@@ -39,7 +39,12 @@ const EXERCISE_ICONS = {
   'straight-leg-raise': 'bed-single',
   'mini-squat': 'dumbbell',
   'seated-extension-hold': 'armchair',
-} as const satisfies Record<string, IconName>;
+  'quad-set': 'bed-single',
+  'gluteal-set': 'bed-single',
+  'ankle-pump': 'footprints',
+  'leg-raise-side': 'dumbbell',
+  'leg-raise-back': 'dumbbell',
+} as const satisfies Record<PlanExercise['kind'], IconName>;
 
 /**
  * What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon.
@@ -184,8 +189,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
           <ul className="exercise-list">
             {exercises.map((e, i) => {
               const name = PLAN_NAMES[e.kind];
-              // The engine runs four exercises today. A row for another exercise has no Start and no figure (isMonitored).
-              if (!isEngineExercise(e)) {
+              // The camera monitors every exercise that has a definition (isMonitored). A kind with no definition has no Start and no figure.
+              if (!isMonitored(e.kind)) {
                 return (
                   <li key={e.kind} className="exercise">
                     <div className="exercise-body">
@@ -203,7 +208,9 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                   </li>
                 );
               }
-              const setup = counterSetup(e);
+              // The four kinds with numbers need their values first. The five new kinds start without a value: a timer
+              // exercise gets its hold time from the plan or from the person (docs/exercise-monitoring-design.md).
+              const setup = isNumericKind(e.kind) ? counterSetup(e as Exercise) : ({ ok: true } as const);
               const ready = setup.ok;
               const featured = i === 0 && ready;
               return (
@@ -223,7 +230,8 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                         </li>
                       ))}
                     </ul>
-                    {!setup.ok && <p className="detail">{madeByApp && e.kind === 'seated-extension-hold' && setup.missing === 'holdSeconds' ? HOLD_TIME_LINE : notReadyText(e.kind, setup.missing)}</p>}
+                    {!setup.ok && isNumericKind(e.kind) && <p className="detail">{madeByApp && e.kind === 'seated-extension-hold' && setup.missing === 'holdSeconds' ? HOLD_TIME_LINE : notReadyText(e.kind, setup.missing)}</p>}
+                    {setup.ok && monitorLine(e.kind) !== null && <p className="detail">{monitorLine(e.kind)}</p>}
                   </div>
                   {featured && (
                     <figure className="exercise-figure">

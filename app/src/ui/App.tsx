@@ -3,8 +3,8 @@
 import { Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
-import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
-import { isEngineExercise } from '../lib/monitor/monitored';
+import { createProtocolStore, type Exercise, type Mode, type Protocol } from '../lib/protocol';
+import { isMonitored } from '../lib/monitor/monitored';
 import { selfProgressionOn } from '../lib/protocol/accept';
 import { hasSeenPrivacyNotice, loadStoredProtocol, readValidRows, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
@@ -212,9 +212,12 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   // The only source of the active phase is the read-only store (FR4).
   const store = useMemo(() => (protocol ? createProtocolStore(protocol) : null), [protocol]);
   const phase = protocol && store ? protocol.phases.find((p) => p.id === store.activePhase) : undefined;
-  // Only an exercise that the engine runs can start a session. Home shows no Start for another one (isMonitored).
+  // Only an exercise with a definition can start a session (isMonitored). Home shows no Start for another one.
   const chosen = phase?.exercises.find((e) => e.kind === state.exercise);
-  const exercise = chosen !== undefined && isEngineExercise(chosen) ? chosen : undefined;
+  const exercise = chosen !== undefined && isMonitored(chosen.kind) ? chosen : undefined;
+  // The Session and the Summary still type their prop as the four-kind Exercise. They run the five new kinds through createPipeline.
+  // The cast goes when the Session screen of step D2 takes PlanExercise.
+  const sessionExercise = exercise as Exercise | undefined;
 
   // The app has no URL routes. The browser must not restore the old scroll position when the history entry
   // above a root screen goes (useBackButton). The focused heading would then leave the screen.
@@ -287,10 +290,10 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         }
         break;
       case 'session':
-        if (exercise && protocol && store) {
+        if (sessionExercise && protocol && store) {
           return (
             <Session
-              exercise={exercise}
+              exercise={sessionExercise}
               side={state.exerciseLeg ?? protocol.side}
               cameraSide={state.cameraSide ?? undefined}
               baselineDeg={state.baselineDeg}
@@ -304,7 +307,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
                 const run = { reason, summary };
                 const record = saveSession(
                   db,
-                  runToSessionInput({ run, exercise, protocol, phase: store.activePhase, redFlagBlocks: state.redFlagBlocks, legTracked: state.exerciseLeg ?? undefined, cameraSide: state.cameraSide ?? undefined, now }),
+                  runToSessionInput({ run, exercise: sessionExercise, protocol, phase: store.activePhase, redFlagBlocks: state.redFlagBlocks, legTracked: state.exerciseLeg ?? undefined, cameraSide: state.cameraSide ?? undefined, now }),
                 );
                 record.catch(() => undefined); // the Summary reads the failure from the same promise
                 dispatch({ type: 'session-end', ...run, record });
@@ -314,11 +317,11 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         }
         break;
       case 'summary':
-        if (exercise && protocol && store && state.run) {
+        if (sessionExercise && protocol && store && state.run) {
           return (
             <Summary
               run={state.run}
-              exercise={exercise}
+              exercise={sessionExercise}
               protocol={protocol}
               activePhase={store.activePhase}
               redFlagBlocks={state.redFlagBlocks}

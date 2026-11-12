@@ -5,6 +5,9 @@
 import { MIN_VISIBILITY, selectLeg, type Landmark, type Side } from './angle';
 import { restingBaseline } from './baseline';
 import { calmRun, isStill } from './still';
+import { selectFoot } from './angle';
+import { specFor } from './monitor/registry';
+import { trackFor } from './monitor/engine';
 
 export interface SetupConfig {
   edgeFraction: number;
@@ -49,6 +52,25 @@ export const SETUP_CONFIG: SetupConfig = {
 
 export type SetupRuleId = 'no-pose' | 'turn-leg' | 'show-leg' | 'whole-leg' | 'closer' | 'side-on' | 'still' | 'ready';
 
+/**
+ * What the check must see, from the definition of the exercise (`needs` and `view`).
+ * `track` is the part of the leg: the whole leg, or knee to toe. `view` is the camera view. The front view has no side-on rule: see the note at the hip rule below.
+ * An exercise with no leg check (the two timers) has no profile (null).
+ */
+export interface SetupProfile {
+  track: 'whole-leg' | 'knee-to-toe';
+  view: 'side' | 'front';
+}
+export const DEFAULT_PROFILE: SetupProfile = { track: 'whole-leg', view: 'side' };
+
+/** The profile of a kind, or null when the definition needs no leg check. A kind with no definition gets the default. */
+export function setupProfileFor(kind: string): SetupProfile | null {
+  const spec = specFor(kind);
+  if (spec === undefined) return DEFAULT_PROFILE;
+  const track = trackFor(spec.needs);
+  return track === null ? null : { track, view: spec.view.angle === 'front' ? 'front' : 'side' };
+}
+
 // Fixed instruction texts. ux-flow 6.2. The text of 'still' names 2 seconds, the window of SETUP_CONFIG.
 export const SETUP_TEXT: Record<SetupRuleId, string> = {
   'no-pose': 'Step into the view.',
@@ -69,9 +91,16 @@ const LYING_TEXT: Partial<Record<SetupRuleId, string>> = {
   'side-on': 'Move the camera to the side of your body.',
 };
 
+// The texts that change when the check looks at knee to toe.
+const FOOT_TEXT: Partial<Record<SetupRuleId, string>> = {
+  'show-leg': 'Your knee, ankle and foot must show. Remove anything that covers your leg.',
+  'whole-leg': 'Move back. Show your knee to your toes.',
+  ready: 'The camera sees your knee, ankle and foot.',
+};
+
 /** The instruction for a rule. A person who lies down gets the camera text for the turn rules. */
-export const setupText = (id: SetupRuleId, posture: Posture = 'upright'): string =>
-  (posture === 'lying' ? LYING_TEXT[id] : undefined) ?? SETUP_TEXT[id];
+export const setupText = (id: SetupRuleId, posture: Posture = 'upright', profile: SetupProfile = DEFAULT_PROFILE): string =>
+  (profile.track === 'knee-to-toe' ? FOOT_TEXT[id] : undefined) ?? (posture === 'lying' ? LYING_TEXT[id] : undefined) ?? SETUP_TEXT[id];
 
 export interface SetupSample {
   tMs: number;
@@ -124,21 +153,28 @@ export function evaluateSetup(
   history: SetupSample[] = [],
   cameraSide: Side = side,
   posture: Posture = 'upright',
+  profile: SetupProfile = DEFAULT_PROFILE,
 ): SetupResult {
-  const out = (id: SetupRuleId): SetupResult => ({ id, text: setupText(id, posture), ready: id === 'ready' });
+  const out = (id: SetupRuleId): SetupResult => ({ id, text: setupText(id, posture, profile), ready: id === 'ready' });
 
   if (!landmarks || landmarks.length < 33) return out('no-pose');
-  const leg = selectLeg(landmarks, side);
+  const footTrack = profile.track === 'knee-to-toe';
+  // Knee to toe: the three points are knee, ankle and foot index. The hip is not needed.
+  const leg = footTrack ? selectFoot(landmarks, side) : selectLeg(landmarks, side);
 
   if (!leg.every(visible)) {
     // A far leg is expected to be hidden by the near leg, so turning the body does not help then.
-    const other = selectLeg(landmarks, otherSide(side));
-    return out(cameraSide === side && meanVisibility(other) > meanVisibility(leg) ? 'turn-leg' : 'show-leg');
+    // The front view and the knee to toe check have no turn rule.
+    const turn = !footTrack && profile.view === 'side' && cameraSide === side && meanVisibility(selectLeg(landmarks, otherSide(side))) > meanVisibility(leg);
+    return out(turn ? 'turn-leg' : 'show-leg');
   }
 
   const e = config.edgeFraction;
   const foot = FOOT[side].flatMap((i) => landmarks[i] ?? []).filter(visible);
   if ([...leg, ...foot].some((p) => p.x < e || p.x > 1 - e || p.y < e || p.y > 1 - e)) return out('whole-leg');
+
+  // Knee to toe has no size, side-on or still rule: the foot is short, the hip is out of the check, and the foot moves in a pump.
+  if (footTrack) return out('ready');
 
   const [hip, knee, ankle] = leg;
   const thigh = Math.hypot((hip.x - knee.x) * aspect, hip.y - knee.y);
@@ -149,7 +185,10 @@ export function evaluateSetup(
   // The near hip is the hip on the camera side. It is the hip of the chosen leg when that leg is near.
   const nearHip = landmarks[HIP[cameraSide]];
   const farHip = landmarks[HIP[otherSide(cameraSide)]];
-  if (nearHip && farHip && visible(nearHip) && visible(farHip) && (Math.abs(nearHip.x - farHip.x) * aspect) / legLength > config.maxHipGap) {
+  // The front view (leg raise to the side) has no hip rule. The engine reads a person who lies on the side, with the camera in front
+  // of the belly: the two hips then lie one behind the other, as in a side view, so the hip landmarks cannot tell the two views apart.
+  // A check would be invented. The screen shows the text "Put the camera in front of you at hip height" and no rule row (setupView.ts).
+  if (profile.view === 'side' && nearHip && farHip && visible(nearHip) && visible(farHip) && (Math.abs(nearHip.x - farHip.x) * aspect) / legLength > config.maxHipGap) {
     return out('side-on');
   }
 
@@ -165,6 +204,8 @@ export interface SetupSampleInput {
   cameraSide?: Side;
   /** Missing means upright. A person who lies down gets the camera texts. */
   posture?: Posture;
+  /** What the check must see. Missing means the whole leg, side view. */
+  profile?: SetupProfile;
   aspect: number;
 }
 
@@ -207,7 +248,8 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
     }
 
     const posture = sample.posture ?? 'upright';
-    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history, sample.cameraSide, posture).id;
+    const profile = sample.profile ?? DEFAULT_PROFILE;
+    const current = evaluateSetup(sample.landmarks, sample.side, sample.aspect, config, history, sample.cameraSide, posture, profile).id;
     if (current === 'ready') {
       // The leg held still, so the median of the window is the resting angle. The newest good value stays.
       const rest = restingBaseline(history, sample.side, sample.aspect, config);
@@ -233,14 +275,14 @@ export function createSetupStabilizer(config: SetupConfig = SETUP_CONFIG) {
 
     let announce: string | null = null;
     if (shown !== announced && tMs - announcedAt >= config.announceEveryMs) {
-      announce = setupText(shown, posture);
+      announce = setupText(shown, posture, profile);
       announced = shown;
       announcedAt = tMs;
     }
     const calm = shown === 'still' && history.length > 0 ? calmRun(history, sample.side, sample.aspect, config.stillMaxMove) : [];
     const stillProgress =
       shown !== 'still' ? null : calm.length < 2 ? 0 : Math.min(1, ((calm[calm.length - 1] as SetupSample).tMs - (calm[0] as SetupSample).tMs) / config.stillWindowMs);
-    return { rule: shown, text: setupText(shown, posture), ready: countdownLeftMs === 0, announce, countdownLeftMs, baselineDeg, stillProgress };
+    return { rule: shown, text: setupText(shown, posture, profile), ready: countdownLeftMs === 0, announce, countdownLeftMs, baselineDeg, stillProgress };
   };
 
   return Object.assign(step, {

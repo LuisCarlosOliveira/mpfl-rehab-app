@@ -4,7 +4,7 @@ import { counterSetup, isLegRaised } from '../../src/lib/exercises';
 import { cueFor } from '../../src/lib/cues';
 import { guideFor } from '../../src/lib/guides';
 import { MARGIN_DEG } from '../../src/lib/margin';
-import { EXERCISE_KINDS, HOME_EXERCISE_KINDS } from '../../src/lib/protocol/schema';
+import { EXERCISE_KINDS, HOME_EXERCISE_KINDS, PLAN_EXERCISE_KINDS } from '../../src/lib/protocol/schema';
 import { SOURCES } from '../../src/lib/protocolGen/sources';
 import { CLINICIAN_FIELDS, REGISTRY, specFor, specTexts, validateRegistry, validateSpec } from '../../src/lib/monitor';
 import type { ExerciseSpec } from '../../src/lib/monitor';
@@ -62,14 +62,19 @@ describe('registry rules', () => {
     expect([...FOUR].sort()).toEqual([...EXERCISE_KINDS].sort());
   });
 
-  it('rule 5: the five new ids are not in EXERCISE_KINDS yet, only in HOME_EXERCISE_KINDS', () => {
-    for (const id of FIVE) {
+  it('rule 5: EXERCISE_KINDS stays the four kinds with numbers. The five new ids are in HOME_EXERCISE_KINDS and in PLAN_EXERCISE_KINDS', () => {
+    for (const id of ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']) {
       expect(EXERCISE_KINDS as readonly string[]).not.toContain(id);
       expect(HOME_EXERCISE_KINDS as readonly string[]).toContain(id);
+      expect(PLAN_EXERCISE_KINDS as readonly string[]).toContain(id);
     }
-    expect(REGISTRY.map((s) => s.id).sort()).toEqual([...FOUR, ...FIVE].sort());
   });
-  it.todo('Step A moves the five ids from HOME_EXERCISE_KINDS to EXERCISE_KINDS. Then this test and the one above change.');
+
+  // Step D1 retires the split of the types in a different way: the guards of monitored.ts follow the registry, and this test
+  // keeps the two lists equal. A kind that a plan holds has a definition, so Home shows its Start button.
+  it('rule 5: every kind that a plan can hold has a definition, and every definition is a plan kind', () => {
+    expect(REGISTRY.map((s) => s.id).sort()).toEqual([...PLAN_EXERCISE_KINDS].sort());
+  });
 
   it('traces every origin: source ids are in the sources table, clinician fields are in the protocol schema', () => {
     const schema = read('../../src/lib/protocol/schema.ts');

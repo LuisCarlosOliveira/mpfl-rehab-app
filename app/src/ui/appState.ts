@@ -10,11 +10,12 @@ import type { Summary } from '../lib/exercises';
 import type { SetsState } from '../lib/sets';
 import type { EngineData } from '../lib/monitor/modes';
 import type { FrontRecord } from '../lib/views';
-import type { Exercise, Mode } from '../lib/protocol';
+import type { Mode, PlanExercise } from '../lib/protocol';
 import type { PlanDraft } from '../lib/planView';
 
 export type { PlanDraft };
-export type ExerciseKind = Exercise['kind'];
+/** Every kind that a plan can start: the four with numbers and the five new ones. */
+export type ExerciseKind = PlanExercise['kind'];
 export type EndReason = 'stop' | 'gave-way';
 
 /** The counter summary with the set data of the run. Session adds `sets`. Summary reads it. */

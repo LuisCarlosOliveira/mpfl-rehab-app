@@ -3,8 +3,9 @@
 import type { ReactNode } from 'react';
 import type { Side } from '../lib/angle';
 import type { LegLegend } from '../lib/figure';
-import { guideFor, type GuideKind } from '../lib/guides';
-import { SOURCE_NAMES, TECHNIQUE_NOTE, techniqueFor } from '../lib/technique';
+import { guideFor, type AnyGuideKind } from '../lib/guides';
+import { PROPOSAL_NOTE, SOURCE_NAMES, TECHNIQUE_NOTE, techniqueFor } from '../lib/technique';
+import { isNumericKind } from '../lib/monitor/monitored';
 import { ASK_SURGEON_TEXT } from './askSurgeon';
 import { GuideFigure, type Mark } from './GuideFigure';
 import { Icon, type IconName } from './Icon';
@@ -23,7 +24,11 @@ const SIDES: Side[] = ['left', 'right'];
 const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
 
 interface Props {
-  kind: GuideKind;
+  kind: AnyGuideKind;
+  /** False when the definition follows no chosen leg (the gluteal set). */
+  askLeg: boolean;
+  /** False when the camera side does not change the check (the front view and the exercises with no camera view). */
+  askCameraSide: boolean;
   /** The leg of the protocol. */
   side: Side;
   /** The leg that the person chose. */
@@ -46,6 +51,8 @@ interface Props {
 
 export function SetupGuide({
   kind,
+  askLeg,
+  askCameraSide,
   side,
   leg,
   cameraSide,
@@ -61,7 +68,9 @@ export function SetupGuide({
   onOpenPair,
   onNext,
 }: Props) {
-  const otherLegChosen = leg !== side;
+  const otherLegChosen = askLeg && leg !== side;
+  const techniqueLines = techniqueFor(kind);
+  const proposal = techniqueLines.some((l) => l.proposal);
   const guide = guideFor(kind, legend);
   const notes: { icon: IconName; label: string; text: string }[] = [
     { icon: 'bed-single', label: 'Start position', text: guide.startPosition },
@@ -78,12 +87,13 @@ export function SetupGuide({
   // Steps 1 to 3 name the start drawing, steps 4 and 5 the end drawing, step 6 the camera drawing.
   const figureFor = (step: number) => (
     <>
-      {step <= 3 ? startFigure : step <= 5 ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
+      {step <= 3 ? startFigure : step <= 5 || cameraGuide === null ? endFigure : <div className="guide-camera">{cameraGuide}</div>}
       <p className="detail">The drawing shows the movement. It is not your limit.</p>
     </>
   );
   return (
     <div className="stack v2-flow v2-setup">
+      {askLeg && (
       <Segmented
         name="exercise-leg"
         legend={LEG_TEXT.legQuestion}
@@ -104,6 +114,8 @@ export function SetupGuide({
           </div>
         )}
       </Segmented>
+      )}
+      {askCameraSide && (
       <Segmented name="camera-side" legend={LEG_TEXT.cameraQuestion} value={cameraSide} options={SIDES.map((value) => ({ value, label: SIDE_WORD[value] }))} onChange={onCameraSideChange}>
         <p className="detail">{LEG_TEXT.cameraHint}</p>
         {cameraSide !== leg && (
@@ -112,10 +124,13 @@ export function SetupGuide({
           </Notice>
         )}
       </Segmented>
+      )}
       <StepGuide steps={notes} figure={figureFor} />
-      <Notice icon="ruler">
-        <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
-      </Notice>
+      {isNumericKind(kind) && (
+        <Notice icon="ruler">
+          <p>{limit === undefined ? `Your limit: ${ASK_SURGEON_TEXT}.` : `Your limit is ${limit} degrees. Your care team sets it.`}</p>
+        </Notice>
+      )}
       {returnNotice}
       <details className="card disclosure technique">
         <summary>
@@ -125,9 +140,9 @@ export function SetupGuide({
           </span>
         </summary>
         <div className="disclosure-body stack-s">
-          <p className="detail">{TECHNIQUE_NOTE}</p>
+          <p className="detail">{proposal ? PROPOSAL_NOTE : TECHNIQUE_NOTE}</p>
           <ul className="stack-s">
-            {techniqueFor(kind).map((l) => (
+            {techniqueLines.map((l) => (
               <li key={l.text}>
                 <p>{l.text}</p>
                 <p className="detail">
