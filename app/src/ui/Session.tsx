@@ -25,7 +25,7 @@
 // A camera problem shows in the frame (A6). The unit sits on the baseline of the number (A2). The styles are in sessionV2.css.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
-import { createCueGate, cueFor, stillOverLimit, topAngleNote, topAngleText, type CueEvent } from '../lib/cues';
+import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
 import { countBlock } from '../lib/counters';
 import { createBaselineCapture, type BaselineSource, type CaptureState } from '../lib/baseline';
@@ -105,7 +105,6 @@ interface Live {
 interface View {
   angle: number | null;
   top: string | null;
-  topNote: string | null;
   cue: string;
   alert: string;
   waiting: boolean;
@@ -126,7 +125,6 @@ interface View {
 const INITIAL_VIEW: View = {
   angle: null,
   top: null,
-  topNote: null,
   cue: '',
   alert: '',
   waiting: true,
@@ -385,7 +383,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const next: View = {
         angle,
         top: sum ? topAngleText(sum.topFlexion) : null,
-        topNote: sum ? topAngleNote(sum.topFlexion) : null,
         cue: cue && !cue.alert && !(lock !== null && cue.paused) ? cue.text : '', // B4-04: the lock box replaces "Show your whole leg."
         alert: cue?.alert ? cue.text : '',
         waiting,
@@ -766,7 +763,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       </div>
                     )}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
-                    {exercise.kind === 'straight-leg-raise' && view.topNote && <p className="detail">{view.topNote}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
                     </div>
                   )}
