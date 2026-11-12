@@ -91,7 +91,7 @@ describe('save, export, import and CSV of baselineSource', () => {
     const lines = (await exportCsv(db)).trimEnd().split('\n');
     const header = (lines[1] as string).split(',');
     const at = header.indexOf('baseline_source');
-    expect(at).toBe(header.length - 2); // F4a appends reps_by after it, so older readers of the columns keep their places
+    expect(at).toBe(header.length - 6); // reps_by and the four columns of step E follow it, so older readers of the columns keep their places
     const cell = (row: string) => splitCsv(row)[at];
     expect(cell(lines[2] as string)).toBe('"still"');
     expect(cell(lines[3] as string)).toBe('');

@@ -45,18 +45,18 @@ describe('stored sessions of the five exercises', () => {
 describe('names of the five exercises', () => {
   it('has a plain name for each id, for titles and tables', () => {
     for (const k of FIVE) expect(exerciseLabel(k)).toBe(NAMES[k]);
-    expect(exerciseLabel('heel-slide')).toBe('heel slide');
+    expect(exerciseLabel('heel-slide')).toBe('Heel slide');
   });
 });
 
 describe('Your sessions for the five exercises', () => {
   const record = (k: SessionInput['exercise'], id: number): SessionRecord => ({ ...session(k, { peakFlexion: k === 'heel-slide' ? 70 : 12 }), id, schemaVersion: 1 }) as SessionRecord;
 
-  it('draws no angle chart for them, and still counts their reps and pain', () => {
+  it('draws no angle chart for them, counts the reps of the camera exercises only, and still counts pain', () => {
     const rows = [record('heel-slide', 1), ...FIVE.map((k, i) => record(k, i + 2))];
     const series = buildProgressSeries(rows);
     expect(series.peakFlexion.map((s) => s.exercise)).toEqual(['heel-slide']);
-    expect(series.repsPerDay.points).toEqual([{ day: '2026-11-01', reps: 48 }]);
+    expect(series.repsPerDay.points).toEqual([{ day: '2026-11-01', reps: 32 }]);
     expect(series.pain.points).toHaveLength(6);
   });
 

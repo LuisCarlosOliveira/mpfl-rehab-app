@@ -59,8 +59,8 @@ describe('limit 110, margin 9 (progression.md section 5.2)', () => {
     const most = firstRow(threeAt(125), peakCriterion({ op: 'atMost' }));
     expect(least.state).toBe(STATE.above);
     expect(most.state).toBe(STATE.above);
-    expect(least.criterion).toBe('Peak knee bend, mini squat, at least 110 degrees');
-    expect(most.criterion).toBe('Peak knee bend, mini squat, at most 110 degrees');
+    expect(least.criterion).toBe('Peak knee bend, Mini squat, at least 110 degrees');
+    expect(most.criterion).toBe('Peak knee bend, Mini squat, at most 110 degrees');
     expect(firstRow(threeAt(95), peakCriterion({ op: 'atMost' })).state).toBe(STATE.below);
   });
 

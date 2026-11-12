@@ -70,8 +70,8 @@ describe('buildProgressSeries', () => {
     const s = buildProgressSeries(list);
     expect(s.peakFlexion.map((x) => x.exercise)).toEqual(['mini-squat']);
     expect(s.peakFlexion[0]!.points.map((p) => p.degrees)).toEqual([90]);
-    expect(s.peakFlexion[0]!.title).toContain('Peak knee bend, mini squat');
-    expect(JSON.stringify(s)).not.toMatch(/straight leg raise|Angle at the top/);
+    expect(s.peakFlexion[0]!.title).toContain('Peak knee bend, Mini squat');
+    expect(JSON.stringify(s)).not.toMatch(/Straight leg raise|Angle at the top/);
     // Reps per day and pain still count every session.
     expect(s.repsPerDay.points.map((p) => p.reps)).toEqual([14, 6]);
     expect(s.pain.points).toHaveLength(3);
@@ -138,8 +138,8 @@ describe('chart titles for a corrupt exercise name', () => {
   });
 
   it('keeps the known labels', () => {
-    expect(exerciseLabel('heel-slide')).toBe('heel slide');
-    expect(exerciseLabel('seated-extension-hold')).toBe('seated extension hold');
+    expect(exerciseLabel('heel-slide')).toBe('Heel slide');
+    expect(exerciseLabel('seated-extension-hold')).toBe('Seated knee extension hold');
   });
 
   it('gives a plain fallback for an empty, long or non-text name and removes control characters', () => {

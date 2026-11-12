@@ -6,7 +6,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
-import { BANNER, buildReviewSummary, EVENT_LABEL, painText, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
+import { BANNER, buildReviewSummary, EVENT_LABEL, holdsText, measuredText, painText, TIMED_BY_PERSON, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
 import { DashboardCharts, TableScroll, WhenCell } from './Dashboard';
 import { isEngineKind } from '../lib/monitor/monitored';
@@ -228,7 +228,7 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
             <Table
               label="Session list"
               head={[
-                'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Pain (0 to 10)', 'Swelling', 'Bends near the limit', 'Bends over the limit',
+                'Date and time (UTC)', 'Exercise', 'Phase', 'Protocol id', 'Reps', 'Hold (seconds)', 'Peak knee bend (degrees)', 'Angle at the top (degrees)', 'Measured value', 'Holds timed by the person', 'Pain (0 to 10)', 'Swelling', 'Bends near the limit', 'Bends over the limit',
                 ...(showFront ? [FRONT_HEADER] : []),
               ]}
             >
@@ -237,13 +237,15 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
                   <td>
                     <WhenCell when={s.date} />
                   </td>
-                  <td>{EXERCISE_NAMES[s.exercise]}</td>
+                  <td>{s.timedBy === 'person' ? `${EXERCISE_NAMES[s.exercise]} (${TIMED_BY_PERSON})` : EXERCISE_NAMES[s.exercise]}</td>
                   <td className="num-cell">{s.phase}</td>
                   <td>{s.protocolId}</td>
                   <td className="num-cell">{repsCell(s)}</td>
                   <td className="num-cell">{orNone(s.holdSeconds)}</td>
                   <td className="num-cell">{peakCell(s)}</td>
                   <td className="num-cell">{topUnreadable(s.topFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.topFlexion)}</td>
+                  <td>{measuredText(s) ?? NOT_APPLICABLE}</td>
+                  <td className="num-cell">{holdsText(s) ?? NOT_APPLICABLE}</td>
                   <td className="num-cell">{painText(s)}</td>
                   <td>{s.swelling === undefined ? NOT_ANSWERED : SWELLING_TEXT[s.swelling]}</td>
                   <td className="num-cell">{s.nearLimit}</td>

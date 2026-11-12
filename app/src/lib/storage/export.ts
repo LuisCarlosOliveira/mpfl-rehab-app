@@ -119,6 +119,7 @@ const CSV_COLUMNS = [
   'nearLimit', 'overLimit', 'tooFast', 'gaveWayPresses', 'redFlagBlocks', 'pain', 'swelling',
   'sets_prescribed', 'reps_prescribed', 'reps_per_set', 'leg_tracked', 'camera_side',
   'second_view', 'front_reps', 'front_change_deg', 'set_pain', 'baseline_source', 'reps_by',
+  'hold_list', 'timed_by', 'report_key', 'report_value',
 ] as const;
 
 // PROPOSAL: the per-set counts are numbers joined by a space. A number cannot start a formula,
@@ -152,6 +153,10 @@ function valueOf(c: CsvColumn, s: SessionData, file: ExportFile): string | numbe
     case 'camera_side': return s.cameraSide;
     case 'baseline_source': return s.baselineSource;
     case 'reps_by': return s.repsBy;
+    case 'hold_list': return s.holdList?.join(REPS_PER_SET_SEPARATOR);
+    case 'timed_by': return s.timedBy;
+    case 'report_key': return s.reportKey;
+    case 'report_value': return s.reportValue;
     case 'second_view': return s.secondView;
     case 'front_reps': return s.frontReps;
     case 'front_change_deg': return s.frontChangeDeg;
