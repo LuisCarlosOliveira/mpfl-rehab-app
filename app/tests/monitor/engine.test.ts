@@ -31,8 +31,8 @@ describe('engineKinds and isMonitored', () => {
   it('engineKinds lists the five kinds that the new modes run', () => {
     expect([...engineKinds()].sort()).toEqual([...KINDS].sort());
   });
-  it('isMonitored stays false for the five until Step D turns them on', () => {
-    for (const k of KINDS) expect(isMonitored(k), k).toBe(false);
+  it('isMonitored is true for the five (Step D turned them on)', () => {
+    for (const k of KINDS) expect(isMonitored(k), k).toBe(true);
   });
   it('every kind of the engine has a definition with a mode that the engine knows', () => {
     for (const k of engineKinds()) expect(['person-timer', 'reps-cycle', 'lift']).toContain(specFor(k)?.mode);

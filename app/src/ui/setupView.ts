@@ -1,22 +1,38 @@
 // Plain helpers for the Setup screen. No React here, so a test can read them directly.
 // The rule order is the priority order of src/lib/setupRules.ts (research/ux-flow.md section 6.2).
 import { plural } from '../lib/sets';
-import type { SetupRuleId } from '../lib/setupRules';
+import { DEFAULT_PROFILE, type SetupProfile, type SetupRuleId } from '../lib/setupRules';
 
 export interface RuleRow {
   label: string;
   /** Rule ids of the setup check that make this row "not seen". */
   failedBy: SetupRuleId[];
+  /** True for the row that says the joints of the check are seen. The angle text of the body map needs it (U1). */
+  joints?: true;
 }
 
 export const RULE_ROWS: RuleRow[] = [
   { label: 'Person in the view', failedBy: ['no-pose'] },
-  { label: 'Hip, knee and ankle', failedBy: ['turn-leg', 'show-leg'] },
+  { label: 'Hip, knee and ankle', failedBy: ['turn-leg', 'show-leg'], joints: true },
   { label: 'Whole leg in the frame', failedBy: ['whole-leg'] },
   { label: 'Leg big enough in the frame', failedBy: ['closer'] },
   { label: 'Side-on to the camera', failedBy: ['side-on'] },
   { label: 'Leg held still', failedBy: ['still'] },
 ];
+
+// Knee to toe: no size, side-on or still rule (setupRules.ts). Front view: no side-on row. The hip line cannot tell a front view from a side view for a person on the side (setupRules.ts).
+const FOOT_ROWS: RuleRow[] = [
+  RULE_ROWS[0]!,
+  { label: 'Knee, ankle and foot', failedBy: ['turn-leg', 'show-leg'], joints: true },
+  { label: 'Knee to toes in the frame', failedBy: ['whole-leg'] },
+];
+const FRONT_ROWS: RuleRow[] = RULE_ROWS.filter((row) => !row.failedBy.includes('side-on'));
+
+/** The rows of the check for a profile. */
+export function rowsFor(profile: SetupProfile = DEFAULT_PROFILE): RuleRow[] {
+  if (profile.track === 'knee-to-toe') return FOOT_ROWS;
+  return profile.view === 'front' ? FRONT_ROWS : RULE_ROWS;
+}
 
 export interface RuleRowState {
   label: string;
@@ -27,31 +43,47 @@ export interface RuleRowState {
  * The check shows the first failed rule only. A rule before it was seen.
  * The failed rule and each rule after it are "not seen", because the check did not see them yet.
  */
-export function ruleRows(current: SetupRuleId): RuleRowState[] {
-  const failedAt = RULE_ROWS.findIndex((row) => row.failedBy.includes(current));
-  return RULE_ROWS.map((row, i) => ({
+export function ruleRows(current: SetupRuleId, profile?: SetupProfile): RuleRowState[] {
+  const rows = rowsFor(profile);
+  const failedAt = rows.findIndex((row) => row.failedBy.includes(current));
+  return rows.map((row, i) => ({
     label: row.label,
     word: failedAt === -1 || i < failedAt ? 'seen' : 'not seen',
   }));
 }
 
 /** The same chips as ruleRows. The rules that are not seen come first, so the person reads what to fix at the top (U19). */
-export function orderedRuleRows(current: SetupRuleId): RuleRowState[] {
-  const rows = ruleRows(current);
+export function orderedRuleRows(current: SetupRuleId, profile?: SetupProfile): RuleRowState[] {
+  const rows = ruleRows(current, profile);
   return [...rows.filter((r) => r.word === 'not seen'), ...rows.filter((r) => r.word === 'seen')];
 }
 
 /** The first rule that is not seen, as the words of one chip (A4). When every rule is seen it reads Ready. */
-export function chipFor(current: SetupRuleId): { text: string; seen: boolean } {
-  const first = ruleRows(current).find((r) => r.word === 'not seen');
+export function chipFor(current: SetupRuleId, profile?: SetupProfile): { text: string; seen: boolean } {
+  const first = ruleRows(current, profile).find((r) => r.word === 'not seen');
   return first ? { text: `${first.label}: not seen`, seen: false } : { text: 'Ready', seen: true };
 }
 
 /** True when the check shows that hip, knee and ankle are seen. The angle text of the body map shows only then (U1). */
-export const jointsSeen = (current: SetupRuleId): boolean => ruleRows(current).find((r) => r.label.startsWith('Hip, knee and ankle'))?.word === 'seen';
+export const jointsSeen = (current: SetupRuleId, profile?: SetupProfile): boolean => {
+  const at = rowsFor(profile).findIndex((r) => r.joints);
+  return ruleRows(current, profile)[at]?.word === 'seen';
+};
 
 /** The words of the hidden status line while the camera runs. It says Ready only when every rule is seen (U1). */
-export const cameraStatusText = (current: SetupRuleId): string => (chipFor(current).seen ? startText.ready : startText.waiting);
+export const cameraStatusText = (current: SetupRuleId, profile?: SetupProfile): string =>
+  chipFor(current, profile).seen ? startText.ready : profile?.track === 'knee-to-toe' ? startText.waitingFoot : startText.waiting;
+
+/** The note on the camera step. A timer exercise has no leg check, so its note says that the app times the hold. */
+export function beforeYouStart(profile: SetupProfile | null): string {
+  if (profile === null) return TIMER_NOTE;
+  if (profile.track === 'knee-to-toe') return 'Put the camera at the side that you chose. Step back until your knee to your toes shows. Hold still for 2 seconds.';
+  if (profile.view === 'front') return 'Put the camera in front of you at hip height. Step back until your whole chosen leg shows. Hold still for 2 seconds.';
+  return 'Put the camera at the side that you chose. Step back until your whole chosen leg shows. Hold still for 2 seconds.';
+}
+
+/** The line for the two exercises that the camera cannot see. The same words as the plan screen and the guide. */
+export const TIMER_NOTE = 'The camera cannot see this effort. The app times your hold.';
 
 // The camera note on the camera step (B-03). The pose model follows one person, so a second person in the view can take over the leg.
 export const CAMERA_PEOPLE_NOTE = 'Make sure that only you are in the camera view.';
@@ -79,6 +111,7 @@ export const startText = {
   cameraOn: 'The camera is on. The pose model is loading.',
   ready: 'Ready',
   waiting: 'Waiting for your whole leg',
+  waitingFoot: 'Waiting for your knee to your toes',
   slow: 'This takes longer than usual. Keep this page open.',
   progress: 'Pose model download',
 } as const;
