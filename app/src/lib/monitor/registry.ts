@@ -6,7 +6,7 @@
 //  - clinician:<f>   the protocol field <f> (protocol/schema.ts) sets the value. The app holds no default (value null).
 //  - engineering     a value of the app. No source sets it. The screen says so.
 
-import { ANKLE_MIN_AMPLITUDE, LIFT_ANGLE_BACK, LIFT_ANGLE_SIDE } from './modes';
+import { ANKLE_MAX_RISE_MS, ANKLE_MIN_AMPLITUDE, LIFT_ANGLE_BACK, LIFT_ANGLE_SIDE } from './modes';
 import type { ExerciseSpec } from './spec';
 
 const SLOW = 'Move slowly and with control. If your care team sets a time for each rep, use it.';
@@ -231,6 +231,8 @@ const ANKLE_PUMP: ExerciseSpec = {
     // Step B: 30 degrees. Measured on the synthetic series with 9 degree RMS noise (the numbers are in modes.ts, ANKLE_MIN_AMPLITUDE).
     { name: 'min-amplitude', value: ANKLE_MIN_AMPLITUDE, unit: 'deg', origin: 'engineering' },
     { name: 'min-state-ms', value: 300, unit: 'ms', origin: 'engineering' },
+    // R-10: a rise slower than this is a drift (modes.ts, ANKLE_MAX_RISE_MS).
+    { name: 'max-rise-ms', value: ANKLE_MAX_RISE_MS, unit: 'ms', origin: 'engineering' },
   ],
   cues: [],
   needs: ['knee-to-toe'],

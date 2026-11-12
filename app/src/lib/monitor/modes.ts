@@ -75,6 +75,8 @@ export function createPersonTimer(): PersonTimer {
 export interface CycleConfig {
   minAmplitude: number; // degrees
   minStateMs: number;
+  /** A rise that took longer than this, from the bottom to the amplitude, is a drift. It counts nothing. */
+  maxRiseMs: number;
 }
 
 export interface CycleState {
@@ -84,12 +86,14 @@ export interface CycleState {
   /** The lowest angle before the present rise. */
   base: number | null;
   since: number | null;
+  /** The last time the angle was near the bottom (within a quarter of the amplitude of the lowest angle). It starts the rise. */
+  nearAt: number | null;
   reps: number;
   /** The largest rise seen, in degrees. */
   range: number;
 }
 
-export const cycleInitial = (): CycleState => ({ phase: 'low', ref: null, base: null, since: null, reps: 0, range: 0 });
+export const cycleInitial = (): CycleState => ({ phase: 'low', ref: null, base: null, since: null, nearAt: null, reps: 0, range: 0 });
 
 export function cycleStep(state: CycleState, angle: number | null, t: number, cfg: CycleConfig): { state: CycleState; event: 'rep' | null } {
   if (angle === null) return { state: { ...state, since: null }, event: null };
@@ -97,9 +101,15 @@ export function cycleStep(state: CycleState, angle: number | null, t: number, cf
   let event: 'rep' | null = null;
   if (s.phase === 'low') {
     s.ref = s.ref === null ? angle : Math.min(s.ref, angle);
+    if (angle <= s.ref + cfg.minAmplitude / 4) s.nearAt = t;
     if (angle >= s.ref + cfg.minAmplitude) {
       s.since ??= t;
-      if (t - s.since >= cfg.minStateMs) {
+      if (s.nearAt !== null && t - s.nearAt > cfg.maxRiseMs) {
+        // R-10: the rise is too slow. It is a drift, not a pump. The reference moves to the present angle.
+        s.ref = angle;
+        s.nearAt = t;
+        s.since = null;
+      } else if (t - s.since >= cfg.minStateMs) {
         s.phase = 'high';
         s.base = s.ref;
         s.ref = angle;
@@ -141,6 +151,13 @@ export const CYCLE_FILTER = { minCutoff: 1.2, beta: 0 };
  * (5 in the worst series) and 10 true pumps gave 6 to 10 reps. The value fits a camera at 30 frames each second. No real foot clip was tested.
  */
 export const ANKLE_MIN_AMPLITUDE = 30;
+
+/**
+ * The longest rise of a pump, in milliseconds (R-10). ENGINEERING, not clinical. No source sets it.
+ * A normal pump of the series rises 30 degrees in about 0.5 s and a slow pump (period 3 s) in about 0.8 s. A drift of 30 degrees over any time
+ * would count as a pump without this limit. 4 s keeps the slowest pump of a person who moves with control and cuts a drift that takes 20 s.
+ */
+export const ANKLE_MAX_RISE_MS = 4000;
 
 export interface CycleDriver {
   /** `raw` is the angle at the ankle in degrees, or null when the foot is not seen. Returns the filtered angle. */

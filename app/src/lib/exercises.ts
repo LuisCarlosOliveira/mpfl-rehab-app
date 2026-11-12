@@ -232,7 +232,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     engine === undefined
       ? null
       : engine.mode === 'reps-cycle'
-        ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms') })
+        ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms'), maxRiseMs: thresholdOf(engine, 'max-rise-ms') })
         : createLiftDriver({ liftAngle: thresholdOf(engine, 'lift-angle'), settleMs: thresholdOf(engine, 'raise-settle-ms'), endMs: thresholdOf(engine, 'lift-end-ms') });
   const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
     engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Landmark } from '../../src/lib/angle';
 import { readMeasure } from '../../src/lib/monitor/measure';
-import { ANKLE_MIN_AMPLITUDE, createCycleDriver, cycleInitial, cycleStep } from '../../src/lib/monitor/modes';
+import { ANKLE_MAX_RISE_MS, ANKLE_MIN_AMPLITUDE, createCycleDriver, cycleInitial, cycleStep } from '../../src/lib/monitor/modes';
 import { specFor } from '../../src/lib/monitor/registry';
 import { makeSeries, type Series, type SeriesSpec } from '../helpers/landmarkSeries';
 
@@ -11,7 +11,7 @@ const threshold = (name: string) => specFor('ankle-pump')?.thresholds.find((t) =
 
 /** Feeds a series to a driver. `until` cuts the series (ms). Returns the reps and the driver. */
 function run(s: Series, until = Infinity) {
-  const d = createCycleDriver({ minAmplitude: threshold('min-amplitude'), minStateMs: threshold('min-state-ms') });
+  const d = createCycleDriver({ minAmplitude: threshold('min-amplitude'), minStateMs: threshold('min-state-ms'), maxRiseMs: threshold('max-rise-ms') });
   for (const f of s.frames) {
     if (f.tMs > until) break;
     d.sample(f.landmarks ? readMeasure(ANKLE, f.landmarks as Landmark[], 'left', 1) : null, f.tMs);
@@ -30,12 +30,13 @@ describe('the values of the definition', () => {
     expect(t.find((x) => x.name === 'min-amplitude')).toMatchObject({ value: ANKLE_MIN_AMPLITUDE, origin: 'engineering' });
     expect(t.find((x) => x.name === 'min-state-ms')).toMatchObject({ value: 300, origin: 'engineering' });
     expect(ANKLE_MIN_AMPLITUDE).toBe(30);
+    expect(t.find((x) => x.name === 'max-rise-ms')).toMatchObject({ value: ANKLE_MAX_RISE_MS, origin: 'engineering' });
   });
 });
 
 describe('cycleStep, with no noise', () => {
   it('counts one rep for one rise and one fall, and not for a rise alone', () => {
-    const cfg = { minAmplitude: 30, minStateMs: 300 };
+    const cfg = { minAmplitude: 30, minStateMs: 300, maxRiseMs: 4000 };
     let st = cycleInitial();
     const feed = (v: number, from: number, ms: number) => {
       for (let t = from; t < from + ms; t += 33) st = cycleStep(st, v, t, cfg).state;
@@ -52,7 +53,7 @@ describe('cycleStep, with no noise', () => {
   });
 
   it('needs the state time: a rise of 200 ms counts nothing', () => {
-    const cfg = { minAmplitude: 30, minStateMs: 300 };
+    const cfg = { minAmplitude: 30, minStateMs: 300, maxRiseMs: 4000 };
     let st = cycleInitial();
     for (let t = 0; t < 500; t += 33) st = cycleStep(st, 80, t, cfg).state;
     for (let t = 500; t < 700; t += 33) st = cycleStep(st, 120, t, cfg).state;
@@ -62,7 +63,7 @@ describe('cycleStep, with no noise', () => {
   });
 
   it('a rise smaller than the amplitude counts nothing', () => {
-    const cfg = { minAmplitude: 30, minStateMs: 300 };
+    const cfg = { minAmplitude: 30, minStateMs: 300, maxRiseMs: 4000 };
     let st = cycleInitial();
     for (let c = 0; c < 5; c++) for (let t = 0; t < 2000; t += 33) st = cycleStep(st, t < 1000 ? 80 : 105, c * 2000 + t, cfg).state;
     expect(st.reps).toBe(0);
@@ -126,7 +127,7 @@ describe('a dropout', () => {
     expect(run(s, until).reps()).toBeGreaterThanOrEqual(5);
   });
   it('the time of a rise starts again after a null sample', () => {
-    const cfg = { minAmplitude: 30, minStateMs: 300 };
+    const cfg = { minAmplitude: 30, minStateMs: 300, maxRiseMs: 4000 };
     let st = cycleInitial();
     for (let t = 0; t < 500; t += 33) st = cycleStep(st, 80, t, cfg).state;
     for (let t = 500; t < 700; t += 33) st = cycleStep(st, 120, t, cfg).state;
@@ -151,8 +152,45 @@ describe('ankle-range', () => {
     expect(d.range()).toBe(d.data().reportValue);
   });
   it('is absent before a first rise', () => {
-    const d = createCycleDriver({ minAmplitude: 30, minStateMs: 300 });
+    const d = createCycleDriver({ minAmplitude: 30, minStateMs: 300, maxRiseMs: 4000 });
     expect(d.data()).toEqual({});
     expect(d.range()).toBeNull();
+  });
+});
+
+describe('R-10: a rise that is too slow is a drift, not a pump', () => {
+  const cfg = { minAmplitude: 30, minStateMs: 300, maxRiseMs: ANKLE_MAX_RISE_MS };
+  it('the maximum rise time is 4 s', () => {
+    expect(ANKLE_MAX_RISE_MS).toBe(4000);
+  });
+  it('a ramp of 30 degrees over 20 s, and then back, counts 0 reps (cycleStep)', () => {
+    let st = cycleInitial();
+    for (let t = 0; t <= 60000; t += 33) {
+      const v = 80 + 40 * (t <= 30000 ? t / 30000 : Math.max(0, 1 - (t - 30000) / 20000));
+      st = cycleStep(st, v, t, cfg).state;
+    }
+    expect(st.reps).toBe(0);
+  });
+  it('the same through the driver, with a half cosine of 40 s (30 degrees over 20 s)', () => {
+    const s = makeSeries({ pose: 'ankle-pump', cycles: 2, periodS: 40, lowDeg: 80, highDeg: 110 });
+    expect(run(s).reps()).toBe(0);
+  });
+  it('a ramp that takes 3 s still counts', () => {
+    let st = cycleInitial();
+    for (let t = 0; t <= 12000; t += 33) {
+      const ph = t % 6000;
+      const v = ph < 3000 ? 80 + 40 * (ph / 3000) : 120 - 40 * ((ph - 3000) / 3000);
+      st = cycleStep(st, v, t, cfg).state;
+    }
+    expect(st.reps).toBeGreaterThanOrEqual(1);
+  });
+  it('a long rest before a normal pump does not stop it', () => {
+    const cfg2 = { ...cfg };
+    let st = cycleInitial();
+    for (let t = 0; t < 20000; t += 33) st = cycleStep(st, 80 + (t % 200 < 100 ? 1 : 0), t, cfg2).state;
+    for (let t = 20000; t < 21000; t += 33) st = cycleStep(st, 80 + 50 * ((t - 20000) / 1000), t, cfg2).state;
+    for (let t = 21000; t < 22000; t += 33) st = cycleStep(st, 130, t, cfg2).state;
+    for (let t = 22000; t < 23500; t += 33) st = cycleStep(st, 80, t, cfg2).state;
+    expect(st.reps).toBe(1);
   });
 });
