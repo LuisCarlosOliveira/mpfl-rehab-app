@@ -1,10 +1,15 @@
-// Position guide data for the 4 exercises (FR28). Source: research/ux-flow.md section 7 and
-// research/clinical.md section 4. Wording follows mpfl-clinical-guardrails: no verdict words, and no number
-// that the protocol sets. The protocol supplies targets and limits. Each sentence has 25 words at most.
+// Position guide data (FR28). ONE place: the registry (lib/monitor/registry.ts) holds the texts of all nine exercises.
+// Wording follows mpfl-clinical-guardrails: no verdict words, and no number that the protocol sets.
+// Each sentence has 25 words at most. The five new exercises are a PROPOSAL of the app (see basis in the registry).
 import type { LegLegend } from './figure';
-import type { EXERCISE_KINDS } from './protocol/schema';
+import { specFor } from './monitor/registry';
+import type { EXERCISE_KINDS, HOME_EXERCISE_KINDS } from './protocol/schema';
 
+/** The four exercises that a plan sets with numbers. */
 export type GuideKind = (typeof EXERCISE_KINDS)[number];
+/** The five exercises that the camera times or counts without a clinician number. */
+export type NewGuideKind = (typeof HOME_EXERCISE_KINDS)[number];
+export type AnyGuideKind = GuideKind | NewGuideKind;
 
 export interface Guide {
   startPosition: string;
@@ -15,58 +20,15 @@ export interface Guide {
   cameraMustSee: string;
 }
 
-// Speed text for all four: ux-flow 7.1 to 7.4 give a speed of about 2 seconds as PROPOSAL (plan T9b).
-// The protocol field minRepSeconds sets the time, so the text names no number.
-const SLOW = 'Move slowly and with control. If your care team sets a time for each rep, use it.';
-
-const GUIDES: Record<GuideKind, Guide> = {
-  // ux-flow 7.1. The sock is a PROPOSAL. clinical.md section 4: range grows by week (S1), so the limit comes from the care team.
-  'heel-slide': {
-    startPosition: 'Lie on your back on a bed or a mat. Keep both legs straight.',
-    legFacingCamera: 'Your operated leg is the leg nearest the camera. Put the camera at the side of that leg.',
-    handsAndSupport: 'Keep your hands at your sides. Keep your heel on the surface. A sock on a smooth surface helps your heel slide.',
-    range: 'Slide your heel toward your buttock. Bend your knee up to the limit that your care team sets. Then slide your heel back.',
-    speed: SLOW,
-    cameraMustSee: 'The camera must see your whole leg, from hip to foot. Keep the blanket off your leg.',
-  },
-  // ux-flow 7.2. The bent other knee is PROPOSAL (sources differ, technique-sources S5). The lift height is not set: sources give 5 to 40 cm (S4) (clinical.md section 4: hip flexion of 30 to 45 degrees, PROPOSAL, not measured).
-  'straight-leg-raise': {
-    startPosition: 'Lie on your back. Bend your other knee and put that foot flat. Keep your operated leg straight.',
-    legFacingCamera: 'Your operated leg is the leg nearest the camera. Keep your other leg low and behind it.',
-    handsAndSupport: 'Keep your hands at your sides or on the floor.',
-    range:
-      'Keep your knee straight. Lift your leg. Ask your care team how high to lift your leg. Hold. Then lower your leg with control. If your knee bends when you lift your leg, lower the leg. Ask your care team how to do this exercise.',
-    speed: SLOW,
-    cameraMustSee: 'The camera must see your hip, knee and ankle during the whole lift. Keep your device level.',
-  },
-  // ux-flow 7.3. Side-on stance and the support in front of the body are PROPOSAL. The depth limit is a surgeon decision (clinical.md section 9).
-  'mini-squat': {
-    startPosition: 'Stand side-on to the camera. Put your feet at hip width.',
-    legFacingCamera: 'Stand with your operated side toward the camera. Your operated leg is near the camera.',
-    handsAndSupport: 'Hold a counter or a chair back with one hand. Put the support in front of your body, away from the camera. Keep your hand off your hip.',
-    range: 'Bend both knees slowly, down to the limit that your care team sets. Then stand up. The app does not pick a depth.',
-    speed: SLOW,
-    cameraMustSee: 'The camera must see your hip, knee, ankle and foot. Keep any chair or counter out of the line between the camera and your leg.',
-  },
-  // ux-flow 7.4. The seat and the foot position are PROPOSAL. The hold time and the angle come from the protocol (holdSeconds, minFlexion, targetFlexion).
-  // T1, T2 (docs/design-reconciliation.md section 3): P1 and P2 rec 29 avoid open-chain knee extension to full extension early, so the text never asks for a straight knee.
-  'seated-extension-hold': {
-    startPosition: 'Sit on a chair with no arm rest on the camera side. Rest your thigh on the seat. Keep your foot off the floor or on a low stool.',
-    legFacingCamera: 'Sit side-on to the camera. Your operated leg is the leg nearest the camera.',
-    handsAndSupport: 'Put your hands on the seat beside your hips.',
-    range:
-      'Lift your foot until your knee reaches the angle that your care team sets. Do not straighten your knee past that angle. Hold for the time that your care team sets. Then lower your foot.',
-    speed: 'Move slowly up and down. The hold time starts when your knee reaches the angle that your care team sets. It restarts if your knee bends more.',
-    cameraMustSee: 'The camera must see your thigh, knee and foot.',
-  },
-};
-
 /**
  * The guide text. When the person chose the leg that is not the operated leg, "operated" becomes "chosen" (L1-06).
  * The text then names the leg that the app follows, and not the operated side of the protocol.
  */
-export function guideFor(kind: GuideKind, legend: LegLegend = 'operated'): Guide {
-  const guide = GUIDES[kind];
+export function guideFor(kind: AnyGuideKind, legend: LegLegend = 'operated'): Guide {
+  const spec = specFor(kind);
+  if (!spec) throw new Error(`No guide for ${kind}`);
+  const { startPosition, legFacingCamera, handsAndSupport, range, speed, cameraMustSee } = spec.guide;
+  const guide: Guide = { startPosition, legFacingCamera, handsAndSupport, range, speed, cameraMustSee };
   if (legend === 'operated') return guide;
   const own = (text: string) => text.replace(/operated (leg|side)/g, 'chosen $1');
   return Object.fromEntries(Object.entries(guide).map(([key, text]) => [key, own(text)])) as unknown as Guide;
