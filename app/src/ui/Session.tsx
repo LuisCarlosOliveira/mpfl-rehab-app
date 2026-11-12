@@ -26,7 +26,8 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
 import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
-import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
+import { counterSetup, createPipeline, legRoleOf, type Pipeline, type SetupResult, type Summary } from '../lib/exercises';
+import { engineSpecFor } from '../lib/monitor/engine';
 import { countBlock } from '../lib/counters';
 import { createBaselineCapture, type BaselineSource, type CaptureState } from '../lib/baseline';
 import { createIdentityWatcher, otherLegConfirmed, type MovingLeg } from '../lib/legIdentity';
@@ -34,7 +35,7 @@ import { SETUP_CONFIG } from '../lib/setupRules';
 import { createFrontRecorder, type FrontRecorder } from '../lib/views';
 import { PAUSE_MESSAGE, evaluateSession } from '../lib/safety';
 import { SET_TEXT, countRep, finish, nextSet, plural, repsLabel, setLabel, startSets, type SetsState } from '../lib/sets';
-import type { Exercise } from '../lib/protocol';
+import type { Exercise, PlanExercise } from '../lib/protocol';
 import type { PairingStatus } from '../pairing/pairing';
 import type { LandmarkSource } from '../pose/source';
 import type { EndReason, RunSummary } from './appState';
@@ -42,7 +43,7 @@ import type { Sound } from './sound';
 import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_TEXT } from './askSurgeon';
 import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
 import { Icon } from './Icon';
-import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
+import { ANGLE_LABEL, EXERCISE_NAMES, MEASURE_LABEL, NO_CAMERA_EFFORT, secondsText } from './labels';
 import { Notice } from './Notice';
 import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
@@ -153,7 +154,7 @@ const NO_IMAGE_TEXT = 'No camera image for 2 seconds. Check that the camera is o
 const BACKGROUND_TEXT = 'The camera stopped when this page went to the background. Press the button to start it again.';
 
 interface Props {
-  exercise: Exercise;
+  exercise: PlanExercise;
   /** The leg that the person chose. */
   side: Side;
   /** The side of the person that the camera is on. Missing means that it is not known. */
@@ -172,7 +173,11 @@ interface Props {
 }
 
 export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, stopRef, onEnd }: Props) {
-  const setup = counterSetup(exercise);
+  // The five new kinds run through the definitions of the registry. The engine has no protocol value that they wait for.
+  const engine = engineSpecFor(exercise.kind);
+  const timerMode = engine?.mode === 'person-timer';
+  const usesCamera = engine === undefined || engine.view.legs !== 'none'; // the gluteal set needs no camera
+  const setup: SetupResult | { ok: true; kind: 'engine' } = engine === undefined ? counterSetup(exercise as Exercise) : { ok: true, kind: 'engine' };
   const ready = setup.ok;
   // Setup gave no resting angle and the protocol has a return value: Session finds the angle in place.
   const needsCapture = setup.ok && setup.kind === 'reps' && setup.config.returnWithin !== undefined && baselineDeg == null;
@@ -187,6 +192,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const [painAnswers, setPainAnswers] = useState<number[]>([]); // the answer of each set that asked. A skipped set has no entry.
   const painRef = useRef(painAnswers);
   const [startStep, setStartStep] = useState<'starting' | 'ready'>('starting');
+  // The hold timer (person-timer kinds). The button and the seconds are state. The time of the start is a ref.
+  const [holding, setHolding] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [setHolds, setSetHolds] = useState<number[]>([]); // the holds of the present set, in whole seconds
+  const holdStart = useRef(0);
   const [backgrounded, setBackgrounded] = useState(false); // the page went to the background, so the camera ended (L3-07)
   const restRef = useRef<HTMLHeadingElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -303,7 +313,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         if (state.capture.baselineDeg !== null) adopt(state.capture);
       }
       // The moving-leg check only informs. It does not touch the pipeline. It starts when reps can count.
-      if (!needsCapture || foundRef.current !== null) {
+      if (!timerMode && (!needsCapture || foundRef.current !== null)) {
         watcher.current ??= createIdentityWatcher(source.aspect());
         const moving = watcher.current.push(landmarks, timeMs);
         if (moving !== null) {
@@ -326,10 +336,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         state.holdMs = state.holdSince === null ? 0 : timeMs - state.holdSince;
       }
       if (out.repMs !== null) recorder.current?.rep(timeMs, out.repMs); // a counted rep gives the window for the front view
-      sound.playFor(out.event as CueEvent);
+      if (!engine) sound.playFor(out.event as CueEvent); // no sound for the new modes: they have no limit of a source or a clinician
       // M5: the over-limit beep repeats while the knee stays past the limit. It stops when the knee returns. The mute button still holds.
-      if (out.event === 'over-limit') overBeepAt = now;
-      else if (!stillOverLimit(exercise, out.flexion)) overBeepAt = null;
+      if (engine) overBeepAt = null;
+      else if (out.event === 'over-limit') overBeepAt = now;
+      else if (!stillOverLimit(exercise as Exercise, out.flexion)) overBeepAt = null;
       else if (overBeepAt !== null && now - overBeepAt >= OVER_LIMIT_REPEAT_MS) {
         sound.play('over-limit');
         overBeepAt = now;
@@ -356,7 +367,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       }
       // The alert stays while the knee stays past the limit plus the margin. The ceiling for a heel slide and a mini squat,
       // the arc end (minFlexion) for the seated hold. The timeout starts when the knee returns.
-      if (state.cue?.alert && stillOverLimit(exercise, out.flexion)) {
+      if (state.cue?.alert && !engine && stillOverLimit(exercise as Exercise, out.flexion)) {
         state.cue.until = now + CUE_SHOW_MS;
       }
     };
@@ -378,7 +389,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       }
       const lock = lockNow || now < state.lockUntil ? state.lockKind : null;
       map.current?.setChosenHidden(lock !== null); // B5-03: no label and no arc on a person who is not the patient
-      const angle = stale || state.flexion === null ? null : Math.round(state.flexion);
+      const angle = stale || timerMode || state.flexion === null ? null : Math.round(state.flexion);
       state.shown = angle;
       map.current?.setShownAngle(angle);
       const next: View = {
@@ -408,11 +419,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       }
     };
 
-    void source.start(onFrame, videoRef.current).then((result) => {
-      if (!alive) return;
-      if (result.ok) setStartStep('ready');
-      else setCameraError(result.error.message);
-    });
+    if (usesCamera) {
+      void source.start(onFrame, videoRef.current).then((result) => {
+        if (!alive) return;
+        if (result.ok) setStartStep('ready');
+        else setCameraError(result.error.message);
+      });
+    }
     const timer = setInterval(tick, TICK_MS);
     return () => {
       alive = false;
@@ -420,6 +433,36 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       source.stop();
     };
   }, [exercise, side, cameraSide, baselineDeg, source, ready, attempt, needsCapture]);
+
+  // The seconds of the present hold. One update each second. The screen reader does not read it (aria-live off).
+  useEffect(() => {
+    if (!holding) return;
+    const id = setInterval(() => setElapsed(Math.floor((performance.now() - holdStart.current) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [holding]);
+
+  // The person presses Start hold or End hold. The camera never decides the effort. A hold under 1 s is dropped by the timer and counts for nothing.
+  function toggleHold() {
+    const p = getPipeline();
+    if (!p || paused) return;
+    const t = performance.now();
+    if (!holding) {
+      p.startHold?.(t);
+      holdStart.current = t;
+      setElapsed(0);
+      setHolding(true);
+      return;
+    }
+    const before = p.engineData?.().holdList ?? [];
+    p.endHold?.(t);
+    const list = p.engineData?.().holdList ?? [];
+    setHolding(false);
+    setElapsed(0);
+    if (list.length > before.length) {
+      addRep('camera');
+      setSetHolds((h) => [...h, list[list.length - 1] as number]);
+    }
+  }
 
   // The second camera starts after the first one. It has its own effect, so a change of its link never restarts the main camera.
   useEffect(() => {
@@ -451,6 +494,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const focusAfterSet = useRef(false);
   function startNextSet() {
     focusAfterSet.current = true;
+    setSetHolds([]);
     applySets(nextSet(setsRef.current));
   }
   useEffect(() => {
@@ -479,9 +523,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     // The counts come from the set logic, so a rep during a set pause is not in the result.
     const done = finish(setsRef.current);
     const base = getPipeline()?.summary() ?? EMPTY_SUMMARY;
+    const engineData = getPipeline()?.engineData?.();
     const counted = total(done);
     const front = recorder.current?.finish() ?? null;
     const isHold = setup.ok && setup.kind === 'hold';
+    const isTimer = timerMode;
     const repsCounted = setup.ok && setup.kind === 'reps' && setup.config.returnWithin !== undefined;
     const isHand = needsHandCount; // the hand count of a straight leg raise keeps the old null when nothing was counted
     // The last set has no question, because the summary asks for the pain at the end.
@@ -492,12 +538,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     const result: SessionRunSummary = {
       ...base,
       ...(baselineSource === undefined ? {} : { baselineSource }),
-      reps: isHold || isHand ? (isHold || counted === 0 ? null : counted) : counted,
-      holds: isHold ? counted : null,
+      reps: isTimer ? null : isHold || isHand ? (isHold || counted === 0 ? null : counted) : counted,
+      holds: isHold || isTimer ? counted : null,
       sets: done,
       ...(front === null ? {} : { front }),
       ...(asked > 0 ? { setPain } : {}),
-      ...(repsBy === undefined || isHold ? {} : { repsBy }),
+      ...(repsBy === undefined || isHold || isTimer ? {} : { repsBy }),
+      ...(engineData === undefined ? {} : { engine: engineData }),
     };
     onEnd(reason, result);
   }
@@ -559,20 +606,22 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const painAtStop = painAnswers.find((v) => typeof v === 'number' && evaluateSession({ pain: v, swelling: 'none', painPauseThreshold }).reasons.includes('pain'));
   const painStop = painAtStop !== undefined;
   const isHold = setup.ok && setup.kind === 'hold';
-  const countUnit = isHold ? 'holds' : 'reps';
+  const countUnit = isHold || timerMode ? 'holds' : 'reps';
   const label = setLabel(sets);
   const repsText = repsLabel(sets, countUnit);
-  const holdTotal = isHold ? (exercise.holdSeconds ?? null) : null; // the clinician hold time. The app has no number of its own.
+  const holdTotal = isHold ? (exercise.holdSeconds ?? null) : null;
+  const holdTarget = timerMode ? (exercise.holdSeconds ?? null) : null; // the clinician target of a timed hold. It only shows. It never judges. // the clinician hold time. The app has no number of its own.
   const resting = sets.phase === 'set-complete';
   const captureOn = needsCapture && found === null; // the app looks for the starting angle
-  const cameraTrouble = viewState.stale || cameraError !== null || backgrounded;
+  const cameraTrouble = usesCamera && (viewState.stale || cameraError !== null || backgrounded);
   // U6: when the camera stops, the old cue, the old angle and the old top angle go. The readout shows --.
   const view: View = cameraTrouble ? { ...viewState, angle: null, cue: '', alert: '', top: null } : viewState;
-  const startText = view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
+  const startText = usesCamera && view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
   const trouble = firstSentence(cameraError ?? (backgrounded ? BACKGROUND_TEXT : NO_IMAGE_TEXT));
 
   // The gauge shows the live angle on a track from 0 to the scale end. The limit is a quiet marker, not a target to reach.
-  const limit = exercise.maxFlexion;
+  const limit = engine === undefined ? exercise.maxFlexion : undefined; // the new modes have no limit of a care team
+  const measureLabel = MEASURE_LABEL[exercise.kind] ?? 'Knee bend';
   const scaleEnd = Math.max(120, limit === undefined ? 0 : Math.ceil((limit + 30) / 10) * 10);
   const at = (deg: number) => 3 + (Math.min(Math.max(deg, 0), scaleEnd) / scaleEnd) * 94;
   // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It only shows the scale.
@@ -648,7 +697,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               )}
             </div>
           )}
-          <div className={paused ? 'session-grid session-paused' : 'session-grid'}>
+          <div className={`session-grid${paused ? ' session-paused' : ''}${usesCamera ? '' : ' session-solo'}`}>
+            {usesCamera && (
             <div className="viewfinder">
               <div className="frame" ref={frameRef}>
                 <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
@@ -704,6 +754,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 )}
               </div>
             </div>
+            )}
             <div className="stack">
               {/* B5-04: the lock box is out of the flow on a phone (fixed above the bar). On a wide screen it is the first thing of the right column. */}
               {view.lock !== null && (
@@ -749,7 +800,32 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 </div>
               )}
 
-              {!resting && (
+              {!resting && timerMode && (
+                <div className="card counters hold-timer">
+                  {(label !== null || repsText !== null) && (
+                    <div className="counters-head">
+                      {label !== null && <p className="set-label">{label}</p>}
+                      {repsText !== null && <p className="detail">{repsText}</p>}
+                    </div>
+                  )}
+                  <div className="readout hold-readout">
+                    <p className="readout-label">Hold time</p>
+                    <p className="readout-line hold-elapsed" data-testid="hold-elapsed" aria-live="off">
+                      <span className="num readout-number">{elapsed}</span> <span className="unit">{plural(elapsed, 'second')}</span>
+                    </p>
+                  </div>
+                  <button type="button" className="btn btn-primary btn-lg hold-button" onClick={toggleHold}>
+                    <Icon name={holding ? 'square' : 'play'} size={22} fill="currentColor" />
+                    {holding ? 'End hold' : 'Start hold'}
+                  </button>
+                  <div className="readout-notes hold-notes">
+                    <p className="detail">{setHolds.length === 0 ? 'No holds yet.' : `Holds: ${secondsText(setHolds)}`}</p>
+                    <p className="detail">{NO_CAMERA_EFFORT}</p>
+                    {holdTarget !== null && <p className="detail">{`Target: ${holdTarget} ${plural(holdTarget, 'second')}, set by your care team`}</p>}
+                  </div>
+                </div>
+              )}
+              {!resting && !timerMode && (
                 <div className="card counters">
                   {(label !== null || repsText !== null) && (
                     <div className="counters-head">
@@ -758,7 +834,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     </div>
                   )}
                   <div className="readout">
-                    <p className="readout-label">Knee bend</p>
+                    <p className="readout-label">{measureLabel}</p>
                     <p className="readout-line" tabIndex={-1} ref={angleRef}>
                       <span className="num readout-number">{view.angle === null ? '--' : view.angle}</span> <span className="unit">{plural(view.angle, 'degree')}</span>
                     </p>
@@ -771,9 +847,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     </p>
                   </div>
                   {/* The caption of the angle spans the row under both numbers, so it wraps in two lines on a phone (A2, A8). */}
-                  <p className="detail readout-caption">Knee bend: {ANGLE_LABEL}</p>
+                  <p className="detail readout-caption">{measureLabel}: {ANGLE_LABEL}</p>
                   {/* Notes of the count (the hold timer, the leg raise texts) take the full row, so the two numbers keep their width. */}
-                  {(holdTotal !== null || exercise.kind === 'straight-leg-raise') && (
+                  {(holdTotal !== null || exercise.kind === 'straight-leg-raise' || exercise.kind === 'leg-raise-side') && (
                     <div className="readout-notes">
                       {holdTotal !== null && (
                         <div className="hold-meter">
@@ -783,6 +859,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                           <progress className="hold-bar" max={holdTotal} value={view.holdSec} aria-hidden="true" />
                       </div>
                     )}
+                    {exercise.kind === 'leg-raise-side' && <p className="detail">The camera cannot measure this angle well.</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
                     </div>

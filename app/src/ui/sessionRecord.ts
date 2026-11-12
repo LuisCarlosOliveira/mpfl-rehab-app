@@ -2,7 +2,7 @@
 // It holds numbers only. No frame, no image.
 import type { Side } from '../lib/angle';
 import { MARGIN_DEG, MARGIN_SOURCE } from '../lib/margin';
-import type { Exercise, Protocol } from '../lib/protocol';
+import type { PlanExercise, Protocol } from '../lib/protocol';
 import { summarySets } from '../lib/sets';
 import type { SessionInput } from '../lib/storage';
 import type { RunResult } from './appState';
@@ -15,7 +15,7 @@ export const storedWhole = (v: number | null) => (v === null ? null : Math.round
 
 export interface RunRecordArgs {
   run: Pick<RunResult, 'reason' | 'summary'>;
-  exercise: Exercise;
+  exercise: PlanExercise;
   protocol: Protocol;
   phase: number;
   redFlagBlocks: number;
@@ -36,7 +36,8 @@ export function runToSessionInput({ run, exercise, protocol, phase, redFlagBlock
     side: protocol.side,
     reps: summary.reps,
     peakFlexion: clampAngle(summary.peakFlexion),
-    holdSeconds: summary.holds === null ? null : summary.holds * (exercise.holdSeconds ?? 0),
+    // The seated hold keeps its old rule. A hold that the person timed keeps its seconds in holdList.
+    holdSeconds: summary.holds === null || summary.engine?.timedBy === 'person' ? null : summary.holds * (exercise.holdSeconds ?? 0),
     topFlexion: clampAngle(summary.topFlexion),
     marginDeg: MARGIN_DEG,
     marginSource: MARGIN_SOURCE,
@@ -53,6 +54,10 @@ export function runToSessionInput({ run, exercise, protocol, phase, redFlagBlock
     ...(legTracked === undefined ? {} : { legTracked }),
     ...(cameraSide === undefined ? {} : { cameraSide }),
     ...(summary.baselineSource === undefined ? {} : { baselineSource: summary.baselineSource }),
+    // Exercise monitoring: the data of the engine for the five new kinds. Only the fields that the engine gave.
+    ...(summary.engine?.holdList === undefined ? {} : { holdList: summary.engine.holdList }),
+    ...(summary.engine?.timedBy === undefined ? {} : { timedBy: summary.engine.timedBy }),
+    ...(summary.engine?.reportKey === undefined || summary.engine.reportValue === undefined ? {} : { reportKey: summary.engine.reportKey, reportValue: summary.engine.reportValue }),
     // T12b: the front-view record is for the clinician. The Summary never shows it.
     ...(summary.front === undefined
       ? {}
