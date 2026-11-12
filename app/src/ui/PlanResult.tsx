@@ -2,13 +2,12 @@
 // Every number comes from the generator output. "Why this plan" lists each rule with its sources, its evidence level
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
-import { answerLines, countStartText, doseScope, HOLD_TIME_LINE, whyView, type PlanDraft } from '../lib/planView';
+import { answerLines, countStartText, doseScope, HOLD_TIME_LINE, monitorLine, PLAN_NAMES, whyView, type PlanDraft } from '../lib/planView';
 import { NO_NUMBER, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
-import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { prescription } from './Home';
-import { HomeExerciseList, PlanLines } from './HomeExercises';
+import { PlanLines } from './HomeExercises';
 import { SourceNote, SourceNotes } from './SourceNote';
 import './screensV2.css';
 
@@ -127,7 +126,7 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
               const [dose, ...rest] = lines;
               return (
                 <li key={e.kind} className="dose-row">
-                  <p className="exercise-name dose-name">{EXERCISE_NAMES[e.kind]}</p>
+                  <p className="exercise-name dose-name">{PLAN_NAMES[e.kind]}</p>
                   {dose && <p className="dose">{dose.text}</p>}
                   {rest.length > 0 && (
                     <ul className="dose-notes">
@@ -136,13 +135,13 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
                       ))}
                     </ul>
                   )}
+                  {monitorLine(e.kind) !== null && <p className="detail dose-note">{monitorLine(e.kind)}</p>}
                   {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">{HOLD_TIME_LINE}</p>}
                   {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
                 </li>
               );
             })}
           </ul>
-          <HomeExerciseList items={phase?.homeExercises ?? []} />
           <SourceNotes made={made.map((e) => e.ruleId)} scope={doseScope(protocol)} />
           {!hasHeel && (
             <Notice role="note" icon="info">

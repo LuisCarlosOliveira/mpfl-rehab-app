@@ -32,48 +32,40 @@ const draftFor = (over: Partial<GeneratorInputs> = {}) => {
 };
 const NOT_CHECKED = 'The app does not check this exercise.';
 const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
-const HOME_GROUP_TITLE = 'At home';
-const HOME_ASK_ANKLE = 'Ankle pump: No number in the guideline. Ask your care team.';
+const FIVE_NAMES = ['Quadriceps set', 'Gluteal set', 'Ankle pump', 'Leg raise to the side', 'Leg raise to the back'];
+const planList = () => screen.getByRole('list', { name: 'Exercises in your plan' });
+const planRow = (name: string) => within(planList()).getByText(name).closest('li') as HTMLElement;
+const HONEST: Record<string, string> = {
+  'Leg raise to the back': 'The camera counts your lifts and measures the angle. The app does not judge how you do it.',
+  'Leg raise to the side': 'The camera counts your lifts. It cannot measure the angle well.',
+  'Ankle pump': 'The camera counts your pumps. It does not check how far you move.',
+  'Quadriceps set': 'The camera cannot see this effort. The app times your hold.',
+  'Gluteal set': 'The camera cannot see this effort. The app times your hold.',
+};
 
-describe('PlanResult, home exercises and text lines', () => {
-  it('lists the home exercises under one visible heading, with the dose sentence and the not-checked sentence once for the group (A-05)', () => {
+describe('PlanResult, the five exercises and text lines', () => {
+  it('lists the five as normal exercise rows with their own honest line, and no group "At home" (A-05)', () => {
     render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
-    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    for (const name of ['Quadriceps set', 'Gluteal set', 'Ankle pump', 'Leg raise to the side', 'Leg raise to the back']) {
-      expect(within(list).getByText(name)).toBeInTheDocument();
-    }
-    expect(screen.getByRole('heading', { level: 3, name: HOME_GROUP_TITLE })).toBeVisible();
-    // The camera rows say "How many" for themselves. The home group says it once, outside the rows. The rows hold names only.
-    expect(within(list).queryByText(/sets of/)).toBeNull();
-    expect(within(list).queryByText(/How many/)).toBeNull();
-    expect(within(list).queryByText(/does not check/)).toBeNull();
-    const group = list.closest('.home-group') as HTMLElement;
-    expect(within(group).queryByText(/sets of/)).toBeNull();
-    expect(within(group).getAllByText(HOME_ASK_ANKLE)).toHaveLength(1);
-    expect(within(group).getAllByText(NOT_CHECKED_GROUP)).toHaveLength(1);
+    for (const name of FIVE_NAMES) expect(within(planRow(name)).getByText(HONEST[name]!)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: 'At home' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Exercises that the app does not check' })).toBeNull();
+    expect(screen.queryAllByText(NOT_CHECKED_GROUP)).toHaveLength(0);
     expect(screen.queryAllByText(NOT_CHECKED)).toHaveLength(0);
   });
 
-  it('shows the home exercises as quiet rows, quieter than the dose rows of the camera exercises, with no card', () => {
-    const { container } = render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
-    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    const rows = within(list).getAllByRole('listitem');
-    expect(rows).toHaveLength(5);
-    for (const row of rows) {
-      expect(row).toHaveClass('home-row');
-      expect(row).not.toHaveClass('card');
-      expect(row).not.toHaveClass('dose-row');
-      expect(row.querySelector('.dose')).toBeNull();
+  it('shows the dose of each row, and for the ankle pump the line that the guideline gives no dose', () => {
+    render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
+    for (const name of ['Quadriceps set', 'Gluteal set', 'Leg raise to the side', 'Leg raise to the back']) {
+      const row = planRow(name);
+      expect(row).toHaveClass('dose-row');
+      expect(row.querySelector('.dose')).toHaveTextContent('2 sets of 10 to 15, then 3 sets as tolerated');
     }
-    expect(within(rows[0]!).getByText('Quadriceps set')).toBeInTheDocument();
-    expect(container.querySelectorAll('.plan-exercises .card')).toHaveLength(0);
-    for (const t of container.querySelectorAll('.home-group .detail')) expect(t.className).not.toMatch(/dose\b/);
+    expect(planRow('Ankle pump').querySelector('.dose')).toHaveTextContent('How many: ask your care team');
   });
 
-  it('shows no Start button and no count for a home exercise', () => {
+  it('shows no Start button and no count in the plan', () => {
     render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
-    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    expect(within(list).queryByRole('button')).toBeNull();
+    expect(within(planList()).queryByRole('button')).toBeNull();
   });
 
   it('shows the week-4 line and the physiotherapy line as plain notes in weeks 0 to 6', () => {
@@ -86,8 +78,8 @@ describe('PlanResult, home exercises and text lines', () => {
     render(<PlanResult draft={draftFor(week8)} onUse={vi.fn()} onBack={vi.fn()} />);
     expect(screen.getAllByText(RULES.PT_VISITS.text).length).toBeGreaterThan(0);
     expect(screen.queryAllByText(RULES.ROM_CHECK.text)).toHaveLength(0);
-    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    expect(within(list).queryByText('Ankle pump')).toBeNull();
+    expect(within(planList()).queryByText('Ankle pump')).toBeNull();
+    expect(within(planList()).getByText('Quadriceps set')).toBeInTheDocument();
   });
 
   it('opens a Why this plan entry for each new rule with its sources, grade and the population', () => {
@@ -187,7 +179,7 @@ describe('PlanResult, the mini squat and the seated hold', () => {
   });
 });
 
-describe('Home, a plan with home exercises', () => {
+describe('Home, a plan with the five exercises', () => {
   const protocol = (over: Partial<GeneratorInputs> = {}): Protocol => {
     const r = generateProtocol(inputs(over), TODAY);
     if (r.kind !== 'protocol') throw new Error('expected a plan');
@@ -198,17 +190,16 @@ describe('Home, a plan with home exercises', () => {
     return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
   };
 
-  it('shows the home exercises as a list with no Start button, and the lines of the plan', () => {
+  it('shows the five as rows with no Start button, and the lines of the plan', () => {
     show(protocol());
-    const list = screen.getByRole('list', { name: 'Exercises that the app does not check' });
-    expect(within(list).getByText('Quadriceps set')).toBeInTheDocument();
-    expect(within(list).queryByRole('button')).toBeNull();
+    const row = screen.getByRole('heading', { level: 3, name: 'Quadriceps set' }).closest('li') as HTMLElement;
+    expect(within(row).queryByRole('button')).toBeNull();
     expect(screen.getByRole('button', { name: 'Start Straight leg raise' })).toBeEnabled();
     expect(screen.getByText(RULES.PT_VISITS.text)).toBeInTheDocument();
     expect(screen.getByText(RULES.ROM_CHECK.text)).toBeInTheDocument();
   });
 
-  it('shows no list and no generated lines for a plan from a care team file', async () => {
+  it('shows no generated lines for a plan from a care team file', async () => {
     const { protocolText } = await import('./helpers');
     const { loadProtocol } = await import('../../src/lib/protocol');
     const r = loadProtocol(protocolText(), 'demo');

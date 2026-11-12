@@ -3,19 +3,19 @@
 // the active phase comes in as a prop from the read-only store.
 import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
-import { surgeonField, SURGEON_FIELDS, type Exercise, type Protocol, type SurgeonField } from '../lib/protocol';
+import { surgeonField, SURGEON_FIELDS, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
+import { isEngineExercise } from '../lib/monitor/monitored';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
-import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, NO_LIMIT_GIVEN, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, monitorLine, NO_LIMIT_GIVEN, PLAN_NAMES, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
 import { GuideFigure } from './GuideFigure';
 import { COMPANION_BUTTON } from './CompanionEntry';
-import { HomeExerciseList, PlanLines } from './HomeExercises';
+import { PlanLines } from './HomeExercises';
 import { SourceNote, SourceNotes } from './SourceNote';
 import { Icon, type IconName } from './Icon';
-import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { notReadyText } from './notReady';
 import type { ExerciseKind } from './appState';
@@ -34,19 +34,19 @@ const SURGEON_LABELS: Record<SurgeonField, string> = {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-const EXERCISE_ICONS: Record<Exercise['kind'], IconName> = {
+const EXERCISE_ICONS = {
   'heel-slide': 'footprints',
   'straight-leg-raise': 'bed-single',
   'mini-squat': 'dumbbell',
   'seated-extension-hold': 'armchair',
-};
+} as const satisfies Record<string, IconName>;
 
 /**
  * What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon.
  * `madeByApp` is true for a plan that the generator made. Its targetFlexion is the count value of the app and no target,
  * so no chip shows it. A clinician sets the target in a written protocol, so that chip stays (L2-01).
  */
-export function prescription(e: Exercise, madeByApp = false): { text: string; icon: IconName }[] {
+export function prescription(e: PlanExercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
   // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
   if (madeByApp && e.sets === undefined && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
@@ -183,9 +183,28 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
           <h2 id="exercises-title">Your exercises</h2>
           <ul className="exercise-list">
             {exercises.map((e, i) => {
+              const name = PLAN_NAMES[e.kind];
+              // The engine runs four exercises today. A row for another exercise has no Start and no figure (isMonitored).
+              if (!isEngineExercise(e)) {
+                return (
+                  <li key={e.kind} className="exercise">
+                    <div className="exercise-body">
+                      <h3 className="exercise-name">{name}</h3>
+                      <ul className="chips">
+                        {prescription(e, madeByApp).map((line) => (
+                          <li key={line.text} className="chip">
+                            <Icon name={line.icon} size={16} />
+                            {line.text}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="detail">{monitorLine(e.kind)}</p>
+                    </div>
+                  </li>
+                );
+              }
               const setup = counterSetup(e);
               const ready = setup.ok;
-              const name = EXERCISE_NAMES[e.kind];
               const featured = i === 0 && ready;
               return (
                 <li key={e.kind} className={featured ? 'exercise exercise-featured' : 'exercise'}>
@@ -227,7 +246,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
               );
             })}
           </ul>
-          <HomeExerciseList items={phase?.homeExercises ?? []} />
           <SourceNotes made={protocol.generated?.rules ?? []} scope={doseScope(protocol)} />
           <PlanLines protocol={protocol} />
           {madeByApp && (

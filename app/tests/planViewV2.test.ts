@@ -1,6 +1,6 @@
 // Generator version 2 in the plan helpers: home exercises, the new lines of change and the forward check.
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
-import { describeChanges, describeNewPlan, doseScope, HOLD_LIMIT, HOLD_TIME_LINE, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
+import { describeChanges, describeNewPlan, doseScope, HOLD_LIMIT, HOLD_TIME_LINE, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, monitorLine, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
 import type { Protocol } from '../src/lib/protocol';
 
 // The extended generator items are on by default (VITE_GENERATOR_EXTENDED is off only for false or 0). This file sets the flag on to be exact.
@@ -33,17 +33,20 @@ const plan = (week: number, over: Partial<GeneratorInputs> = {}) => {
 };
 const gates = { walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 
-/** A plan from before version 2: the same plan with no home exercises. */
-const old = (p: Protocol): Protocol => ({ ...p, phases: p.phases.map((ph) => ({ ...ph, homeExercises: undefined })) });
+const FIVE = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'];
+/** A plan from before version 2: the same plan without the five exercises. */
+const old = (p: Protocol): Protocol => ({ ...p, phases: p.phases.map((ph) => ({ ...ph, exercises: ph.exercises.filter((e) => !FIVE.includes(e.kind)) })) });
 
-describe('describeNewPlan with home exercises', () => {
-  it('A-07: one dose rule for the camera and the home exercises, and each sentence once', () => {
+describe('describeNewPlan with the five exercises', () => {
+  it('A-07: one dose rule for all exercises, each name with its honest line, and each sentence once', () => {
     const lines = describeNewPlan(plan(3).protocol);
     for (const kind of ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const) {
-      expect(lines).toContain(`${HOME_NAMES[kind]} (at home).`);
+      expect(lines).toContain(`${HOME_NAMES[kind]}.`);
+      expect(lines).toContain(monitorLine(kind));
     }
+    expect(lines.join(' ')).not.toMatch(/at home/);
     expect(lines.filter((l) => l.includes('How many'))).toEqual(['How many: ask your care team.']);
-    expect(lines.filter((l) => l.includes('does not check'))).toEqual(['The app does not check the exercises at home.']);
+    expect(lines.filter((l) => l.includes('The app does not check'))).toEqual([]);
     expect(lines.join(' ')).not.toMatch(/undefined|NaN/);
   });
 
@@ -55,11 +58,33 @@ describe('describeNewPlan with home exercises', () => {
   });
 });
 
+describe('monitorLine', () => {
+  it('gives no line for the four old exercises, a line for the five, and the old line for a kind without a definition', () => {
+    for (const k of ['heel-slide', 'straight-leg-raise', 'mini-squat', 'seated-extension-hold']) expect(monitorLine(k), k).toBeNull();
+    for (const k of FIVE) expect(monitorLine(k), k).toMatch(/^The camera /);
+    expect(monitorLine('lunge')).toBe('The app does not check this exercise.');
+  });
+});
+
 describe('describeChanges with version 2 items', () => {
-  it('names home exercises that a stored plan from before version 2 does not have', () => {
+  it('names the five exercises that a stored plan from before version 2 does not have', () => {
     const lines = describeChanges(old(plan(3).protocol), plan(3).protocol);
     expect(lines.join(' ')).toContain(`${HOME_NAMES['quad-set']} added`);
     expect(lines.join(' ')).toContain('HOME');
+  });
+
+  it('a stored plan that holds the five with no dose gains the dose line, as it gains the dose of the other exercises', () => {
+    const next = plan(3).protocol;
+    const nodose: Protocol = { ...next, phases: next.phases.map((ph) => ({ ...ph, exercises: ph.exercises.map((e) => { const c = { ...e }; delete c.sets; delete c.reps; return c; }) })) };
+    const lines = describeChanges(nodose, next);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(/^Sets and reps added for Straight leg raise, Quadriceps set, Gluteal set, Leg raise to the side, Leg raise to the back\./);
+  });
+
+  it('names the ankle pump that goes in phase 2, with its rule', () => {
+    const lines = describeChanges(plan(3).protocol, plan(8, { phaseClearance: 'yes' }).protocol);
+    expect(lines.join(' ')).toContain('Ankle pump removed');
+    expect(lines.join(' ')).toContain('ANKLE');
   });
 
   it('names the mini squat that is added and the rule', () => {
