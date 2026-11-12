@@ -635,7 +635,11 @@ body:has(.v2-session) main {
 /* ---------- Step D2: the hold timer screen (quad set, gluteal set). The seconds are large and keep their width. No goal marker, no colour change. ---------- */
 .v2-session .hold-timer {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
+}
+.v2-session .hold-timer > * {
+  grid-column: 1 / -1;
 }
 .v2-session .hold-elapsed .readout-number {
   min-width: 2ch;
