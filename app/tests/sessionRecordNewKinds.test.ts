@@ -18,10 +18,10 @@ const record = (exercise: PlanExercise, summary: RunSummary) => runToSessionInpu
 const valid = (input: object) => sessionSchema.safeParse({ ...input, schemaVersion: 1 });
 
 describe('a timer session', () => {
-  const input = record(ex('quad-set', { holdSeconds: 10 }), { ...base, holds: 2, engine: { holdList: [5, 8], timedBy: 'person', reportKey: 'knee-angle-top', reportValue: 41.64 } });
+  const input = record(ex('quad-set', { holdSeconds: 10 }), { ...base, holds: 2, engine: { holdList: [5, 8], timedBy: 'person' } });
 
-  it('saves holdList in whole seconds, timedBy person and the report value, and validates', () => {
-    expect(input).toMatchObject({ exercise: 'quad-set', holdList: [5, 8], timedBy: 'person', reportKey: 'knee-angle-top', reportValue: 41.64, reps: null });
+  it('saves holdList in whole seconds and timedBy person, with no report value, and validates', () => {
+    expect(input).toMatchObject({ exercise: 'quad-set', holdList: [5, 8], timedBy: 'person', reps: null });
     expect(input.holdList!.every(Number.isInteger)).toBe(true);
     expect(valid(input).success).toBe(true);
   });

@@ -23,12 +23,12 @@ const SIDE: PlanExercise = { kind: 'leg-raise-side', sets: 1, reps: 10, source: 
 const QUAD: PlanExercise = { kind: 'quad-set', sets: 2, reps: 3, source: 'test' };
 const GLUTE: PlanExercise = { kind: 'gluteal-set', sets: 1, reps: 3, holdSeconds: 6, source: 'test' };
 
-function setup(exercise: PlanExercise, source: MockSource = mockSource()) {
+function setup(exercise: PlanExercise, source: MockSource = mockSource(), cameraSide?: 'left' | 'right') {
   const audio = audioHarness();
   audio.sound.unlock();
   const play = vi.spyOn(audio.sound, 'play');
   const onEnd = vi.fn();
-  const view = render(<Session exercise={exercise} side="left" source={source} sound={audio.sound} onEnd={onEnd} />);
+  const view = render(<Session exercise={exercise} side="left" cameraSide={cameraSide} source={source} sound={audio.sound} onEnd={onEnd} />);
   return { source, audio, play, onEnd, view };
 }
 
@@ -76,7 +76,8 @@ describe('the live readout follows the definition', () => {
   });
 
   it('draws no angle number on the knee arc of the map for a leg raise, and keeps it in the readout', () => {
-    const { source, view } = setup(BACK);
+    // The back lift counts a direction, so it needs the facing: the camera side gives it when the foot does not (R-02).
+    const { source, view } = setup(BACK, mockSource(), 'left');
     const arc = view.container.querySelector('[data-k="arc-text"]')!;
     let drawn = 0;
     for (let i = 0; i < 40; i++) {

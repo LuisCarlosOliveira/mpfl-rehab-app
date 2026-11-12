@@ -168,7 +168,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               </dd>
             </div>
           )}
-          {engine?.reportKey !== undefined && engine.reportKey !== 'knee-angle-top' && reportWhole !== null && (
+          {engine?.reportKey !== undefined && reportWhole !== null && (
             <div className="stat">
               <dt>{REPORT_LINE[engine.reportKey]}</dt>
               <dd>

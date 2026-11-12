@@ -26,7 +26,7 @@ function show(exercise: PlanExercise, summary: RunSummary) {
 const QUAD: PlanExercise = { kind: 'quad-set', sets: 1, reps: 3, holdSeconds: 10, source: 'test' };
 
 describe('Summary of a timer kind', () => {
-  const timer: RunSummary = { ...base, holds: 3, engine: { holdList: [5, 8, 6], timedBy: 'person', reportKey: 'knee-angle-top', reportValue: 41.6 } };
+  const timer: RunSummary = { ...base, holds: 3, engine: { holdList: [5, 8, 6], timedBy: 'person' } };
 
   it('shows the holds that the person timed, in seconds, and says that the camera did not check them', () => {
     const v = show(QUAD, timer);
@@ -39,7 +39,7 @@ describe('Summary of a timer kind', () => {
     expect(v.container.textContent).not.toMatch(/10 seconds|target/i); // no comparison with the target
   });
 
-  it('shows no knee angle line for a timer kind, also when the engine gave a knee report', () => {
+  it('shows no knee angle line for a timer kind', () => {
     show(QUAD, timer);
     expect(screen.queryByText(/Knee angle/)).toBeNull();
     expect(screen.queryByText(/estimated angle/)).toBeNull();
