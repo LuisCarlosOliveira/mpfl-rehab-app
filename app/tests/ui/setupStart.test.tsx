@@ -58,7 +58,7 @@ describe('start steps and the model load (U10, L4-05)', () => {
   }
   const status = () => document.querySelector('.start-status');
 
-  it('names the camera step, the model step with its size, and Ready', async () => {
+  it('names the camera step, the model step with its size, and Waiting for your whole leg (U1: not Ready before the leg is seen)', async () => {
     const h = held();
     expect(status()).toHaveTextContent('Asking for the camera');
     h.emit({ step: 'camera' });
@@ -68,7 +68,7 @@ describe('start steps and the model load (U10, L4-05)', () => {
     expect(status()).toHaveTextContent('The camera is on. The pose model is loading.');
     expect(status()).toHaveTextContent(/Loading the pose model, \d+\.\d MB/);
     h.done();
-    expect(await screen.findByText('Ready')).toBeInTheDocument();
+    expect(await screen.findByText('Waiting for your whole leg')).toBeInTheDocument();
   });
 
   it('shows the bytes that came in, and a progress bar, once the loader reports them', () => {

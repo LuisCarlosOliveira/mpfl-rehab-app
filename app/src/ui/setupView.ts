@@ -47,6 +47,12 @@ export function chipFor(current: SetupRuleId): { text: string; seen: boolean } {
   return first ? { text: `${first.label}: not seen`, seen: false } : { text: 'Ready', seen: true };
 }
 
+/** True when the check shows that hip, knee and ankle are seen. The angle text of the body map shows only then (U1). */
+export const jointsSeen = (current: SetupRuleId): boolean => ruleRows(current).find((r) => r.label.startsWith('Hip, knee and ankle'))?.word === 'seen';
+
+/** The words of the hidden status line while the camera runs. It says Ready only when every rule is seen (U1). */
+export const cameraStatusText = (current: SetupRuleId): string => (chipFor(current).seen ? startText.ready : startText.waiting);
+
 // The camera note on the camera step (B-03). The pose model follows one person, so a second person in the view can take over the leg.
 export const CAMERA_PEOPLE_NOTE = 'Make sure that only you are in the camera view.';
 
@@ -72,6 +78,7 @@ export const startText = {
       : `Loading the pose model, ${megabytes(MODEL_BYTES)} MB`,
   cameraOn: 'The camera is on. The pose model is loading.',
   ready: 'Ready',
+  waiting: 'Waiting for your whole leg',
   slow: 'This takes longer than usual. Keep this page open.',
   progress: 'Pose model download',
 } as const;

@@ -28,7 +28,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, chipFor, countdownSeconds, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -128,8 +128,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
-    map.current?.update(landmarks, timeMs, source.aspect()); // svg attributes only, no React state
     const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: doneLying(kind) ? 'lying' : 'upright' }, timeMs);
+    // svg attributes only, no React state. U1: the angle text shows only when the check shows hip, knee and ankle as seen. Otherwise it is empty.
+    map.current?.update(landmarks, timeMs, source.aspect(), jointsSeen(out.rule) ? undefined : null);
     if (out.announce !== null) announced.current = out.announce;
     baseline.current = out.baselineDeg;
     const next: Live = {
@@ -369,7 +370,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
             {running && (
               <p className="start-status visually-hidden" role="status">
-                {startText.ready}
+                {cameraStatusText(live?.rule ?? 'no-pose')}
               </p>
             )}
           </div>
