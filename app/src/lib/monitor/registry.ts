@@ -185,7 +185,7 @@ const QUAD_SET: ExerciseSpec = {
     speed: 'Press slowly. Hold for the time that your care team sets. Press the button to start and to end each hold.',
     cameraMustSee: timerNote,
     bodyMapPoints: [],
-    basis: { kind: 'proposal', sourceIds: ['P1', 'P2', 'P3'] },
+    basis: { kind: 'proposal', sourceIds: ['S1', 'P1', 'P2', 'P3', 'N3'] },
   },
   summary: ['holds', 'hold-seconds'],
 };
@@ -234,13 +234,13 @@ const ANKLE_PUMP: ExerciseSpec = {
   needs: ['knee-to-toe'],
   guide: {
     startPosition: 'Lie on your back or sit with your leg straight and supported.',
-    legFacingCamera: 'Put the camera at the side of your operated leg.',
+    legFacingCamera: 'Use the side view. Put the camera at the side of your operated leg.',
     handsAndSupport: 'Keep your hands at your sides. Keep your heel off the surface so that your foot can move.',
     range: 'Point your toes away from you. Then pull your toes toward you. Repeat.',
     speed: 'Move slowly and with control.',
-    cameraMustSee: 'The camera must see your knee, ankle and toes. The app counts each pump. It does not check how far you move.',
+    cameraMustSee: 'The camera must see your leg from your knee to your toes. The app counts each pump. It does not check how far you move.',
     bodyMapPoints: [25, 27, 31],
-    basis: { kind: 'proposal', sourceIds: ['P1', 'P3'] },
+    basis: { kind: 'proposal', sourceIds: ['P1', 'P3'] }, // P1 and P3 name ankle pumps
   },
   summary: ['reps', 'range'],
 };
@@ -264,13 +264,13 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   needs: ['whole-leg'],
   guide: {
     startPosition: 'Lie on your side or stand facing the camera. Keep your operated leg straight.',
-    legFacingCamera: 'Face the camera. The camera sees the front of your body.',
+    legFacingCamera: 'Put the camera in front of you, at hip height. The camera sees the front of your body.',
     handsAndSupport: 'If you stand, hold a counter or a chair back with one hand.',
     range: 'Lift your operated leg out to the side with your toes forward. Hold. Then lower your leg with control.',
     speed: 'Move slowly and with control.',
     cameraMustSee: 'The camera must see your hip and your whole leg. The camera counts your lifts. It cannot measure the angle well.',
     bodyMapPoints: [23, 27],
-    basis: { kind: 'proposal', sourceIds: ['S1', 'P1', 'P2', 'P3'] },
+    basis: { kind: 'proposal', sourceIds: ['S1', 'P2', 'P3'] }, // S1 names 3-way leg raises. P2 and P3 name hip abduction
   },
   summary: ['reps', 'peak'],
 };
@@ -294,13 +294,13 @@ const LEG_RAISE_BACK: ExerciseSpec = {
   needs: ['whole-leg'],
   guide: {
     startPosition: 'Stand side-on to the camera. Put your feet at hip width.',
-    legFacingCamera: 'Stand with your operated side toward the camera. Your operated leg is near the camera.',
+    legFacingCamera: 'Put the camera at the side of your operated leg, at the distance that the camera picture shows. Your operated leg is near the camera.',
     handsAndSupport: 'Hold a counter or a chair back with one hand. Put the support in front of your body, away from the camera.',
     range: 'Keep your knee straight. Lift your operated leg back behind you. Hold. Then lower your leg with control.',
     speed: 'Move slowly and with control.',
     cameraMustSee: 'The camera must see your hip, knee and ankle. The camera counts your lifts and measures the angle. The app does not judge how you do it.',
     bodyMapPoints: [23, 25, 27],
-    basis: { kind: 'proposal', sourceIds: ['S1', 'P1', 'P2', 'P3'] },
+    basis: { kind: 'proposal', sourceIds: ['S1', 'P2', 'P3'] }, // S1 names 3-way leg raises. P2 and P3 name hip extension
   },
   summary: ['reps', 'peak'],
 };
