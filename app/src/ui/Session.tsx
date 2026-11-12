@@ -177,7 +177,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // Setup gave no resting angle and the protocol has a return value: Session finds the angle in place.
   const needsCapture = setup.ok && setup.kind === 'reps' && setup.config.returnWithin !== undefined && baselineDeg == null;
   const needsHandCount = setup.ok && setup.kind === 'lag';
-  const [view, setView] = useState<View>(INITIAL_VIEW);
+  const [viewState, setView] = useState<View>(INITIAL_VIEW);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0); // a press of "Try the camera again" starts the effect again
   const [muted, setMuted] = useState(sound.isMuted());
@@ -441,11 +441,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // B4-06: when the lock box goes after a press, the focus moves to the angle, so a keyboard user keeps the place.
   useEffect(() => {
-    if (view.lock === null && focusAfterLock.current) {
+    if (viewState.lock === null && focusAfterLock.current) {
       focusAfterLock.current = false;
       angleRef.current?.focus({ preventScroll: true });
     }
-  }, [view.lock]);
+  }, [viewState.lock]);
 
   // U5: the Start next set button goes with the rest panel. The focus moves to the angle readout and the page goes to the top.
   const focusAfterSet = useRef(false);
@@ -565,8 +565,10 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const holdTotal = isHold ? (exercise.holdSeconds ?? null) : null; // the clinician hold time. The app has no number of its own.
   const resting = sets.phase === 'set-complete';
   const captureOn = needsCapture && found === null; // the app looks for the starting angle
+  const cameraTrouble = viewState.stale || cameraError !== null || backgrounded;
+  // U6: when the camera stops, the old cue, the old angle and the old top angle go. The readout shows --.
+  const view: View = cameraTrouble ? { ...viewState, angle: null, cue: '', alert: '', top: null } : viewState;
   const startText = view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
-  const cameraTrouble = view.stale || cameraError !== null || backgrounded;
   const trouble = firstSentence(cameraError ?? (backgrounded ? BACKGROUND_TEXT : NO_IMAGE_TEXT));
 
   // The gauge shows the live angle on a track from 0 to the scale end. The limit is a quiet marker, not a target to reach.

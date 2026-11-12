@@ -261,6 +261,23 @@ describe('L3-07: the page goes to the background', () => {
     expect(document.querySelector('.session-start')!.textContent).toBe('');
   });
 
+  // U6: after the camera stops, the old cue and the old angle must not stay on the screen.
+  it('clears the cue, the live angle and the top angle when the camera stops', () => {
+    const { source } = setup({ kind: 'straight-leg-raise', source: 'test' });
+    let t = 0;
+    for (; t < 1500; t += 30) act(() => void (source.emit(legLandmarks('left', 20, { thighAngle: -Math.PI / 2 + 0.15, hip: { x: 0.5, y: 0.6 } }), t), vi.advanceTimersByTime(30)));
+    for (; t < 2500; t += 30) act(() => void (source.emit(null, t), vi.advanceTimersByTime(30))); // no leg: the cue "Show your whole leg." shows
+    act(() => void vi.advanceTimersByTime(300));
+    expect(document.body.textContent).toContain('Show your whole leg.');
+    expect(document.body.textContent).toMatch(/Estimated angle at the top: \d+ degrees?/);
+    hide('hidden');
+    hide('visible');
+    act(() => void vi.advanceTimersByTime(300));
+    expect(document.body.textContent).not.toContain('Show your whole leg.');
+    expect(document.body.textContent).not.toMatch(/Estimated angle at the top/);
+    expect(document.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent).toBe('--');
+  });
+
   it('starts the camera again after the press and removes the notice', () => {
     const { source } = setup();
     feed(source, 20, 300, 0);
