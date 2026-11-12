@@ -267,7 +267,7 @@ export interface LiftDriver {
    * `raw` is the segment angle in degrees, or null when a landmark is not seen. Returns the filtered angle.
    * `aux` is needed for a directional lift only (the lift to the back).
    */
-  sample(raw: number | null, t: number, aux?: DirectionAux): { value: number | null; event: 'rep' | null };
+  sample(raw: number | null, t: number, aux?: DirectionAux): { value: number | null; event: 'rep' | null; notSideOn?: boolean };
   /** A new set starts. The peak of the present lift is closed. The peak of the session stays. */
   newSet(): void;
   reps(): number;
@@ -284,8 +284,11 @@ export interface LiftDriverConfig extends LiftConfig {
    * The facing direction comes from the foot index at rest: the foot points forward. Without a sure foot, `cameraFacing` is used
    * (+1 the person looks to the right of the picture, -1 to the left). Without both the driver does not guess: no count and no value.
    */
-  directional?: { cameraFacing: 1 | -1 | null };
+  directional?: { cameraFacing: 1 | -1 | null; maxWidth?: number };
 }
+
+/** The frames of the median of the width (the side-on check). At about 10 frames each second this is 0.5 s. A single bad frame does not decide. */
+export const WIDTH_FRAMES = 5;
 
 /**
  * The facing direction that follows from the camera side. A camera on the left of the person sees the left side of the person,
@@ -304,6 +307,7 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
   // R-01: no lift counts until the angle was seen below the gate. A person who is upright, or a leg that starts raised, is not a lift.
   let armed = false;
   let votes = 0;
+  const widths: number[] = []; // the last WIDTH_FRAMES known widths
   const close = () => {
     if (top !== null) {
       best = best === null ? top : Math.max(best, top);
@@ -334,6 +338,16 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
           return { value: null, event: null };
         }
         backward = Math.sign(aux.kneeDx) === -facing;
+        // R-02b: a person who faces the camera who lifts the leg to the side has the knee "behind" the hip in the picture too.
+        // The lift to the back is valid for a side-on person only. A wide hip line in the picture counts nothing and gives no value.
+        if (aux.width !== null) {
+          widths.push(aux.width);
+          if (widths.length > WIDTH_FRAMES) widths.shift();
+        }
+        if (cfg.directional.maxWidth !== undefined && widths.length > 0 && [...widths].sort((a, b) => a - b)[widths.length >> 1]! > cfg.directional.maxWidth) {
+          lift = liftStep(lift, null, t, cfg).lift;
+          return { value: null, event: null, notSideOn: true };
+        }
       }
       const out = liftStep(lift, armed && backward && value >= cfg.liftAngle, t, cfg);
       lift = out.lift;

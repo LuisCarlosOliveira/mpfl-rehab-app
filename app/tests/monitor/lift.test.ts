@@ -223,3 +223,31 @@ describe('R-02: the leg raise to the back counts the backward direction only', (
     expect(d.data().reportValue).toBeLessThanOrEqual(30.001);
   });
 });
+
+describe('the side-on check of the lift to the back (R-02b)', () => {
+  // The leg is down (angle 0) for 1 s, up (40 degrees) for 1.5 s, then down again. The knee is behind the hip for a camera on the left.
+  const play = (width: number | null) => {
+    const d = createLiftDriver({
+      liftAngle: LIFT_ANGLE_BACK,
+      settleMs: value('leg-raise-back', 'raise-settle-ms'),
+      endMs: value('leg-raise-back', 'lift-end-ms'),
+      directional: { cameraFacing: -1, maxWidth: value('leg-raise-back', 'side-on-width') },
+    });
+    let turned = 0;
+    for (let t = 0; t < 4000; t += 100) {
+      const up = t >= 1000 && t < 2500;
+      const out = d.sample(up ? 40 : 0, t, { footDx: -0.08, kneeDx: up ? 0.05 : 0, width });
+      if (out.notSideOn) turned += 1;
+    }
+    return { reps: d.reps(), turned };
+  };
+  it('counts the lift of a side-on person and of a person with an unknown width', () => {
+    expect(play(0.05)).toEqual({ reps: 1, turned: 0 });
+    expect(play(null)).toEqual({ reps: 1, turned: 0 });
+  });
+  it('counts nothing and says not side-on when the hips are wide in the picture', () => {
+    const r = play(0.35);
+    expect(r.reps).toBe(0);
+    expect(r.turned).toBeGreaterThan(0);
+  });
+});

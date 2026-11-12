@@ -7,7 +7,7 @@ import { MARGIN_DEG } from './margin';
 import type { Exercise } from './protocol';
 import { plural } from './sets';
 
-export type CueEvent = 'rep' | 'shallow' | 'near-limit' | 'over-limit' | 'too-fast' | 'paused' | 'hold-restart' | 'hold-complete' | null;
+export type CueEvent = 'rep' | 'shallow' | 'near-limit' | 'over-limit' | 'too-fast' | 'paused' | 'not-side-on' | 'hold-restart' | 'hold-complete' | null;
 
 export interface CueContext {
   repMs?: number | null;
@@ -21,6 +21,7 @@ const FIXED = {
   nearLimit: 'Close to your limit, stop.',
   overLimit: 'Stop at your limit, do not push.',
   paused: 'Show your whole leg.',
+  notSideOn: 'Turn so that your side faces the camera.',
   aboveTopLimit: 'Above the limit your care team set.',
   // T5. It states what the timer does. It does not ask for a straight knee, because P1 and P2 avoid full extension early.
   holdRestart: 'The knee left the hold angle. The hold timer starts again.',
@@ -43,6 +44,8 @@ export function cueFor(event: CueEvent, ctx: CueContext): string | null {
       return FIXED.overLimit;
     case 'paused':
       return FIXED.paused;
+    case 'not-side-on':
+      return FIXED.notSideOn;
     case 'hold-restart':
       return FIXED.holdRestart;
     case 'too-fast':
@@ -60,7 +63,7 @@ export const CUE_REPEAT_MS = 10000; // ENGINEERING: the same text does not come 
 export const PAUSED_CUE_MS = 500; // ENGINEERING: the leg must stay out of view this long before the cue shows, and in view this long before it hides. The body map uses the same time (no blink).
 
 // Order, first to last. The "knee gave way or hurts" button is before all of them and is not a cue.
-const CUE_ORDER: CueEvent[] = ['over-limit', 'near-limit', 'paused', 'too-fast', 'shallow', 'hold-restart'];
+const CUE_ORDER: CueEvent[] = ['over-limit', 'near-limit', 'paused', 'not-side-on', 'too-fast', 'shallow', 'hold-restart'];
 
 /** Lower is more urgent. A cue that is not in the list gets the last rank. */
 export const cuePriority = (event: CueEvent): number => {
