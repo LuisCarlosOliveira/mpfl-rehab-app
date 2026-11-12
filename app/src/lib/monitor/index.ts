@@ -18,6 +18,6 @@ export type {
 } from './spec';
 export { REGISTRY, specFor } from './registry';
 export { engineKinds, engineSpecFor, trackFor, usesNewEngine } from './engine';
-export { createCycleDriver, createLiftDriver, createPersonTimer, liftStep } from './modes';
-export type { EngineData } from './modes';
+export { createCycleDriver, createLiftDriver, createPersonTimer, holdSeconds, liftStep } from './modes';
+export type { EndHoldResult, EngineData } from './modes';
 export { readMeasure } from './measure';

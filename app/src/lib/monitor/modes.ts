@@ -23,9 +23,21 @@ export const HOLD_MIN_MS = 1000; // a shorter hold is dropped (a double press)
 export const HOLD_MAX_S = 3600; // the limit of the stored field
 export const HOLD_LIST_MAX = 50; // the limit of the stored field
 
+/** The answer of endHold. The screen can show a polite line for a hold that is not saved. */
+export interface EndHoldResult {
+  saved: boolean;
+  reason: 'ok' | 'too-short' | 'too-long' | 'list-full' | 'not-holding';
+}
+
+/**
+ * The whole seconds of a hold: the time in milliseconds, rounded, at least 1. This is the value that the record stores.
+ * The screen must use this function for the number that it shows, so the screen and the record agree (R-05).
+ */
+export const holdSeconds = (ms: number): number => Math.max(1, Math.round(ms / 1000));
+
 export interface PersonTimer {
   startHold(tMs: number): void;
-  endHold(tMs: number): void;
+  endHold(tMs: number): EndHoldResult;
   holding(): boolean;
   count(): number;
   data(): EngineData;
@@ -39,11 +51,15 @@ export function createPersonTimer(): PersonTimer {
       if (startedAt === null) startedAt = tMs; // a second start while holding is ignored
     },
     endHold(tMs) {
-      if (startedAt === null) return; // an end with no start is ignored
+      if (startedAt === null) return { saved: false, reason: 'not-holding' }; // an end with no start is ignored
       const ms = tMs - startedAt;
       startedAt = null;
-      if (ms < HOLD_MIN_MS || holdList.length >= HOLD_LIST_MAX) return;
-      holdList.push(Math.min(HOLD_MAX_S, Math.round(ms / 1000)));
+      if (ms < HOLD_MIN_MS) return { saved: false, reason: 'too-short' };
+      // A hold over the limit is dropped. A clamped value would not be the true time.
+      if (holdSeconds(ms) > HOLD_MAX_S) return { saved: false, reason: 'too-long' };
+      if (holdList.length >= HOLD_LIST_MAX) return { saved: false, reason: 'list-full' };
+      holdList.push(holdSeconds(ms));
+      return { saved: true, reason: 'ok' };
     },
     holding: () => startedAt !== null,
     count: () => holdList.length,

@@ -31,6 +31,7 @@ import {
   createPersonTimer,
   liftStep,
   type CycleDriver,
+  type EndHoldResult,
   type EngineData,
   type LiftDriver,
   type LiftState,
@@ -201,7 +202,8 @@ export interface Pipeline {
   summary(): Summary;
   /** Mode person-timer only (quad set, gluteal set). The screen calls these from its buttons. The camera never decides the effort. */
   startHold?(tMs: number): void;
-  endHold?(tMs: number): void;
+  /** Says whether the hold was saved, and why not when it was not (the screen shows a polite line). */
+  endHold?(tMs: number): EndHoldResult;
   /** The five new kinds only. The data for the stored record: holdList, timedBy, reportKey, reportValue. */
   engineData?(): EngineData;
 }

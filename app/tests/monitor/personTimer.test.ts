@@ -1,7 +1,7 @@
 // Step B2: the mode person-timer (quad set, gluteal set). The person starts and ends each hold with a button.
 // The camera never decides the effort. The timer has no report value (R-08).
 import { describe, expect, it } from 'vitest';
-import { createPersonTimer } from '../../src/lib/monitor/modes';
+import { createPersonTimer, holdSeconds } from '../../src/lib/monitor/modes';
 
 describe('person-timer events', () => {
   it('records a hold in whole seconds and counts it', () => {
@@ -61,17 +61,42 @@ describe('person-timer events', () => {
     expect(t.data().holdList).toEqual([2]);
   });
 
-  it('caps a hold at 3600 seconds and the list at 50 holds', () => {
+  it('drops a hold over 3600 seconds and stores no clamped value (R-04)', () => {
     const t = createPersonTimer();
     t.startHold(0);
-    t.endHold(5 * 3600 * 1000);
+    t.endHold(3600 * 1000);
     expect(t.data().holdList).toEqual([3600]);
-    for (let i = 0; i < 60; i++) {
-      t.startHold(10_000_000 + i * 10_000);
-      t.endHold(10_000_000 + i * 10_000 + 2000);
+    t.startHold(10_000_000);
+    expect(t.endHold(10_000_000 + 3601 * 1000)).toEqual({ saved: false, reason: 'too-long' });
+    expect(t.data().holdList).toEqual([3600]);
+  });
+
+  it('keeps the list at 50 holds and says list-full for the next one', () => {
+    const t = createPersonTimer();
+    let last;
+    for (let i = 0; i < 51; i++) {
+      t.startHold(i * 10_000);
+      last = t.endHold(i * 10_000 + 2000);
     }
     expect(t.data().holdList).toHaveLength(50);
     expect(t.count()).toBe(50);
+    expect(last).toEqual({ saved: false, reason: 'list-full' });
+  });
+
+  it('endHold says why in one of the four reasons, and ok when it saved', () => {
+    const t = createPersonTimer();
+    expect(t.endHold(1000)).toEqual({ saved: false, reason: 'not-holding' });
+    t.startHold(0);
+    expect(t.endHold(500)).toEqual({ saved: false, reason: 'too-short' });
+    t.startHold(2000);
+    expect(t.endHold(5000)).toEqual({ saved: true, reason: 'ok' });
+    expect(t.endHold(6000)).toEqual({ saved: false, reason: 'not-holding' });
+  });
+
+  it('a hold with an end before its start is too-short', () => {
+    const t = createPersonTimer();
+    t.startHold(5000);
+    expect(t.endHold(4000)).toEqual({ saved: false, reason: 'too-short' });
   });
 
   it('reports whether a hold is running', () => {
@@ -106,5 +131,24 @@ describe('person-timer has no report value (R-08)', () => {
   });
   it('has no function that reads the knee', () => {
     expect('sample' in createPersonTimer()).toBe(false);
+  });
+});
+
+describe('holdSeconds (R-05): the one rule for the stored value, and for the screen', () => {
+  it('rounds to whole seconds with a minimum of 1', () => {
+    expect(holdSeconds(1000)).toBe(1);
+    expect(holdSeconds(1499)).toBe(1);
+    expect(holdSeconds(1500)).toBe(2);
+    expect(holdSeconds(2999)).toBe(3);
+    expect(holdSeconds(0)).toBe(1);
+    expect(holdSeconds(400)).toBe(1);
+  });
+  it('is the value that the timer stores', () => {
+    for (const ms of [1000, 1499, 1500, 2999, 59_400, 60_500]) {
+      const t = createPersonTimer();
+      t.startHold(0);
+      t.endHold(ms);
+      expect(t.data().holdList).toEqual([holdSeconds(ms)]);
+    }
   });
 });
