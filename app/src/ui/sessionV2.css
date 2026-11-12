@@ -545,3 +545,12 @@ body:has(.v2-session) main {
 .v2-session .lock-box > .btn {
   display: flex;
 }
+
+/* B6-03: the general hover rule `.btn:hover:not(:disabled):not([aria-disabled])` has more weight than `.btn-stop:hover`. It gave Stop a light
+   background with a light label (contrast 1.12 to 1). These rules have more weight, so Stop keeps its dark pill with a light label. */
+.v2-session .session-bar .btn-stop:hover:not(:disabled):not([aria-disabled='true']),
+.v2-session .session-bar .btn-stop:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+  color: var(--bg);
+}
