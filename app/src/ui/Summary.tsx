@@ -6,7 +6,7 @@
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { PEAK_NO_VALUE_TEXT, peakUnreadable, topAngleText } from '../lib/cues';
+import { PEAK_NO_VALUE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import type { Exercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
@@ -122,7 +122,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     saving.current = false;
   }
 
-  const top = topAngleText(storedWhole(summary.topFlexion));
+  const topWhole = storedWhole(summary.topFlexion);
   const peakWhole = storedWhole(summary.peakFlexion);
   const overLimit = summary.eventCounts.overLimit; // the stored count: bends past the limit of the care team
   const unit = summary.holds === null ? 'rep' : 'hold';
@@ -176,6 +176,20 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               )}
             </div>
           )}
+          {/* U4: the angle at the top of a leg raise is its own line. It is the highest top angle of the sets, the number that the live screen showed. */}
+          {exercise.kind === 'straight-leg-raise' && topWhole !== null && (
+            <div className="stat">
+              <dt>Angle at the top</dt>
+              {topUnreadable(summary.topFlexion) ? (
+                <dd>{PEAK_NO_VALUE_TEXT}</dd>
+              ) : (
+                <dd>
+                  <span className="num">{topWhole}</span> <span className="unit">{plural(topWhole, 'degree')}</span>
+                  <span className="detail">({ANGLE_LABEL})</span>
+                </dd>
+              )}
+            </div>
+          )}
         </dl>
         {/* The pause message sits here, above both questions, so a phone shows it at once (FR12). */}
         <PauseNotice verdict={verdict} pain={highestPain} />
@@ -192,7 +206,6 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           </ul>
         )}
         {overLimit > 0 && <p>{`Bends past your limit: ${overLimit}.`}</p>}
-        {top && <p>{top}</p>}
         {summary.reps === 0 && <p>{overLimit > 0 ? 'No repetitions were counted. Bends past your limit do not count.' : 'No repetitions were counted.'}</p>}
 
         {!saved && !discarded ? (
