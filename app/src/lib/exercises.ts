@@ -219,7 +219,7 @@ export interface PipelineOptions {
 export function createPipeline(planned: PlanExercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
   // The five new kinds run through the definitions of lib/monitor/registry.ts. The four old kinds keep the code below.
   const engine = engineSpecFor(planned.kind);
-  if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(engine.view.legs !== 'none', side, aspect, options) };
+  if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(side, options) };
   const exercise = planned as Exercise;
   const made = engine === undefined ? counterSetup(exercise) : ({ ok: true, kind: 'engine' } as const);
   if (!made.ok) return made;
@@ -509,24 +509,13 @@ const thresholdOf = (spec: ExerciseSpec, name: string): number => {
 };
 
 /**
- * The pipeline of the mode person-timer. It reads the camera for nothing but the optional knee angle at the end of a hold.
- * It has no anchor and no lockout: the definition needs no landmark (`needs` is empty), and a timer must work with no person in view.
+ * The pipeline of the mode person-timer. It reads no landmark: the timer has no anchor, no lockout and no angle (R-08).
+ * A timer must work with no person in view.
  */
-function createTimerPipeline(reportKnee: boolean, side: Side, aspect: number, options: PipelineOptions): Pipeline {
-  const timer: PersonTimer = createPersonTimer({ reportKnee });
-  const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
+function createTimerPipeline(side: Side, options: PipelineOptions): Pipeline {
+  const timer: PersonTimer = createPersonTimer();
   return {
-    step(landmarks, t) {
-      let f: number | null = null;
-      if (reportKnee && landmarks !== null) {
-        const [hip, knee, ankle] = selectLeg(landmarks, side);
-        const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
-        f = raw === null ? null : filter.filter(raw, t);
-        if (raw === null) filter.reset();
-      }
-      timer.sample(f, t);
-      return { flexion: f, event: null, repMs: null };
-    },
+    step: () => ({ flexion: null, event: null, repMs: null }),
     setBaseline() {},
     newSet() {},
     followAgain() {},

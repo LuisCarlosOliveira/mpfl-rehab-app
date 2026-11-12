@@ -72,8 +72,8 @@ describe('quad-set and gluteal-set (person-timer)', () => {
     const d = p.engineData?.();
     expect(d?.holdList).toEqual([3]);
     expect(d?.timedBy).toBe('person');
-    expect(d?.reportKey).toBe('knee-angle-top');
-    expect(typeof d?.reportValue).toBe('number');
+    expect(d?.reportKey).toBeUndefined(); // R-08: no knee angle next to a hold list
+    expect(d?.reportValue).toBeUndefined();
   });
 
   it('counts no hold from the camera: a moving knee gives no hold', () => {
