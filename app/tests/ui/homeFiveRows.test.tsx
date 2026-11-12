@@ -1,5 +1,5 @@
-// Exercise monitoring, step A: the five exercises are normal rows on Home. They have no Start until Step B and D.
-import { cleanup, render, screen, within } from '@testing-library/react';
+// Exercise monitoring, step A and D1: the five exercises are normal rows on Home, with a Start button like the other four.
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
@@ -50,12 +50,24 @@ describe('Home, the five exercises', () => {
     expect(within(row('Ankle pump')).getByText('How many: ask your care team')).toBeInTheDocument();
   });
 
-  it('shows no Start button for the five, and Start for the straight leg raise', () => {
+  it('shows a Start button for each of the five and calls onStart with the kind', () => {
     const onStart = show(generated());
-    for (const name of Object.keys(LINES)) expect(within(row(name)).queryByRole('button')).toBeNull();
-    expect(screen.queryByRole('button', { name: /Start (Quadriceps|Gluteal|Ankle|Leg raise to the)/ })).toBeNull();
+    const KINDS: Record<string, string> = { 'Quadriceps set': 'quad-set', 'Gluteal set': 'gluteal-set', 'Ankle pump': 'ankle-pump', 'Leg raise to the side': 'leg-raise-side', 'Leg raise to the back': 'leg-raise-back' };
+    for (const [name, kind] of Object.entries(KINDS)) {
+      const button = within(row(name)).getByRole('button', { name: `Start ${name}` });
+      expect(button).toBeEnabled();
+      fireEvent.click(button);
+      expect(onStart).toHaveBeenLastCalledWith(kind);
+    }
     expect(screen.getByRole('button', { name: 'Start Straight leg raise' })).toBeEnabled();
-    expect(onStart).not.toHaveBeenCalled();
+  });
+
+  it('gives the first row the large Start button and the other rows the quiet one', () => {
+    show(generated());
+    const buttons = screen.getAllByRole('button', { name: /^Start / });
+    expect(buttons.length).toBeGreaterThanOrEqual(6);
+    expect(buttons.filter((b) => b.className.includes('btn-lg'))).toHaveLength(1);
+    expect(buttons[0]!.className).toContain('btn-lg');
   });
 
   it('shows the five from an older file with homeExercises, loaded and converted', () => {
@@ -64,7 +76,7 @@ describe('Home, the five exercises', () => {
     if (!r.ok) throw new Error(r.error.message);
     show(r.protocol);
     expect(within(row('Quadriceps set')).getByText(LINES['Quadriceps set']!)).toBeInTheDocument();
-    expect(within(row('Quadriceps set')).queryByRole('button')).toBeNull();
+    expect(within(row('Quadriceps set')).getByRole('button', { name: 'Start Quadriceps set' })).toBeEnabled();
   });
 
   it('holds no verdict word', () => {

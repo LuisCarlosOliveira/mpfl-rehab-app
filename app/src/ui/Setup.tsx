@@ -16,10 +16,12 @@ import type { Side } from '../lib/angle';
 import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
 import { countsReps, doneLying } from '../lib/exercises';
+import { isNumericKind } from '../lib/monitor/monitored';
+import { specFor } from '../lib/monitor/registry';
 import { distanceText, type CameraView } from '../lib/figure';
-import type { GuideKind } from '../lib/guides';
+import type { AnyGuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
-import { createSetupStabilizer, type SetupRuleId } from '../lib/setupRules';
+import { createSetupStabilizer, setupProfileFor, type SetupRuleId } from '../lib/setupRules';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import type { FrameHandler, LandmarkSource, StartProgress } from '../pose/source';
 import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
@@ -28,7 +30,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -59,16 +61,18 @@ export interface SetupDone {
 /** The camera views that the guide drawing shows. The front view joins the side view when a phone is connected. */
 const SIDE_ONLY: CameraView[] = ['side'];
 const SIDE_AND_FRONT: CameraView[] = ['side', 'front'];
-const CAMERA_CAPTION: Record<CameraView, string> = {
-  side: `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`,
-  front: `Camera in front of you, at knee height, ${distanceText()} away.`,
-};
+const FRONT_ONLY: CameraView[] = ['front'];
+// The leg raise to the side needs the camera at hip height. The drawing of that exercise shows it (figure.ts).
+const cameraCaption = (view: CameraView, kind: AnyGuideKind): string =>
+  view === 'side'
+    ? `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`
+    : `Camera in front of you, at ${kind === 'leg-raise-side' ? 'hip' : 'knee'} height, ${distanceText()} away.`;
 const SLOW_START_MS = 8000;
 // The number 6 in the camera drawing matches the sixth note of the guide (see SetupGuide.tsx).
 const CAMERA_MARKS: Mark[] = [{ n: 6, at: 'lens', dx: -2.4, dy: 2.4 }];
 
 interface Props {
-  kind: GuideKind;
+  kind: AnyGuideKind;
   side: Side;
   exerciseName: string;
   /** The knee angle that the protocol sets as the target for this exercise, in degrees. It sets the end drawing. */
@@ -87,6 +91,15 @@ interface Props {
 
 export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, onReady, onCancel }: Props) {
   const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
+  // The definition of the exercise sets the rules of the check, the views and the questions (lib/monitor/registry.ts).
+  const spec = specFor(kind);
+  const profile = setupProfileFor(kind); // null: no leg check (the two timers)
+  const askLeg = spec === undefined || spec.view.legs === 'chosen';
+  const askCameraSide = spec === undefined || spec.view.cameraSide === 'operated-leg-near';
+  const primaryView: CameraView = spec?.view.angle === 'front' ? 'front' : 'side';
+  const noCameraView = spec?.view.angle === 'none';
+  const lying = isNumericKind(kind) ? doneLying(kind) : spec?.posture[0] === 'supine';
+  const countsRepsKind = isNumericKind(kind) && countsReps(kind);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const runningStatusRef = useRef<HTMLParagraphElement>(null);
@@ -131,9 +144,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
-    const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: doneLying(kind) ? 'lying' : 'upright' }, timeMs);
-    // svg attributes only, no React state. U1: the angle text shows only when the check shows hip, knee and ankle as seen. Otherwise it is empty.
-    map.current?.update(landmarks, timeMs, source.aspect(), jointsSeen(out.rule) ? undefined : null);
+    if (profile === null) return; // a timer exercise: the camera picture shows and no landmark is checked
+    const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: lying ? 'lying' : 'upright', profile }, timeMs);
+    // svg attributes only, no React state. U1: the angle text shows only when the check shows the needed joints as seen. Otherwise it is empty.
+    map.current?.update(landmarks, timeMs, source.aspect(), jointsSeen(out.rule, profile) ? undefined : null);
     if (out.announce !== null) announced.current = out.announce;
     baseline.current = out.baselineDeg;
     const next: Live = {
@@ -199,12 +213,12 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     onCancel();
   }
   const connected = pair?.view.status === 'connected';
-  const cameraViews = connected ? SIDE_AND_FRONT : SIDE_ONLY;
+  const cameraViews: CameraView[] = noCameraView ? [] : connected ? SIDE_AND_FRONT : primaryView === 'front' ? FRONT_ONLY : SIDE_ONLY;
 
   const running = camera.kind === 'running';
-  const chip = chipFor(live?.rule ?? 'no-pose');
+  const chip = chipFor(live?.rule ?? 'no-pose', profile ?? undefined);
   const fixLine = firstSentence(camera.kind === 'error' ? camera.message : '');
-  const needsReturnValue = countsReps(kind) && returnWithinDeg === undefined;
+  const needsReturnValue = countsRepsKind && returnWithinDeg === undefined;
   const chooseLeg = (value: Side) => {
     setLeg(value);
     setConfirmedOther(false);
@@ -219,8 +233,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const legend = legLegend(leg, side);
   const cameraGuide = cameraViews.map((view) => (
     <figure key={view} className="figure-card camera-guide">
-      <CameraFigure view={view} kind={kind} legend={legend} marks={step === 'guide' ? CAMERA_MARKS : undefined} description={CAMERA_CAPTION[view]} />
-      <figcaption>{CAMERA_CAPTION[view]}</figcaption>
+      <CameraFigure view={view} kind={kind} legend={legend} marks={step === 'guide' ? CAMERA_MARKS : undefined} description={cameraCaption(view, kind)} />
+      <figcaption>{cameraCaption(view, kind)}</figcaption>
     </figure>
   ));
 
@@ -287,6 +301,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
       {step === 'guide' ? (
         <SetupGuide
           kind={kind}
+          askLeg={askLeg}
+          askCameraSide={askCameraSide}
           side={side}
           leg={leg}
           cameraSide={cameraSide}
@@ -294,7 +310,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           targetFlexion={targetFlexion}
           limit={limit}
           confirmedOther={confirmedOther}
-          cameraGuide={cameraGuide}
+          cameraGuide={cameraViews.length === 0 ? null : cameraGuide}
           returnNotice={returnNotice}
           onLegChange={chooseLeg}
           onCameraSideChange={(value) => {
@@ -315,8 +331,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
             <div className="frame" ref={frameRef}>
               <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
-              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
-              {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
+              {running && profile !== null && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
+              {running && profile !== null && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
               {camera.kind === 'idle' && <SetupStateCard icon="camera" line={IDLE_TEXT.line} help={IDLE_TEXT.help} />}
               {camera.kind === 'starting' && (
                 <SetupStateCard
@@ -339,9 +355,16 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 </Notice>
               )}
             </div>
-            {running && <BodyMapSwitch />}
+            {running && profile !== null && <BodyMapSwitch />}
 
-            {running && (
+            {running && profile === null && (
+              <div className="stack-s setup-live">
+                <p data-testid="instruction" className="instruction-large">
+                  {TIMER_NOTE}
+                </p>
+              </div>
+            )}
+            {running && profile !== null && (
               <div className="stack-s setup-live">
                 <p data-testid="instruction" className="instruction-large">
                   {live ? live.text : 'Waiting for the camera.'}
@@ -354,19 +377,19 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 {live?.progress != null && (
                   <progress className="capture-progress" max={100} value={live.progress} aria-label={CAPTURE_TEXT.progress} />
                 )}
-                {live?.resting != null && countsReps(kind) && (
+                {live?.resting != null && countsRepsKind && (
                   <p data-testid="resting" className="detail">
                     {LEG_TEXT.resting(live.resting)}
                   </p>
                 )}
-                {live?.resting == null && !needsReturnValue && countsReps(kind) && (
+                {live?.resting == null && !needsReturnValue && countsRepsKind && (
                   <Notice icon="ruler">
                     <p>{CAPTURE_TEXT.setupNoRest}</p>
                     <p className="detail">{CAPTURE_TEXT.setupNoRestDetail}</p>
                   </Notice>
                 )}
                 <ul className="rule-list" aria-label="Camera check">
-                  {orderedRuleRows(live?.rule ?? 'no-pose').map((row) => {
+                  {orderedRuleRows(live?.rule ?? 'no-pose', profile ?? undefined).map((row) => {
                     const seen = row.word === 'seen';
                     return (
                       <li key={row.label} className={seen ? 'rule rule-seen' : 'rule rule-missing'}>
@@ -385,7 +408,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
             {running && (
               <p className="start-status visually-hidden" role="status" tabIndex={-1} ref={runningStatusRef}>
-                {cameraStatusText(live?.rule ?? 'no-pose')}
+                {profile === null ? TIMER_NOTE : cameraStatusText(live?.rule ?? 'no-pose', profile)}
               </p>
             )}
           </div>
@@ -394,12 +417,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
             <div className="card card-flat stack-s">
               <h2>Before you start</h2>
               <p>
-                The app uses the camera to find your leg. It does not record or send video.
+                {profile === null ? 'The camera picture shows while you exercise.' : 'The app uses the camera to find your leg.'} It does not record or send video.
               </p>
               <p>{CAMERA_PEOPLE_NOTE}</p>
-              <p>
-                Put the camera at the side that you chose. Step back until your whole chosen leg shows. Hold still for 2 seconds.
-              </p>
+              <p>{beforeYouStart(profile)}</p>
               {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
             </div>
             {returnNotice}

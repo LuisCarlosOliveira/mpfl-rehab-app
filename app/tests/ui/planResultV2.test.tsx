@@ -190,10 +190,10 @@ describe('Home, a plan with the five exercises', () => {
     return render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date(`${TODAY}T10:00:00`)} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
   };
 
-  it('shows the five as rows with no Start button, and the lines of the plan', () => {
+  it('shows the five as rows with a Start button, and the lines of the plan', () => {
     show(protocol());
     const row = screen.getByRole('heading', { level: 3, name: 'Quadriceps set' }).closest('li') as HTMLElement;
-    expect(within(row).queryByRole('button')).toBeNull();
+    expect(within(row).getByRole('button', { name: 'Start Quadriceps set' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Start Straight leg raise' })).toBeEnabled();
     expect(screen.getByText(RULES.PT_VISITS.text)).toBeInTheDocument();
     expect(screen.getByText(RULES.ROM_CHECK.text)).toBeInTheDocument();
