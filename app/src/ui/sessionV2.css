@@ -525,3 +525,23 @@ body:has(.v2-session) main {
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 0 1px #120b0a);
 }
+
+/* B5-04: the lock box sits on the fixed bar, never under it. It is out of the page flow, so the page does not jump and does not scroll.
+   --bar-h is the height of the fixed bar (src/lib/useBarHeight.ts). The numbers read "--" while the box shows, so it hides nothing that is in use. */
+.v2-session .lock-box {
+  position: fixed;
+  inset-inline: 0;
+  bottom: var(--bar-h, 5rem);
+  z-index: 9; /* under the bar, which has 10 */
+  padding: var(--s-3) var(--gutter);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  outline-offset: -2px;
+}
+.v2-session .lock-box > * {
+  max-width: 72rem;
+  margin-inline: auto;
+}
+.v2-session .lock-box > .btn {
+  display: flex;
+}
