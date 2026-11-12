@@ -44,6 +44,7 @@ import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHand
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
 import { PainScale } from './PainScale';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
@@ -446,6 +447,19 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     }
   }, [view.lock]);
 
+  // U5: the Start next set button goes with the rest panel. The focus moves to the angle readout and the page goes to the top.
+  const focusAfterSet = useRef(false);
+  function startNextSet() {
+    focusAfterSet.current = true;
+    applySets(nextSet(setsRef.current));
+  }
+  useEffect(() => {
+    if (focusAfterSet.current && sets.phase !== 'set-complete') {
+      focusAfterSet.current = false;
+      focusHeading(angleRef.current);
+    }
+  }, [sets.phase]);
+
   // U3: a new set starts with no top angle on the screen. The session keeps its highest top angle for the Summary.
   useEffect(() => {
     pipeline.current?.newSet();
@@ -721,7 +735,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   )}
                   {sets.phase === 'set-complete' && !painStop && <PainScale key={sets.setIndex} name="set-pain" value={painAnswers[sets.setIndex] ?? null} onChange={answerPain} />}
                   {sets.phase === 'set-complete' && !painStop ? (
-                    <button type="button" className="btn btn-primary btn-lg" onClick={() => applySets(nextSet(setsRef.current))}>
+                    <button type="button" className="btn btn-primary btn-lg" onClick={startNextSet}>
                       <Icon name="play" size={22} fill="currentColor" />
                       Start next set
                     </button>

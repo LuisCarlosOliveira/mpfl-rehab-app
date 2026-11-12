@@ -88,6 +88,9 @@ interface Props {
 export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, onReady, onCancel }: Props) {
   const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
   const titleRef = useRef<HTMLHeadingElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const runningStatusRef = useRef<HTMLParagraphElement>(null);
+  const pressedStart = useRef(false);
   const [pairUsed, setPairUsed] = useState(false); // the optional step was opened. The step list keeps it.
   const [camera, setCamera] = useState<Camera>({ kind: 'idle' });
   const [live, setLive] = useState<Live | null>(null);
@@ -150,12 +153,23 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
 
   async function startCamera() {
     sound.unlock(); // inside the press, so the browser allows audio later
+    pressedStart.current = true;
     setCamera({ kind: 'starting', progress: { step: 'camera' }, slow: false });
     const result = await source.start(onFrame, videoRef.current, (progress) =>
       setCamera((c) => (c.kind === 'starting' ? { ...c, progress } : c)),
     );
     setCamera(result.ok ? { kind: 'running' } : { kind: 'error', message: result.error.message });
   }
+
+  // U5: the Start camera button goes when the camera starts. The focus moves to the status of the camera, and then to the line that says what the camera sees.
+  useEffect(() => {
+    if (!pressedStart.current) return;
+    if (camera.kind === 'starting') statusRef.current?.focus({ preventScroll: true });
+    else if (camera.kind === 'running') {
+      runningStatusRef.current?.focus({ preventScroll: true });
+      pressedStart.current = false;
+    }
+  }, [camera.kind]);
 
   // AC6-01: a new step opens at the top of the page, with the focus on the heading. The pair step has its own heading (PairHost).
   useEffect(() => {
@@ -308,6 +322,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
                 <SetupStateCard
                   className="start-status"
                   role="status"
+                  focusRef={statusRef}
                   icon="camera"
                   line={camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}
                   help={camera.progress.step === 'model' ? startText.cameraOn : undefined}
@@ -369,7 +384,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
             )}
 
             {running && (
-              <p className="start-status visually-hidden" role="status">
+              <p className="start-status visually-hidden" role="status" tabIndex={-1} ref={runningStatusRef}>
                 {cameraStatusText(live?.rule ?? 'no-pose')}
               </p>
             )}
