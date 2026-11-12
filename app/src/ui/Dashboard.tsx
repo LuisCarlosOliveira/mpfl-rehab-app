@@ -5,7 +5,7 @@
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.
 import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import { buildProgressSeries, hasAngleChart, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
+import { buildProgressSeries, hasAngleChart, holdLines, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
 import { MARGIN_DEG } from '../lib/margin';
 import type { SessionRecord } from '../lib/storage';
 import { Icon } from './Icon';
@@ -379,6 +379,21 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   );
 }
 
+/** One plain line for each exercise that the person timed, from its last session. No running total. */
+function HoldLines({ sessions }: { sessions: readonly SessionRecord[] }) {
+  const lines = holdLines(sessions);
+  if (lines.length === 0) return null;
+  return (
+    <ul className="legend-list" aria-label="Holds timed by you">
+      {lines.map((line) => (
+        <li key={line} className="legend-row">
+          <span className="legend-name">{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 interface Props {
   sessions: readonly SessionRecord[];
   title?: string;
@@ -413,6 +428,7 @@ export function Dashboard({ sessions, title = 'Your sessions', skipped = 0, onBa
       ) : (
         <div className="stack">
           <StatStrip sessions={sessions} />
+          <HoldLines sessions={sessions} />
           <p className="lede dash-lede">These numbers are a webcam estimate. Send the file to your care team. They decide any change to your plan.</p>
           <DashboardCharts sessions={sessions} slrNote={sessions.some((s) => s.exercise === 'straight-leg-raise')} />
         </div>
