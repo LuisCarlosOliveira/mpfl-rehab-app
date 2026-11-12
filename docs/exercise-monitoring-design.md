@@ -47,7 +47,7 @@ Rules that a test enforces: a cue never points at an engineering threshold. Ever
 | quad-set | supine, side | none (optional knee angle report) | person-timer | hold seconds (clinician, optional); no cue |
 | gluteal-set | supine | none, no view needed | person-timer | no cue |
 | ankle-pump | supine, side | joint-angle knee-ankle-footIndex | reps-cycle | min amplitude and min state (engineering); no cue |
-| leg-raise-side | side-lying or standing, front-on | segment-angle hip to ankle against the horizontal | lift | lift angle, settle, end (engineering); no cue |
+| leg-raise-side | side-lying, front-on | segment-angle hip to ankle against the horizontal, signed (up is plus) | lift | lift angle, settle, end (engineering); no cue |
 | leg-raise-back | standing, side | segment-angle hip to knee against the vertical | lift | same; no cue |
 
 The existing code fits this record with three new parts. They are the `person-timer` mode, the `segment-angle` measure and the `reps-cycle` mode. The landmark ids 29 to 32 are new too. The leg raise gate becomes a field of the record and not hard-coded.

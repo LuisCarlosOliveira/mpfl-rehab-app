@@ -95,7 +95,7 @@ describe.each(POSES)('%s', (pose) => {
   });
   it('noise alone gives 0 reps (a leg at rest, 12 seeds of 2 minutes)', () => {
     for (let seed = 1; seed <= 12; seed++) {
-      const s = makeSeries({ pose, reps: 60, restValue: 0, peakValue: 0, noise: { kneeRmsDeg: 9 }, seed: 50 + seed });
+      const s = makeSeries({ pose, reps: 60, restValue: pose === 'leg-raise-side' ? -10 : 0, peakValue: pose === 'leg-raise-side' ? -10 : 0, noise: { kneeRmsDeg: 9 }, seed: 50 + seed });
       expect(run(pose, s).d.reps(), `seed ${seed}`).toBe(0);
     }
   });
@@ -168,10 +168,10 @@ describe('R-01: a lift counts only after the angle was seen below the gate (a re
   it('a leg that starts at rest counts the first lift', () => {
     expect(feed(mk(), [[0, 500], [40, 1500], [0, 600]]).reps()).toBe(1);
   });
-  it('a standing front-on pose with a still leg (hip to ankle near vertical) gives 0 reps and no report value, with noise too', () => {
+  it('a standing front-on pose with a still leg (hip to ankle near vertical, signed -88 degrees) gives 0 reps and no report value, with noise too', () => {
     for (const noise of [undefined, { kneeRmsDeg: 9 }])
       for (let seed = 1; seed <= 4; seed++) {
-        const s = makeSeries({ pose: 'leg-raise-side', reps: 20, restValue: 88, peakValue: 88, seed, noise });
+        const s = makeSeries({ pose: 'leg-raise-side', reps: 20, restValue: -88, peakValue: -88, seed, noise });
         const r = run('leg-raise-side', s);
         expect(r.d.reps()).toBe(0);
         expect(r.d.data()).toEqual({});

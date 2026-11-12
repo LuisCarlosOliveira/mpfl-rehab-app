@@ -242,7 +242,7 @@ const ANKLE_PUMP: ExerciseSpec = {
     handsAndSupport: 'Keep your hands at your sides. Keep your heel off the surface so that your foot can move.',
     range: 'Point your toes away from you. Then pull your toes toward you. Repeat.',
     speed: 'Move slowly and with control.',
-    cameraMustSee: 'The camera must see your leg from your knee to your toes. The app counts each pump. It does not check how far you move.',
+    cameraMustSee: 'The camera must see your leg from your knee to your toes. Your whole foot must be in the picture at a normal size, not small. The app counts each pump. It does not check how far you move.',
     bodyMapPoints: [25, 27, 31],
     basis: { kind: 'proposal', sourceIds: ['P1', 'P3'] }, // P1 and P3 name ankle pumps
   },
@@ -254,13 +254,13 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   label: 'Leg raise to the side',
   sourceIds: ['S1', 'P1', 'P2', 'P3'],
   phases: [1, 2],
-  posture: ['side-lying'], // R-01: side-lying only. A standing leg is near vertical, so the segment angle against the horizontal would read it as raised.
+  posture: ['side-lying'], // R-01: side-lying only. The angle is signed (up is plus), so a standing leg reads -90 and counts no lift.
   view: { angle: 'front', cameraSide: 'either', legs: 'chosen' },
   measure: { kind: 'segment-angle', from: 'hip', to: 'ankle', against: 'horizontal' },
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    // Step B: 10 degrees, measured on the synthetic series with 9 degree RMS noise (modes.ts, LIFT_ANGLE_SIDE).
+    // 3 degrees of the SIGNED angle, from 3 real side-lying clips (modes.ts, LIFT_ANGLE_SIDE). The leg at rest reads about -10 degrees.
     { name: 'lift-angle', value: LIFT_ANGLE_SIDE, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
@@ -291,7 +291,7 @@ const LEG_RAISE_BACK: ExerciseSpec = {
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    // Step B: 12 degrees, measured on the synthetic series with 9 degree RMS noise (modes.ts, LIFT_ANGLE_BACK).
+    // 20 degrees, from real clips: a leg at rest reads 11 to 15 degrees (modes.ts, LIFT_ANGLE_BACK).
     { name: 'lift-angle', value: LIFT_ANGLE_BACK, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },

@@ -363,6 +363,10 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
  * - Back (hip to knee, 0.2 long, noise about 5.2 degrees RMS): 8 degrees and more counted no lift. 6 degrees counted 8 at 10 frames. 5 degrees counted 4 (24 at 10 frames).
  * The values keep 2 to 2.5 times the noise limit. A normal lift of the series is 35 degrees (side) and 25 degrees (back): 10 lifts gave 10 reps in 20 of 20 series at both values.
  * A real lift to the back is smaller than the series. A lift that stays under the value counts no rep: this is a limit of the camera.
+ * Real clips (CC BY, landmarks only, tests/fixtures/clipLifts.ts) changed both values:
+ * - Back: a leg at rest reads 11 to 15 degrees on a real clip, so the gate 12 never ended a lift (B2: 1 rep, the eye counts 3). The gate 20 gave B2 3 of 3. The real peaks are 43 to 58 degrees.
+ * - Side: the measure is the SIGNED angle of the hip to ankle line against the horizontal (the ankle above the hip is plus). A leg at rest reads -10 to -12 degrees.
+ *   A raised leg reads +3 to +48. Signed gates 0, 2 and 4 gave S1 4, S2 2 and S3 2, the counts of the eye. The gate 3 is in the middle. This is a count on 3 clips, not a validation.
  */
-export const LIFT_ANGLE_SIDE = 10;
-export const LIFT_ANGLE_BACK = 12;
+export const LIFT_ANGLE_SIDE = 3;
+export const LIFT_ANGLE_BACK = 20;

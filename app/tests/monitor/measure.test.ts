@@ -89,7 +89,7 @@ describe('a hidden landmark gives null', () => {
     expect(jointAngle(p, p, p, 1)).toBeNull();
     expect(normalisedDistance(p, p, 'x', 0, 1)).toBeNull();
   });
-  it('a segment angle is in 0 to 180, never -0 or NaN', () => {
+  it('a segment angle is never -0 or NaN', () => {
     const o = { x: 0.5, y: 0.5, visibility: 1 };
     const at = (dx: number, dy: number) => ({ x: 0.5 + dx, y: 0.5 + dy, visibility: 1 });
     expect(segmentAngle(o, at(0, 0.2), 'vertical', 1)).toBe(0);
@@ -98,7 +98,15 @@ describe('a hidden landmark gives null', () => {
     expect(segmentAngle(o, at(0.2, 0), 'vertical', 1)).toBeCloseTo(90, 9);
     expect(segmentAngle(o, at(0.2, 0), 'horizontal', 1)).toBe(0);
     expect(segmentAngle(o, at(-0.2, 0), 'horizontal', 1)).toBe(0);
-    expect(segmentAngle(o, at(0, 0.2), 'horizontal', 1)).toBeCloseTo(90, 9);
+  });
+  it('the angle against the horizontal is signed: the end point above the start is plus (image up), below is minus', () => {
+    const o = { x: 0.5, y: 0.5, visibility: 1 };
+    const at = (dx: number, dy: number) => ({ x: 0.5 + dx, y: 0.5 + dy, visibility: 1 });
+    expect(segmentAngle(o, at(0.2, -0.2), 'horizontal', 1)).toBeCloseTo(45, 9);
+    expect(segmentAngle(o, at(-0.2, -0.2), 'horizontal', 1)).toBeCloseTo(45, 9); // a mirror image gives the same value
+    expect(segmentAngle(o, at(0.2, 0.2), 'horizontal', 1)).toBeCloseTo(-45, 9);
+    expect(segmentAngle(o, at(0, 0.2), 'horizontal', 1)).toBeCloseTo(-90, 9); // a standing leg reads -90, never raised
+    expect(segmentAngle(o, at(0, -0.2), 'horizontal', 1)).toBeCloseTo(90, 9);
   });
 });
 

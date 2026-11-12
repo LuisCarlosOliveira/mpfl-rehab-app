@@ -16,14 +16,15 @@ export const jointAngle = kneeAngle;
 /**
  * The angle between the segment `from` to `to` and a reference direction, in degrees.
  * `vertical`: the reference is straight down in the picture. 0 hangs down, 90 is level, 180 points up.
- * `horizontal`: the reference is the horizontal line, with no direction. The value is 0 to 90, so a mirror image gives the same value.
+ * `horizontal`: the SIGNED height of the segment above the horizontal line, -90 to 90. `to` above `from` in the picture is plus,
+ * `to` below `from` is minus. A mirror image gives the same value, because only the size of the x distance counts.
  */
 export function segmentAngle(from: Landmark, to: Landmark, against: 'vertical' | 'horizontal', aspect: number): number | null {
   if (!visible(from) || !visible(to)) return null;
   const dx = (to.x - from.x) * aspect;
   const dy = to.y - from.y;
   if (Math.hypot(dx, dy) === 0) return null;
-  const deg = against === 'vertical' ? Math.atan2(Math.abs(dx), dy) : Math.atan2(Math.abs(dy), Math.abs(dx));
+  const deg = against === 'vertical' ? Math.atan2(Math.abs(dx), dy) : Math.atan2(-dy, Math.abs(dx));
   const out = (deg * 180) / Math.PI;
   return out === 0 ? 0 : out; // no -0
 }

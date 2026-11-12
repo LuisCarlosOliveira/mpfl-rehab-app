@@ -10,7 +10,7 @@
  * The true value (`truth`) by pose:
  *   quad-set             knee flexion in degrees (0 for a leg that stays straight and still)
  *   ankle-pump           angle at the ankle between the knee and the foot index, in degrees (180 minus the angle is NOT used)
- *   leg-raise-side       elevation of the segment hip to ankle above the horizontal, in degrees (side-lying, front-on camera)
+ *   leg-raise-side       SIGNED elevation of the segment hip to ankle above the horizontal, in degrees (up is plus). Rest is -10 as in real clips (side-lying)
  *   leg-raise-back       angle of the segment hip to knee against the vertical, in degrees, going back (standing, side camera)
  *   heel-slide           knee flexion in degrees (0 is straight)
  *   straight-leg-raise   height of the ankle above the hip, as a fraction of the image height
@@ -109,8 +109,8 @@ export interface SeriesSpec extends SeriesNoiseSpec {
 const DEFAULT_VALUES: Record<PoseId, [number, number]> = {
   'quad-set': [0, 0],
   'ankle-pump': [75, 125],
-  'leg-raise-side': [0, 35],
-  'leg-raise-back': [0, 25],
+  'leg-raise-side': [-10, 35],
+  'leg-raise-back': [0, 45], // the real peaks of B2 and B3 are 43 to 58 degrees (the old 25 was a guess)
   'heel-slide': [5, 90],
   'straight-leg-raise': [0, 0.25],
   'seated-extension-hold': [90, 60],
