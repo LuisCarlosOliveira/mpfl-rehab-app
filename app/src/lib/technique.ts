@@ -2,7 +2,7 @@
 // Rules: a line states an instruction and its sources. It never rates a movement. It carries no number, because the sources
 // disagree on every number and a clinician sets them. A point that only one source states (WEAK) stays out. The text is a
 // paraphrase in simple English. It is not a quote.
-import type { GuideKind } from './guides';
+import type { AnyGuideKind, GuideKind, NewGuideKind } from './guides';
 
 // Short source names. `mpflr` is true when the source is about MPFL reconstruction. Other sources are BORROWED.
 export const SOURCE_NAMES: Record<string, string> = {
@@ -25,20 +25,28 @@ export const SOURCE_NAMES: Record<string, string> = {
   T16: 'Healthline',
   T17: 'MSD Manual',
   S1: 'Hsu 2025',
+  P3: 'NHS Lothian MPFL guideline',
+  N3: 'Hysing-Dahl 2024',
 };
-const MPFLR = new Set(['P1', 'P2', 'T4', 'T5', 'S1']);
+const MPFLR = new Set(['P1', 'P2', 'P3', 'N3', 'T4', 'T5', 'S1']);
 
 export interface TechniqueLine {
   text: string;
   sources: string[];
   /** True when no source of the line is about MPFL reconstruction. */
   borrowed: boolean;
+  /** True when the line is a PROPOSAL of the app. The sources name the exercise and give no technique text. */
+  proposal: boolean;
 }
 
 export const TECHNIQUE_NOTE =
   'Each line is a paraphrase of what handouts, hospital leaflets and rehab guidelines say. These sources give opinion, not trial proof. Your care team decides how you do the exercise.';
 
-const line = (text: string, ...sources: string[]): TechniqueLine => ({ text, sources, borrowed: !sources.some((s) => MPFLR.has(s)) });
+export const PROPOSAL_NOTE =
+  'These lines are a proposal of the app. The sources name this exercise and give no technique for it. Your care team decides how you do the exercise.';
+
+const line = (text: string, ...sources: string[]): TechniqueLine => ({ text, sources, borrowed: !sources.some((s) => MPFLR.has(s)), proposal: false });
+const proposal = (text: string, ...sources: string[]): TechniqueLine => ({ ...line(text, ...sources), proposal: true });
 
 const LINES: Record<GuideKind, TechniqueLine[]> = {
   'straight-leg-raise': [
@@ -68,4 +76,36 @@ const LINES: Record<GuideKind, TechniqueLine[]> = {
   ],
 };
 
-export const techniqueFor = (kind: GuideKind): TechniqueLine[] => LINES[kind];
+// The five new exercises. The repo holds no technique quote for them (technique-sources.md covers four exercises).
+// Each line paraphrases only that a source names the exercise. P1, P2, P3, S1 and N3 are the sources that name them.
+const PHASE_ONE = 'The sources list this exercise in the first phase of rehab. Your care team sets the plan.';
+const PROPOSED: Record<NewGuideKind, TechniqueLine[]> = {
+  'quad-set': [
+    proposal('Tighten the muscle at the front of your thigh, then relax.', 'S1', 'P1', 'P2', 'P3', 'N3'),
+    proposal('One guideline puts a rolled towel under the knee for this exercise.', 'P1'),
+    proposal(PHASE_ONE, 'P1', 'P2', 'N3'),
+  ],
+  'gluteal-set': [
+    proposal('Squeeze your buttock muscles together, then relax.', 'P1', 'P2', 'N3'),
+    proposal('One guideline calls this an isometric exercise. Your muscles work and your joints do not move.', 'P2'),
+    proposal(PHASE_ONE, 'P1', 'P2', 'N3'),
+  ],
+  'ankle-pump': [
+    proposal('Point your toes away from you, then pull them toward you.', 'P1', 'P3'),
+    proposal('The sources give no technique detail for this exercise. Ask your care team.', 'P1', 'P3'),
+    proposal(PHASE_ONE, 'P1', 'P3'),
+  ],
+  'leg-raise-side': [
+    proposal('Lift your straight leg out to the side. Then lower your leg slowly.', 'S1', 'P2', 'P3'),
+    proposal('The sources call this hip abduction. They give no technique detail. Ask your care team.', 'P2', 'P3'),
+    proposal(PHASE_ONE, 'S1', 'P2', 'P3'),
+  ],
+  'leg-raise-back': [
+    proposal('Keep your knee straight and lift your leg back behind you. Then lower your leg slowly.', 'S1', 'P2', 'P3'),
+    proposal('The sources call this hip extension. They give no technique detail. Ask your care team.', 'P2', 'P3'),
+    proposal(PHASE_ONE, 'S1', 'P2', 'P3'),
+  ],
+};
+
+const isNew = (kind: AnyGuideKind): kind is NewGuideKind => kind in PROPOSED;
+export const techniqueFor = (kind: AnyGuideKind): TechniqueLine[] => (isNew(kind) ? PROPOSED[kind] : LINES[kind]);

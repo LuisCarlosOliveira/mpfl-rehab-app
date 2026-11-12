@@ -16,7 +16,7 @@ import {
   type Limb,
   type Point,
 } from '../lib/figure';
-import type { GuideKind } from '../lib/guides';
+import type { AnyGuideKind } from '../lib/guides';
 import './figures.css';
 
 const num = (n: number) => Math.round(n * 100) / 100;
@@ -103,7 +103,7 @@ function Marks({ marks, where, box, size }: { marks: Mark[]; where: (at: Mark['a
 }
 
 interface Props {
-  kind: GuideKind;
+  kind: AnyGuideKind;
   frame: FigureFrame;
   side: Side;
   /** The text alternative. It comes from the guide text. */
@@ -156,7 +156,7 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg, legend, m
 
 interface CameraProps {
   view: CameraView;
-  kind: GuideKind;
+  kind: AnyGuideKind;
   /** The text alternative. */
   description: string;
   /** "chosen" when the drawn leg is not the operated leg. */

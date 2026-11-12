@@ -93,3 +93,12 @@ describe('the guide names the chosen leg (L1-06)', () => {
     expect(Object.values(g).join(' ')).not.toMatch(/\d/);
   });
 });
+
+describe('one place for guide data (DRY)', () => {
+  it('guides.ts holds no guide text of its own: guideFor reads the registry', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/lib/guides.ts', 'utf8');
+    expect(src).not.toMatch(/Lie on your back/);
+    expect(src).toMatch(/monitor\/registry/);
+  });
+});

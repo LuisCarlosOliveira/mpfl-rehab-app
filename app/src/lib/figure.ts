@@ -6,7 +6,7 @@
 // All numbers here only shape the drawing. They are PROPOSAL values and not clinical values.
 // The knee angle that a patient sees comes from the exercise data of the protocol, never from this file.
 import type { Side } from './angle';
-import type { GuideKind } from './guides';
+import type { AnyGuideKind } from './guides';
 import { SETUP_CONFIG } from './setupRules';
 
 export type FigureFrame = 'start' | 'end';
@@ -103,22 +103,33 @@ const CHAR_W = 0.62; // PROPOSAL, width of one bold character as a share of the 
 const GAP = 1.5; // the free space between a label and a shape, in picture units
 const PAD = 5;
 
-const POSTURE_OF: Record<GuideKind, 'lying' | 'upright'> = {
+const POSTURE_OF: Record<AnyGuideKind, 'lying' | 'upright'> = {
   'heel-slide': 'lying',
   'straight-leg-raise': 'lying',
   'mini-squat': 'upright',
   'seated-extension-hold': 'upright',
+  'quad-set': 'lying',
+  'gluteal-set': 'lying',
+  'ankle-pump': 'lying',
+  'leg-raise-side': 'lying',
+  'leg-raise-back': 'upright',
 };
 
 // Illustrative end-frame knee flexion in degrees. It shows the movement. It is not a target or a limit.
 // The protocol sets the real limit (clinical.md section 9). A number in the exercise data replaces it.
-export const ILLUSTRATIVE_FLEXION: Record<GuideKind, number> = {
+export const ILLUSTRATIVE_FLEXION: Record<AnyGuideKind, number> = {
   'heel-slide': 60, // PROPOSAL, same as the example target of example-protocol.json (PROPOSAL there)
   'straight-leg-raise': 0, // clinical.md section 4: knee at 0 degrees, SLR without lag (S1)
   'mini-squat': 30, // PROPOSAL, inside the borrowed range 0 to 50 degrees (clinical.md section 4, S16). Not a limit.
   // T3: the seated hold has no illustrative end angle. Without an angle from the protocol, the end frame shows the start pose
   // (the knee bent at SEATED_REST) and no arc. P1 and P2 rec 29 avoid open-chain extension to full extension early.
   'seated-extension-hold': 90,
+  // The five new exercises keep the knee straight in the drawing. They draw no knee number.
+  'quad-set': 0,
+  'gluteal-set': 0,
+  'ankle-pump': 0,
+  'leg-raise-side': 0,
+  'leg-raise-back': 0,
 };
 
 // Drawing only, PROPOSAL. The shank of a seated person hangs at a right angle. The start pose of the hold is at least
@@ -127,11 +138,16 @@ const SEATED_REST = 90;
 const SEATED_LIFT = 10;
 
 // The knee angle in the exercise data replaces the illustrative value for these exercises only.
-const USES_DATA_ANGLE: Record<GuideKind, boolean> = {
+const USES_DATA_ANGLE: Record<AnyGuideKind, boolean> = {
   'heel-slide': true,
   'straight-leg-raise': false, // the knee stays straight
   'mini-squat': true,
   'seated-extension-hold': true,
+  'quad-set': false,
+  'gluteal-set': false,
+  'ankle-pump': false,
+  'leg-raise-side': false,
+  'leg-raise-back': false,
 };
 
 // Segment lengths and thickness in picture units. PROPOSAL, only for the drawing.
@@ -191,7 +207,7 @@ interface Pose {
 // Isosceles pose with the heel on a surface: the thigh rises by half of the flexion.
 const slideThigh = (flexion: number) => -flexion / 2;
 
-function poseFor(kind: GuideKind, frame: FigureFrame, flex: number, hasAngle: boolean): Pose {
+function poseFor(kind: AnyGuideKind, frame: FigureFrame, flex: number, hasAngle: boolean): Pose {
   const end = frame === 'end';
   switch (kind) {
     case 'heel-slide': {
@@ -217,6 +233,33 @@ function poseFor(kind: GuideKind, frame: FigureFrame, flex: number, hasAngle: bo
         hand: { x: 58, y: 63 },
       };
     }
+    // The five new poses are a PROPOSAL for the drawing only. No source gives an angle for them.
+    case 'quad-set':
+    case 'gluteal-set':
+      // Supine, both legs straight. The towel roll of the quad set is a surface rectangle under the knee.
+      return {
+        hip: { x: 60, y: 56 }, trunkDir: 180, thighDir: 0, flexion: 0, footDir: -90,
+        farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 1.5 }, farFootDir: -90,
+      };
+    case 'ankle-pump':
+      // The leg stays straight. The foot points up toward the person at the start and away from the person at the end.
+      return {
+        hip: { x: 60, y: 56 }, trunkDir: 180, thighDir: 0, flexion: 0, footDir: end ? 20 : -110,
+        farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 1.5 }, farFootDir: -90,
+      };
+    case 'leg-raise-side':
+      // Side-lying, seen from the front. The top leg (near) goes up. The lower leg stays on the surface.
+      return {
+        hip: { x: 60, y: 56 }, trunkDir: 180, thighDir: end ? -35 : 0, flexion: 0, footDir: end ? -125 : -90,
+        farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 1.5 }, farFootDir: -90,
+      };
+    case 'leg-raise-back':
+      // Standing side-on. The near leg goes back behind the body. The other leg and the hand stay in place.
+      return {
+        hip: { x: 26, y: 64 }, trunkDir: -90, thighDir: end ? 115 : 90, flexion: 0, footDir: end ? 90 : 0,
+        farThighDir: 90, farFlexion: 0, farOffset: { x: 4, y: 0 }, farFootDir: 0,
+        hand: { x: 58, y: 63 },
+      };
     case 'seated-extension-hold':
       return {
         // The foot stays at a right angle to the shank (the default foot direction).
@@ -229,7 +272,8 @@ function poseFor(kind: GuideKind, frame: FigureFrame, flex: number, hasAngle: bo
 }
 
 type Rect = Box & { r: number };
-const SURFACE: Record<GuideKind, { key: Figure['surface']['key']; rects: Rect[] }> = {
+const MAT: Rect = { x: 1, y: MAT_TOP, w: 124, h: MAT_H, r: 5 };
+const SURFACE: Record<AnyGuideKind, { key: Figure['surface']['key']; rects: Rect[] }> = {
   'heel-slide': { key: 'mat', rects: [{ x: 1, y: MAT_TOP, w: 124, h: MAT_H, r: 5 }] },
   'straight-leg-raise': { key: 'mat', rects: [{ x: 1, y: MAT_TOP, w: 124, h: MAT_H, r: 5 }] },
   'mini-squat': { key: 'counter', rects: [{ x: 52, y: 67, w: 50, h: 55, r: 3 }] },
@@ -242,25 +286,50 @@ const SURFACE: Record<GuideKind, { key: Figure['surface']['key']; rects: Rect[] 
       { x: 90, y: 102, w: 6, h: 20, r: 1 }, // front leg
     ],
   },
+  'quad-set': { key: 'mat', rects: [MAT, { x: 80, y: 60, w: 14, h: 5, r: 2.5 }] }, // the second rectangle is the towel roll under the knee
+  'gluteal-set': { key: 'mat', rects: [MAT] },
+  'ankle-pump': { key: 'mat', rects: [MAT] },
+  'leg-raise-side': { key: 'mat', rects: [MAT] },
+  'leg-raise-back': { key: 'counter', rects: [{ x: 52, y: 67, w: 50, h: 55, r: 3 }] },
 };
 const SURFACE_TEXT = { mat: 'Bed or mat', counter: 'Counter', chair: 'Chair' } as const;
 /** Where the surface name sits, as the centre of its text in the picture that faces right. It sits inside the surface. */
-const SURFACE_LABEL_AT: Record<GuideKind, Point> = {
+const SURFACE_LABEL_AT: Record<AnyGuideKind, Point> = {
   'heel-slide': { x: 32, y: MAT_TOP + MAT_H / 2 },
   'straight-leg-raise': { x: 32, y: MAT_TOP + MAT_H / 2 },
   'mini-squat': { x: 77, y: 96 },
   'seated-extension-hold': { x: 75, y: 112 },
+  'quad-set': { x: 32, y: MAT_TOP + MAT_H / 2 },
+  'gluteal-set': { x: 32, y: MAT_TOP + MAT_H / 2 },
+  'ankle-pump': { x: 32, y: MAT_TOP + MAT_H / 2 },
+  'leg-raise-side': { x: 32, y: MAT_TOP + MAT_H / 2 },
+  'leg-raise-back': { x: 77, y: 96 },
 };
 
 // Where the arrow runs, in the picture that faces right. The start and the end frame use the same arrow.
-const ARROW: Record<GuideKind, { from: Point; to: Point }> = {
+const ARROW: Record<AnyGuideKind, { from: Point; to: Point }> = {
   'heel-slide': { from: { x: 116, y: MAT_TOP + MAT_H / 2 }, to: { x: 86, y: MAT_TOP + MAT_H / 2 } }, // the heel slides along the surface toward the buttock
   'straight-leg-raise': { from: { x: 122, y: 52 }, to: { x: 122, y: 22 } }, // the leg goes up
   'mini-squat': { from: { x: 4, y: 30 }, to: { x: 4, y: 58 } }, // the hips go down
   'seated-extension-hold': { from: { x: 138, y: 106 }, to: { x: 138, y: 78 } }, // the foot goes up
+  'quad-set': { from: { x: 87, y: 28 }, to: { x: 87, y: 46 } }, // the knee presses down toward the towel
+  'gluteal-set': { from: { x: 62, y: 28 }, to: { x: 62, y: 46 } }, // the squeeze is at the buttocks
+  'ankle-pump': { from: { x: 128, y: 36 }, to: { x: 128, y: 58 } }, // the toes go down and up
+  'leg-raise-side': { from: { x: 122, y: 52 }, to: { x: 122, y: 22 } }, // the top leg goes up
+  'leg-raise-back': { from: { x: 4, y: 88 }, to: { x: -18, y: 88 } }, // the leg goes back
 };
 
-const FLOOR_Y: Record<GuideKind, number | null> = { 'heel-slide': null, 'straight-leg-raise': null, 'mini-squat': STAND_FLOOR, 'seated-extension-hold': STAND_FLOOR };
+const FLOOR_Y: Record<AnyGuideKind, number | null> = {
+  'heel-slide': null,
+  'straight-leg-raise': null,
+  'mini-squat': STAND_FLOOR,
+  'seated-extension-hold': STAND_FLOOR,
+  'quad-set': null,
+  'gluteal-set': null,
+  'ankle-pump': null,
+  'leg-raise-side': null,
+  'leg-raise-back': STAND_FLOOR,
+};
 
 function arrowHead(from: Point, to: Point): [Point, Point, Point] {
   const dir = (Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI;
@@ -483,7 +552,7 @@ function aroundBoxes(text: string, size: number, centre: Point, bearingDeg: numb
  * `kneeDeg` is the knee angle of the exercise data. It sets the drawn end position and the number on the arc.
  * Without it the drawing uses an illustrative angle and shows no number.
  */
-export function figureFor(kind: GuideKind, frame: FigureFrame, side: Side, kneeDeg?: number, legend: LegLegend = 'operated'): Figure {
+export function figureFor(kind: AnyGuideKind, frame: FigureFrame, side: Side, kneeDeg?: number, legend: LegLegend = 'operated'): Figure {
   const given = kneeDeg === undefined ? undefined : clamp(Math.round(kneeDeg), 0, VIEW.maxFlexionDeg);
   const hasAngle = USES_DATA_ANGLE[kind] && given !== undefined;
   const flex = hasAngle ? given! : ILLUSTRATIVE_FLEXION[kind];
@@ -657,7 +726,7 @@ export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)
  * The camera stands at knee height, so the lens has the height of the operated knee.
  * The distance in the picture is not to scale. The text carries the advice. Source: ux-flow 6.1, PROPOSAL.
  */
-export function cameraPlan(view: CameraView, kind: GuideKind, legend: LegLegend = 'operated'): CameraPlan {
+export function cameraPlan(view: CameraView, kind: AnyGuideKind, legend: LegLegend = 'operated'): CameraPlan {
   const posture = POSTURE_OF[kind];
   const fig = figureFor(kind, 'start', view === 'side' ? 'left' : 'right');
   const bodyBox = unionBox([...bodyShapes(fig), ...fig.surface.rects.map((r): Shape => ({ k: 'rect', box: r }))].map(shapeBounds));
