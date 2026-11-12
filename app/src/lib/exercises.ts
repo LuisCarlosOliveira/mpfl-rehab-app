@@ -239,7 +239,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
             settleMs: thresholdOf(engine, 'raise-settle-ms'),
             endMs: thresholdOf(engine, 'lift-end-ms'),
             // R-02: a lift against the vertical (the leg raise to the back) counts the backward direction only.
-            directional: engine.measure.kind === 'segment-angle' && engine.measure.against === 'vertical' ? { cameraFacing: facingFromCameraSide(options.cameraSide) } : undefined,
+            directional: engine.measure.kind === 'segment-angle' && engine.measure.against === 'vertical' ? { cameraFacing: facingFromCameraSide(options.cameraSide), maxWidth: thresholdOf(engine, 'side-on-width') } : undefined,
           });
   const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
     engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);
@@ -450,7 +450,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           const value = [hip, knee, ankle].every(visible) ? readMeasure(engine.measure, chosen, side, aspect) : null;
           if (value === null) return unseen(t);
           const out = 'newSet' in driver ? driver.sample(value, t, directionAux(chosen, side, aspect) ?? undefined) : driver.sample(value, t);
-          return { flexion: out.value, event: out.event, repMs: null };
+          return { flexion: out.value, event: 'notSideOn' in out && out.notSideOn ? 'not-side-on' : out.event, repMs: null };
         }
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) return unseen(t);

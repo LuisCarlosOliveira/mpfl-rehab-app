@@ -70,6 +70,19 @@ export interface DirectionAux {
   footDx: number | null;
   /** The knee minus the hip along x, in square pixels. */
   kneeDx: number;
+  /**
+   * The hip to hip distance along x over the torso length (hip middle to shoulder middle), both in square pixels.
+   * A person who is side-on gives about 0 to 0.15, a person who faces the camera 0.3 to 0.4. null when a hip or a shoulder is hidden.
+   */
+  width: number | null;
+}
+
+/** The width of the hips over the torso length. See DirectionAux.width. */
+export function hipWidth(pose: Landmark[], aspect: number): number | null {
+  const [ls, rs, lh, rh] = [pose[11], pose[12], pose[23], pose[24]];
+  if (!ls || !rs || !lh || !rh || ![ls, rs, lh, rh].every(visible)) return null;
+  const torso = Math.hypot(((ls.x + rs.x - lh.x - rh.x) / 2) * aspect, (ls.y + rs.y - lh.y - rh.y) / 2);
+  return torso > 0 ? (Math.abs(lh.x - rh.x) * aspect) / torso : null;
 }
 
 /** The direction data of one frame, or null when the hip or the knee is hidden. */
@@ -79,5 +92,5 @@ export function directionAux(pose: Landmark[], side: Side, aspect: number): Dire
   if (!visible(hip) || !visible(knee)) return null;
   const ankle = pick(pose, side, 'ankle');
   const foot = pick(pose, side, 'footIndex');
-  return { footDx: visible(ankle) && visible(foot) ? (foot.x - ankle.x) * aspect : null, kneeDx: (knee.x - hip.x) * aspect };
+  return { footDx: visible(ankle) && visible(foot) ? (foot.x - ankle.x) * aspect : null, kneeDx: (knee.x - hip.x) * aspect, width: hipWidth(pose, aspect) };
 }

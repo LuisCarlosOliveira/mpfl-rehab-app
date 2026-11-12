@@ -13,6 +13,7 @@ describe('cueFor', () => {
     ['near-limit', 'Close to your limit, stop.'],
     ['over-limit', 'Stop at your limit, do not push.'],
     ['paused', 'Show your whole leg.'],
+    ['not-side-on', 'Turn so that your side faces the camera.'],
   ] as Array<[CueEvent, string]>)('maps %s to a fixed text', (event, text) => {
     expect(cueFor(event, {})).toBe(text);
   });

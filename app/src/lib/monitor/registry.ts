@@ -295,6 +295,8 @@ const LEG_RAISE_BACK: ExerciseSpec = {
     { name: 'lift-angle', value: LIFT_ANGLE_BACK, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
+    // 0.2 of the torso length, from real clips: hip to hip width of a side-on person is 0.00 to 0.15, of a person who faces the camera 0.28 to 0.36 (modes.ts, WIDTH_FRAMES).
+    { name: 'side-on-width', value: 0.2, unit: 'fraction', origin: 'engineering' },
   ],
   cues: [],
   needs: ['whole-leg'],
