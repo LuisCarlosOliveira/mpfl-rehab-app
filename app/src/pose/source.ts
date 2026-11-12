@@ -135,7 +135,7 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
           if (worker) {
             const { createFrameBridge } = await import('./frameBridge');
             const made = await createFrameBridge({
-              onResult: (landmarks, timeMs, extra) => handler?.(landmarks, timeMs, extra),
+              onResult: (landmarks, timeMs, extra) => (extra ? handler?.(landmarks, timeMs, extra) : handler?.(landmarks, timeMs)),
               onProgress: report,
               onFail: release,
             }).catch(() => null); // no worker, or it cannot start: use the main thread
@@ -177,7 +177,7 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
               extraPoses = rest;
               return first ?? null;
             },
-        onFrame: (landmarks, timeMs) => onFrame(landmarks, timeMs, probing ? extraPoses : undefined),
+        onFrame: (landmarks, timeMs) => (probing && extraPoses ? onFrame(landmarks, timeMs, extraPoses) : onFrame(landmarks, timeMs)),
         onError: () => release(),
       });
       return { ok: true };

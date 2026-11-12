@@ -103,7 +103,9 @@ export function createFrameBridge({ onResult, onProgress, onFail }: FrameBridgeO
         });
       } else {
         busy = false;
-        onResult(data.landmarks, data.timestampMs, data.extra);
+        // The handler gets a third argument only during the probe, so the usual call keeps its two arguments.
+        if (data.extra) onResult(data.landmarks, data.timestampMs, data.extra);
+        else onResult(data.landmarks, data.timestampMs);
         // The worker is free. Do not wait for the next tick: take the frame that shows now, if it is a new one.
         if (last && last.video.currentTime !== last.time) submit(last.video, performance.now());
       }
