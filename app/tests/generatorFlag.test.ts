@@ -36,7 +36,11 @@ describe('the flag of the extended items', () => {
     vi.stubEnv('VITE_GENERATOR_EXTENDED', undefined as unknown as string);
     expect(kinds(week8())).toEqual(expect.arrayContaining(['mini-squat', 'seated-extension-hold']));
     vi.stubEnv('VITE_GENERATOR_EXTENDED', 'false');
-    expect(kinds(week8())).toEqual(['straight-leg-raise', 'heel-slide']);
+    // The flag gates the mini squat and the seated hold only. The five exercises of the first stage are in every plan (exercise monitoring, step A).
+    const off = kinds(week8());
+    expect(off).not.toContain('mini-squat');
+    expect(off).not.toContain('seated-extension-hold');
+    expect(off).toEqual(expect.arrayContaining(['straight-leg-raise', 'quad-set', 'gluteal-set', 'leg-raise-side', 'leg-raise-back']));
   });
 
   it('asks the three extra questions by default, and not with the flag off', () => {
