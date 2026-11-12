@@ -13,6 +13,7 @@
 // V2: the frame holds a step card before the camera runs, a status chip while it runs (A4), the joint labels (A3) and a camera error (A6).
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
+import { focusHeading } from './focusHeading';
 import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import type { GuideKind } from '../lib/guides';
@@ -85,6 +86,7 @@ interface Props {
 
 export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, onReady, onCancel }: Props) {
   const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [pairUsed, setPairUsed] = useState(false); // the optional step was opened. The step list keeps it.
   const [camera, setCamera] = useState<Camera>({ kind: 'idle' });
   const [live, setLive] = useState<Live | null>(null);
@@ -150,6 +152,11 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     );
     setCamera(result.ok ? { kind: 'running' } : { kind: 'error', message: result.error.message });
   }
+
+  // AC6-01: a new step opens at the top of the page, with the focus on the heading. The pair step has its own heading (PairHost).
+  useEffect(() => {
+    if (step !== 'pair') focusHeading(titleRef.current);
+  }, [step]);
 
   // After 8 seconds on one start step, one plain sentence tells the person to wait.
   const startStep = camera.kind === 'starting' ? camera.progress.step : null;
@@ -247,7 +254,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     <section aria-labelledby="setup-title" className="v2-setup">
       <header className="page-head">
         <div className="stack-s">
-          <h1 id="setup-title" tabIndex={-1}>
+          <h1 id="setup-title" tabIndex={-1} ref={titleRef}>
             Set up the camera
           </h1>
           <p className="detail">Exercise: {exerciseName}</p>
