@@ -256,6 +256,23 @@ describe('the hold timer screen', () => {
     }
   });
 
+  it.each([[QUAD], [GLUTE]])('%j: no mute button, because the timer makes no sound, and the timer card is in the solo layout', (exercise) => {
+    const { view } = setup(exercise);
+    expect(screen.queryByRole('button', { name: /mute sound/i })).toBeNull();
+    expect(view.container.querySelector('.session-timer')).not.toBeNull();
+    expect(view.container.querySelector('.session-grid.session-solo .hold-timer')).not.toBeNull();
+    // The button is the first control of the card, before the set text and the list.
+    const card = view.container.querySelector('.hold-timer')!;
+    expect(card.querySelector('.hold-button')).not.toBeNull();
+    expect(card.querySelector('.hold-button')!.compareDocumentPosition(card.querySelector('.hold-notes')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('a camera kind keeps its mute button and has no timer layout class', () => {
+    const { view } = setup(PUMP);
+    expect(screen.getByRole('button', { name: 'Mute sound' })).toBeInTheDocument();
+    expect(view.container.querySelector('.session-timer')).toBeNull();
+  });
+
   it.each([[PUMP], [BACK], [SIDE]])('%j: the camera kinds still start the camera and show the picture', (exercise) => {
     const { source, view } = setup(exercise);
     expect(source.start).toHaveBeenCalledTimes(1);

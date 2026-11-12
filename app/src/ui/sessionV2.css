@@ -641,6 +641,13 @@ body:has(.v2-session) main {
 .v2-session .hold-timer > * {
   grid-column: 1 / -1;
 }
+/* The set text follows the button, so the button stays in the first view (styles.css gives the head order -2). */
+.v2-session .hold-timer > .counters-head {
+  order: 1;
+}
+.v2-session .hold-timer > .hold-notes {
+  order: 2;
+}
 .v2-session .hold-elapsed .readout-number {
   min-width: 2ch;
   font-variant-numeric: tabular-nums;
@@ -664,4 +671,23 @@ body:has(.v2-session) main {
     grid-column: 1;
     max-width: 36rem;
   }
+}
+
+/* With big text the Stop bar of a timer would take over 40 percent of the screen. It then sits in the page, after the timer card (set by useBarHeight). */
+.v2-session .session-solo .session-bar[data-static] {
+  position: static;
+  margin-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+/* The timer card comes first on the page, above the title, so the Start hold button is in the first view with big text.
+   The title stays first in the reading order. Only its place on the screen changes. */
+.v2-session.session-timer {
+  display: flex;
+  flex-direction: column;
+}
+.v2-session.session-timer > .session-grid {
+  order: -1;
+}
+.v2-session.session-timer > .session-head {
+  margin-top: var(--s-4);
 }

@@ -686,7 +686,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   );
 
   return (
-    <section aria-labelledby="session-title" className="session v2-session">
+    <section aria-labelledby="session-title" className={`session v2-session${usesCamera ? '' : ' session-timer'}`}>
       <header className="page-head session-head">
         <h1 id="session-title" tabIndex={-1} ref={titleRef}>
           {EXERCISE_NAMES[exercise.kind]}
@@ -698,10 +698,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               Second camera connected
             </p>
           )}
-          <button type="button" className="btn btn-ghost session-swap" onClick={toggleMute}>
-            <Icon name={muted ? 'volume-x' : 'volume-2'} size={20} />
-            {muted ? 'Unmute sound' : 'Mute sound'}
-          </button>
+          {/* The timer makes no sound, so it has no mute button. */}
+          {usesCamera && (
+            <button type="button" className="btn btn-ghost session-swap" onClick={toggleMute}>
+              <Icon name={muted ? 'volume-x' : 'volume-2'} size={20} />
+              {muted ? 'Unmute sound' : 'Mute sound'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -836,12 +839,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
               {!resting && timerMode && (
                 <div className="card counters hold-timer">
-                  {(label !== null || repsText !== null) && (
-                    <div className="counters-head">
-                      {label !== null && <p className="set-label">{label}</p>}
-                      {repsText !== null && <p className="detail">{repsText}</p>}
-                    </div>
-                  )}
                   <div className="readout hold-readout">
                     <p className="readout-label">Hold time</p>
                     <p className="readout-line hold-elapsed" data-testid="hold-elapsed" aria-live="off">
@@ -852,6 +849,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     <Icon name={holding ? 'square' : 'play'} size={22} fill="currentColor" />
                     {holding ? 'End hold' : 'Start hold'}
                   </button>
+                  {(label !== null || repsText !== null) && (
+                    <div className="counters-head">
+                      {label !== null && <p className="set-label">{label}</p>}
+                      {repsText !== null && <p className="detail">{repsText}</p>}
+                    </div>
+                  )}
                   <div className="readout-notes hold-notes">
                     <p className="detail" role="status">{setHolds.length === 0 ? 'No holds yet.' : `Holds: ${secondsText(setHolds)}`}</p>
                     {dropped !== null && <p className="detail" role="status">{HOLD_DROP_TEXT[dropped]}</p>}
