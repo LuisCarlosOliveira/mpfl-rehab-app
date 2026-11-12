@@ -11,3 +11,6 @@ export function isMonitored(kind: string): boolean {
 
 /** The type guard for code that needs the four-kind type of the engine. It holds for the same kinds as isMonitored. */
 export const isEngineExercise = (e: PlanExercise): e is Exercise => isMonitored(e.kind);
+
+/** True for a stored or planned kind that the engine knows. For the four-kind type of cues.ts and exercises.ts. */
+export const isEngineKind = (kind: string): kind is Exercise['kind'] => isMonitored(kind);
