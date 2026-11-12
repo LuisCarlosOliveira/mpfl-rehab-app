@@ -17,3 +17,11 @@ export const NO_CAMERA_EFFORT = 'The camera cannot see this effort. The app time
 
 /** "5, 8, 6 seconds": the holds that the person timed, in whole seconds. */
 export const secondsText = (list: readonly number[]): string => `${list.join(', ')} ${list.length === 1 && list[0] === 1 ? 'second' : 'seconds'}`;
+
+/** Why a press pair saved no hold. One polite line shows it until the next start. */
+export type HoldDrop = 'too-short' | 'too-long' | 'list-full';
+export const HOLD_DROP_TEXT: Record<HoldDrop, string> = {
+  'too-short': 'A hold under 1 second was not saved.',
+  'too-long': 'A hold over 1 hour was not saved.',
+  'list-full': 'This session holds 50 holds. This hold was not saved.',
+};

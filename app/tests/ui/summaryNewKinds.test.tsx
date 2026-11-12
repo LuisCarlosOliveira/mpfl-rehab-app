@@ -39,11 +39,10 @@ describe('Summary of a timer kind', () => {
     expect(v.container.textContent).not.toMatch(/10 seconds|target/i); // no comparison with the target
   });
 
-  it('shows the knee angle at the end of a hold in whole degrees, only for reportKey knee-angle-top', () => {
+  it('shows no knee angle line for a timer kind, also when the engine gave a knee report', () => {
     show(QUAD, timer);
-    const dd = screen.getByText('Knee angle at the end of a hold').nextElementSibling!;
-    expect(dd.textContent).toContain('42 degrees');
-    expect(dd.textContent).toContain(CAPTION);
+    expect(screen.queryByText(/Knee angle/)).toBeNull();
+    expect(screen.queryByText(/estimated angle/)).toBeNull();
   });
 
   it('shows no knee angle when the report is missing, and no list for no holds', () => {

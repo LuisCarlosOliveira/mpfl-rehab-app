@@ -28,6 +28,7 @@ import type { Side } from '../lib/angle';
 import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type SetupResult, type Summary } from '../lib/exercises';
 import { engineSpecFor } from '../lib/monitor/engine';
+import { specFor } from '../lib/monitor/registry';
 import { countBlock } from '../lib/counters';
 import { createBaselineCapture, type BaselineSource, type CaptureState } from '../lib/baseline';
 import { createIdentityWatcher, otherLegConfirmed, type MovingLeg } from '../lib/legIdentity';
@@ -43,7 +44,7 @@ import type { Sound } from './sound';
 import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_TEXT } from './askSurgeon';
 import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHandle } from './BodyMap';
 import { Icon } from './Icon';
-import { ANGLE_LABEL, EXERCISE_NAMES, MEASURE_LABEL, NO_CAMERA_EFFORT, secondsText } from './labels';
+import { ANGLE_LABEL, EXERCISE_NAMES, HOLD_DROP_TEXT, MEASURE_LABEL, NO_CAMERA_EFFORT, secondsText, type HoldDrop } from './labels';
 import { Notice } from './Notice';
 import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
@@ -51,6 +52,13 @@ import { PainScale } from './PainScale';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
+
+// Whole seconds of a hold. The same rule as the engine (round, and the record keeps at least 1). Local until the engine exports its helper.
+const holdSecondsOf = (ms: number): number => Math.max(0, Math.round(ms / 1000));
+const HOLD_TICK_MS = 500; // the readout rounds, so it changes at the half second and shows the stored whole second
+const HOLD_MIN_MS = 1000; // the shortest hold that the timer keeps (modes.ts). Used only to name the reason of a dropped press.
+const HOLD_MAX_MS = 3600 * 1000;
+const HOLD_LIST_MAX = 50;
 
 const TICK_MS = 250; // 4 updates each second at most (plan 3.1)
 const PROBE_MS = 2000; // ENGINEERING: how long the source returns two poses when the lockout starts (B5-02)
@@ -196,6 +204,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const [holding, setHolding] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [setHolds, setSetHolds] = useState<number[]>([]); // the holds of the present set, in whole seconds
+  const [dropped, setDropped] = useState<HoldDrop | null>(null); // why the last press pair saved no hold. Clears at the next start.
+  const holdingRef = useRef(false);
   const holdStart = useRef(0);
   const [backgrounded, setBackgrounded] = useState(false); // the page went to the background, so the camera ended (L3-07)
   const restRef = useRef<HTMLHeadingElement>(null);
@@ -390,8 +400,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const lock = lockNow || now < state.lockUntil ? state.lockKind : null;
       map.current?.setChosenHidden(lock !== null); // B5-03: no label and no arc on a person who is not the patient
       const angle = stale || timerMode || state.flexion === null ? null : Math.round(state.flexion);
-      state.shown = angle;
-      map.current?.setShownAngle(angle);
+      // The number on the knee arc of the map is the knee bend. For the ankle and the leg raises it is another angle, so only the readout shows it.
+      state.shown = engine ? null : angle;
+      map.current?.setShownAngle(engine ? null : angle);
       const next: View = {
         angle,
         top: sum ? topAngleText(sum.setTopFlexion ?? null) : null, // the present set only (U3)
@@ -437,31 +448,52 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // The seconds of the present hold. One update each second. The screen reader does not read it (aria-live off).
   useEffect(() => {
     if (!holding) return;
-    const id = setInterval(() => setElapsed(Math.floor((performance.now() - holdStart.current) / 1000)), 1000);
+    const id = setInterval(() => setElapsed(holdSecondsOf(performance.now() - holdStart.current)), HOLD_TICK_MS);
     return () => clearInterval(id);
   }, [holding]);
 
-  // The person presses Start hold or End hold. The camera never decides the effort. A hold under 1 s is dropped by the timer and counts for nothing.
-  function toggleHold() {
-    const p = getPipeline();
-    if (!p || paused) return;
+  // Ends the open hold, if any. The timer saves it when it lasted at least 1 s. A press that saves nothing sets the reason (R-04).
+  function closeHold() {
+    const p = pipeline.current;
+    if (!p || !holdingRef.current) return;
+    holdingRef.current = false;
     const t = performance.now();
-    if (!holding) {
-      p.startHold?.(t);
-      holdStart.current = t;
-      setElapsed(0);
-      setHolding(true);
-      return;
-    }
     const before = p.engineData?.().holdList ?? [];
-    p.endHold?.(t);
+    const result: unknown = p.endHold?.(t); // the engine returns { saved, reason }. The older shape returns nothing.
     const list = p.engineData?.().holdList ?? [];
     setHolding(false);
     setElapsed(0);
     if (list.length > before.length) {
       addRep('camera');
       setSetHolds((h) => [...h, list[list.length - 1] as number]);
+      return;
     }
+    const ms = t - holdStart.current;
+    const given = typeof result === 'object' && result !== null && 'reason' in result ? (result as { reason: string }).reason : null;
+    const reason: HoldDrop | null =
+      given === 'too-short' || given === 'too-long' || given === 'list-full'
+        ? given
+        : before.length >= HOLD_LIST_MAX
+          ? 'list-full'
+          : ms > HOLD_MAX_MS
+            ? 'too-long'
+            : ms < HOLD_MIN_MS
+              ? 'too-short'
+              : null;
+    setDropped(reason);
+  }
+
+  // The person presses Start hold or End hold. The camera never decides the effort.
+  function toggleHold() {
+    const p = getPipeline();
+    if (!p || paused) return;
+    if (holdingRef.current) return closeHold();
+    holdingRef.current = true;
+    holdStart.current = performance.now();
+    p.startHold?.(holdStart.current);
+    setDropped(null);
+    setElapsed(0);
+    setHolding(true);
   }
 
   // The second camera starts after the first one. It has its own effect, so a change of its link never restarts the main camera.
@@ -517,6 +549,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   function end(reason: EndReason) {
     if (ended.current) return;
     ended.current = true;
+    closeHold(); // a hold that is open when the session ends is saved when it lasted 1 s or more
     source.stop();
     secondSource?.stop();
     // A session with no frame still gets an empty summary from a fresh pipeline.
@@ -621,6 +654,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // The gauge shows the live angle on a track from 0 to the scale end. The limit is a quiet marker, not a target to reach.
   const limit = engine === undefined ? exercise.maxFlexion : undefined; // the new modes have no limit of a care team
+  const pumpMin = specFor('ankle-pump')?.thresholds.find((t) => t.name === 'min-amplitude')?.value ?? null; // engineering value of the definition
   const measureLabel = MEASURE_LABEL[exercise.kind] ?? 'Knee bend';
   const scaleEnd = Math.max(120, limit === undefined ? 0 : Math.ceil((limit + 30) / 10) * 10);
   const at = (deg: number) => 3 + (Math.min(Math.max(deg, 0), scaleEnd) / scaleEnd) * 94;
@@ -819,7 +853,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                     {holding ? 'End hold' : 'Start hold'}
                   </button>
                   <div className="readout-notes hold-notes">
-                    <p className="detail">{setHolds.length === 0 ? 'No holds yet.' : `Holds: ${secondsText(setHolds)}`}</p>
+                    <p className="detail" role="status">{setHolds.length === 0 ? 'No holds yet.' : `Holds: ${secondsText(setHolds)}`}</p>
+                    {dropped !== null && <p className="detail" role="status">{HOLD_DROP_TEXT[dropped]}</p>}
                     <p className="detail">{NO_CAMERA_EFFORT}</p>
                     {holdTarget !== null && <p className="detail">{`Target: ${holdTarget} ${plural(holdTarget, 'second')}, set by your care team`}</p>}
                   </div>
@@ -849,7 +884,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   {/* The caption of the angle spans the row under both numbers, so it wraps in two lines on a phone (A2, A8). */}
                   <p className="detail readout-caption">{measureLabel}: {ANGLE_LABEL}</p>
                   {/* Notes of the count (the hold timer, the leg raise texts) take the full row, so the two numbers keep their width. */}
-                  {(holdTotal !== null || exercise.kind === 'straight-leg-raise' || exercise.kind === 'leg-raise-side') && (
+                  {(holdTotal !== null || exercise.kind === 'straight-leg-raise' || exercise.kind === 'leg-raise-side' || exercise.kind === 'ankle-pump') && (
                     <div className="readout-notes">
                       {holdTotal !== null && (
                         <div className="hold-meter">
@@ -859,6 +894,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                           <progress className="hold-bar" max={holdTotal} value={view.holdSec} aria-hidden="true" />
                       </div>
                     )}
+                    {exercise.kind === 'ankle-pump' && pumpMin !== null && <p className="detail">{`The camera counts pumps of ${pumpMin} degrees or more.`}</p>}
                     {exercise.kind === 'leg-raise-side' && <p className="detail">The camera cannot measure this angle well.</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}

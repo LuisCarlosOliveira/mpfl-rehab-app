@@ -131,7 +131,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const timedByPerson = engine?.timedBy === 'person';
   const holdList = engine?.holdList ?? [];
   const reportWhole = engine?.reportValue === undefined ? null : storedWhole(engine.reportValue);
-  const REPORT_LINE = { 'knee-angle-top': 'Knee angle at the end of a hold', 'ankle-range': 'Largest ankle range', 'lift-angle': 'Largest lift angle' } as const;
+  const REPORT_LINE = { 'ankle-range': 'Largest ankle range', 'lift-angle': 'Largest lift angle' } as const;
 
   return (
     <section aria-labelledby="summary-title" className="narrow v2-flow v2-summary">
@@ -168,7 +168,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
               </dd>
             </div>
           )}
-          {engine?.reportKey !== undefined && reportWhole !== null && (
+          {engine?.reportKey !== undefined && engine.reportKey !== 'knee-angle-top' && reportWhole !== null && (
             <div className="stat">
               <dt>{REPORT_LINE[engine.reportKey]}</dt>
               <dd>

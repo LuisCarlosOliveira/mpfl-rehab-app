@@ -72,12 +72,41 @@ describe('the live readout follows the definition', () => {
   it('counts the lifts of the leg raise to the back', () => {
     const { source, view } = setup(BACK);
     play(source, 'leg-raise-back', 3);
-    expect(Number(repNumber(view.container))).toBeGreaterThanOrEqual(2);
+    expect(Number(repNumber(view.container))).toBe(3);
   });
 
-  it('makes no sound for a new mode and shows no limit cue', () => {
-    const { source, play: beep, view } = setup(PUMP);
-    play(source, 'ankle-pump', 3);
+  it('draws no angle number on the knee arc of the map for a leg raise, and keeps it in the readout', () => {
+    const { source, view } = setup(BACK);
+    const arc = view.container.querySelector('[data-k="arc-text"]')!;
+    let drawn = 0;
+    for (let i = 0; i < 40; i++) {
+      act(() => {
+        source.emit(legLandmarks('left', 20, { thighAngle: Math.PI / 2 + 0.5 }), i * 33);
+        vi.advanceTimersByTime(33);
+      });
+      if (arc.getAttribute('display') !== 'none') drawn += 1;
+    }
+    act(() => void vi.advanceTimersByTime(300));
+    expect(angleNumber(view.container)).toMatch(/^\d+$/);
+    expect(drawn).toBe(0);
+  });
+
+  it('says what the ankle pump counts, from the definition, and says it for the ankle pump only', () => {
+    setup(PUMP);
+    expect(screen.getByText('The camera counts pumps of 30 degrees or more.')).toBeInTheDocument();
+    cleanup();
+    setup(BACK);
+    expect(screen.queryByText(/The camera counts pumps/)).toBeNull();
+  });
+
+  it.each([
+    [PUMP, 'ankle-pump'],
+    [BACK, 'leg-raise-back'],
+    [SIDE, 'leg-raise-side'],
+    [QUAD, 'quad-set'],
+  ] as const)('makes no sound for a new mode and shows no limit cue: %j', (exercise, pose) => {
+    const { source, play: beep, view } = setup(exercise);
+    play(source, pose, 3);
     expect(beep).not.toHaveBeenCalled();
     expect(document.querySelector('.cue-alert')?.textContent ?? '').toBe('');
     expect(hasVerdictWord(view.container.textContent ?? '')).toBeNull();
@@ -144,13 +173,55 @@ describe('the hold timer screen', () => {
     expect(hasVerdictWord(document.body.textContent ?? '')).toBeNull();
   });
 
-  it('drops a press pair shorter than 1 second', () => {
+  it('drops a press pair shorter than 1 second, and says so in one polite line that clears at the next start', () => {
     setup(QUAD);
     const button = screen.getByRole('button', { name: 'Start hold' });
     fireEvent.click(button);
     act(() => void vi.advanceTimersByTime(400));
     fireEvent.click(button);
     expect(screen.getByText('No holds yet.')).toBeInTheDocument();
+    expect(screen.getByText('A hold under 1 second was not saved.').getAttribute('role')).toBe('status');
+    fireEvent.click(button);
+    expect(screen.queryByText('A hold under 1 second was not saved.')).toBeNull();
+  });
+
+  it('gives the holds paragraph a polite live region', () => {
+    setup(QUAD);
+    expect(screen.getByText('No holds yet.').getAttribute('role')).toBe('status');
+    const button = screen.getByRole('button', { name: 'Start hold' });
+    fireEvent.click(button);
+    act(() => void vi.advanceTimersByTime(5000));
+    fireEvent.click(button);
+    expect(screen.getByText('Holds: 5 seconds').getAttribute('role')).toBe('status');
+    expect(document.querySelector('[data-testid="hold-elapsed"]')!.getAttribute('aria-live')).toBe('off');
+  });
+
+  it('shows the rounded seconds, as the record stores them: 5.6 s reads 6', () => {
+    const { view } = setup(QUAD);
+    const button = screen.getByRole('button', { name: 'Start hold' });
+    fireEvent.click(button);
+    act(() => void vi.advanceTimersByTime(5600));
+    expect(view.container.querySelector('[data-testid="hold-elapsed"]')!.textContent).toContain('6');
+    fireEvent.click(button);
+    expect(screen.getByText('Holds: 6 seconds')).toBeInTheDocument();
+  });
+
+  it('ends an open hold when Stop is pressed, and saves it', () => {
+    const { onEnd } = setup(QUAD);
+    fireEvent.click(screen.getByRole('button', { name: 'Start hold' }));
+    act(() => void vi.advanceTimersByTime(5000));
+    fireEvent.click(screen.getByRole('button', { name: /Stop/ }));
+    const summary = onEnd.mock.calls[0]![1];
+    expect(summary.engine.holdList).toEqual([5]);
+    expect(summary.holds).toBe(1);
+  });
+
+  it('ends an open hold when "Knee gave way or hurts" is pressed, and saves it', () => {
+    const { onEnd } = setup(QUAD);
+    fireEvent.click(screen.getByRole('button', { name: 'Start hold' }));
+    act(() => void vi.advanceTimersByTime(5000));
+    fireEvent.click(screen.getByRole('button', { name: 'Knee gave way or hurts' }));
+    expect(onEnd).toHaveBeenCalledWith('gave-way', expect.objectContaining({ engine: expect.objectContaining({ holdList: [5] }) }));
   });
 
   it('the gluteal set has no camera, no body map and no leg check', () => {
