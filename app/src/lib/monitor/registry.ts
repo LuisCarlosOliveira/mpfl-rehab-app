@@ -156,6 +156,165 @@ const SEATED_EXTENSION_HOLD: ExerciseSpec = {
   summary: ['holds', 'hold-seconds'],
 };
 
-export const REGISTRY: readonly ExerciseSpec[] = [HEEL_SLIDE, MINI_SQUAT, STRAIGHT_LEG_RAISE, SEATED_EXTENSION_HOLD];
+// ---- The five new exercises (PROPOSAL) -------------------------------------------------------
+// The sources table names these exercises (P1, P2, P3, S1, N3). No source gives a camera number for them.
+// research/technique-sources.md covers the four camera exercises only, so the guide texts below are a PROPOSAL of the app.
+// A threshold with origin engineering and value null has no number yet. Step B sets it on saved landmark series.
+// The settle and end times reuse the values of the straight leg raise (500 ms and 300 ms).
+
+const timerNote = 'The camera cannot see this effort. The app times your hold.';
+
+const QUAD_SET: ExerciseSpec = {
+  id: 'quad-set',
+  label: 'Quadriceps set',
+  sourceIds: ['S1', 'P1', 'P2', 'P3', 'N3'],
+  phases: [1, 2],
+  posture: ['supine'],
+  view: { angle: 'side', cameraSide: 'operated-leg-near', legs: 'chosen' },
+  measure: { kind: 'none' },
+  report: [],
+  mode: 'person-timer',
+  thresholds: [{ name: 'hold-seconds', value: null, unit: 's', origin: 'clinician:holdSeconds' }],
+  cues: [],
+  needs: [],
+  guide: {
+    startPosition: 'Lie on your back. Keep your operated leg straight on the surface.',
+    legFacingCamera: 'Put the camera at the side of your operated leg. The camera is optional for this exercise.',
+    handsAndSupport: 'Keep your hands at your sides. Your care team can ask you to put a rolled towel under your knee.',
+    range: 'Tighten the muscle at the front of your thigh. Press the back of your knee toward the surface. Hold, then relax.',
+    speed: 'Press slowly. Hold for the time that your care team sets. Press the button to start and to end each hold.',
+    cameraMustSee: timerNote,
+    bodyMapPoints: [],
+    basis: { kind: 'proposal', sourceIds: ['P1', 'P2', 'P3'] },
+  },
+  summary: ['holds', 'hold-seconds'],
+};
+
+const GLUTEAL_SET: ExerciseSpec = {
+  id: 'gluteal-set',
+  label: 'Gluteal set',
+  sourceIds: ['P1', 'P2', 'N3'],
+  phases: [1, 2],
+  posture: ['supine'],
+  view: { angle: 'none', cameraSide: 'none', legs: 'none' },
+  measure: { kind: 'none' },
+  report: [],
+  mode: 'person-timer',
+  thresholds: [{ name: 'hold-seconds', value: null, unit: 's', origin: 'clinician:holdSeconds' }],
+  cues: [],
+  needs: [],
+  guide: {
+    startPosition: 'Lie on your back with your legs straight.',
+    legFacingCamera: 'No camera view is needed for this exercise.',
+    handsAndSupport: 'Keep your hands at your sides.',
+    range: 'Squeeze your buttock muscles together. Hold, then relax.',
+    speed: 'Squeeze slowly. Hold for the time that your care team sets. Press the button to start and to end each hold.',
+    cameraMustSee: timerNote,
+    bodyMapPoints: [],
+    basis: { kind: 'proposal', sourceIds: ['P1', 'P2', 'N3'] },
+  },
+  summary: ['holds', 'hold-seconds'],
+};
+
+const ANKLE_PUMP: ExerciseSpec = {
+  id: 'ankle-pump',
+  label: 'Ankle pump',
+  sourceIds: ['P1', 'P3'],
+  phases: [1],
+  posture: ['supine'],
+  view: { angle: 'side', cameraSide: 'operated-leg-near', legs: 'chosen' },
+  measure: { kind: 'joint-angle', joint: 'knee-ankle-footIndex' },
+  report: ['range'],
+  mode: 'reps-cycle',
+  thresholds: [
+    { name: 'min-amplitude', value: null, unit: 'deg', origin: 'engineering' },
+    { name: 'min-state-ms', value: 300, unit: 'ms', origin: 'engineering' },
+  ],
+  cues: [],
+  needs: ['knee-to-toe'],
+  guide: {
+    startPosition: 'Lie on your back or sit with your leg straight and supported.',
+    legFacingCamera: 'Put the camera at the side of your operated leg.',
+    handsAndSupport: 'Keep your hands at your sides. Keep your heel off the surface so that your foot can move.',
+    range: 'Point your toes away from you. Then pull your toes toward you. Repeat.',
+    speed: 'Move slowly and with control.',
+    cameraMustSee: 'The camera must see your knee, ankle and toes. The app counts each pump. It does not check how far you move.',
+    bodyMapPoints: [25, 27, 31],
+    basis: { kind: 'proposal', sourceIds: ['P1', 'P3'] },
+  },
+  summary: ['reps', 'range'],
+};
+
+const LEG_RAISE_SIDE: ExerciseSpec = {
+  id: 'leg-raise-side',
+  label: 'Leg raise to the side',
+  sourceIds: ['S1', 'P1', 'P2', 'P3'],
+  phases: [1, 2],
+  posture: ['side-lying', 'standing'],
+  view: { angle: 'front', cameraSide: 'either', legs: 'chosen' },
+  measure: { kind: 'segment-angle', from: 'hip', to: 'ankle', against: 'horizontal' },
+  report: ['peak'],
+  mode: 'lift',
+  thresholds: [
+    { name: 'lift-angle', value: null, unit: 'deg', origin: 'engineering' },
+    { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
+    { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
+  ],
+  cues: [],
+  needs: ['whole-leg'],
+  guide: {
+    startPosition: 'Lie on your side or stand facing the camera. Keep your operated leg straight.',
+    legFacingCamera: 'Face the camera. The camera sees the front of your body.',
+    handsAndSupport: 'If you stand, hold a counter or a chair back with one hand.',
+    range: 'Lift your operated leg out to the side with your toes forward. Hold. Then lower your leg with control.',
+    speed: 'Move slowly and with control.',
+    cameraMustSee: 'The camera must see your hip and your whole leg. The camera counts your lifts. It cannot measure the angle well.',
+    bodyMapPoints: [23, 27],
+    basis: { kind: 'proposal', sourceIds: ['S1', 'P1', 'P2', 'P3'] },
+  },
+  summary: ['reps', 'peak'],
+};
+
+const LEG_RAISE_BACK: ExerciseSpec = {
+  id: 'leg-raise-back',
+  label: 'Leg raise to the back',
+  sourceIds: ['S1', 'P1', 'P2', 'P3'],
+  phases: [1, 2],
+  posture: ['standing'],
+  view: { angle: 'side', cameraSide: 'operated-leg-near', legs: 'chosen' },
+  measure: { kind: 'segment-angle', from: 'hip', to: 'knee', against: 'vertical' },
+  report: ['peak'],
+  mode: 'lift',
+  thresholds: [
+    { name: 'lift-angle', value: null, unit: 'deg', origin: 'engineering' },
+    { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
+    { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
+  ],
+  cues: [],
+  needs: ['whole-leg'],
+  guide: {
+    startPosition: 'Stand side-on to the camera. Put your feet at hip width.',
+    legFacingCamera: 'Stand with your operated side toward the camera. Your operated leg is near the camera.',
+    handsAndSupport: 'Hold a counter or a chair back with one hand. Put the support in front of your body, away from the camera.',
+    range: 'Keep your knee straight. Lift your operated leg back behind you. Hold. Then lower your leg with control.',
+    speed: 'Move slowly and with control.',
+    cameraMustSee: 'The camera must see your hip, knee and ankle. The camera counts your lifts and measures the angle. The app does not judge how you do it.',
+    bodyMapPoints: [23, 25, 27],
+    basis: { kind: 'proposal', sourceIds: ['S1', 'P1', 'P2', 'P3'] },
+  },
+  summary: ['reps', 'peak'],
+};
+
+export const REGISTRY: readonly ExerciseSpec[] = [
+  HEEL_SLIDE,
+  MINI_SQUAT,
+  STRAIGHT_LEG_RAISE,
+  SEATED_EXTENSION_HOLD,
+  QUAD_SET,
+  GLUTEAL_SET,
+  ANKLE_PUMP,
+  LEG_RAISE_SIDE,
+  LEG_RAISE_BACK,
+];
 
 export const specFor = (id: string): ExerciseSpec | undefined => REGISTRY.find((s) => s.id === id);

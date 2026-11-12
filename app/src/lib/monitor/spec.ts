@@ -58,7 +58,7 @@ export interface Guide {
   range: string;
   speed: string;
   cameraMustSee: string;
-  /** MediaPipe landmark ids that the body map shows. */
+  /** MediaPipe landmark ids that the body map shows, for the left leg. The right leg ids are one higher. */
   bodyMapPoints: number[];
   /** `existing`: the text of guides.ts. `proposal`: the text is a PROPOSAL of the app. The sources are only the ones that the repo holds. */
   basis: { kind: 'existing' | 'proposal'; sourceIds: string[] };
