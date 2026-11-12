@@ -8,6 +8,7 @@ import type { BaselineSource } from '../lib/baseline';
 import { initialScreen, type ScreenId } from '../lib/flow';
 import type { Summary } from '../lib/exercises';
 import type { SetsState } from '../lib/sets';
+import type { EngineData } from '../lib/monitor/modes';
 import type { FrontRecord } from '../lib/views';
 import type { Exercise, Mode } from '../lib/protocol';
 import type { PlanDraft } from '../lib/planView';
@@ -23,6 +24,8 @@ export interface RunSummary extends Summary {
   front?: FrontRecord;
   /** F1: where the resting angle came from. Absent when the exercise has no rep counter or no angle was set. */
   baselineSource?: BaselineSource;
+  /** The five new kinds: holdList, timedBy, reportKey, reportValue from pipeline.engineData(). Absent for the four old kinds. */
+  engine?: EngineData;
 }
 
 export interface RunResult {

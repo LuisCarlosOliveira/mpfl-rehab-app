@@ -7,14 +7,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { PEAK_NO_VALUE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
-import type { Exercise, Protocol } from '../lib/protocol';
+import type { Exercise, PlanExercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
 import { plural } from '../lib/sets';
 import { saveSession, updateSessionAnswers, type MpflDb } from '../lib/storage';
 import type { RunResult } from './appState';
 import { Icon } from './Icon';
-import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
+import { ANGLE_LABEL, EXERCISE_NAMES, secondsText } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
 import { Segmented } from './Segmented';
@@ -30,7 +30,7 @@ const SWELLING: { value: SwellingAnswer; text: string }[] = [
 
 interface Props {
   run: RunResult;
-  exercise: Exercise;
+  exercise: PlanExercise;
   protocol: Protocol;
   activePhase: number;
   redFlagBlocks: number;
@@ -126,6 +126,12 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const peakWhole = storedWhole(summary.peakFlexion);
   const overLimit = summary.eventCounts.overLimit; // the stored count: bends past the limit of the care team
   const unit = summary.holds === null ? 'rep' : 'hold';
+  // The five new kinds. The values come from the engine (RunSummary.engine). Whole degrees, as the record stores them.
+  const engine = summary.engine;
+  const timedByPerson = engine?.timedBy === 'person';
+  const holdList = engine?.holdList ?? [];
+  const reportWhole = engine?.reportValue === undefined ? null : storedWhole(engine.reportValue);
+  const REPORT_LINE = { 'ankle-range': 'Largest ankle range', 'lift-angle': 'Largest lift angle' } as const;
 
   return (
     <section aria-labelledby="summary-title" className="narrow v2-flow v2-summary">
@@ -156,9 +162,18 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           )}
           {summary.holds !== null && (
             <div className="stat">
-              <dt>Holds counted</dt>
+              <dt>{timedByPerson ? 'Holds timed by you' : 'Holds counted'}</dt>
               <dd>
                 <span className="num">{summary.holds}</span> <span className="unit">{plural(summary.holds, 'hold')}</span>
+              </dd>
+            </div>
+          )}
+          {engine?.reportKey !== undefined && engine.reportKey !== 'knee-angle-top' && reportWhole !== null && (
+            <div className="stat">
+              <dt>{REPORT_LINE[engine.reportKey]}</dt>
+              <dd>
+                <span className="num">{reportWhole}</span> <span className="unit">{plural(reportWhole, 'degree')}</span>
+                <span className="detail">({ANGLE_LABEL})</span>
               </dd>
             </div>
           )}
@@ -166,7 +181,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             <div className="stat">
               <dt>Highest knee bend</dt>
               {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
-              {peakUnreadable(exercise.kind, summary.peakFlexion) ? (
+              {peakUnreadable(exercise.kind as Exercise['kind'], summary.peakFlexion) /* peakFlexion is set by the four old kinds only */ ? (
                 <dd>{PEAK_NO_VALUE_TEXT}</dd>
               ) : (
                 <dd>
@@ -191,6 +206,12 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             </div>
           )}
         </dl>
+        {timedByPerson && (
+          <div className="stack-s">
+            {holdList.length > 0 && <p>{`Holds: ${secondsText(holdList)}`}</p>}
+            <p className="detail">The camera did not check these holds.</p>
+          </div>
+        )}
         {/* The pause message sits here, above both questions, so a phone shows it at once (FR12). */}
         <PauseNotice verdict={verdict} pain={highestPain} />
         {sets !== null && sets.prescription.reps !== undefined && (
