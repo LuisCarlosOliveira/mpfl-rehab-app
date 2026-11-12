@@ -14,6 +14,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { focusHeading } from './focusHeading';
+import { useCameraTop } from './useCameraTop';
 import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import type { GuideKind } from '../lib/guides';
@@ -98,6 +99,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const [confirmedOther, setConfirmedOther] = useState(false);
   const baseline = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  useCameraTop(frameRef);
   const map = useRef<BodyMapHandle>(null);
   const handedOff = useRef(false);
   const lastKey = useRef('');
@@ -295,7 +298,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               {live?.announced}
             </p>
 
-            <div className="frame">
+            <div className="frame" ref={frameRef}>
               <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
               {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
               {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}

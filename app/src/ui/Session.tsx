@@ -44,6 +44,7 @@ import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHand
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { useCameraTop } from './useCameraTop';
 import { PainScale } from './PainScale';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
 import { StatusLine } from './StatusLine';
@@ -191,6 +192,8 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const restRef = useRef<HTMLHeadingElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  useCameraTop(frameRef);
   const map = useRef<BodyMapHandle>(null);
   const live = useRef<Live>({
     lockedOut: false,
@@ -557,6 +560,30 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It only shows the scale.
   const ticks = Number.isFinite(scaleEnd) ? Array.from({ length: Math.min(Math.floor(scaleEnd / 5), 60) + 1 }, (_, i) => i * 5) : [];
 
+  // The bar of Stop, Count this rep and Knee gave way or hurts. On a phone it is fixed at the bottom. On a wide screen it sits in the right column,
+  // always in view, and it never covers the camera.
+  const bar = (
+    <div className="session-bar">
+      <div className="session-bar-inner">
+        <div className="bar-actions">
+          <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
+            <Icon name="square" size={22} fill="currentColor" />
+            Stop
+          </button>
+          {needsHandCount && (
+            <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
+              Count this rep
+            </button>
+          )}
+          <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
+            <Icon name="triangle-alert" size={22} />
+            Knee gave way or hurts
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <section aria-labelledby="session-title" className="session v2-session">
       <header className="page-head session-head">
@@ -605,7 +632,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
           )}
           <div className={paused ? 'session-grid session-paused' : 'session-grid'}>
             <div className="viewfinder">
-              <div className="frame">
+              <div className="frame" ref={frameRef}>
                 <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
                 <BodyMap ref={map} leg={side} mirrored={PREVIEW_MIRRORED} />
                 <BodyMapSwitch />
@@ -624,17 +651,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               {/* The status slot: right under the camera, never on it. Its height is reserved, so nothing moves when it fills (spec section 5).
                   Priority: the alert, then the capture line, then the start step, then the cue. The CSS shows the first one. */}
               <div className="status-slot">
-                {/* B5-04: the lock box is the first thing in the slot, so it sits above the fixed bar, also when the bar holds "Count this rep". */}
-                {view.lock !== null && (
-                  <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
-                    {view.lock !== 'other' && (
-                      <button type="button" className="btn" onClick={followAgain} disabled={view.lock === 'looking'} aria-busy={view.lock === 'looking'}>
-                        {CAPTURE_TEXT.followAgain}
-                      </button>
-                    )}
-                    <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : view.lock === 'looking' ? CAPTURE_TEXT.looking : CAPTURE_TEXT.otherPerson}</p>
-                  </div>
-                )}
                 <p role="alert" className="cue cue-alert">
                   {view.alert}
                 </p>
@@ -671,6 +687,17 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               </div>
             </div>
             <div className="stack">
+              {/* B5-04: the lock box is out of the flow on a phone (fixed above the bar). On a wide screen it is the first thing of the right column. */}
+              {view.lock !== null && (
+                <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
+                  {view.lock !== 'other' && (
+                    <button type="button" className="btn" onClick={followAgain} disabled={view.lock === 'looking'} aria-busy={view.lock === 'looking'}>
+                      {CAPTURE_TEXT.followAgain}
+                    </button>
+                  )}
+                  <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : view.lock === 'looking' ? CAPTURE_TEXT.looking : CAPTURE_TEXT.otherPerson}</p>
+                </div>
+              )}
               {paused && (
                 <div className={resting ? 'stack-s rest-panel' : 'stack-s'}>
                   <Notice role="status" icon="clock">
@@ -789,31 +816,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   <p>{LEG_TEXT.identity}</p>
                 </Notice>
               )}
+              {bar}
             </div>
 
           </div>
         </>
       )}
-
-      <div className="session-bar">
-        <div className="session-bar-inner">
-          <div className="bar-actions">
-            <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
-              <Icon name="square" size={22} fill="currentColor" />
-              Stop
-            </button>
-            {needsHandCount && (
-              <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
-                Count this rep
-              </button>
-            )}
-            <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
-              <Icon name="triangle-alert" size={22} />
-              Knee gave way or hurts
-            </button>
-          </div>
-        </div>
-      </div>
+      {!setup.ok && bar}
     </section>
   );
 }

@@ -93,10 +93,10 @@ body:has(.v2-session) main {
   width: 100%;
   border-radius: 0;
 }
-/* The camera is at most 300 px and at most 70 percent of the width. On a short phone it takes what is left above the bar:
+/* The camera is at most 420 px and at most 75 percent of the width (a full 4:3 picture on a phone). On a short phone it takes what is left above the bar:
    the page without the camera is about 33 rem tall at 360 x 640, so the camera never goes under 9.4 rem (150 px). */
 .v2-session .viewfinder .preview {
-  max-height: max(9.4rem, min(70vw, 300px, 100svh - 33rem));
+  max-height: max(9.4rem, min(75vw, 420px, 100svh - 33rem));
 }
 
 /* The slot holds its height, so nothing moves when it fills. It shows the first one of: the alert, the capture line, the start step, the cue. */
@@ -553,4 +553,81 @@ body:has(.v2-session) main {
   background: var(--accent-ink);
   border-color: var(--accent-ink);
   color: var(--bg);
+}
+
+/* ---------- The camera is the main thing (user request, 2026-11-12) ----------
+   Wide screen, 56 rem and more: the camera takes two thirds of the width and the free height of the window. The numbers, the lock box and the
+   Stop buttons are in the right column. The buttons are in the page, sticky in the column, so no bar covers the camera and Stop is always in view.
+   --camera-top is the distance from the top of the page to the camera (src/ui/useCameraTop.ts). 6 rem under the picture hold the cue slot. */
+@media (min-width: 56rem) {
+  main:has(> .v2-session),
+  main:has(> .v2-setup) {
+    max-width: none;
+  }
+  .v2-session .session-grid,
+  .v2-setup .setup-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    gap: var(--s-5);
+    align-items: start;
+  }
+  .v2-session .session-grid > .viewfinder,
+  .v2-session .session-paused > .viewfinder {
+    order: 0;
+    grid-column: 1;
+    grid-row: 1;
+    margin-inline: 0;
+    position: sticky;
+    top: var(--s-3);
+  }
+  .v2-session .session-grid > .stack {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .v2-session .viewfinder .frame {
+    border-radius: var(--r-s);
+  }
+  .v2-session .viewfinder .preview {
+    max-height: none;
+    aspect-ratio: auto;
+    height: max(18rem, calc(100svh - var(--camera-top, 9rem) - 6rem - var(--s-4)));
+  }
+  .v2-setup .setup-grid .frame .preview {
+    max-height: none;
+    aspect-ratio: auto;
+    height: max(18rem, calc(100svh - var(--camera-top, 9rem) - 4rem - var(--s-4)));
+  }
+  /* The bar is a panel of the right column. Stop comes first. */
+  .v2-session .session-bar {
+    position: sticky;
+    bottom: var(--s-3);
+    left: auto;
+    right: auto;
+    z-index: 10;
+    margin-top: var(--s-4);
+    border: 1px solid var(--line);
+    border-radius: var(--r-s);
+  }
+  .v2-session .session-bar-inner {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--s-3);
+  }
+  .v2-session .bar-actions {
+    display: grid;
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-2);
+  }
+  .v2-session .session-bar .btn {
+    min-height: 3rem;
+  }
+  .v2-session .bar-actions .btn-count {
+    order: 0;
+    grid-column: auto;
+  }
+  /* The lock box has room in the column, so it is part of the page here. */
+  .v2-session .lock-box {
+    position: static;
+    border: 1px solid var(--line);
+    border-radius: var(--r-s);
+  }
 }
