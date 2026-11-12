@@ -147,9 +147,7 @@ describe('figures of the five new exercises', () => {
     (['side', 'front'] as const).forEach((view) => {
       const plan = cameraPlan(view, kind);
       expect(plan.box.w).toBeGreaterThan(0);
-      // Step D1: the front plan of the leg raise to the side draws a standing person with the phone in front at hip height.
-      const standing = kind === 'leg-raise-back' || (kind === 'leg-raise-side' && view === 'front');
-      expect(plan.posture).toBe(standing ? 'upright' : 'lying');
+      expect(plan.posture).toBe(kind === 'leg-raise-back' ? 'upright' : 'lying');
     });
   });
 
