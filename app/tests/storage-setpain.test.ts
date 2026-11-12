@@ -98,20 +98,21 @@ describe('CSV column set_pain', () => {
 
   it('comes after the front columns and before baseline_source (F1 appends that column last), so old positions stay', async () => {
     const { header } = await rows({});
-    expect(header[header.length - 3]).toBe('set_pain');
-    expect(header[header.length - 2]).toBe('baseline_source');
-    expect(header[header.length - 1]).toBe('reps_by'); // F4a appends this column last
-    expect(header.indexOf('front_change_deg')).toBe(header.length - 4);
+    const end = header.length - 4; // the four columns of step E come last
+    expect(header[end - 3]).toBe('set_pain');
+    expect(header[end - 2]).toBe('baseline_source');
+    expect(header[end - 1]).toBe('reps_by'); // F4a appended this column
+    expect(header.indexOf('front_change_deg')).toBe(end - 4);
   });
 
   it('writes the answers joined by a space, and "no-answer" for a skipped set', async () => {
     const { row } = await rows({ setPain: [2, null, 7] });
-    expect(row.endsWith(',"2 no-answer 7",,')).toBe(true); // the empty baseline_source cell and the empty reps_by cell follow
+    expect(row.endsWith(',"2 no-answer 7",,,,,,')).toBe(true); // the empty baseline_source, reps_by and step E cells follow
   });
 
   it('leaves the cell empty for an old session', async () => {
     const { row } = await rows({});
-    expect(row.endsWith(',,,')).toBe(true); // the set_pain cell, the baseline_source cell and the reps_by cell
+    expect(row.endsWith(',,,,,,,')).toBe(true); // the set_pain, baseline_source, reps_by and four step E cells
     expect(row).not.toContain('undefined');
   });
 });

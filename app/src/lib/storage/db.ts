@@ -16,6 +16,9 @@ const MARGIN_SOURCES = [
   MARGIN_SOURCE,
 ] as const;
 
+export const REPORT_KEYS = ['ankle-range', 'lift-angle', 'knee-angle-top'] as const;
+export type ReportKey = (typeof REPORT_KEYS)[number];
+
 export const sessionSchema = z.strictObject({
   date: z.iso.datetime().max(40),
   exercise: z.enum(PLAN_EXERCISE_KINDS), // the four exercises of the engine and the five new ones (exercise monitoring)
@@ -63,8 +66,19 @@ export const sessionSchema = z.strictObject({
   // M3: who counted the reps of the session. 'hand' when any rep came from the "Count this rep" button, 'camera' when all came
   // from the pipeline. Optional, so an older file still reads. No index. The schema version stays 1.
   repsBy: z.enum(['camera', 'hand']).optional(),
+  // Exercise monitoring, step E. All fields are optional, so an older file still reads. No index. The schema version stays 1.
+  // `holdList`: whole seconds of each hold that the person timed (quad set, gluteal set). The seated hold keeps `holdSeconds`.
+  holdList: z.array(z.number().int().min(1).max(3600)).max(50).optional(),
+  // Who timed the hold. Absent means the camera. A hand-timed record never mixes with a camera count.
+  timedBy: z.enum(['person', 'camera']).optional(),
+  // ONE generic measured value of the new geometry. `reportValue` is in degrees and keeps every digit. A screen shows whole degrees.
+  reportKey: z.enum(REPORT_KEYS).optional(),
+  reportValue: z.number().min(0).max(180).optional(),
   schemaVersion: z.literal(1),
 }).superRefine((s, ctx) => {
+  if ((s.reportKey === undefined) !== (s.reportValue === undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['reportKey'], message: 'reportKey and reportValue go together.' });
+  }
   if (s.repsPerSet === undefined) return;
   if (s.repsPrescribed !== undefined && s.repsPerSet.some((r) => r > (s.repsPrescribed as number))) {
     ctx.addIssue({ code: 'custom', path: ['repsPerSet'], message: 'A set cannot hold more reps than repsPrescribed.' });

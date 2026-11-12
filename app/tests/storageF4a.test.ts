@@ -69,14 +69,14 @@ describe('repsBy in the session schema', () => {
   it('adds no index', () => {
     expect(freshDb().sessions.schema.indexes.map((i) => i.name).sort()).toEqual(['date', 'exercise']);
   });
-  it('writes a quoted reps_by column as the last column and leaves it empty for an old session', async () => {
+  it('writes a quoted reps_by column before the four columns of step E and leaves it empty for an old session', async () => {
     const db = freshDb();
     await saveSession(db, session({ repsBy: 'hand' }));
     await saveSession(db, session({ date: '2026-11-02T10:00:00.000Z' }));
     const lines = (await exportCsv(db)).trimEnd().split('\n');
     const header = (lines[1] as string).split(',');
-    expect(header.at(-1)).toBe('reps_by');
-    const cell = (row: string) => row.split(',').at(-1);
+    expect(header.at(-5)).toBe('reps_by');
+    const cell = (row: string) => row.split(',').at(-5);
     expect(cell(lines[2] as string)).toBe('"hand"');
     expect(cell(lines[3] as string)).toBe('');
   });
