@@ -24,9 +24,9 @@ describe('the camera error band (U16)', () => {
   it('draws one band for each angle chart and none for reps or pain', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
     expect(container.querySelectorAll('section.dash-chart')).toHaveLength(4);
-    expect(section(container, 'Peak knee bend, mini squat').querySelector('.recharts-area-area')).not.toBeNull();
+    expect(section(container, 'Peak knee bend, Mini squat').querySelector('.recharts-area-area')).not.toBeNull();
     // One point cannot make an area. The caption still names the error.
-    expect(section(container, 'Peak knee bend, heel slide').querySelector('.dash-band-note')).not.toBeNull();
+    expect(section(container, 'Peak knee bend, Heel slide').querySelector('.dash-band-note')).not.toBeNull();
     expect(section(container, 'Reps for each day').querySelector('.recharts-area, .dash-band-note')).toBeNull();
     expect(section(container, 'Pain after each session').querySelector('.recharts-area, .dash-band-note')).toBeNull();
   });
@@ -47,7 +47,7 @@ describe('the camera error band (U16)', () => {
 
   it('writes the caption with the estimate, the source and the note that the lite model is not measured', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
-    const note = section(container, 'Peak knee bend, mini squat').querySelector('.dash-band-note')!;
+    const note = section(container, 'Peak knee bend, Mini squat').querySelector('.dash-band-note')!;
     expect(note).toHaveTextContent('Camera error, estimated: about 9 degrees (best case, from still photos of healthy people).');
     expect(note).toHaveTextContent('Not measured for this model.');
   });
@@ -60,7 +60,7 @@ describe('the camera error band (U16)', () => {
 
   it('adds a column Camera error range to the data table of an angle chart, and only there', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
-    const squat = within(section(container, 'Peak knee bend, mini squat')).getByRole('table');
+    const squat = within(section(container, 'Peak knee bend, Mini squat')).getByRole('table');
     expect(within(squat).getByRole('columnheader', { name: 'Camera error range' })).toBeInTheDocument();
     const cells = within(squat).getAllByRole('row').slice(1).map((r) => within(r).getAllByRole('cell').map((c) => c.textContent));
     expect(cells.map((c) => c[2])).toEqual(['53 to 71 degrees', '61 to 79 degrees', '0 to 13 degrees']);
@@ -104,7 +104,7 @@ describe('clean chart cards (U15)', () => {
       expect(card.querySelector('.dash-range')).not.toBeNull();
       expect(card.querySelector('.dash-last')).not.toBeNull();
     }
-    const squat = section(container, 'Peak knee bend, mini squat');
+    const squat = section(container, 'Peak knee bend, Mini squat');
     expect(squat.querySelector('.dash-range')).toHaveTextContent('3 sessions, 1 Nov 2026 to 8 Nov 2026');
     expect(squat.querySelector('.dash-last')).toHaveTextContent('4 degrees');
     expect(section(container, 'Reps for each day').querySelector('.dash-range')).toHaveTextContent('4 days, 1 Nov 2026 to 8 Nov 2026');
@@ -125,7 +125,7 @@ describe('clean chart cards (U15)', () => {
 
   it('keeps the text of the summary for a screen reader, and hides the repeat of the last value', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
-    const squat = section(container, 'Peak knee bend, mini squat');
+    const squat = section(container, 'Peak knee bend, Mini squat');
     expect(squat.querySelector('.dash-last')).toHaveAttribute('aria-hidden', 'true');
     expect(squat.querySelector('[role="img"]')!.getAttribute('aria-describedby')).toBeTruthy();
   });
@@ -146,7 +146,7 @@ describe('clean chart cards (U15)', () => {
 
   it('shows the first and the last date only on the date axis, as day and month', () => {
     const { container } = render(<DashboardCharts sessions={list()} />);
-    const ticks = [...section(container, 'Peak knee bend, mini squat').querySelectorAll('.recharts-cartesian-axis-tick-value')].map((t) => t.textContent!).filter((t) => /[A-Z][a-z]{2}$/.test(t));
+    const ticks = [...section(container, 'Peak knee bend, Mini squat').querySelectorAll('.recharts-cartesian-axis-tick-value')].map((t) => t.textContent!).filter((t) => /[A-Z][a-z]{2}$/.test(t));
     expect(ticks).toEqual(['1 Nov', '8 Nov']);
   });
 });
@@ -165,7 +165,7 @@ describe('the words of a chart summary', () => {
   it('draws no chart for the straight leg raise, and says in one plain line that the angle is saved for the care team', () => {
     const { container } = render(<Dashboard sessions={[slr(), ...list()]} onBack={() => undefined} />);
     expect(container.textContent!.match(/The angle at the top of a straight leg raise is saved for your care team\. The app does not draw it\./g)).toHaveLength(1);
-    expect(container.textContent).not.toMatch(/Peak knee bend, straight leg raise|Angle at the top, straight leg raise/);
+    expect(container.textContent).not.toMatch(/Peak knee bend, Straight leg raise|Angle at the top, Straight leg raise/);
     const line = [...container.querySelectorAll('p')].find((p) => p.textContent === SLR_NOTE)!;
     expect(line.closest('section.dash-chart')).toBeNull();
     expect(line.textContent).not.toMatch(/\d/);

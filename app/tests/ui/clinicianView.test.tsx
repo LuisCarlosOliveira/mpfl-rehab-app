@@ -160,7 +160,7 @@ describe('ClinicianView review summary', () => {
   ])('shows the fixed state text at a median of %i with limit 110 and margin 9', async (peak, text) => {
     const row = await state(peak);
     expect(within(row).getByText(text)).toBeInTheDocument();
-    expect(within(row).getByText('Peak knee bend, mini squat, at least 110 degrees')).toBeInTheDocument();
+    expect(within(row).getByText('Peak knee bend, Mini squat, at least 110 degrees')).toBeInTheDocument();
     expect(within(row).getByText('110 degrees')).toBeInTheDocument();
     expect(within(row).getByText('Evidence: borrowed from another condition')).toBeInTheDocument();
     expect(within(row).getByText(/plus or minus 9 degrees/)).toBeInTheDocument();
@@ -244,9 +244,9 @@ describe('ClinicianView review summary', () => {
     pick(protocolPicker(), protocolFileText([], { phases, activePhase: 2 }));
     const select = await screen.findByLabelText(/phase to review/i);
     expect(select).toHaveValue('2');
-    expect(await screen.findByText('Peak knee bend, mini squat, at least 90 degrees')).toBeInTheDocument();
+    expect(await screen.findByText('Peak knee bend, Mini squat, at least 90 degrees')).toBeInTheDocument();
     fireEvent.change(select, { target: { value: '1' } });
-    expect(await screen.findByText('Peak knee bend, mini squat, at least 110 degrees')).toBeInTheDocument();
+    expect(await screen.findByText('Peak knee bend, Mini squat, at least 110 degrees')).toBeInTheDocument();
   });
 
   it('applies the app mode: patient mode refuses the example protocol and shows the named error', async () => {

@@ -4,20 +4,11 @@
 // The output holds numbers and labels only. It has no goal, no target line, no
 // colour, no status and no trend field (guardrails skill, section Wording).
 
+import { PLAN_NAMES } from './planView';
 import type { SessionRecord } from './storage';
 
-export const EXERCISE_LABEL = {
-  'heel-slide': 'heel slide',
-  'straight-leg-raise': 'straight leg raise',
-  'mini-squat': 'mini squat',
-  'seated-extension-hold': 'seated extension hold',
-  // The five exercises of exercise monitoring. Their names start with a capital, as the plan screen writes them.
-  'quad-set': 'Quadriceps set',
-  'gluteal-set': 'Gluteal set',
-  'ankle-pump': 'Ankle pump',
-  'leg-raise-side': 'Leg raise to the side',
-  'leg-raise-back': 'Leg raise to the back',
-} as const;
+// One name for each exercise: the plan name, with a capital letter. A screen never writes its own copy of a name.
+export const EXERCISE_LABEL = PLAN_NAMES;
 
 type ExerciseKind = SessionRecord['exercise'];
 const NO_ANGLE_CHART: ReadonlySet<string> = new Set(['straight-leg-raise', 'quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
@@ -98,6 +89,8 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
 
   const reps = new Map<string, number | null>();
   for (const s of sorted) {
+    // A hold that the person timed is not a camera count, so it never enters "Reps for each day".
+    if (isPersonTimed(s)) continue;
     const day = s.date.slice(0, 10);
     const before = reps.get(day) ?? null;
     reps.set(day, s.reps === null ? before : (before ?? 0) + s.reps);
@@ -111,6 +104,24 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
 }
 
 const NO_VALUE = 'no value';
+
+/** A record that the person timed by hand. It never mixes with a camera count. */
+const isPersonTimed = (s: SessionRecord): boolean => s.timedBy === 'person' || s.exercise === 'quad-set' || s.exercise === 'gluteal-set';
+
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/**
+ * One plain line for each exercise that the person timed: the count of holds and the longest hold of the LAST session of that exercise.
+ * It is not a total over time, and it has no goal and no streak. The order is the order of the plan names.
+ */
+export function holdLines(sessions: readonly SessionRecord[]): string[] {
+  const last = sortByDate(sessions.filter((s) => s.timedBy === 'person' && s.holdList !== undefined)).reverse();
+  return (Object.keys(PLAN_NAMES) as ExerciseKind[]).flatMap((kind) => {
+    const s = last.find((x) => x.exercise === kind);
+    const list = s?.holdList ?? [];
+    return list.length === 0 ? [] : [`${PLAN_NAMES[kind]}: ${plural(list.length, 'hold')} timed by you, the longest ${plural(Math.max(...list), 'second')}.`];
+  });
+}
 
 /** Table rows for the same series. Each row carries the number of one chart point. */
 export function toTableRows(series: ProgressSeries): TableRow[] {

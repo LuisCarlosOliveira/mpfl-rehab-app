@@ -69,7 +69,7 @@ describe('Dashboard', () => {
   it('puts units in the titles and on the axes', () => {
     const { container } = render(<Dashboard sessions={sessions()} onBack={vi.fn()} />);
     const titles = [...container.querySelectorAll('h2')].map((h) => h.textContent);
-    expect(titles).toContain('Peak knee bend, mini squat, in degrees (estimated angle, not a medical measurement)');
+    expect(titles).toContain('Peak knee bend, Mini squat, in degrees (estimated angle, not a medical measurement)');
     expect(titles).toContain('Reps for each day, in reps');
     expect(titles).toContain('Pain after each session, from 0 to 10');
     const axisLabels = [...container.querySelectorAll('.recharts-label')].map((l) => l.textContent);
