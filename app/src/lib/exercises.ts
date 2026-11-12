@@ -37,6 +37,17 @@ const LIFT_END_MS = 300; // ENGINEERING, not clinical. In clip 03 the shortest r
 const HIP_JUMP_FRACTION = 0.1;
 const ANCHOR_STEP = 0.005;
 const LOCKED_OUT_MS = 4000;
+// ENGINEERING, not clinical. No source sets these values. A whole leg is plausible when hip, knee and ankle are visible and inside the
+// picture (EDGE_MARGIN), both segments are at least MIN_SEGMENT of the picture width, and the thigh over the shin is in SEGMENT_RATIO.
+// The saved clips 01 to 06 have segments of 0.08 to 0.37 and a ratio of 0.5 to 2. CONFIRM_MS is how long a plausible leg stays within
+// STEADY_RADIUS before the anchor is confirmed. PROBE_MIN_FRAMES and PROBE_MANY_SHARE decide a probe: at least that share of its frames had a second pose.
+const EDGE_MARGIN = 0.02;
+const MIN_SEGMENT = 0.03;
+const SEGMENT_RATIO: [number, number] = [0.4, 2.5];
+const CONFIRM_MS = 2000;
+const STEADY_RADIUS = 0.05;
+const PROBE_MIN_FRAMES = 5;
+const PROBE_MANY_SHARE = 0.2;
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
 // The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
 // spike counts none. A lift ends when the leg stays below the start height for LIFT_END_MS, so a short dip in a hold counts no
@@ -146,12 +157,15 @@ export interface StepOutput {
   repMs: number | null; // rep time when a rep was counted on this sample
   // True when the hip was far from the anchor for more than 4 s with hip, knee and ankle visible. The person moved, or the camera follows another person (B3-01).
   lockedOut?: boolean;
+  // True once, on the frame where the lockout starts. The source then returns two poses for a short probe (B5-02).
+  probe?: boolean;
   // True after a press when the hip is far from the start hip. The camera follows someone else, or the person moved far. No numbers show (B4-01).
   otherPerson?: boolean;
 }
 
 export interface Pipeline {
-  step(landmarks: Landmark[] | null, tMs: number): StepOutput;
+  /** `extra` holds the other poses of the frame. It is given during a probe only (B5-02). */
+  step(landmarks: Landmark[] | null, tMs: number, extra?: Landmark[][]): StepOutput;
   /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
   setBaseline(deg: number): void;
   /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
@@ -204,40 +218,66 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     if (lift !== null) lift.settleSince = null;
   };
 
-  // B-03, B2-02, B3-01: the pose model follows one person. A second person can take the place of the first, or the person can move.
-  // The anchor is the hip of the person. It follows the accepted frames slowly and keeps its place through frames with no pose.
-  // A hip far from the anchor reads as not seen. Only `followAgain()` (a press of the person) moves the anchor to another place.
+  // B-03, B2-02, B3-01, B5-01: the pose model follows one person. A second person can take the place of the first, or the person can move.
+  // The anchor is the hip of the person. It is PROVISIONAL until a whole, plausible leg has been steady for CONFIRM_MS. A provisional anchor
+  // moves by itself to any whole-leg hip, so a close-up at the start cannot block the wide frames. Only a CONFIRMED anchor reads a far hip as
+  // not seen, and only a plausible whole leg can start the lockout (B5-05). A confirmed anchor follows the accepted frames slowly.
   let anchor: Landmark | null = null;
-  // B4-01: the pose model returns ONE pose (numPoses 2 halves the detection rate, see the commit message). It can be another person.
-  // The first anchor is where the patient was at the start. A press never moves the anchor farther than HIP_JUMP_FRACTION from there.
-  // Then the pipeline reads every frame as not seen until the person starts again from Setup, which makes a new pipeline.
+  let confirmed = false;
+  let candidate: { pos: Landmark; since: number } | null = null; // the place where the whole leg has been steady, and since when
+  // B4-01: the first confirmed anchor is where the patient was at the start. Without a pose count (no probe), a press never anchors
+  // farther than HIP_JUMP_FRACTION from there. Then every frame reads as not seen until the person starts again from Setup.
   let startHip: Landmark | null = null;
   let otherPerson = false;
-  let latestHip: Landmark | null = null; // the newest visible hip, also when it was refused. `followAgain()` uses it.
+  let latestHip: Landmark | null = null; // the newest hip of a plausible whole leg, also when it was refused. `followAgain()` uses it.
   let farSince: number | null = null; // the time of the first refused frame of the present run
+  // B5-02: when the lockout starts, the source returns two poses for a short probe (frames carry `extra`). One pose: the patient moved alone.
+  // Two or more: another person is in view. The decision comes at the first frame after the probe.
+  let probeAsked = false;
+  let probeFrames = 0;
+  let probeMany = 0;
+  let poseCount: 'one' | 'many' | null = null;
   const dist = (a: Landmark, b: Landmark) => Math.hypot(a.x - b.x, (a.y - b.y) / aspect);
-  const hipIsOther = (hip: Landmark): boolean => {
-    if (!visible(hip)) return false;
-    latestHip = hip;
-    if (anchor === null) {
-      anchor = hip;
-      startHip = hip;
-      return false;
-    }
-    const d = dist(hip, anchor);
-    if (d > HIP_JUMP_FRACTION) return true;
+  const plausibleLeg = (hip: Landmark, knee: Landmark, ankle: Landmark): boolean => {
+    if (!visible(hip) || !visible(knee) || !visible(ankle)) return false;
+    if (![hip, knee, ankle].every((q) => q.x > EDGE_MARGIN && q.x < 1 - EDGE_MARGIN && q.y > EDGE_MARGIN && q.y < 1 - EDGE_MARGIN)) return false;
+    const thigh = dist(hip, knee);
+    const shin = dist(knee, ankle);
+    return thigh >= MIN_SEGMENT && shin >= MIN_SEGMENT && thigh / shin >= SEGMENT_RATIO[0] && thigh / shin <= SEGMENT_RATIO[1];
+  };
+  const follow = (hip: Landmark) => {
+    const d = dist(hip, anchor as Landmark);
     const k = d > ANCHOR_STEP ? ANCHOR_STEP / d : 1;
-    anchor = { ...anchor, x: anchor.x + (hip.x - anchor.x) * k, y: anchor.y + (hip.y - anchor.y) * k };
-    return false;
+    anchor = { ...(anchor as Landmark), x: (anchor as Landmark).x + (hip.x - (anchor as Landmark).x) * k, y: (anchor as Landmark).y + (hip.y - (anchor as Landmark).y) * k };
+  };
+  /** `far` is true when a confirmed anchor reads this frame as another place. `plausible` is true for a whole, plausible leg. */
+  const checkHip = (hip: Landmark, knee: Landmark, ankle: Landmark, t: number): { far: boolean; plausible: boolean } => {
+    const plausible = plausibleLeg(hip, knee, ankle);
+    if (plausible) latestHip = hip;
+    if (!confirmed) {
+      if (!plausible) return { far: false, plausible };
+      if (anchor === null || dist(hip, anchor) > HIP_JUMP_FRACTION) anchor = hip;
+      else follow(hip);
+      if (candidate === null || dist(hip, candidate.pos) > STEADY_RADIUS) candidate = { pos: hip, since: t };
+      else if (t - candidate.since >= CONFIRM_MS) {
+        confirmed = true;
+        startHip = anchor;
+      }
+      return { far: false, plausible };
+    }
+    if (!visible(hip)) return { far: false, plausible };
+    if (dist(hip, anchor as Landmark) > HIP_JUMP_FRACTION) return { far: true, plausible };
+    if (plausible) follow(hip);
+    return { far: false, plausible };
   };
 
   // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
-  const unseen = (t: number, lockedOut = false): StepOutput => {
+  const unseen = (t: number, lockedOut = false, probe = false): StepOutput => {
     filter.reset();
     pauseLift();
     if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
     else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
-    return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson, otherPerson };
+    return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson, otherPerson, probe };
   };
 
   return {
@@ -247,23 +287,64 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
       followAgain() {
-        if (latestHip === null) return;
-        if (startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) {
+        if (otherPerson || latestHip === null) return;
+        if (poseCount === 'one') {
+          // One pose was in view during the probe: the patient moved alone. The press anchors with no distance limit.
+          anchor = latestHip;
+          startHip = latestHip;
+        } else if (startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) {
           otherPerson = true;
           return;
-        }
-        anchor = latestHip;
+        } else anchor = latestHip;
         farSince = null;
+        probeAsked = false;
+        probeFrames = 0;
+        probeMany = 0;
+        poseCount = null;
       },
-      step(landmarks, t) {
-        if (landmarks === null) return unseen(t);
-        const [hip, knee, ankle] = selectLeg(landmarks, side);
-        if (otherPerson) return unseen(t);
-        if (hipIsOther(hip)) {
-          farSince ??= t;
-          return unseen(t, t - farSince > LOCKED_OUT_MS && visible(knee) && visible(ankle));
+      step(landmarks, t, extra) {
+        if (extra !== undefined) {
+          probeFrames += 1;
+          if (extra.length > 0) probeMany += 1;
+        } else if (probeFrames > 0) {
+          // The probe ended. Many poses: another person is in view. Few frames: ask again at the next lockout.
+          if (probeFrames >= PROBE_MIN_FRAMES) {
+            poseCount = probeMany / probeFrames >= PROBE_MANY_SHARE ? 'many' : 'one';
+            if (poseCount === 'many') otherPerson = true;
+          } else probeAsked = false;
+          probeFrames = 0;
+          probeMany = 0;
         }
-        farSince = null;
+        if (landmarks === null) return unseen(t);
+        // During a probe the pose whose hip is nearest the confirmed anchor is the patient (the continuity rule).
+        let chosen = landmarks;
+        if (confirmed && anchor !== null && extra !== undefined && extra.length > 0) {
+          let best = Infinity;
+          for (const pose of [landmarks, ...extra]) {
+            const h = selectLeg(pose, side)[0];
+            if (!visible(h)) continue;
+            const d = dist(h, anchor);
+            if (d < best) {
+              best = d;
+              chosen = pose;
+            }
+          }
+        }
+        const [hip, knee, ankle] = selectLeg(chosen, side);
+        if (otherPerson) return unseen(t);
+        const check = checkHip(hip, knee, ankle, t);
+        if (check.far) {
+          farSince ??= t;
+          const locked = check.plausible && t - farSince > LOCKED_OUT_MS;
+          const probe = locked && !probeAsked && poseCount === null;
+          if (probe) probeAsked = true;
+          return unseen(t, locked, probe);
+        }
+        if (probeFrames === 0 && poseCount !== 'many') {
+          farSince = null;
+          if (poseCount === 'one') poseCount = null;
+          probeAsked = false;
+        }
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) return unseen(t);
         const f = filter.filter(raw, t);

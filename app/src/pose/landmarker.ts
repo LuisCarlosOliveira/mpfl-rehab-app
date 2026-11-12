@@ -1,4 +1,4 @@
-// MediaPipe PoseLandmarker: lite model, VIDEO mode, 1 pose.
+// MediaPipe PoseLandmarker: lite model, VIDEO mode, 1 pose. A probe of 2 poses runs for a short time only (setPoses, B5-02).
 // The WASM files and the model come from the own origin (public/models/).
 // Hashes of these files are in public/models/SHA256SUMS and docs/model.md.
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
@@ -10,6 +10,10 @@ const MODEL_PATH = '/models/pose_landmarker_lite.task';
 export interface Landmarker {
   /** The 33 landmarks of the first pose, or null if no pose is found. The image is a video element, or a picture of one frame (the pose worker gets a picture). */
   detect(image: HTMLVideoElement | ImageBitmap, timestampMs: number): Landmark[] | null;
+  /** The landmarks of every pose of the frame, the first one first. Use it while setPoses(2) is on. */
+  detectAll(image: HTMLVideoElement | ImageBitmap, timestampMs: number): Landmark[][];
+  /** Switch between one pose and two poses while the model runs. Two poses cost about half of the frame rate, so use it for a short probe only. */
+  setPoses(count: 1 | 2): Promise<void>;
   close(): void;
 }
 
@@ -94,6 +98,15 @@ export async function createLandmarker(onProgress?: (bytes: number) => void): Pr
       if (!first || first.length === 0) return null;
       return first.map(({ x, y, visibility }) => ({ x, y, visibility }));
     },
+    detectAll(image, timestampMs) {
+      if (closed || timestampMs <= lastTs) return [];
+      lastTs = timestampMs;
+      return pose
+        .detectForVideo(image, timestampMs)
+        .landmarks.filter((one) => one.length > 0)
+        .map((one) => one.map(({ x, y, visibility }) => ({ x, y, visibility })));
+    },
+    setPoses: (count) => (closed ? Promise.resolve() : pose.setOptions({ numPoses: count })),
     close() {
       if (closed) return;
       closed = true;

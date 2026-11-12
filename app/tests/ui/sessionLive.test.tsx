@@ -126,7 +126,7 @@ describe('B3-01: Follow me again', () => {
 
   it('shows nothing for a short lost time, then the button first and the text, and no "Show your whole leg." cue (B4-03, B4-04)', () => {
     const { source, view } = open(5);
-    let t = feedAt(source, 0.7, 0, 1000);
+    let t = feedAt(source, 0.7, 0, 3000);
     t = feedAt(source, 0.4, t, 3000);
     expect(view.container.textContent).not.toContain(TEXT);
     feedAt(source, 0.4, t, 2000);
@@ -142,7 +142,7 @@ describe('B3-01: Follow me again', () => {
 
   it('B4-01: a press far from the start hip shows the other-person text and no numbers, and no button', () => {
     const { source, view } = open(5);
-    let t = feedAt(source, 0.7, 0, 1000);
+    let t = feedAt(source, 0.7, 0, 3000);
     t = feedAt(source, 0.4, t, 5000);
     fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
     feedAt(source, 0.4, t, 1000);
@@ -154,7 +154,7 @@ describe('B3-01: Follow me again', () => {
 
   it('B4-06: after the press the focus stays in the status text, not on the page body', () => {
     const { source } = open(5);
-    let t = feedAt(source, 0.7, 0, 1000);
+    let t = feedAt(source, 0.7, 0, 3000);
     t = feedAt(source, 0.4, t, 5000);
     fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
     feedAt(source, 0.4, t, 1000);
@@ -166,7 +166,7 @@ describe('B3-01: Follow me again', () => {
 
   it('B4-05: the text stays 500 ms after the lock ends, so a short blip never flashes it, and then it goes', () => {
     const { source, view } = open(5);
-    let t = feedAt(source, 0.7, 0, 1000);
+    let t = feedAt(source, 0.7, 0, 3000);
     t = feedAt(source, 0.4, t, 5000);
     expect(view.container.textContent).toContain(TEXT);
     // the hip comes back to the anchor place for 300 ms
@@ -180,10 +180,63 @@ describe('B3-01: Follow me again', () => {
 
   it('d: the lowest-angle button is not offered while the person is locked out', () => {
     const { source, view } = open(null);
-    const t = feedAt(source, 0.7, 0, 2000);
+    const t = feedAt(source, 0.7, 0, 3000);
     feedAt(source, 0.4, t, 16000);
     expect(view.container.textContent).toContain(TEXT);
     const b = screen.queryByRole('button', { name: CAPTURE_TEXT.lowestButton });
     expect(b === null || (b as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // B5-02: at the start of the lockout the screen asks the source for a probe of two poses.
+  it('B5-02: the lockout asks the source for a probe of 2000 ms, once. One pose in the probe: a press re-anchors with no limit', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    expect(source.probe).toHaveBeenCalledTimes(1);
+    expect(source.probe).toHaveBeenCalledWith(2000);
+    for (const end = t + 2000; t < end; t += 100) act(() => source.emit(at(0.3), t, []));
+    act(() => source.emit(at(0.3), t));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(view.container.textContent).toContain(TEXT);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    feedAt(source, 0.3, t + 100, 600);
+    expect(readout(view)).not.toBe('--');
+    expect(view.container.textContent).not.toContain(OTHER);
+  });
+
+  it('B5-02: two poses in the probe: the other-person text shows after the probe, with no button', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    for (const end = t + 2000; t < end; t += 100) act(() => source.emit(at(0.3, 90), t, [at(0.7, 20)]));
+    act(() => source.emit(at(0.3, 90), t));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(view.container.textContent).toContain(OTHER);
+    expect(screen.queryByRole('button', { name: 'Follow me again' })).toBeNull();
+  });
+
+  it('B5-03: the label and the arc of the chosen leg are hidden while the lock box shows', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    const shown = (k: string) => view.container.querySelector(`[data-k="${k}"]`)!.getAttribute('display');
+    expect(shown('arc-core')).not.toBe('none');
+    t = feedAt(source, 0.3, t, 5000);
+    act(() => source.emit(at(0.3), t));
+    expect(view.container.textContent).toContain(TEXT);
+    expect(shown('chosen-label')).toBe('none');
+    expect(shown('arc-core')).toBe('none');
+    expect(shown('arc-text')).toBe('none');
+  });
+
+  it('B5-04: the press focuses the status box without a scroll', () => {
+    const { source } = open(5);
+    const spy = vi.spyOn(HTMLElement.prototype, 'focus');
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    const calls = spy.mock.calls.filter(([o]) => (o as FocusOptions | undefined)?.preventScroll === true);
+    expect(calls.length).toBeGreaterThan(0);
+    spy.mockRestore();
+    feedAt(source, 0.3, t, 100);
   });
 });

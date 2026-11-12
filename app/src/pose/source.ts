@@ -11,7 +11,8 @@ import type { FrameBridge } from './frameBridge';
 
 export type SourceView = View;
 
-export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number) => void;
+/** `extra` holds the other poses of the frame. It is there only during a probe (B5-02). */
+export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number, extra?: Landmark[][]) => void;
 
 /** The step of the start that runs now. The model step carries the bytes that came in so far. */
 export type StartProgress = { step: 'camera' } | { step: 'model'; loadedBytes: number };
@@ -30,6 +31,8 @@ export interface LandmarkSource {
   start(onFrame: FrameHandler, preview?: HTMLVideoElement | null, onProgress?: ProgressHandler): Promise<StartResult>;
   /** Stop the loop and every camera track. It is safe to call at any time. */
   stop(): void;
+  /** Return two poses for `ms` milliseconds, then one pose again (B5-02). Frames carry `extra` during that time. A source may omit it. */
+  probe?(ms: number): void;
   /** Width divided by height of the video. The angle function needs it. */
   aspect(): number;
 }
@@ -61,14 +64,29 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
   let stream: MediaStream | null = null;
   let element: HTMLVideoElement | null = null;
   let loop: ReturnType<typeof startPoseLoop> | null = null;
-  let generation = 0; // a stop() during an await makes the older start() give up
+  let generation = 0;
+  let probeTimer: ReturnType<typeof setTimeout> | null = null;
+  let probing = false; // the main-thread model returns two poses
+  let extraPoses: Landmark[][] | undefined; // a stop() during an await makes the older start() give up
 
   const stopLoop = () => {
     loop?.stop();
     loop = null;
   };
 
+  const endProbe = () => {
+    if (probeTimer !== null) clearTimeout(probeTimer);
+    probeTimer = null;
+    probing = false;
+    extraPoses = undefined;
+    if (bridge) bridge.setPoses(1);
+    else void landmarker?.setPoses(1);
+  };
+
   const release = () => {
+    if (probeTimer !== null) clearTimeout(probeTimer);
+    probeTimer = null;
+    probing = false;
     generation += 1;
     stopLoop();
     landmarker?.close();
@@ -117,7 +135,7 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
           if (worker) {
             const { createFrameBridge } = await import('./frameBridge');
             const made = await createFrameBridge({
-              onResult: (landmarks, timeMs) => handler?.(landmarks, timeMs),
+              onResult: (landmarks, timeMs, extra) => handler?.(landmarks, timeMs, extra),
               onProgress: report,
               onFail: release,
             }).catch(() => null); // no worker, or it cannot start: use the main thread
@@ -151,13 +169,28 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
       const sender = bridge;
       loop = startPoseLoop({
         video,
-        detect: sender ? (v, t) => (sender.submit(v, t), undefined) : (v, t) => model!.detect(v, t),
-        onFrame,
+        detect: sender
+          ? (v, t) => (sender.submit(v, t), undefined)
+          : (v, t) => {
+              if (!probing) return model!.detect(v, t);
+              const [first, ...rest] = model!.detectAll(v, t);
+              extraPoses = rest;
+              return first ?? null;
+            },
+        onFrame: (landmarks, timeMs) => onFrame(landmarks, timeMs, probing ? extraPoses : undefined),
         onError: () => release(),
       });
       return { ok: true };
     },
     stop: release,
+    probe(ms) {
+      if (!bridge && !landmarker) return;
+      if (probeTimer !== null) clearTimeout(probeTimer);
+      probing = !bridge; // the main-thread loop reads this
+      if (bridge) bridge.setPoses(2);
+      else void landmarker?.setPoses(2);
+      probeTimer = setTimeout(endProbe, ms);
+    },
     aspect() {
       return element && element.videoWidth > 0 && element.videoHeight > 0
         ? element.videoWidth / element.videoHeight

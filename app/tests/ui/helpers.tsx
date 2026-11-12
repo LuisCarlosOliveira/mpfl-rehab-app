@@ -39,6 +39,7 @@ export interface MockSource extends LandmarkSource {
   start: ReturnType<typeof vi.fn<LandmarkSource['start']>>;
   stop: ReturnType<typeof vi.fn<LandmarkSource['stop']>>;
   emit: FrameHandler;
+  probe: ReturnType<typeof vi.fn<(ms: number) => void>>;
   nextStart: StartResult;
 }
 
@@ -53,7 +54,8 @@ export function mockSource(): MockSource {
     }),
     stop: vi.fn(),
     aspect: () => 16 / 9,
-    emit: (landmarks, t) => handler?.(landmarks, t),
+    emit: (landmarks, t, extra) => handler?.(landmarks, t, extra),
+    probe: vi.fn(),
   } as MockSource;
   return source;
 }
