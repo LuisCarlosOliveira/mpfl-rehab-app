@@ -116,6 +116,8 @@ export const CAPTURE_TEXT = {
   // B3-01, B3-03: the camera reads a hip far from the first one for more than 4 s. The cause is not known, so the text names both.
   lockedOut: 'The camera can follow another person, or you moved. Press Follow me again, or stop and start again from Setup.',
   followAgain: 'Follow me again',
+  // B6-01: the press waits for the answer of the probe of two poses. It decides nothing before.
+  looking: 'Looking for the camera view...',
   // B4-01: the camera follows one person. After a press, a hip far from the start hip is read as someone else, and no numbers show.
   otherPerson: 'The camera is following someone else. Make sure that only you are in the camera view, then stop and start again from Setup.',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',

@@ -88,7 +88,8 @@ const total = (sets: SetsState) => sets.repsPerSet.reduce((a, b) => a + b, 0);
 interface Live {
   lockedOut: boolean; // the pipeline reads a far hip for more than 4 s with the whole leg visible (B3-01)
   otherPerson: boolean; // a press found the hip far from the start hip. No numbers show until the person starts again (B4-01)
-  lockKind: 'locked' | 'other'; // the text of the lock box the last time it showed
+  looking: boolean; // a press waits for the probe answer (B6-01)
+  lockKind: 'locked' | 'looking' | 'other'; // the text of the lock box the last time it showed
   lockUntil: number; // performance.now() until which the lock box stays after the lock ended (B4-05)
   otherLegMoves: boolean; // the last moving-leg windows named the other leg, in a row (F1)
   flexion: number | null;
@@ -109,7 +110,7 @@ interface View {
   waiting: boolean;
   stale: boolean;
   identity: boolean;
-  lock: 'locked' | 'other' | null; // the lock box under the camera: the prompt with the button, or the other-person text
+  lock: 'locked' | 'looking' | 'other' | null; // the lock box under the camera: the prompt with the button, or the other-person text
   /** Whole seconds of the current hold, never more than the hold time. 0 outside a hold. */
   holdSec: number;
   /** The capture while it looks for a starting angle: progress in whole percent and whether the choice can be used. */
@@ -194,6 +195,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const live = useRef<Live>({
     lockedOut: false,
     otherPerson: false,
+    looking: false,
     lockKind: 'locked',
     lockUntil: 0,
     otherLegMoves: false,
@@ -274,6 +276,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     live.current.shown = null;
     live.current.lockedOut = false;
     live.current.otherPerson = false;
+    live.current.looking = false;
     live.current.lockUntil = 0;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
@@ -309,6 +312,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       state.flexion = out.flexion;
       state.lockedOut = out.lockedOut === true;
       state.otherPerson = out.otherPerson === true;
+      state.looking = out.looking === true;
       state.frameAt = now;
       // The hold timer for the screen. It follows the band rule of holdStep and never decides a hold (the counter does).
       if (setup.ok && setup.kind === 'hold') {
@@ -365,9 +369,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const cue = state.cue && now < state.cue.until ? state.cue : null;
       const sum = pipeline.current?.summary();
       // B4-05: the lock box has the same 500 ms hold on hide as the leg cue, so a short blip near a cut never flashes it.
-      const lockNow = !stale && (state.lockedOut || state.otherPerson);
+      const lockNow = !stale && (state.lockedOut || state.otherPerson || state.looking);
       if (lockNow) {
-        state.lockKind = state.otherPerson ? 'other' : 'locked';
+        state.lockKind = state.otherPerson ? 'other' : state.looking ? 'looking' : 'locked';
         state.lockUntil = now + LOCK_HOLD_MS;
       }
       const lock = lockNow || now < state.lockUntil ? state.lockKind : null;
@@ -508,6 +512,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   function followAgain() {
     pipeline.current?.followAgain();
     live.current.lockedOut = false;
+    live.current.looking = true; // the pipeline answers on the next frame. Until then the box shows the wait text.
     live.current.lockUntil = performance.now() + LOCK_HOLD_MS;
     // B4-06: the button goes away, so the focus moves to the status box. If the box goes too, it moves to the angle.
     focusAfterLock.current = true;
@@ -622,12 +627,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                 {/* B5-04: the lock box is the first thing in the slot, so it sits above the fixed bar, also when the bar holds "Count this rep". */}
                 {view.lock !== null && (
                   <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
-                    {view.lock === 'locked' && (
-                      <button type="button" className="btn" onClick={followAgain}>
+                    {view.lock !== 'other' && (
+                      <button type="button" className="btn" onClick={followAgain} disabled={view.lock === 'looking'} aria-busy={view.lock === 'looking'}>
                         {CAPTURE_TEXT.followAgain}
                       </button>
                     )}
-                    <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : CAPTURE_TEXT.otherPerson}</p>
+                    <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : view.lock === 'looking' ? CAPTURE_TEXT.looking : CAPTURE_TEXT.otherPerson}</p>
                   </div>
                 )}
                 <p role="alert" className="cue cue-alert">

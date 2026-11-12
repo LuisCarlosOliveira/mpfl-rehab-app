@@ -47,6 +47,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
     expect(lockedAt!).toBeGreaterThan(4000);
     expect(lockedAt!).toBeLessThan(4200);
     p.followAgain();
+    for (const end = t + 3200; t < end; t += 33) p.step(at(0.5), t); // no probe answer comes: the press waits, then the distance rule decides (B6-01)
     const o = p.step(at(0.5), t);
     expect(o.flexion).toBeNull();
     expect(o.otherPerson).toBe(true);
@@ -72,6 +73,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
     const jump = t;
     for (; t < jump + 5000; t += 33) expect(p.step(at(0.5), t).flexion).toBeNull(); // 0.12 from the anchor
     p.followAgain();
+    for (const end = t + 3200; t < end; t += 33) p.step(at(0.5), t);
     const o = p.step(at(0.5), t);
     expect(o.flexion).not.toBeNull();
     expect(o.otherPerson).toBeFalsy();

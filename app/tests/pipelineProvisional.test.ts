@@ -156,6 +156,7 @@ describe('B5-02: a probe of two poses', () => {
     let t = confirm(p, 0.7);
     for (const end = t + 6000; t < end; t += 33) p.step(wide(0.4), t);
     p.followAgain();
+    for (const end = t + 3200; t < end; t += 33) p.step(wide(0.4), t); // B6-01: the press waits for the probe, then the distance rule decides
     expect(p.step(wide(0.4), t).otherPerson).toBe(true);
   });
 });
