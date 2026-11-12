@@ -6,7 +6,7 @@
 //  - clinician:<f>   the protocol field <f> (protocol/schema.ts) sets the value. The app holds no default (value null).
 //  - engineering     a value of the app. No source sets it. The screen says so.
 
-import { ANKLE_MIN_AMPLITUDE } from './modes';
+import { ANKLE_MIN_AMPLITUDE, LIFT_ANGLE_BACK, LIFT_ANGLE_SIDE } from './modes';
 import type { ExerciseSpec } from './spec';
 
 const SLOW = 'Move slowly and with control. If your care team sets a time for each rep, use it.';
@@ -160,7 +160,7 @@ const SEATED_EXTENSION_HOLD: ExerciseSpec = {
 // ---- The five new exercises (PROPOSAL) -------------------------------------------------------
 // The sources table names these exercises (P1, P2, P3, S1, N3). No source gives a camera number for them.
 // research/technique-sources.md covers the four camera exercises only, so the guide texts below are a PROPOSAL of the app.
-// A threshold with origin engineering and value null has no number yet. Step B sets it on saved landmark series.
+// Step B set the three engineering values that were null (min-amplitude, lift-angle twice). The numbers and the way to get them are in modes.ts.
 // The settle and end times reuse the values of the straight leg raise (500 ms and 300 ms).
 
 const timerNote = 'The camera cannot see this effort. The app times your hold.';
@@ -258,7 +258,8 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    { name: 'lift-angle', value: null, unit: 'deg', origin: 'engineering' },
+    // Step B: 10 degrees, measured on the synthetic series with 9 degree RMS noise (modes.ts, LIFT_ANGLE_SIDE).
+    { name: 'lift-angle', value: LIFT_ANGLE_SIDE, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
   ],
@@ -288,7 +289,8 @@ const LEG_RAISE_BACK: ExerciseSpec = {
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    { name: 'lift-angle', value: null, unit: 'deg', origin: 'engineering' },
+    // Step B: 12 degrees, measured on the synthetic series with 9 degree RMS noise (modes.ts, LIFT_ANGLE_BACK).
+    { name: 'lift-angle', value: LIFT_ANGLE_BACK, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
   ],
