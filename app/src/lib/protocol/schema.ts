@@ -13,11 +13,18 @@ export const protocolIdSchema = z
   .string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'The id can hold letters, digits, dot, dash and underscore only, 64 characters at most.');
 
+// The four exercises that the engine runs today. Step B and D add the five new kinds here, when the engine can run them.
 export const EXERCISE_KINDS = ['heel-slide', 'straight-leg-raise', 'mini-squat', 'seated-extension-hold'] as const;
 
-export const exerciseSchema = z
+// The exercises that a plan can hold (exercise monitoring, step A). The five new kinds are camera exercises in the plan.
+// Only the two timers can hold a hold time. No other field applies to them (the spec of lib/monitor/registry.ts lists none).
+export const NEW_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const;
+export const PLAN_EXERCISE_KINDS = [...EXERCISE_KINDS, ...NEW_EXERCISE_KINDS] as const;
+const NEW_KIND_FIELDS = ['targetFlexion', 'minFlexion', 'maxFlexion', 'minRepSeconds', 'maxTopFlexion', 'returnWithinDeg'] as const;
+
+export const planExerciseSchema = z
   .strictObject({
-    kind: z.enum(EXERCISE_KINDS),
+    kind: z.enum(PLAN_EXERCISE_KINDS),
     sets: z.number().int().min(1).max(20).optional(),
     reps: z.number().int().min(1).max(100).optional(),
     holdSeconds: z.number().min(1).max(120).optional(),
@@ -31,6 +38,15 @@ export const exerciseSchema = z
     // PROPOSAL (T17): a rep ends when the knee is back within this many degrees of the resting angle. No default.
     returnWithinDeg: z.number().min(1).max(90).optional(),
     source: text(200), // where each value comes from: an S-number or PROPOSAL
+  })
+  .superRefine((e, ctx) => {
+    if (!(NEW_EXERCISE_KINDS as readonly string[]).includes(e.kind)) return;
+    for (const key of NEW_KIND_FIELDS) {
+      if (e[key] !== undefined) ctx.addIssue({ code: 'custom', path: [key], message: `${key} does not apply to ${e.kind}. Remove it from this exercise.` });
+    }
+    if (e.holdSeconds !== undefined && e.kind !== 'quad-set' && e.kind !== 'gluteal-set') {
+      ctx.addIssue({ code: 'custom', path: ['holdSeconds'], message: `holdSeconds applies to quad-set and gluteal-set only. Remove it from ${e.kind}.` });
+    }
   })
   .refine((e) => e.maxFlexion === undefined || e.targetFlexion === undefined || e.maxFlexion >= e.targetFlexion, {
     message: 'maxFlexion must not be smaller than targetFlexion',
@@ -69,8 +85,8 @@ export const exerciseSchema = z
     path: ['maxTopFlexion'],
   });
 
-// Home exercises that the camera cannot count (generator v2, step A). They are a list with no angle and no count.
-// The dose is optional. The app never reads them in a session.
+// LEGACY input. An older file lists these five in `homeExercises`. The loader moves them into `exercises` (normalizeLegacy).
+// The dose is optional.
 export const HOME_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const;
 
 export const homeExerciseSchema = z.strictObject({
@@ -123,7 +139,7 @@ export const reviewCriterionSchema = z.discriminatedUnion('kind', [numericCriter
 export const phaseSchema = z.strictObject({
   id: z.number().int().min(1).max(10),
   name: text(60),
-  exercises: z.array(exerciseSchema).max(10),
+  exercises: z.array(planExerciseSchema).max(10),
   homeExercises: z.array(homeExerciseSchema).max(10).optional(),
   reviewCriteria: z.array(reviewCriterionSchema).max(12).optional(),
   reviewDate: z.iso.date().optional(),
@@ -182,7 +198,9 @@ export const protocolSchema = z.strictObject({
   });
 
 export type Protocol = z.infer<typeof protocolSchema>;
-export type Exercise = z.infer<typeof exerciseSchema>;
+export type PlanExercise = z.infer<typeof planExerciseSchema>;
+/** An exercise that the engine can run today: the four old kinds. A plan can also hold the five new kinds (PlanExercise). */
+export type Exercise = PlanExercise & { kind: (typeof EXERCISE_KINDS)[number] };
 export type HomeExercise = z.infer<typeof homeExerciseSchema>;
 export type ReviewCriterion = z.infer<typeof reviewCriterionSchema>;
 export type SurgeonField = (typeof SURGEON_FIELDS)[number];

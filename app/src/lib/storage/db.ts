@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { z } from 'zod';
 import { MARGIN_SOURCE } from '../margin';
-import { EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
+import { PLAN_EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
 import { loadProtocol, type LoadResult, type Mode } from '../protocol';
 import { inputsSchema } from '../protocolGen/inputs';
 import { requestPersistOnce } from './meta';
@@ -18,7 +18,7 @@ const MARGIN_SOURCES = [
 
 export const sessionSchema = z.strictObject({
   date: z.iso.datetime().max(40),
-  exercise: z.enum(EXERCISE_KINDS),
+  exercise: z.enum(PLAN_EXERCISE_KINDS), // the four exercises of the engine and the five new ones (exercise monitoring)
   side: z.enum(['left', 'right']),
   reps: z.number().int().min(0).max(1000).nullable(),
   peakFlexion: z.number().min(0).max(180).nullable(),

@@ -11,12 +11,22 @@ export const EXERCISE_LABEL = {
   'straight-leg-raise': 'straight leg raise',
   'mini-squat': 'mini squat',
   'seated-extension-hold': 'seated extension hold',
+  // The five exercises of exercise monitoring. Their names start with a capital, as the plan screen writes them.
+  'quad-set': 'Quadriceps set',
+  'gluteal-set': 'Gluteal set',
+  'ankle-pump': 'Ankle pump',
+  'leg-raise-side': 'Leg raise to the side',
+  'leg-raise-back': 'Leg raise to the back',
 } as const;
 
 type ExerciseKind = SessionRecord['exercise'];
+const NO_ANGLE_CHART: ReadonlySet<string> = new Set(['straight-leg-raise', 'quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
+
+/** True when Your sessions draws an angle chart for the exercise. The straight leg raise and the five new exercises have none. */
+export const hasAngleChart = (kind: string): boolean => !NO_ANGLE_CHART.has(kind);
 
 /**
- * The plain name of an exercise for a title. A stored name that is not one of the four known kinds (a corrupt file, or a key such as
+ * The plain name of an exercise for a title. A stored name that is not one of the known kinds (a corrupt file, or a key such as
  * `__proto__`) shows as short plain text. It never reads a property of the label table, so it never shows "[object Object]".
  */
 export function exerciseLabel(kind: string): string {
@@ -79,8 +89,9 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
   for (const s of sorted) {
     const points = byExercise.get(s.exercise) ?? [];
     // The straight leg raise has no angle chart (clinical decision): no source sets its plausibility limit, and a chart would show a sensor fault as a trend.
+    // The five new exercises have no angle chart yet either: only reps and pain show for them (exercise monitoring, step A).
     // The stored numbers stay in the record, the clinician table and the export.
-    if (s.exercise === 'straight-leg-raise') continue;
+    if (!hasAngleChart(s.exercise)) continue;
     points.push({ sessionId: s.id, date: s.date, degrees: s.peakFlexion });
     byExercise.set(s.exercise, points);
   }

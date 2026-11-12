@@ -17,11 +17,21 @@ const stored: StoredInputs = {
 };
 const asked = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
 
-async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: string; selfProgression?: boolean } = {}) {
+async function seed(planAnswers: Partial<GeneratorInputs>, props: { event?: string; selfProgression?: boolean; legacy?: boolean } = {}) {
   const db = freshDb();
   const r = generateProtocol({ ...stored, phaseClearance: 'no', redFlags: {}, pain: 2, swelling: 'none', ...planAnswers }, PLAN_DAY);
   if (r.kind !== 'protocol') throw new Error('expected a plan');
-  const saved = await saveProtocol(db, JSON.stringify(r.protocol), 'demo');
+  // A legacy plan, as an older version of the app stored it: the five exercises in homeExercises, with no dose.
+  const FIVE = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'];
+  const asOld = (p: Protocol) => ({
+    ...p,
+    phases: p.phases.map((ph) => ({
+      ...ph,
+      exercises: ph.exercises.filter((e) => !FIVE.includes(e.kind)),
+      homeExercises: ph.exercises.filter((e) => FIVE.includes(e.kind)).map((e) => ({ kind: e.kind, source: e.source })),
+    })),
+  });
+  const saved = await saveProtocol(db, JSON.stringify(props.legacy ? asOld(r.protocol) : r.protocol), 'demo');
   if (!saved.ok) throw new Error(saved.error.message);
   await saveGeneratorInputs(db, stored);
   if (props.event) await saveSession(db, { ...sessionInput(), date: props.event, gaveWayPresses: 1 });
@@ -46,6 +56,19 @@ const clearance = /Has your surgeon or physiotherapist said that you can start t
 const walking = /Do you walk without crutches/;
 const legRaise = /Can you lift your leg with a straight knee/;
 const seated = /knee straightening exercises while you sit/;
+
+describe('UpdatePlan, a stored plan from before the five exercises', () => {
+  it('loads the stored plan with homeExercises and adds the dose line for the five', async () => {
+    const { onDone } = await seed({}, { legacy: true });
+    await ready();
+    answerToday();
+    pick(clearance, 'No');
+    fireEvent.click(screen.getByRole('button', { name: 'Check my plan' }));
+    const changes: string[] = onDone.mock.calls[0]![0].changes;
+    expect(changes.join(' ')).not.toMatch(/Quadriceps set added/);
+    expect(changes.join(' ')).toMatch(/Sets and reps added for Quadriceps set, Gluteal set, Leg raise to the side, Leg raise to the back\./);
+  });
+});
 
 describe('UpdatePlan, the questions of version 2', () => {
   it('AC4-03: shows each of the three questions as visible text, not only in a hidden legend', async () => {

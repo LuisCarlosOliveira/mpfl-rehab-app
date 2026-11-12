@@ -9,6 +9,7 @@ import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/p
 import { BANNER, buildReviewSummary, EVENT_LABEL, painText, type ReviewRow, type ReviewSummary } from '../lib/reviewSummary';
 import { MAX_IMPORT_BYTES, parseExport, type ExportFile, type SessionRecord } from '../lib/storage';
 import { DashboardCharts, TableScroll, WhenCell } from './Dashboard';
+import { isEngineKind } from '../lib/monitor/monitored';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { stripHidden } from '../lib/plainText';
 import { Icon } from './Icon';
@@ -53,7 +54,7 @@ const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : who
 const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
 
 /** The peak knee bend. A leg raise peak above the plausibility value shows a sentence. The file keeps the number (M8). */
-const peakCell = (s: SessionRecord) => (peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.peakFlexion));
+const peakCell = (s: SessionRecord) => (isEngineKind(s.exercise) && peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.peakFlexion));
 
 function Table({ label, head, natural, children }: { label: string; head: ReactNode[]; natural?: boolean; children: ReactNode }) {
   return (

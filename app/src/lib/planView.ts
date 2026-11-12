@@ -2,7 +2,8 @@
 // Every number that they show comes from a protocol that the generator made, or from the stored answers.
 
 import { contactReason } from './contactCard';
-import type { Exercise, HomeExercise, Protocol } from './protocol';
+import { specFor } from './monitor';
+import type { HomeExercise, PlanExercise, Protocol } from './protocol';
 import { DOSE_SHOWN, NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
@@ -38,13 +39,6 @@ export function draftOf(
 }
 
 const DAY_MS = 86_400_000;
-const NAMES: Record<Exercise['kind'], string> = {
-  'heel-slide': 'Heel slide',
-  'straight-leg-raise': 'Straight leg raise',
-  'mini-squat': 'Mini squat',
-  'seated-extension-hold': 'Seated knee extension hold',
-};
-
 export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
   'quad-set': 'Quadriceps set',
   'gluteal-set': 'Gluteal set',
@@ -52,9 +46,31 @@ export const HOME_NAMES: Record<HomeExercise['kind'], string> = {
   'leg-raise-side': 'Leg raise to the side',
   'leg-raise-back': 'Leg raise to the back',
 };
+/** The plain name of every exercise that a plan can hold. */
+export const PLAN_NAMES: Record<PlanExercise['kind'], string> = {
+  'heel-slide': 'Heel slide',
+  'straight-leg-raise': 'Straight leg raise',
+  'mini-squat': 'Mini squat',
+  'seated-extension-hold': 'Seated knee extension hold',
+  ...HOME_NAMES,
+};
+const NAMES = PLAN_NAMES;
+/** The line for an exercise that has no definition in the registry. */
 export const NOT_CHECKED = 'The app does not check this exercise.';
-/** The same fact for the whole group of home exercises. The group shows it once. */
-export const NOT_CHECKED_GROUP = 'The app does not check these exercises.';
+
+/** What the camera does for each of the five new exercises (docs/exercise-monitoring-design.md, "Plan screen lines after the change"). */
+const MONITOR_LINES: Partial<Record<PlanExercise['kind'], string>> = {
+  'leg-raise-back': 'The camera counts your lifts and measures the angle. The app does not judge how you do it.',
+  'leg-raise-side': 'The camera counts your lifts. It cannot measure the angle well.',
+  'ankle-pump': 'The camera counts your pumps. It does not check how far you move.',
+  'quad-set': 'The camera cannot see this effort. The app times your hold.',
+  'gluteal-set': 'The camera cannot see this effort. The app times your hold.',
+};
+
+/** The honest line of an exercise row. The four old exercises have none. An exercise without a definition gets NOT_CHECKED. */
+export function monitorLine(kind: string): string | null {
+  return MONITOR_LINES[kind as PlanExercise['kind']] ?? (specFor(kind) === undefined ? NOT_CHECKED : null);
+}
 /** The line for a dose that the plan does not hold. The generator sets no dose, so the person asks the care team. */
 export const ASK_HOW_MANY = 'How many: ask your care team';
 /** The line for a knee-bend limit that the plan does not hold. Only the surgeon sets it. */
@@ -105,20 +121,19 @@ export function reviewDue(reviewDate: string | undefined, today: string): boolea
   return reviewDate !== undefined && reviewDate <= today;
 }
 
-const activeExercises = (p: Protocol): Exercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.exercises ?? [];
-const activeHome = (p: Protocol): HomeExercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.homeExercises ?? [];
+const activeExercises = (p: Protocol): PlanExercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.exercises ?? [];
 const phaseName = (p: Protocol) => {
   const ph = p.phases.find((x) => x.id === p.activePhase);
   return `Phase ${p.activePhase} ${ph?.name ?? ''}`.trim();
 };
-const limitText = (e: Exercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
+const limitText = (e: PlanExercise | undefined) => (e?.maxFlexion === undefined ? 'no limit' : `${e.maxFlexion} degrees`);
 
 /** The names of the exercises of the active phase that hold the dose, in the order of the plan screen. The mini squat is last. */
 export function doseScope(protocol: Protocol): string[] {
   const has = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
   const camera = activeExercises(protocol).filter(has);
-  const names = (list: Exercise[]) => list.map((e) => NAMES[e.kind].toLowerCase());
-  return [...names(camera.filter((e) => e.kind !== 'mini-squat')), ...activeHome(protocol).filter(has).map((h) => HOME_NAMES[h.kind].toLowerCase()), ...names(camera.filter((e) => e.kind === 'mini-squat'))];
+  const names = (list: PlanExercise[]) => list.map((e) => NAMES[e.kind].toLowerCase());
+  return [...names(camera.filter((e) => e.kind !== 'mini-squat')), ...names(camera.filter((e) => e.kind === 'mini-squat'))];
 }
 
 /**
@@ -129,24 +144,20 @@ export function describeNewPlan(protocol: Protocol): string[] {
   const lines = [`${phaseName(protocol)}.`];
   const hasDose = (x: { sets?: number; reps?: number }) => x.sets !== undefined && x.reps !== undefined;
   const exercises = activeExercises(protocol);
-  const home = activeHome(protocol);
   let askDose = false;
   for (const e of exercises) {
     if (!hasDose(e) && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') askDose = true;
     const hold = e.holdSeconds === undefined ? [] : [`hold ${e.holdSeconds} seconds`];
     const parts = [NAMES[e.kind], ...(e.maxFlexion === undefined ? [] : [`knee-bend limit ${e.maxFlexion} degrees`]), ...hold];
     lines.push(`${parts.join(', ')}.`);
+    const honest = monitorLine(e.kind);
+    if (honest !== null) lines.push(honest);
     // The same line as Home: the plan says that no limit was given, and does not leave it out.
     if (e.kind === 'heel-slide' && e.maxFlexion === undefined && e.source.includes('No limit entered')) lines.push(`${NO_LIMIT_GIVEN}.`);
   }
-  for (const h of home) {
-    if (!hasDose(h)) askDose = true;
-    lines.push(`${HOME_NAMES[h.kind]} (at home).`);
-  }
-  if ([...exercises, ...home].some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}.`);
+  if (exercises.some(hasDose)) lines.push(`Sets and reps: ${doseScope(protocol).join(', ')}: ${DOSE_SHOWN}.`);
   if (exercises.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined)) lines.push(HOLD_TIME_LINE);
   if (askDose) lines.push(`${ASK_HOW_MANY}.`);
-  if (home.length > 0) lines.push('The app does not check the exercises at home.');
   return lines;
 }
 
@@ -175,19 +186,11 @@ export function describeChanges(current: Protocol, next: Protocol, inputs?: { se
   for (const old of before) {
     if (!after.some((x) => x.kind === old.kind)) lines.push(`${NAMES[old.kind]} removed. Reason: ${removedReason(old.kind, current, next, inputs)}.`);
   }
-  const homeBefore = activeHome(current);
-  for (const h of activeHome(next)) {
-    if (!homeBefore.some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} added. Reason: published plans list it for this stage (${h.kind === 'ankle-pump' ? RULES.ANKLE.id : RULES.HOME.id}).`);
-  }
-  for (const h of homeBefore) {
-    if (!activeHome(next).some((x) => x.kind === h.kind)) lines.push(`${HOME_NAMES[h.kind]} removed. Reason: published plans list it for the first stage only (${RULES.ANKLE.id}).`);
-  }
   if (after.some((e) => e.kind === 'seated-extension-hold' && e.holdSeconds === undefined) && !before.some((e) => e.kind === 'seated-extension-hold')) lines.push(HOLD_TIME_LINE);
   // A stored plan from before the dose rule has no sets and reps. The new plan adds the dose of the guideline.
   const hadNoDose = (old: { sets?: number } | undefined) => old !== undefined && old.sets === undefined;
   const newDose = [
     ...after.filter((e) => e.sets !== undefined && hadNoDose(before.find((x) => x.kind === e.kind))).map((e) => NAMES[e.kind]),
-    ...activeHome(next).filter((h) => h.sets !== undefined && hadNoDose(homeBefore.find((x) => x.kind === h.kind))).map((h) => HOME_NAMES[h.kind]),
   ];
   if (newDose.length > 0) {
     lines.push(`Sets and reps added for ${newDose.join(', ')}. Reason: P2 gives ${DOSE_SHOWN} for strengthening exercises, for ages 8 to 25, not for adults (${RULES.DOSE.id}).`);
@@ -195,13 +198,21 @@ export function describeChanges(current: Protocol, next: Protocol, inputs?: { se
   return lines;
 }
 
-const ADDED_REASON = (e: Exercise, next: Protocol): string => {
+const ADDED_REASON = (e: PlanExercise, next: Protocol): string => {
+  if (e.kind === 'ankle-pump') return `published plans list it for this stage (${RULES.ANKLE.id})`;
+  if ((HOME_KINDS as readonly string[]).includes(e.kind)) return `published plans list it for this stage (${RULES.HOME.id})`;
   if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
   if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
   if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
   return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
 };
-const REMOVED_REASON: Record<Exercise['kind'], string> = {
+const HOME_KINDS = Object.keys(HOME_NAMES);
+const REMOVED_REASON: Record<PlanExercise['kind'], string> = {
+  'quad-set': `the app adds this exercise in every plan (${RULES.HOME.id})`,
+  'gluteal-set': `the app adds this exercise in every plan (${RULES.HOME.id})`,
+  'leg-raise-side': `the app adds this exercise in every plan (${RULES.HOME.id})`,
+  'leg-raise-back': `the app adds this exercise in every plan (${RULES.HOME.id})`,
+  'ankle-pump': `published plans list it for the first stage only (${RULES.ANKLE.id})`,
   'heel-slide': `the app adds this exercise only with a knee-bend limit from your surgeon (${RULES.HEEL.id})`,
   'straight-leg-raise': `the app adds this exercise in every plan (${RULES.SLR.id})`,
   'mini-squat': `an answer changed, or the knee gave way since your plan. The app adds the mini squat only without these (${RULES.SQUAT_GATE.id})`,
@@ -209,7 +220,7 @@ const REMOVED_REASON: Record<Exercise['kind'], string> = {
 };
 
 /** The seated hold goes for one of four causes. The text names the first that holds, in this order: the stage goes back, the limit is below the arc start, no clearance, or something else. */
-function removedReason(kind: Exercise['kind'], current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string; phaseClearance?: string }): string {
+function removedReason(kind: PlanExercise['kind'], current: Protocol, next: Protocol, inputs?: { seatedHoldCleared?: string; phaseClearance?: string }): string {
   if (kind !== 'seated-extension-hold') return REMOVED_REASON[kind];
   if (next.activePhase < current.activePhase || inputs?.phaseClearance === 'no') {
     return `the plan goes back to the first stage, and the seated hold is only in the second stage (${RULES.HOLD_P2.id})`;
@@ -322,7 +333,7 @@ const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
 function appliedLine(a: WhyEntry['applied'][number]): string {
   const [phaseKey, kind, field] = a.path.split('.') as [string, string, string | undefined];
   const phase = `Phase ${phaseKey.replace('phase', '')}`;
-  const name = NAMES[kind as Exercise['kind']] ?? HOME_NAMES[kind as HomeExercise['kind']] ?? kind;
+  const name = NAMES[kind as PlanExercise['kind']] ?? kind;
   if (field === 'targetFlexion' && kind === 'seated-extension-hold') return `${phase}, ${name}, the app counts the hold at ${a.value} degrees ${APP_VALUE}`;
   if (field === 'targetFlexion') return `${phase}, ${name}, the app starts counting a rep at ${a.value} degrees ${APP_VALUE}`;
   if (field === 'returnWithinDeg') return `${phase}, ${name}, the app ends a rep when the knee is back within ${a.value} degrees of rest ${APP_VALUE}`;

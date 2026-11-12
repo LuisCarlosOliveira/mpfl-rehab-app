@@ -5,7 +5,7 @@
 import { evaluateRedFlags } from '../redflags';
 import { generatorExtendedOn } from '../mode';
 import { evaluateSession } from '../safety';
-import { protocolSchema, type Exercise, type HomeExercise, type Protocol } from '../protocol/schema';
+import { protocolSchema, type PlanExercise, type Protocol } from '../protocol/schema';
 import { inputsSchema, type GeneratorInputs } from './inputs';
 import { DOSE_SHOWN, NOT_APPROVED, RULES, type RuleId } from './rules';
 import type { Grade, SourceId } from './sources';
@@ -118,15 +118,16 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   };
   const doseSource = `${DOSE_SHOWN}: P2 rec 26 (DOSE), OPINION (level 5), ages 8 to 25. ${NOT_APPROVED}.`;
 
-  const straightLegRaise = (phaseId: number): Exercise => ({
+  const straightLegRaise = (phaseId: number): PlanExercise => ({
     kind: 'straight-leg-raise',
     ...dosed(`phase${phaseId}.straight-leg-raise`),
     source: `Name: S1 (SLR). ${doseSource}`,
   });
 
-  // The home exercises that the camera does not count. Ankle pumps are in phase 1 only (P1, P3).
-  const homeExercises = (phaseId: number): HomeExercise[] => {
-    const named = (kind: HomeExercise['kind'], names: string): HomeExercise => ({ kind, ...dosed(`phase${phaseId}.${kind}`), source: `${names} (HOME). ${doseSource}` });
+  // The five exercises that were home exercises before exercise monitoring. They are normal exercises now.
+  // Ankle pumps are in phase 1 only (P1, P3). The source note stays the same.
+  const addedExercises = (phaseId: number): PlanExercise[] => {
+    const named = (kind: PlanExercise['kind'], names: string): PlanExercise => ({ kind, ...dosed(`phase${phaseId}.${kind}`), source: `${names} (HOME). ${doseSource}` });
     return [
       named('quad-set', 'Quadriceps set: S1 P1 P2 P3 N3'),
       named('gluteal-set', 'Gluteal set: P1 P2 N3'),
@@ -139,7 +140,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   };
 
   // The heel slide needs a number from the surgeon in phase 1. In phase 2 "no limit" and "unknown" also add it.
-  const heelSlide = (phaseId: number): Exercise | null => {
+  const heelSlide = (phaseId: number): PlanExercise | null => {
     if (limit.kind === 'unknown' && (phaseId === 1 || !extended)) return null;
     if (limit.kind === 'none' && phaseId === 1) return null;
     if (limit.kind === 'degrees' && limit.degrees < lowestLimit) return null;
@@ -162,7 +163,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   const squatCeiling = limit.kind === 'degrees' ? Math.min(squatMax, limit.degrees) : squatMax;
   const squatBuilt =
     extended && phase2 && i.walksWithoutCrutches === 'yes' && i.legRaiseStraight === 'yes' && !i.kneeGaveWay && squatCeiling >= lowestLimit;
-  const miniSquat = (): Exercise => {
+  const miniSquat = (): PlanExercise => {
     const path = 'phase2.mini-squat';
     targetApplied.push({ path: `${path}.targetFlexion`, value: target, origin: 'rule' });
     returnApplied.push({ path: `${path}.returnWithinDeg`, value: back, origin: 'rule' });
@@ -186,7 +187,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     limit.kind === 'degrees'
       ? `The seated hold is not in your plan because the knee-bend limit your surgeon gave (${limit.degrees} degrees) is below the start of the guideline arc (${RULES.HOLD_P2.values.arcStart} degrees).`
       : RULES.HOLD_ARC_LIMIT.text;
-  const seatedHold = (): Exercise => {
+  const seatedHold = (): PlanExercise => {
     const path = 'phase2.seated-extension-hold';
     holdApplied.push({ path: `${path}.minFlexion`, value: RULES.HOLD_P2.values.minFlexion, origin: 'rule' });
     holdAngleApplied.push({ path: `${path}.targetFlexion`, value: RULES.ENG_HOLD.values.targetFlexion, origin: 'rule' });
@@ -198,12 +199,13 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     };
   };
 
-  const exercisesOf = (phaseId: number): Exercise[] => {
+  const exercisesOf = (phaseId: number): PlanExercise[] => {
     const list = [straightLegRaise(phaseId)];
     const heel = heelSlide(phaseId);
     if (heel !== null) list.push(heel);
     if (phaseId === 2 && squatBuilt) list.push(miniSquat());
     if (phaseId === 2 && holdBuilt) list.push(seatedHold());
+    list.push(...addedExercises(phaseId));
     return list;
   };
 
@@ -216,7 +218,6 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
       id: 1,
       name: 'Protection',
       exercises: exercisesOf(1),
-      homeExercises: homeExercises(1),
       reviewCriteria: [
         { kind: 'clinicianCheck', key: 'extensionFull', evidence: 'mpflr' },
         { kind: 'clinicianCheck', key: 'slrNoLag', evidence: 'mpflr' },
@@ -227,7 +228,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   ];
   if (phase2) {
     reviewApplied.push({ path: 'phase2.reviewDate', value: phase2Date, origin: 'rule' });
-    phases.push({ id: 2, name: 'Strengthening', exercises: exercisesOf(2), homeExercises: homeExercises(2), reviewDate: phase2Date });
+    phases.push({ id: 2, name: 'Strengthening', exercises: exercisesOf(2), reviewDate: phase2Date });
   }
 
   const hasHeel = phases.some((p) => p.exercises.some((e) => e.kind === 'heel-slide'));

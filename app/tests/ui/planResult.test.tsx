@@ -39,9 +39,10 @@ describe('PlanResult', () => {
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).getByText('Straight leg raise')).toBeInTheDocument();
     expect(within(list).getByText('Heel slide')).toBeInTheDocument();
-    // The straight leg raise shows the whole dose range of P2. The heel slide has no dose in the guideline, so its row asks the care team.
-    expect(within(list).getAllByText('2 sets of 10 to 15, then 3 sets as tolerated')).toHaveLength(1);
-    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(1);
+    // The straight leg raise and four of the five added exercises show the whole dose range of P2.
+    // The heel slide and the ankle pump have no dose in the guideline, so their rows ask the care team.
+    expect(within(list).getAllByText('2 sets of 10 to 15, then 3 sets as tolerated')).toHaveLength(5);
+    expect(within(list).getAllByText('How many: ask your care team')).toHaveLength(2);
     expect(list.textContent).not.toMatch(/undefined|NaN|2 sets of 10 reps/);
     expect(within(list).getByText('Limit 60 degrees')).toBeInTheDocument();
   });

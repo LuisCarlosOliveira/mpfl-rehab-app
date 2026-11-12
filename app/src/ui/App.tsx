@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactN
 import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
+import { isEngineExercise } from '../lib/monitor/monitored';
 import { selfProgressionOn } from '../lib/protocol/accept';
 import { hasSeenPrivacyNotice, loadStoredProtocol, readValidRows, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
@@ -211,7 +212,9 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   // The only source of the active phase is the read-only store (FR4).
   const store = useMemo(() => (protocol ? createProtocolStore(protocol) : null), [protocol]);
   const phase = protocol && store ? protocol.phases.find((p) => p.id === store.activePhase) : undefined;
-  const exercise = phase?.exercises.find((e) => e.kind === state.exercise);
+  // Only an exercise that the engine runs can start a session. Home shows no Start for another one (isMonitored).
+  const chosen = phase?.exercises.find((e) => e.kind === state.exercise);
+  const exercise = chosen !== undefined && isEngineExercise(chosen) ? chosen : undefined;
 
   // The app has no URL routes. The browser must not restore the old scroll position when the history entry
   // above a root screen goes (useBackButton). The focused heading would then leave the screen.

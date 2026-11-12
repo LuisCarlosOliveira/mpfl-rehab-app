@@ -5,7 +5,7 @@
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.
 import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, XAxis, YAxis } from 'recharts';
-import { buildProgressSeries, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
+import { buildProgressSeries, hasAngleChart, sortByDate, toTableRows, type ProgressSeries, type TableRow } from '../lib/progress';
 import { MARGIN_DEG } from '../lib/margin';
 import type { SessionRecord } from '../lib/storage';
 import { Icon } from './Icon';
@@ -327,7 +327,7 @@ const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
   // The straight leg raise has no angle chart, so its peak is not the last peak either.
-  const lastPeak = [...ordered].reverse().find((x) => x.exercise !== 'straight-leg-raise' && typeof x.peakFlexion === 'number' && roundWhole(x.peakFlexion) !== '');
+  const lastPeak = [...ordered].reverse().find((x) => hasAngleChart(x.exercise) && typeof x.peakFlexion === 'number' && roundWhole(x.peakFlexion) !== '');
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
   const last = days[days.length - 1];

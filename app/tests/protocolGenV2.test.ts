@@ -1,5 +1,5 @@
 // Generator version 2 (docs/generator-v2-design.md). Steps A, B (seated hold, D4) and C (mini squat, D1).
-import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
+import { protocolSchema, type Exercise, type Protocol } from '../src/lib/protocol/schema';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { generateProtocol, RULES, type GeneratorInputs } from '../src/lib/protocolGen';
 import { counterSetup, createPipeline } from '../src/lib/exercises';
@@ -32,9 +32,11 @@ const plan = (i: GeneratorInputs) => {
   return r;
 };
 const phase = (p: Protocol, id: number) => p.phases.find((x) => x.id === id);
-const home = (p: Protocol, id: number) => phase(p, id)?.homeExercises ?? [];
+const FIVE = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'];
+// The five exercises that were home exercises before exercise monitoring are normal exercises now.
+const home = (p: Protocol, id: number) => (phase(p, id)?.exercises ?? []).filter((e) => FIVE.includes(e.kind));
 const homeKinds = (p: Protocol, id: number) => home(p, id).map((e) => e.kind);
-const kinds = (p: Protocol, id: number) => phase(p, id)?.exercises.map((e) => e.kind) ?? [];
+const kinds = (p: Protocol, id: number) => (phase(p, id)?.exercises.map((e) => e.kind) ?? []).filter((k) => !FIVE.includes(k));
 const ex = (p: Protocol, id: number, kind: string) => phase(p, id)?.exercises.find((e) => e.kind === kind);
 
 // The extended items (mini squat, seated hold, phase 2 heel slide for an unknown limit) are behind VITE_GENERATOR_EXTENDED.
@@ -42,10 +44,11 @@ const ex = (p: Protocol, id: number, kind: string) => phase(p, id)?.exercises.fi
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
 afterEach(() => vi.unstubAllEnvs());
 
-describe('step A: home exercises (HOME, ANKLE, DOSE)', () => {
-  it.each([0, 3, 6])('adds the four home exercises with 2 sets of 10 and ankle pumps with no dose at week %i', (w) => {
+describe('step A: the five added exercises (HOME, ANKLE, DOSE)', () => {
+  it.each([0, 3, 6])('adds the five exercises to exercises, with 2 sets of 10 and ankle pumps with no dose at week %i', (w) => {
     const { protocol } = plan(at(w));
     expect(homeKinds(protocol, 1)).toEqual(['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
+    for (const ph of protocol.phases) expect(ph.homeExercises).toBeUndefined();
     for (const e of home(protocol, 1)) {
       if (e.kind === 'ankle-pump') expect(e).not.toHaveProperty('sets');
       else expect(e).toMatchObject({ sets: 2, reps: 10 });
@@ -248,7 +251,7 @@ describe('step C: the mini squat from week 7 (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE)
 });
 
 describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)', () => {
-  const hold = (over: Partial<GeneratorInputs>, week = 8) => ex(plan(at(week, { ...cleared, ...over })).protocol, 2, 'seated-extension-hold');
+  const hold = (over: Partial<GeneratorInputs>, week = 8) => ex(plan(at(week, { ...cleared, ...over })).protocol, 2, 'seated-extension-hold') as Exercise | undefined;
 
   it('adds the seated hold in phase 2 only with the report that the surgeon cleared it', () => {
     expect(hold({ seatedHoldCleared: 'yes' })).toMatchObject({ minFlexion: 40, targetFlexion: 40 + 2 * MARGIN_DEG });
