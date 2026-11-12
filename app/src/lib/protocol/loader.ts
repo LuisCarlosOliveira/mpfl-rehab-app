@@ -1,5 +1,5 @@
 import { stripHidden } from '../plainText';
-import { protocolSchema, type Protocol, type SurgeonField } from './schema';
+import { NEW_EXERCISE_KINDS, protocolSchema, type Protocol, type SurgeonField } from './schema';
 
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_MESSAGE_CHARS = 300;
@@ -24,10 +24,14 @@ function plainKey(key: string): string {
 // A message that Zod wrote starts with one of these words. A message that the schema wrote is already plain.
 const ZOD_DEFAULT = /^(Invalid |Too |Unrecognized |Input )/;
 
+const UNKNOWN_EXERCISE = 'This file names an exercise that the app does not know. Ask your care team to use an exercise from the list.';
+
 /** Plain words for one issue of the schema. The key path stays in the sentence. */
 export function plainIssue(issue: Issue | undefined): string {
   if (!issue) return 'unknown problem';
   if (!ZOD_DEFAULT.test(issue.message)) return issue.message;
+  // An exercise id that the app does not know. The path is phases.N.exercises.N.kind.
+  if (issue.code === 'invalid_value' && issue.path.length >= 2 && issue.path.at(-1) === 'kind' && issue.path.at(-3) === 'exercises') return UNKNOWN_EXERCISE;
   const kind = issue.origin === 'string' ? 'text' : issue.origin === 'array' || issue.origin === 'set' ? 'list' : 'number';
   switch (issue.code) {
     case 'invalid_type':
@@ -87,6 +91,28 @@ function countPlaceholders(root: unknown): number {
   return count;
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * LEGACY input. A file from before exercise monitoring lists quad-set, gluteal-set, ankle-pump, leg-raise-side and leg-raise-back
+ * in `homeExercises`. They are camera exercises now, so each one moves into `exercises` with its sets, reps and source.
+ * A kind that `exercises` already holds stays as it is there. Any other item stays in `homeExercises`, and the schema refuses it.
+ * It returns a copy. The file data is not changed.
+ */
+export function normalizeLegacy(data: unknown): unknown {
+  if (!isRecord(data) || !Array.isArray(data.phases)) return data;
+  const phases = data.phases.map((phase: unknown) => {
+    if (!isRecord(phase) || !Array.isArray(phase.homeExercises) || !Array.isArray(phase.exercises)) return phase;
+    const moves = (x: unknown) => isRecord(x) && (NEW_EXERCISE_KINDS as readonly string[]).includes(String(x.kind));
+    const held = new Set(phase.exercises.filter(isRecord).map((e) => e.kind));
+    const moved = phase.homeExercises.filter((x) => moves(x) && !held.has((x as Record<string, unknown>).kind));
+    const left = phase.homeExercises.filter((x) => !moves(x));
+    const { homeExercises: _legacy, ...rest } = phase; // eslint-disable-line @typescript-eslint/no-unused-vars
+    return left.length > 0 ? { ...rest, exercises: [...phase.exercises, ...moved], homeExercises: left } : { ...rest, exercises: [...phase.exercises, ...moved] };
+  });
+  return { ...data, phases };
+}
+
 export type Mode = 'demo' | 'patient';
 
 export type LoadErrorCode = 'too-large' | 'invalid-json' | 'schema' | 'example-in-patient-mode' | 'not-approved' | 'generated-not-approved';
@@ -108,7 +134,7 @@ export function loadProtocol(raw: string, mode: Mode): LoadResult {
     return fail('invalid-json', 'The file is not valid JSON.');
   }
 
-  const parsed = protocolSchema.safeParse(data);
+  const parsed = protocolSchema.safeParse(normalizeLegacy(data));
   if (!parsed.success) {
     // The first problem only, one at a time. A file with more placeholders left says how many.
     const left = countPlaceholders(data) - 1;
