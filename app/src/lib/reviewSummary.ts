@@ -9,6 +9,7 @@ import { exerciseLabel, sortByDate } from './progress';
 import { CLINICIAN_CHECKS, type Protocol, type ReviewCriterion } from './protocol/schema';
 import { PAIN_FLOOR } from './safety';
 import type { SessionRecord } from './storage';
+import type { ReportKey } from './storage/db';
 
 /** At least this many counted reps for a session to count for an angle measure. PROPOSAL, no source (progression.md section 5.2). */
 export const MIN_COUNTED_REPS = 5;
@@ -68,6 +69,27 @@ const MEASURE_TEXT: Record<Measure, (c: NumericCriterion) => string> = {
   sessionsDone: (c) => `Sessions done in this phase, ${OP_TEXT[c.op]} ${c.limit}`,
 };
 const LIMIT_UNIT: Record<Measure, string> = { peakFlexionDeg: ' degrees', topFlexionDeg: ' degrees', painMax: ' (0 to 10)', sessionsDone: ' sessions' };
+
+/** The plain name of each measured value that a session can hold (exercise monitoring). The values are estimates. */
+export const REPORT_NAME: Record<ReportKey, string> = {
+  'ankle-range': 'Ankle range',
+  'lift-angle': 'Lift angle',
+  'knee-angle-top': 'Knee angle at the top',
+};
+/** The mark for a record in which the person timed the hold. */
+export const TIMED_BY_PERSON = 'timed by the person';
+
+/** The measured value of a session as "Lift angle 38 degrees" (whole degrees). null when the session has none. The export keeps every digit. */
+export function measuredText(s: SessionRecord): string | null {
+  if (s.reportKey === undefined || s.reportValue === undefined) return null;
+  return `${REPORT_NAME[s.reportKey]} ${Math.round(s.reportValue)} degrees`;
+}
+
+/** The holds that the person timed, in seconds, in the order of the list. null when there is no list. */
+export function holdsText(s: SessionRecord): string | null {
+  const list = s.holdList ?? [];
+  return list.length === 0 ? null : `${list.join(', ')} ${list.length === 1 && list[0] === 1 ? 'second' : 'seconds'}`;
+}
 
 const swellingText = 'Swelling answer, none or some only';
 
@@ -293,6 +315,8 @@ export function allSummaryTexts(): string[] {
     NO_EVIDENCE,
     ...Object.values(EVENT_LABEL),
     ...Object.values(CHECK_TEXT),
+    ...Object.values(REPORT_NAME),
+    TIMED_BY_PERSON,
     ...Object.values(LIMIT_UNIT),
     ...(['peakFlexionDeg', 'topFlexionDeg', 'painMax', 'sessionsDone'] as const).flatMap((m) => [sample(m, 'atLeast'), sample(m, 'atMost')]),
     'Answers: none 1, some 1, more than before 1',
