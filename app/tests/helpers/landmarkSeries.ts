@@ -100,6 +100,8 @@ export interface SeriesSpec extends SeriesNoiseSpec {
   aspect?: number;
   /** Mirror the person left to right about the hip. */
   mirror?: boolean;
+  /** Leg raise to the back: the straight leg swings FORWARD (toward +x, the way the person looks) with the same angle. Test material for R-02. */
+  forward?: boolean;
   /** Leg raise to the side: the lower leg is out of view. */
   lowerLegHidden?: boolean;
 }
@@ -198,8 +200,9 @@ function person(spec: SeriesSpec, value: number, hip: Pt, len: number): SeriesLa
     case 'leg-raise-back': {
       // Standing, side camera, the person looks to +x. The straight leg goes back (smaller x).
       const a = rad(value);
-      const knee = { x: hip.x - L * Math.sin(a), y: hip.y + L * Math.cos(a) };
-      const ankle = { x: knee.x - L * Math.sin(a), y: knee.y + L * Math.cos(a) };
+      const dir = spec.forward ? 1 : -1;
+      const knee = { x: hip.x + dir * L * Math.sin(a), y: hip.y + L * Math.cos(a) };
+      const ankle = { x: knee.x + dir * L * Math.sin(a), y: knee.y + L * Math.cos(a) };
       leg(out, side, hip, knee, ankle);
       leg(out, other(side), hip, { x: hip.x, y: hip.y + L }, { x: hip.x, y: hip.y + 2 * L });
       break;

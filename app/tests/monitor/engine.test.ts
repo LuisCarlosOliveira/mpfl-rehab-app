@@ -1,6 +1,8 @@
 // Step B5: createPipeline runs the five new kinds through the definitions of lib/monitor/registry.ts.
 // The anchor, the plausibility check, the lockout and the probe of the existing pipeline apply to them. The check of the leg comes from `needs`.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.setConfig({ testTimeout: 60000 }); // the noise tests run minutes of frames
 import { createPipeline, type Pipeline } from '../../src/lib/exercises';
 import type { Landmark } from '../../src/lib/angle';
 import { engineKinds, specFor } from '../../src/lib/monitor';
@@ -282,5 +284,46 @@ describe('leg-raise-side, lower leg hidden', () => {
     const p = make('leg-raise-side');
     feed(p, makeSeries({ pose: 'leg-raise-side', reps: 5, lowerLegHidden: true }));
     expect(p.summary().reps).toBe(5);
+  });
+});
+
+describe('R-01 and R-02 through the pipeline', () => {
+  const makeWith = (kind: PlanExercise['kind'], cameraSide?: 'left' | 'right') => {
+    const made = createPipeline(ex(kind), 'left', 1, { cameraSide });
+    if (!made.ok) throw new Error('setup');
+    return made.pipeline;
+  };
+  it('a standing front-on pose with a still leg gives 0 reps and no report value', () => {
+    const p = make('leg-raise-side');
+    feed(p, makeSeries({ pose: 'leg-raise-side', reps: 10, restValue: 88, peakValue: 88 }));
+    expect(p.summary().reps).toBe(0);
+    expect(p.engineData?.()).toEqual({});
+  });
+  it('a side-lying pose with a real lift gives N reps', () => {
+    const p = make('leg-raise-side');
+    feed(p, makeSeries({ pose: 'leg-raise-side', reps: 4 }));
+    expect(p.summary().reps).toBe(4);
+  });
+  it('a forward swing of the leg raise to the back counts 0, backward counts N, also for the mirrored person', () => {
+    for (const mirror of [false, true]) {
+      const hip = { x: mirror ? 0.7 : 0.3, y: 0.3 };
+      const a = make('leg-raise-back');
+      feed(a, makeSeries({ pose: 'leg-raise-back', reps: 4, mirror, hip }));
+      expect(a.summary().reps, `back, mirror ${mirror}`).toBe(4);
+      const b = make('leg-raise-back');
+      feed(b, makeSeries({ pose: 'leg-raise-back', reps: 4, mirror, hip, forward: true }));
+      expect(b.summary().reps, `forward, mirror ${mirror}`).toBe(0);
+    }
+  });
+  it('without a foot the camera side decides, and without both nothing counts and the readout is empty', () => {
+    const hide = [{ ids: [29, 31], startMs: 0, durationMs: 100000 }];
+    const s = makeSeries({ pose: 'leg-raise-back', reps: 4, dropouts: hide });
+    const known = makeWith('leg-raise-back', 'right'); // the camera sees the right side: the person looks to the right
+    feed(known, s);
+    expect(known.summary().reps).toBe(4);
+    const unknown = makeWith('leg-raise-back');
+    const outs = feed(unknown, s);
+    expect(unknown.summary().reps).toBe(0);
+    expect(outs.every((o) => o.flexion === null)).toBe(true);
   });
 });

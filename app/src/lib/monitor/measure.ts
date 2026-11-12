@@ -62,3 +62,21 @@ export function readMeasure(measure: Measure, pose: Landmark[], side: Side, aspe
       return null;
   }
 }
+
+/** What the lift to the back needs to tell backward from forward. See createLiftDriver. */
+export interface DirectionAux {
+  /** The foot index minus the ankle along x, in square pixels. The foot points forward at rest. null when the foot is not seen. */
+  footDx: number | null;
+  /** The knee minus the hip along x, in square pixels. */
+  kneeDx: number;
+}
+
+/** The direction data of one frame, or null when the hip or the knee is hidden. */
+export function directionAux(pose: Landmark[], side: Side, aspect: number): DirectionAux | null {
+  const hip = pick(pose, side, 'hip');
+  const knee = pick(pose, side, 'knee');
+  if (!visible(hip) || !visible(knee)) return null;
+  const ankle = pick(pose, side, 'ankle');
+  const foot = pick(pose, side, 'footIndex');
+  return { footDx: visible(ankle) && visible(foot) ? (foot.x - ankle.x) * aspect : null, kneeDx: (knee.x - hip.x) * aspect };
+}

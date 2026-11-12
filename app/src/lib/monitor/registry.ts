@@ -254,7 +254,7 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   label: 'Leg raise to the side',
   sourceIds: ['S1', 'P1', 'P2', 'P3'],
   phases: [1, 2],
-  posture: ['side-lying', 'standing'],
+  posture: ['side-lying'], // R-01: side-lying only. A standing leg is near vertical, so the segment angle against the horizontal would read it as raised.
   view: { angle: 'front', cameraSide: 'either', legs: 'chosen' },
   measure: { kind: 'segment-angle', from: 'hip', to: 'ankle', against: 'horizontal' },
   report: ['peak'],
@@ -268,9 +268,9 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   cues: [],
   needs: ['whole-leg'],
   guide: {
-    startPosition: 'Lie on your side or stand facing the camera. Keep your operated leg straight.',
+    startPosition: 'Lie on your side, with your front toward the camera. Keep your operated leg straight.',
     legFacingCamera: 'Put the camera in front of you, at hip height. The camera sees the front of your body.',
-    handsAndSupport: 'If you stand, hold a counter or a chair back with one hand.',
+    handsAndSupport: 'Rest your head on your lower arm. Put your top hand on the surface in front of your body.',
     range: 'Lift your operated leg out to the side with your toes forward. Hold. Then lower your leg with control.',
     speed: 'Move slowly and with control.',
     cameraMustSee: 'The camera must see your hip and your whole leg. The camera counts your lifts. It cannot measure the angle well.',

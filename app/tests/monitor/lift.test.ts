@@ -1,8 +1,10 @@
 // Step B4: the mode lift for the leg raise to the side (segment hip to ankle against the horizontal, front-on)
 // and to the back (segment hip to knee against the vertical, side view). The logic of the straight leg raise is liftStep.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.setConfig({ testTimeout: 60000 }); // the noise tests run minutes of frames
 import type { Landmark } from '../../src/lib/angle';
-import { readMeasure } from '../../src/lib/monitor/measure';
+import { directionAux, readMeasure } from '../../src/lib/monitor/measure';
 import { LIFT_ANGLE_BACK, LIFT_ANGLE_SIDE, createLiftDriver, liftStep, type LiftState } from '../../src/lib/monitor/modes';
 import { specFor } from '../../src/lib/monitor/registry';
 import { makeSeries, type PoseId, type Series, type SeriesSpec } from '../helpers/landmarkSeries';
@@ -11,15 +13,21 @@ type LiftPose = 'leg-raise-side' | 'leg-raise-back';
 const POSES: LiftPose[] = ['leg-raise-side', 'leg-raise-back'];
 const spec = (pose: LiftPose) => specFor(pose);
 const value = (pose: LiftPose, name: string) => spec(pose)?.thresholds.find((t) => t.name === name)?.value as number;
-const driverFor = (pose: LiftPose) =>
-  createLiftDriver({ liftAngle: value(pose, 'lift-angle'), settleMs: value(pose, 'raise-settle-ms'), endMs: value(pose, 'lift-end-ms') });
+const driverFor = (pose: LiftPose, cameraFacing: 1 | -1 | null = null) =>
+  createLiftDriver({
+    liftAngle: value(pose, 'lift-angle'),
+    settleMs: value(pose, 'raise-settle-ms'),
+    endMs: value(pose, 'lift-end-ms'),
+    // R-02: the lift to the back counts the backward direction only.
+    directional: pose === 'leg-raise-back' ? { cameraFacing } : undefined,
+  });
 
-function run(pose: LiftPose, s: Series, side: 'left' | 'right' = 'left') {
-  const d = driverFor(pose);
+function run(pose: LiftPose, s: Series, side: 'left' | 'right' = 'left', cameraFacing: 1 | -1 | null = null) {
+  const d = driverFor(pose, cameraFacing);
   const events: Array<{ t: number; seen: boolean }> = [];
   for (const f of s.frames) {
     const raw = f.landmarks ? readMeasure((spec(pose) as NonNullable<ReturnType<typeof spec>>).measure, f.landmarks as Landmark[], side, 1) : null;
-    const out = d.sample(raw, f.tMs);
+    const out = d.sample(raw, f.tMs, f.landmarks ? (directionAux(f.landmarks as Landmark[], side, 1) ?? undefined) : undefined);
     if (out.event === 'rep') events.push({ t: f.tMs, seen: raw !== null });
   }
   return { d, events };
@@ -138,5 +146,80 @@ describe('leg raise to the side with the lower leg hidden', () => {
   it('still counts', () => {
     const s = makeSeries({ pose: 'leg-raise-side', reps: 5, lowerLegHidden: true, noise: { kneeRmsDeg: 9 }, seed: 4 });
     expect(run('leg-raise-side', s).d.reps()).toBe(5);
+  });
+});
+
+describe('R-01: a lift counts only after the angle was seen below the gate (a rest state)', () => {
+  const mk = () => createLiftDriver({ liftAngle: 10, settleMs: 500, endMs: 300 });
+  const feed = (d: ReturnType<typeof mk>, steps: Array<[number, number]>) => {
+    let t = 0;
+    for (const [deg, ms] of steps) for (const end = t + ms; t < end; t += 33) d.sample(deg, t);
+    return d;
+  };
+  it('a leg that starts raised and stays raised counts 0 and gives no report value', () => {
+    const d = feed(mk(), [[40, 5000]]);
+    expect(d.reps()).toBe(0);
+    expect(d.data()).toEqual({});
+  });
+  it('a leg that starts raised, goes down and lifts again counts the second raise only', () => {
+    const d = feed(mk(), [[40, 3000], [0, 1000], [40, 2000], [0, 1000]]);
+    expect(d.reps()).toBe(1);
+  });
+  it('a leg that starts at rest counts the first lift', () => {
+    expect(feed(mk(), [[0, 500], [40, 1500], [0, 600]]).reps()).toBe(1);
+  });
+  it('a standing front-on pose with a still leg (hip to ankle near vertical) gives 0 reps and no report value, with noise too', () => {
+    for (const noise of [undefined, { kneeRmsDeg: 9 }])
+      for (let seed = 1; seed <= 4; seed++) {
+        const s = makeSeries({ pose: 'leg-raise-side', reps: 20, restValue: 88, peakValue: 88, seed, noise });
+        const r = run('leg-raise-side', s);
+        expect(r.d.reps()).toBe(0);
+        expect(r.d.data()).toEqual({});
+      }
+  });
+  it('a side-lying pose with a real lift still gives N reps', () => {
+    expect(run('leg-raise-side', lifts('leg-raise-side', 6)).d.reps()).toBe(6);
+  });
+});
+
+describe('R-02: the leg raise to the back counts the backward direction only', () => {
+  const hipFor = (mirror: boolean) => ({ x: mirror ? 0.7 : 0.3, y: 0.3 });
+  for (const mirror of [false, true]) {
+    const label = mirror ? 'a mirrored person (looks to the left)' : 'a person who looks to the right';
+    it(`backward lifts count N for ${label}, from the foot`, () => {
+      const s = makeSeries({ pose: 'leg-raise-back', reps: 5, mirror, hip: hipFor(mirror) });
+      expect(run('leg-raise-back', s).d.reps()).toBe(5);
+    });
+    it(`a forward swing counts 0 for ${label}, also with noise`, () => {
+      for (let seed = 1; seed <= 3; seed++) {
+        const s = makeSeries({ pose: 'leg-raise-back', reps: 5, mirror, forward: true, hip: hipFor(mirror), seed, noise: seed === 1 ? undefined : { kneeRmsDeg: 9 } });
+        const r = run('leg-raise-back', s);
+        expect(r.d.reps(), `seed ${seed}`).toBe(0);
+        expect(r.d.data()).toEqual({});
+      }
+    });
+    it(`uses the camera side when the foot is not seen, for ${label}`, () => {
+      const hide = [{ ids: [29, 31], startMs: 0, durationMs: 100000 }];
+      const facing = mirror ? -1 : 1;
+      const back = makeSeries({ pose: 'leg-raise-back', reps: 4, mirror, hip: hipFor(mirror), dropouts: hide });
+      expect(run('leg-raise-back', back, 'left', facing).d.reps()).toBe(4);
+      const fwd = makeSeries({ pose: 'leg-raise-back', reps: 4, mirror, forward: true, hip: hipFor(mirror), dropouts: hide });
+      expect(run('leg-raise-back', fwd, 'left', facing).d.reps()).toBe(0);
+    });
+  }
+  it('counts nothing and gives no value when neither the foot nor the camera side is known', () => {
+    const s = makeSeries({ pose: 'leg-raise-back', reps: 4, dropouts: [{ ids: [29, 31], startMs: 0, durationMs: 100000 }] });
+    const d = driverFor('leg-raise-back', null);
+    const values = s.frames.map((f) =>
+      d.sample(readMeasure(spec('leg-raise-back')!.measure, f.landmarks as Landmark[], 'left', 1), f.tMs, directionAux(f.landmarks as Landmark[], 'left', 1) ?? undefined).value,
+    );
+    expect(values.every((v) => v === null)).toBe(true);
+    expect(d.reps()).toBe(0);
+  });
+  it('keeps the 0 to 180 value of the angle for the report', () => {
+    const { d } = run('leg-raise-back', makeSeries({ pose: 'leg-raise-back', reps: 3, peakValue: 30 }));
+    expect(d.data().reportKey).toBe('lift-angle');
+    expect(d.data().reportValue).toBeGreaterThan(28);
+    expect(d.data().reportValue).toBeLessThanOrEqual(30.001);
   });
 });

@@ -24,11 +24,12 @@ import { MARGIN_DEG, classifyAgainstLimit, type LimitState } from './margin';
 import type { ExerciseSpec } from './monitor/spec';
 import { OneEuroFilter } from './oneEuro';
 import { engineSpecFor, trackFor } from './monitor/engine';
-import { readMeasure } from './monitor/measure';
+import { directionAux, readMeasure } from './monitor/measure';
 import {
   createCycleDriver,
   createLiftDriver,
   createPersonTimer,
+  facingFromCameraSide,
   liftStep,
   type CycleDriver,
   type EndHoldResult,
@@ -233,7 +234,13 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
       ? null
       : engine.mode === 'reps-cycle'
         ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms'), maxRiseMs: thresholdOf(engine, 'max-rise-ms') })
-        : createLiftDriver({ liftAngle: thresholdOf(engine, 'lift-angle'), settleMs: thresholdOf(engine, 'raise-settle-ms'), endMs: thresholdOf(engine, 'lift-end-ms') });
+        : createLiftDriver({
+            liftAngle: thresholdOf(engine, 'lift-angle'),
+            settleMs: thresholdOf(engine, 'raise-settle-ms'),
+            endMs: thresholdOf(engine, 'lift-end-ms'),
+            // R-02: a lift against the vertical (the leg raise to the back) counts the backward direction only.
+            directional: engine.measure.kind === 'segment-angle' && engine.measure.against === 'vertical' ? { cameraFacing: facingFromCameraSide(options.cameraSide) } : undefined,
+          });
   const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
     engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);
   const ratio = engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? FOOT_RATIO : SEGMENT_RATIO;
@@ -442,7 +449,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           // The leg of `needs` must be whole in view, also when the measure uses two of its points (the leg raise to the side).
           const value = [hip, knee, ankle].every(visible) ? readMeasure(engine.measure, chosen, side, aspect) : null;
           if (value === null) return unseen(t);
-          const out = driver.sample(value, t);
+          const out = 'newSet' in driver ? driver.sample(value, t, directionAux(chosen, side, aspect) ?? undefined) : driver.sample(value, t);
           return { flexion: out.value, event: out.event, repMs: null };
         }
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));

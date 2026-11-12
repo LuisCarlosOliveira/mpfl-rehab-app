@@ -3,6 +3,7 @@
 // Every number here is ENGINEERING. No source sets it. The screen says so.
 
 import { OneEuroFilter } from '../oneEuro';
+import type { DirectionAux } from './measure';
 
 /** The data that a session of a new exercise gives to the stored record (the fields of storage/db.ts). */
 export interface EngineData {
@@ -255,9 +256,18 @@ export function liftStep(lift: LiftState | null, raised: boolean | null, t: numb
 /** The filter of a segment angle. The same start values as the knee filter of exercises.ts. ENGINEERING. */
 export const LIFT_FILTER = { minCutoff: 1.5, beta: 0.02 };
 
+/** The foot must point at least this far from the ankle (square pixels) to give a vote for the facing direction. ENGINEERING. The foot of the series is 0.08. */
+export const FOOT_MIN_DX = 0.02;
+/** The votes of the foot that make the facing direction sure. */
+const FACING_VOTES = 3;
+const FACING_VOTES_MAX = 20;
+
 export interface LiftDriver {
-  /** `raw` is the segment angle in degrees, or null when a landmark is not seen. Returns the filtered angle. */
-  sample(raw: number | null, t: number): { value: number | null; event: 'rep' | null };
+  /**
+   * `raw` is the segment angle in degrees, or null when a landmark is not seen. Returns the filtered angle.
+   * `aux` is needed for a directional lift only (the lift to the back).
+   */
+  sample(raw: number | null, t: number, aux?: DirectionAux): { value: number | null; event: 'rep' | null };
   /** A new set starts. The peak of the present lift is closed. The peak of the session stays. */
   newSet(): void;
   reps(): number;
@@ -267,13 +277,33 @@ export interface LiftDriver {
   data(): EngineData;
 }
 
-export function createLiftDriver(cfg: LiftConfig & { liftAngle: number }): LiftDriver {
+export interface LiftDriverConfig extends LiftConfig {
+  liftAngle: number;
+  /**
+   * R-02: the lift counts only when the knee is BEHIND the hip along the facing direction (a forward swing counts nothing).
+   * The facing direction comes from the foot index at rest: the foot points forward. Without a sure foot, `cameraFacing` is used
+   * (+1 the person looks to the right of the picture, -1 to the left). Without both the driver does not guess: no count and no value.
+   */
+  directional?: { cameraFacing: 1 | -1 | null };
+}
+
+/**
+ * The facing direction that follows from the camera side. A camera on the left of the person sees the left side of the person,
+ * so the person looks to the left of the picture. The picture is the raw image of the pose model.
+ */
+export const facingFromCameraSide = (cameraSide: 'left' | 'right' | undefined): 1 | -1 | null =>
+  cameraSide === undefined ? null : cameraSide === 'left' ? -1 : 1;
+
+export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
   const filter = new OneEuroFilter(LIFT_FILTER);
   let lift: LiftState | null = null;
   let top: number | null = null; // the largest angle of the present lift, read while the lift is settled
   let best: number | null = null;
   let setBest: number | null = null;
   let reps = 0;
+  // R-01: no lift counts until the angle was seen below the gate. A person who is upright, or a leg that starts raised, is not a lift.
+  let armed = false;
+  let votes = 0;
   const close = () => {
     if (top !== null) {
       best = best === null ? top : Math.max(best, top);
@@ -284,14 +314,28 @@ export function createLiftDriver(cfg: LiftConfig & { liftAngle: number }): LiftD
   };
   const withNow = (b: number | null) => (top === null ? b : b === null ? top : Math.max(b, top));
   return {
-    sample(raw, t) {
+    sample(raw, t, aux) {
       if (raw === null) {
         filter.reset();
         lift = liftStep(lift, null, t, cfg).lift;
         return { value: null, event: null };
       }
       const value = filter.filter(raw, t);
-      const out = liftStep(lift, value >= cfg.liftAngle, t, cfg);
+      if (value < cfg.liftAngle) armed = true;
+      let backward = true;
+      if (cfg.directional !== undefined) {
+        // The foot votes at rest, when the leg is down and the foot lies flat.
+        if (value < cfg.liftAngle && aux?.footDx != null && Math.abs(aux.footDx) >= FOOT_MIN_DX) {
+          votes = Math.max(-FACING_VOTES_MAX, Math.min(FACING_VOTES_MAX, votes + Math.sign(aux.footDx)));
+        }
+        const facing = Math.abs(votes) >= FACING_VOTES ? Math.sign(votes) : cfg.directional.cameraFacing;
+        if (facing === null || aux === undefined) {
+          lift = liftStep(lift, null, t, cfg).lift;
+          return { value: null, event: null };
+        }
+        backward = Math.sign(aux.kneeDx) === -facing;
+      }
+      const out = liftStep(lift, armed && backward && value >= cfg.liftAngle, t, cfg);
       lift = out.lift;
       if (out.settled) top = top === null ? value : Math.max(top, value);
       if (out.closed) close();
