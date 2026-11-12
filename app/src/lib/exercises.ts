@@ -24,13 +24,15 @@ import { MARGIN_DEG, classifyAgainstLimit, type LimitState } from './margin';
 import type { ExerciseSpec } from './monitor/spec';
 import { OneEuroFilter } from './oneEuro';
 import { engineSpecFor, trackFor } from './monitor/engine';
-import { readMeasure } from './monitor/measure';
+import { directionAux, readMeasure } from './monitor/measure';
 import {
   createCycleDriver,
   createLiftDriver,
   createPersonTimer,
+  facingFromCameraSide,
   liftStep,
   type CycleDriver,
+  type EndHoldResult,
   type EngineData,
   type LiftDriver,
   type LiftState,
@@ -201,7 +203,8 @@ export interface Pipeline {
   summary(): Summary;
   /** Mode person-timer only (quad set, gluteal set). The screen calls these from its buttons. The camera never decides the effort. */
   startHold?(tMs: number): void;
-  endHold?(tMs: number): void;
+  /** Says whether the hold was saved, and why not when it was not (the screen shows a polite line). */
+  endHold?(tMs: number): EndHoldResult;
   /** The five new kinds only. The data for the stored record: holdList, timedBy, reportKey, reportValue. */
   engineData?(): EngineData;
 }
@@ -219,7 +222,7 @@ export interface PipelineOptions {
 export function createPipeline(planned: PlanExercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
   // The five new kinds run through the definitions of lib/monitor/registry.ts. The four old kinds keep the code below.
   const engine = engineSpecFor(planned.kind);
-  if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(engine.view.legs !== 'none', side, aspect, options) };
+  if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(side, options) };
   const exercise = planned as Exercise;
   const made = engine === undefined ? counterSetup(exercise) : ({ ok: true, kind: 'engine' } as const);
   if (!made.ok) return made;
@@ -230,8 +233,14 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     engine === undefined
       ? null
       : engine.mode === 'reps-cycle'
-        ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms') })
-        : createLiftDriver({ liftAngle: thresholdOf(engine, 'lift-angle'), settleMs: thresholdOf(engine, 'raise-settle-ms'), endMs: thresholdOf(engine, 'lift-end-ms') });
+        ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms'), maxRiseMs: thresholdOf(engine, 'max-rise-ms') })
+        : createLiftDriver({
+            liftAngle: thresholdOf(engine, 'lift-angle'),
+            settleMs: thresholdOf(engine, 'raise-settle-ms'),
+            endMs: thresholdOf(engine, 'lift-end-ms'),
+            // R-02: a lift against the vertical (the leg raise to the back) counts the backward direction only.
+            directional: engine.measure.kind === 'segment-angle' && engine.measure.against === 'vertical' ? { cameraFacing: facingFromCameraSide(options.cameraSide) } : undefined,
+          });
   const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
     engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);
   const ratio = engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? FOOT_RATIO : SEGMENT_RATIO;
@@ -440,7 +449,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           // The leg of `needs` must be whole in view, also when the measure uses two of its points (the leg raise to the side).
           const value = [hip, knee, ankle].every(visible) ? readMeasure(engine.measure, chosen, side, aspect) : null;
           if (value === null) return unseen(t);
-          const out = driver.sample(value, t);
+          const out = 'newSet' in driver ? driver.sample(value, t, directionAux(chosen, side, aspect) ?? undefined) : driver.sample(value, t);
           return { flexion: out.value, event: out.event, repMs: null };
         }
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
@@ -509,24 +518,13 @@ const thresholdOf = (spec: ExerciseSpec, name: string): number => {
 };
 
 /**
- * The pipeline of the mode person-timer. It reads the camera for nothing but the optional knee angle at the end of a hold.
- * It has no anchor and no lockout: the definition needs no landmark (`needs` is empty), and a timer must work with no person in view.
+ * The pipeline of the mode person-timer. It reads no landmark: the timer has no anchor, no lockout and no angle (R-08).
+ * A timer must work with no person in view.
  */
-function createTimerPipeline(reportKnee: boolean, side: Side, aspect: number, options: PipelineOptions): Pipeline {
-  const timer: PersonTimer = createPersonTimer({ reportKnee });
-  const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
+function createTimerPipeline(side: Side, options: PipelineOptions): Pipeline {
+  const timer: PersonTimer = createPersonTimer();
   return {
-    step(landmarks, t) {
-      let f: number | null = null;
-      if (reportKnee && landmarks !== null) {
-        const [hip, knee, ankle] = selectLeg(landmarks, side);
-        const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
-        f = raw === null ? null : filter.filter(raw, t);
-        if (raw === null) filter.reset();
-      }
-      timer.sample(f, t);
-      return { flexion: f, event: null, repMs: null };
-    },
+    step: () => ({ flexion: null, event: null, repMs: null }),
     setBaseline() {},
     newSet() {},
     followAgain() {},

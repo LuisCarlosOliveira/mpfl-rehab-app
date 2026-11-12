@@ -189,3 +189,9 @@ describe('guides', () => {
     for (const s of REGISTRY) for (const f of FIELDS) for (const sentence of s.guide[f].split(/(?<=[.!?])\s+/)) expect(sentence.split(/\s+/).length, `${s.id}: ${sentence}`).toBeLessThanOrEqual(25);
   });
 });
+
+describe('R-01: the leg raise to the side is side-lying only', () => {
+  it('lists no standing posture', () => {
+    expect(spec('leg-raise-side').posture).toEqual(['side-lying']);
+  });
+});

@@ -37,7 +37,9 @@ describe('guides of the five new exercises', () => {
 
   it('the leg raise to the side has the camera in front at hip height', () => {
     const g = guideFor('leg-raise-side');
-    expect(g.startPosition).toMatch(/side or stand/);
+    expect(g.startPosition).toMatch(/Lie on your side/);
+    // R-01: side-lying only. A standing leg is near vertical and would read as raised at once.
+    for (const text of [g.startPosition, g.legFacingCamera, g.handsAndSupport, g.range, g.speed, g.cameraMustSee]) expect(text).not.toMatch(/stand/i);
     expect(g.legFacingCamera).toMatch(/in front of you/);
     expect(g.legFacingCamera).toMatch(/hip height/);
   });
