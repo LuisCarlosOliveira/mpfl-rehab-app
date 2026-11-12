@@ -146,6 +146,8 @@ export interface Summary {
   peakFlexion: number | null;
   // Estimated angle at the top of the straight leg raise. The highest value over the lifts.
   topFlexion: number | null;
+  // The same for the present set only. `newSet()` clears it (U3). The live screen shows this one.
+  setTopFlexion?: number | null;
   // The top angle against maxTopFlexion: above, below or cannot-tell. 'no-limit' when the
   // protocol sets none. null for any other exercise.
   topState: LimitState | 'no-limit' | null;
@@ -175,6 +177,8 @@ export interface Pipeline {
   step(landmarks: Landmark[] | null, tMs: number, extra?: Landmark[][]): StepOutput;
   /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
   setBaseline(deg: number): void;
+  /** A new set starts. The top angle of the present set clears. The top angle of the session stays for the Summary (U3). */
+  newSet(): void;
   /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
   followAgain(): void;
   summary(): Summary;
@@ -212,11 +216,15 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   // Straight leg raise state. `top` is the angle at the top of the current lift.
   let top = lagInitial();
   let highestTop: number | null = null;
+  let setHighest: number | null = null; // the highest top angle of the present set (U3)
   let lift: { settleSince: number | null; counted: boolean; belowSince: number | null } | null = null;
   let lifts = 0;
 
   const closeLift = () => {
-    if (top.lag !== null) highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
+    if (top.lag !== null) {
+      highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
+      setHighest = setHighest === null ? top.lag : Math.max(setHighest, top.lag);
+    }
     top = lagInitial();
     lift = null;
   };
@@ -301,6 +309,10 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   return {
     ok: true,
     pipeline: {
+      newSet() {
+        closeLift();
+        setHighest = null;
+      },
       setBaseline(deg) {
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
@@ -430,6 +442,8 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         const current = top.lag;
         const topFlexion =
           setup.kind === 'lag' ? (highestTop === null ? current : current === null ? highestTop : Math.max(highestTop, current)) : null;
+        const setTopFlexion =
+          setup.kind === 'lag' ? (setHighest === null ? current : current === null ? setHighest : Math.max(setHighest, current)) : null;
         let topState: Summary['topState'] = null;
         if (setup.kind === 'lag') {
           topState =
@@ -440,6 +454,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           holds: setup.kind === 'hold' ? hold.holds : null,
           peakFlexion: peak,
           topFlexion,
+          setTopFlexion,
           topState,
           eventCounts: { ...counts },
           countBlock: setup.kind === 'reps' ? countBlock(setup.config) : null,

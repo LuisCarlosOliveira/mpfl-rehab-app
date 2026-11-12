@@ -382,7 +382,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       map.current?.setShownAngle(angle);
       const next: View = {
         angle,
-        top: sum ? topAngleText(sum.topFlexion) : null,
+        top: sum ? topAngleText(sum.setTopFlexion ?? null) : null, // the present set only (U3)
         cue: cue && !cue.alert && !(lock !== null && cue.paused) ? cue.text : '', // B4-04: the lock box replaces "Show your whole leg."
         alert: cue?.alert ? cue.text : '',
         waiting,
@@ -445,6 +445,11 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       angleRef.current?.focus({ preventScroll: true });
     }
   }, [view.lock]);
+
+  // U3: a new set starts with no top angle on the screen. The session keeps its highest top angle for the Summary.
+  useEffect(() => {
+    pipeline.current?.newSet();
+  }, [sets.setIndex]);
 
   // U8: the focus moves to the rest panel title when a set ends.
   useEffect(() => {
