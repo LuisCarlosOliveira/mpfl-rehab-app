@@ -558,7 +558,7 @@ body:has(.v2-session) main {
 /* ---------- The camera is the main thing (user request, 2026-11-12) ----------
    Wide screen, 56 rem and more: the camera takes two thirds of the width and the free height of the window. The numbers, the lock box and the
    Stop buttons are in the right column. The buttons are in the page, sticky in the column, so no bar covers the camera and Stop is always in view.
-   --camera-top is the distance from the top of the page to the camera (src/ui/useCameraTop.ts). 6 rem under the picture hold the cue slot. */
+   --camera-top is the distance from the top of the page to the camera (src/lib/useCameraTop.ts). 6 rem under the picture hold the cue slot. */
 @media (min-width: 56rem) {
   main:has(> .v2-session),
   main:has(> .v2-setup) {

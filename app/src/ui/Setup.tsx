@@ -14,7 +14,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { focusHeading } from './focusHeading';
-import { useCameraTop } from './useCameraTop';
+import { useCameraTop } from '../lib/useCameraTop';
 import { countsReps, doneLying } from '../lib/exercises';
 import { distanceText, type CameraView } from '../lib/figure';
 import type { GuideKind } from '../lib/guides';

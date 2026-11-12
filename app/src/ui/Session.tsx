@@ -44,7 +44,7 @@ import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHand
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
-import { useCameraTop } from './useCameraTop';
+import { useCameraTop } from '../lib/useCameraTop';
 import { PainScale } from './PainScale';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
 import { StatusLine } from './StatusLine';
