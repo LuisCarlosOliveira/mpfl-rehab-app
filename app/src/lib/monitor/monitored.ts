@@ -2,6 +2,8 @@
 // Step D (after the engine of Step B and the guides of Step C) adds the five new kinds here, and Start shows for them.
 import { EXERCISE_KINDS, type Exercise, type PlanExercise } from '../protocol/schema';
 
+// The engine of Step B runs the five new kinds too (engineKinds() in engine.ts, createPipeline in exercises.ts).
+// This list stays at the four old kinds until Step D wires the screens (Setup, Session, Home). Then it adds engineKinds().
 const MONITORED: readonly string[] = EXERCISE_KINDS;
 
 /** True when the app can run this exercise with the camera now. Home shows Start only then. */

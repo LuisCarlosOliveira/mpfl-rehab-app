@@ -7,7 +7,7 @@
 // A rep ends when the knee is back within `returnWithinDeg` of the resting angle (T17, PROPOSAL). The old fixed
 // fraction of the target is gone from the app path. Without a protocol value or a baseline no rep counts.
 
-import { MIN_VISIBILITY, flexion, kneeAngle, selectLeg, type Landmark, type Side } from './angle';
+import { MIN_VISIBILITY, flexion, kneeAngle, selectFoot, selectLeg, type Landmark, type Side } from './angle';
 import {
   countBlock,
   holdInitial,
@@ -21,8 +21,22 @@ import {
   type RepsConfig,
 } from './counters';
 import { MARGIN_DEG, classifyAgainstLimit, type LimitState } from './margin';
+import type { ExerciseSpec } from './monitor/spec';
 import { OneEuroFilter } from './oneEuro';
-import type { Exercise } from './protocol';
+import { engineSpecFor, trackFor } from './monitor/engine';
+import { readMeasure } from './monitor/measure';
+import {
+  createCycleDriver,
+  createLiftDriver,
+  createPersonTimer,
+  liftStep,
+  type CycleDriver,
+  type EngineData,
+  type LiftDriver,
+  type LiftState,
+  type PersonTimer,
+} from './monitor/modes';
+import type { Exercise, PlanExercise } from './protocol';
 
 const MIN_STATE_MS = 300; // start value. research/tech.md 3.3 says "for example 300 ms", not from a source
 const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent of the target
@@ -44,6 +58,9 @@ const LOCKED_OUT_MS = 4000;
 const EDGE_MARGIN = 0.02;
 const MIN_SEGMENT = 0.03;
 const SEGMENT_RATIO: [number, number] = [0.4, 2.5];
+// The ankle pump checks knee, ankle and foot index. The first segment is the shank and the second is the foot, so the ratio is large.
+// The generated person has 2.5. Real feet in a side view give about 1.5 to 3. ENGINEERING, not tuned on real video.
+const FOOT_RATIO: [number, number] = [1, 6];
 const CONFIRM_MS = 2000;
 const STEADY_RADIUS = 0.05;
 const PROBE_MIN_FRAMES = 5;
@@ -182,6 +199,11 @@ export interface Pipeline {
   /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
   followAgain(): void;
   summary(): Summary;
+  /** Mode person-timer only (quad set, gluteal set). The screen calls these from its buttons. The camera never decides the effort. */
+  startHold?(tMs: number): void;
+  endHold?(tMs: number): void;
+  /** The five new kinds only. The data for the stored record: holdList, timedBy, reportKey, reportValue. */
+  engineData?(): EngineData;
 }
 
 export type PipelineResult = { ok: true; pipeline: Pipeline } | Extract<SetupResult, { ok: false }>;
@@ -194,11 +216,25 @@ export interface PipelineOptions {
 }
 
 /** `side` is the leg that the person chose. `aspect` is video width divided by video height. */
-export function createPipeline(exercise: Exercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
-  const made = counterSetup(exercise);
+export function createPipeline(planned: PlanExercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
+  // The five new kinds run through the definitions of lib/monitor/registry.ts. The four old kinds keep the code below.
+  const engine = engineSpecFor(planned.kind);
+  if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(engine.view.legs !== 'none', side, aspect, options) };
+  const exercise = planned as Exercise;
+  const made = engine === undefined ? counterSetup(exercise) : ({ ok: true, kind: 'engine' } as const);
   if (!made.ok) return made;
   let setup =
     made.kind === 'reps' ? { ...made, config: { ...made.config, baseline: options.baselineDeg ?? undefined } } : made;
+  // The new modes of the engine. `driver` counts. The person check below is the same for every kind, with the landmarks of `needs`.
+  const driver: CycleDriver | LiftDriver | null =
+    engine === undefined
+      ? null
+      : engine.mode === 'reps-cycle'
+        ? createCycleDriver({ minAmplitude: thresholdOf(engine, 'min-amplitude'), minStateMs: thresholdOf(engine, 'min-state-ms') })
+        : createLiftDriver({ liftAngle: thresholdOf(engine, 'lift-angle'), settleMs: thresholdOf(engine, 'raise-settle-ms'), endMs: thresholdOf(engine, 'lift-end-ms') });
+  const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
+    engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);
+  const ratio = engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? FOOT_RATIO : SEGMENT_RATIO;
 
   // Start values. tech.md 3.2 advises minCutoff near 1 Hz, then a higher beta. Not tuned on real video.
   const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
@@ -217,7 +253,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   let top = lagInitial();
   let highestTop: number | null = null;
   let setHighest: number | null = null; // the highest top angle of the present set (U3)
-  let lift: { settleSince: number | null; counted: boolean; belowSince: number | null } | null = null;
+  let lift: LiftState | null = null;
   let lifts = 0;
 
   const closeLift = () => {
@@ -230,7 +266,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   };
   // The leg left the view: a lift that is not settled starts its settle time again. A counted lift stays counted.
   const pauseLift = () => {
-    if (lift !== null) lift.settleSince = null;
+    if (lift !== null) lift = { ...lift, settleSince: null };
   };
 
   // B-03, B2-02, B3-01, B5-01: the pose model follows one person. A second person can take the place of the first, or the person can move.
@@ -268,7 +304,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     if (![hip, knee, ankle].every((q) => q.x > EDGE_MARGIN && q.x < 1 - EDGE_MARGIN && q.y > EDGE_MARGIN && q.y < 1 - EDGE_MARGIN)) return false;
     const thigh = dist(hip, knee);
     const shin = dist(knee, ankle);
-    return thigh >= MIN_SEGMENT && shin >= MIN_SEGMENT && thigh / shin >= SEGMENT_RATIO[0] && thigh / shin <= SEGMENT_RATIO[1];
+    return thigh >= MIN_SEGMENT && shin >= MIN_SEGMENT && thigh / shin >= ratio[0] && thigh / shin <= ratio[1];
   };
   const follow = (hip: Landmark) => {
     const d = dist(hip, anchor as Landmark);
@@ -303,6 +339,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
     pauseLift();
     if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
     else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
+    else if (driver !== null) driver.sample(null, t);
     return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson && !pendingPress, otherPerson, probe, looking: pendingPress };
   };
 
@@ -312,6 +349,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
       newSet() {
         closeLift();
         setHighest = null;
+        if (driver !== null && 'newSet' in driver) driver.newSet();
       },
       setBaseline(deg) {
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
@@ -369,7 +407,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         if (confirmed && anchor !== null && extra !== undefined && extra.length > 0) {
           let best = Infinity;
           for (const pose of [landmarks, ...extra]) {
-            const h = selectLeg(pose, side)[0];
+            const h = trio(pose)[0];
             if (!visible(h)) continue;
             const d = dist(h, anchor);
             if (d < best) {
@@ -378,7 +416,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
             }
           }
         }
-        const [hip, knee, ankle] = selectLeg(chosen, side);
+        const [hip, knee, ankle] = trio(chosen);
         if (otherPerson) {
           // B6-01: ask again while "someone else" shows, so a person who is alone is not stuck.
           const again = probeFrames === 0 && t - probeAt >= REPROBE_MS;
@@ -396,6 +434,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           farSince = null;
           if (poseCount === 'one') poseCount = null;
           probeAsked = false;
+        }
+        if (driver !== null && engine !== undefined) {
+          // A new mode. The value is the measure of the definition (an angle in degrees), filtered inside the driver.
+          // The leg of `needs` must be whole in view, also when the measure uses two of its points (the leg raise to the side).
+          const value = [hip, knee, ankle].every(visible) ? readMeasure(engine.measure, chosen, side, aspect) : null;
+          if (value === null) return unseen(t);
+          const out = driver.sample(value, t);
+          return { flexion: out.value, event: out.event, repMs: null };
         }
         const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
         if (raw === null) return unseen(t);
@@ -417,24 +463,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           return { flexion: f, event: out.event, repMs: null };
         }
         // Straight leg raise: a rep counts once when the leg holds the settle time. The top angle is read only while settled.
-        if (!visible(hip) || !visible(ankle)) pauseLift();
-        else if (lift === null) {
-          if (isLegRaised(hip, ankle)) lift = { settleSince: t, counted: false, belowSince: null };
-        } else if (!isLegRaised(hip, ankle)) {
-          lift.belowSince ??= t;
-          if (!lift.counted) lift.settleSince = null; // the settle time must run without a dip
-          if (t - lift.belowSince >= LIFT_END_MS) closeLift();
-        } else {
-          lift.belowSince = null;
-          lift.settleSince ??= t;
-          if (t - lift.settleSince >= RAISE_SETTLE_MS) {
-            top = lagStep(top, sample).state;
-            if (!lift.counted) {
-              lift.counted = true;
-              lifts += 1;
-              return { flexion: f, event: 'rep', repMs: null };
-            }
-          }
+        // The logic is liftStep of monitor/modes.ts, shared with the new lifts. A hidden hip or ankle is "not seen".
+        const o = liftStep(lift, !visible(hip) || !visible(ankle) ? null : isLegRaised(hip, ankle), t, { settleMs: RAISE_SETTLE_MS, endMs: LIFT_END_MS });
+        lift = o.lift;
+        if (o.settled) top = lagStep(top, sample).state;
+        if (o.closed) closeLift();
+        if (o.counted) {
+          lifts += 1;
+          return { flexion: f, event: 'rep', repMs: null };
         }
         return { flexion: f, event: null, repMs: null };
       },
@@ -450,7 +486,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
             exercise.maxTopFlexion === undefined ? 'no-limit' : classifyAgainstLimit(topFlexion, exercise.maxTopFlexion, MARGIN_DEG);
         }
         return {
-          reps: setup.kind === 'reps' ? reps.reps : setup.kind === 'lag' ? lifts : null,
+          reps: setup.kind === 'reps' ? reps.reps : setup.kind === 'lag' ? lifts : driver !== null ? driver.reps() : null,
           holds: setup.kind === 'hold' ? hold.holds : null,
           peakFlexion: peak,
           topFlexion,
@@ -461,6 +497,53 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           legRole: options.cameraSide === undefined ? null : legRoleOf(side, options.cameraSide),
         };
       },
+      engineData: driver === null ? undefined : () => driver.data(),
+    },
+  };
+}
+
+const thresholdOf = (spec: ExerciseSpec, name: string): number => {
+  const v = spec.thresholds.find((t) => t.name === name)?.value;
+  if (v === null || v === undefined) throw new Error(`${spec.id}: threshold ${name} has no value`);
+  return v;
+};
+
+/**
+ * The pipeline of the mode person-timer. It reads the camera for nothing but the optional knee angle at the end of a hold.
+ * It has no anchor and no lockout: the definition needs no landmark (`needs` is empty), and a timer must work with no person in view.
+ */
+function createTimerPipeline(reportKnee: boolean, side: Side, aspect: number, options: PipelineOptions): Pipeline {
+  const timer: PersonTimer = createPersonTimer({ reportKnee });
+  const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
+  return {
+    step(landmarks, t) {
+      let f: number | null = null;
+      if (reportKnee && landmarks !== null) {
+        const [hip, knee, ankle] = selectLeg(landmarks, side);
+        const raw = flexion(kneeAngle(hip, knee, ankle, aspect));
+        f = raw === null ? null : filter.filter(raw, t);
+        if (raw === null) filter.reset();
+      }
+      timer.sample(f, t);
+      return { flexion: f, event: null, repMs: null };
+    },
+    setBaseline() {},
+    newSet() {},
+    followAgain() {},
+    startHold: (t) => timer.startHold(t),
+    endHold: (t) => timer.endHold(t),
+    engineData: () => timer.data(),
+    summary() {
+      return {
+        reps: null,
+        holds: timer.count(),
+        peakFlexion: null,
+        topFlexion: null,
+        topState: null,
+        eventCounts: { nearLimit: 0, overLimit: 0, tooFast: 0 },
+        countBlock: null,
+        legRole: options.cameraSide === undefined ? null : legRoleOf(side, options.cameraSide),
+      };
     },
   };
 }

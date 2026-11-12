@@ -25,7 +25,27 @@ export function selectLeg(landmarks: Landmark[], side: Side): [Landmark, Landmar
   return [hip, knee, ankle];
 }
 
-const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
+/** The names of the landmarks of one leg that the engine reads. The heel and the foot index are the ids 29 to 32. */
+export type LegPoint = 'hip' | 'knee' | 'ankle' | 'heel' | 'footIndex';
+
+const POINT_IDS: Record<Side, Record<LegPoint, number>> = {
+  left: { hip: 23, knee: 25, ankle: 27, heel: 29, footIndex: 31 },
+  right: { hip: 24, knee: 26, ankle: 28, heel: 30, footIndex: 32 },
+};
+
+/** One landmark of one leg by name. Throws when the list is too short, like selectLeg. */
+export function pick(landmarks: Landmark[], side: Side, point: LegPoint): Landmark {
+  const p = landmarks[POINT_IDS[side][point]];
+  if (!p) throw new Error('Landmark list is too short');
+  return p;
+}
+
+/** Knee, ankle and foot index of one leg: the three points of the ankle angle. */
+export function selectFoot(landmarks: Landmark[], side: Side): [Landmark, Landmark, Landmark] {
+  return [pick(landmarks, side, 'knee'), pick(landmarks, side, 'ankle'), pick(landmarks, side, 'footIndex')];
+}
+
+export const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
 
 /**
  * Interior angle at the knee in degrees. 180 means a straight leg.
