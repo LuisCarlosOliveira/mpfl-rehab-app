@@ -34,6 +34,15 @@ describe('cameraPlan front view for the leg raise to the side', () => {
     plan.labels.forEach((l) => shapes.filter((s) => !(l.key === 'camera' && s.k === 'seg' && s.r === 0.75)).forEach((s) => expect(boxShapeGap(l.box, s), l.key).toBeGreaterThanOrEqual(1.5)));
   });
 
+  it('the side plan of the same exercise draws the side-lying person: the legs lie across the picture, the lower leg on the mat', () => {
+    const side = cameraPlan('side', 'leg-raise-side');
+    expect(side.posture).toBe('lying');
+    expect(side.figure.surface.key).toBe('mat');
+    const f = side.figure;
+    expect(f.points.farHip.y - f.points.hip.y, 'the top leg lies above the lower leg').toBeGreaterThanOrEqual(5);
+    expect(Math.abs(f.points.ankle.y - f.points.hip.y), 'the top leg is level with the body at the start').toBeLessThan(1);
+  });
+
   it('the side view of the same exercise and the front view of the other kinds keep their knee height', () => {
     expect(cameraPlan('side', 'leg-raise-side').labels.find((l) => l.key === 'height')?.text).toBe('At knee height');
     expect(cameraPlan('front', 'mini-squat').labels.find((l) => l.key === 'height')?.text).toBe('At knee height');

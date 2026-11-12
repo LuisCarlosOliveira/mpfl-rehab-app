@@ -248,10 +248,13 @@ function poseFor(kind: AnyGuideKind, frame: FigureFrame, flex: number, hasAngle:
         farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 1.5 }, farFootDir: -90,
       };
     case 'leg-raise-side':
-      // Side-lying, seen from the front. The top leg (near) goes up. The lower leg stays on the surface.
+      // Side-lying, seen from the front (N-05). The body lies across the picture. The lower leg (far) rests on the mat.
+      // The top leg (near) starts on top of it, so the hip of the top leg is above the hip of the lower leg. It opens away from the lower leg.
+      // The top hand rests on the mat in front of the body, as the guide says.
       return {
-        hip: { x: 60, y: 56 }, trunkDir: 180, thighDir: end ? -35 : 0, flexion: 0, footDir: end ? -125 : -90,
-        farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 1.5 }, farFootDir: -90,
+        hip: { x: 60, y: 54 }, trunkDir: 180, thighDir: end ? -35 : 0, flexion: 0, footDir: end ? -125 : -90,
+        farThighDir: 0, farFlexion: 0, farOffset: { x: 0, y: 6.5 }, farFootDir: -90,
+        hand: { x: 64, y: 60 },
       };
     case 'leg-raise-back':
       // Standing side-on. The near leg goes back behind the body. The other leg and the hand stay in place.
@@ -302,7 +305,7 @@ const SURFACE_LABEL_AT: Record<AnyGuideKind, Point> = {
   'quad-set': { x: 32, y: MAT_TOP + MAT_H / 2 },
   'gluteal-set': { x: 32, y: MAT_TOP + MAT_H / 2 },
   'ankle-pump': { x: 32, y: MAT_TOP + MAT_H / 2 },
-  'leg-raise-side': { x: 32, y: MAT_TOP + MAT_H / 2 },
+  'leg-raise-side': { x: 90, y: MAT_TOP + MAT_H / 2 + 2 },
   'leg-raise-back': { x: 77, y: 96 },
 };
 
