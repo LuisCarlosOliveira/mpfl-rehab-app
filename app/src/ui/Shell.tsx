@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import { focusHeading } from './focusHeading';
 // Shell pieces: the brand bar and the loading state. The loading state keeps the heading "Loading" for screen readers.
 export function Brand() {
   return (
@@ -17,9 +19,13 @@ export function Brand() {
 }
 
 export function LoadingScreen() {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => focusHeading(heading.current), []); // U5: the focus does not fall to the page body
   return (
     <div>
-      <h1 className="visually-hidden">Loading</h1>
+      <h1 className="visually-hidden" tabIndex={-1} ref={heading}>
+        Loading
+      </h1>
       <div className="skeleton" aria-hidden="true">
         <span />
         <span />

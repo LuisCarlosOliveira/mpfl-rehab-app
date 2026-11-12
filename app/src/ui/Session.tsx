@@ -25,7 +25,7 @@
 // A camera problem shows in the frame (A6). The unit sits on the baseline of the number (A2). The styles are in sessionV2.css.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
-import { createCueGate, cueFor, stillOverLimit, topAngleNote, topAngleText, type CueEvent } from '../lib/cues';
+import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type Summary } from '../lib/exercises';
 import { countBlock } from '../lib/counters';
 import { createBaselineCapture, type BaselineSource, type CaptureState } from '../lib/baseline';
@@ -44,6 +44,8 @@ import { BodyMap, BodyMapSwitch, PREVIEW_MIRRORED, mirrorClass, type BodyMapHand
 import { Icon } from './Icon';
 import { ANGLE_LABEL, EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
+import { focusHeading } from './focusHeading';
+import { useCameraTop } from '../lib/useCameraTop';
 import { PainScale } from './PainScale';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
 import { StatusLine } from './StatusLine';
@@ -88,7 +90,8 @@ const total = (sets: SetsState) => sets.repsPerSet.reduce((a, b) => a + b, 0);
 interface Live {
   lockedOut: boolean; // the pipeline reads a far hip for more than 4 s with the whole leg visible (B3-01)
   otherPerson: boolean; // a press found the hip far from the start hip. No numbers show until the person starts again (B4-01)
-  lockKind: 'locked' | 'other'; // the text of the lock box the last time it showed
+  looking: boolean; // a press waits for the probe answer (B6-01)
+  lockKind: 'locked' | 'looking' | 'other'; // the text of the lock box the last time it showed
   lockUntil: number; // performance.now() until which the lock box stays after the lock ended (B4-05)
   otherLegMoves: boolean; // the last moving-leg windows named the other leg, in a row (F1)
   flexion: number | null;
@@ -103,13 +106,12 @@ interface Live {
 interface View {
   angle: number | null;
   top: string | null;
-  topNote: string | null;
   cue: string;
   alert: string;
   waiting: boolean;
   stale: boolean;
   identity: boolean;
-  lock: 'locked' | 'other' | null; // the lock box under the camera: the prompt with the button, or the other-person text
+  lock: 'locked' | 'looking' | 'other' | null; // the lock box under the camera: the prompt with the button, or the other-person text
   /** Whole seconds of the current hold, never more than the hold time. 0 outside a hold. */
   holdSec: number;
   /** The capture while it looks for a starting angle: progress in whole percent and whether the choice can be used. */
@@ -124,7 +126,6 @@ interface View {
 const INITIAL_VIEW: View = {
   angle: null,
   top: null,
-  topNote: null,
   cue: '',
   alert: '',
   waiting: true,
@@ -176,7 +177,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   // Setup gave no resting angle and the protocol has a return value: Session finds the angle in place.
   const needsCapture = setup.ok && setup.kind === 'reps' && setup.config.returnWithin !== undefined && baselineDeg == null;
   const needsHandCount = setup.ok && setup.kind === 'lag';
-  const [view, setView] = useState<View>(INITIAL_VIEW);
+  const [viewState, setView] = useState<View>(INITIAL_VIEW);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0); // a press of "Try the camera again" starts the effect again
   const [muted, setMuted] = useState(sound.isMuted());
@@ -190,10 +191,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const restRef = useRef<HTMLHeadingElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  useCameraTop(frameRef);
   const map = useRef<BodyMapHandle>(null);
   const live = useRef<Live>({
     lockedOut: false,
     otherPerson: false,
+    looking: false,
     lockKind: 'locked',
     lockUntil: 0,
     otherLegMoves: false,
@@ -274,6 +278,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     live.current.shown = null;
     live.current.lockedOut = false;
     live.current.otherPerson = false;
+    live.current.looking = false;
     live.current.lockUntil = 0;
     live.current.frameAt = null; // a new start waits for a new frame
     live.current.holdSince = null;
@@ -309,6 +314,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       state.flexion = out.flexion;
       state.lockedOut = out.lockedOut === true;
       state.otherPerson = out.otherPerson === true;
+      state.looking = out.looking === true;
       state.frameAt = now;
       // The hold timer for the screen. It follows the band rule of holdStep and never decides a hold (the counter does).
       if (setup.ok && setup.kind === 'hold') {
@@ -365,9 +371,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       const cue = state.cue && now < state.cue.until ? state.cue : null;
       const sum = pipeline.current?.summary();
       // B4-05: the lock box has the same 500 ms hold on hide as the leg cue, so a short blip near a cut never flashes it.
-      const lockNow = !stale && (state.lockedOut || state.otherPerson);
+      const lockNow = !stale && (state.lockedOut || state.otherPerson || state.looking);
       if (lockNow) {
-        state.lockKind = state.otherPerson ? 'other' : 'locked';
+        state.lockKind = state.otherPerson ? 'other' : state.looking ? 'looking' : 'locked';
         state.lockUntil = now + LOCK_HOLD_MS;
       }
       const lock = lockNow || now < state.lockUntil ? state.lockKind : null;
@@ -377,8 +383,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
       map.current?.setShownAngle(angle);
       const next: View = {
         angle,
-        top: sum ? topAngleText(sum.topFlexion) : null,
-        topNote: sum ? topAngleNote(sum.topFlexion) : null,
+        top: sum ? topAngleText(sum.setTopFlexion ?? null) : null, // the present set only (U3)
         cue: cue && !cue.alert && !(lock !== null && cue.paused) ? cue.text : '', // B4-04: the lock box replaces "Show your whole leg."
         alert: cue?.alert ? cue.text : '',
         waiting,
@@ -436,11 +441,29 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
   // B4-06: when the lock box goes after a press, the focus moves to the angle, so a keyboard user keeps the place.
   useEffect(() => {
-    if (view.lock === null && focusAfterLock.current) {
+    if (viewState.lock === null && focusAfterLock.current) {
       focusAfterLock.current = false;
       angleRef.current?.focus({ preventScroll: true });
     }
-  }, [view.lock]);
+  }, [viewState.lock]);
+
+  // U5: the Start next set button goes with the rest panel. The focus moves to the angle readout and the page goes to the top.
+  const focusAfterSet = useRef(false);
+  function startNextSet() {
+    focusAfterSet.current = true;
+    applySets(nextSet(setsRef.current));
+  }
+  useEffect(() => {
+    if (focusAfterSet.current && sets.phase !== 'set-complete') {
+      focusAfterSet.current = false;
+      focusHeading(angleRef.current);
+    }
+  }, [sets.phase]);
+
+  // U3: a new set starts with no top angle on the screen. The session keeps its highest top angle for the Summary.
+  useEffect(() => {
+    pipeline.current?.newSet();
+  }, [sets.setIndex]);
 
   // U8: the focus moves to the rest panel title when a set ends.
   useEffect(() => {
@@ -508,6 +531,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   function followAgain() {
     pipeline.current?.followAgain();
     live.current.lockedOut = false;
+    live.current.looking = true; // the pipeline answers on the next frame. Until then the box shows the wait text.
     live.current.lockUntil = performance.now() + LOCK_HOLD_MS;
     // B4-06: the button goes away, so the focus moves to the status box. If the box goes too, it moves to the angle.
     focusAfterLock.current = true;
@@ -541,8 +565,10 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const holdTotal = isHold ? (exercise.holdSeconds ?? null) : null; // the clinician hold time. The app has no number of its own.
   const resting = sets.phase === 'set-complete';
   const captureOn = needsCapture && found === null; // the app looks for the starting angle
+  const cameraTrouble = viewState.stale || cameraError !== null || backgrounded;
+  // U6: when the camera stops, the old cue, the old angle and the old top angle go. The readout shows --.
+  const view: View = cameraTrouble ? { ...viewState, angle: null, cue: '', alert: '', top: null } : viewState;
   const startText = view.waiting && !cameraError && !backgrounded ? START_TEXT[startStep] : '';
-  const cameraTrouble = view.stale || cameraError !== null || backgrounded;
   const trouble = firstSentence(cameraError ?? (backgrounded ? BACKGROUND_TEXT : NO_IMAGE_TEXT));
 
   // The gauge shows the live angle on a track from 0 to the scale end. The limit is a quiet marker, not a target to reach.
@@ -551,6 +577,30 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const at = (deg: number) => 3 + (Math.min(Math.max(deg, 0), scaleEnd) / scaleEnd) * 94;
   // The ruler: a tick every 5 degrees, a longer tick every 10 degrees. It only shows the scale.
   const ticks = Number.isFinite(scaleEnd) ? Array.from({ length: Math.min(Math.floor(scaleEnd / 5), 60) + 1 }, (_, i) => i * 5) : [];
+
+  // The bar of Stop, Count this rep and Knee gave way or hurts. On a phone it is fixed at the bottom. On a wide screen it sits in the right column,
+  // always in view, and it never covers the camera.
+  const bar = (
+    <div className="session-bar">
+      <div className="session-bar-inner">
+        <div className="bar-actions">
+          <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
+            <Icon name="square" size={22} fill="currentColor" />
+            Stop
+          </button>
+          {needsHandCount && (
+            <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
+              Count this rep
+            </button>
+          )}
+          <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
+            <Icon name="triangle-alert" size={22} />
+            Knee gave way or hurts
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <section aria-labelledby="session-title" className="session v2-session">
@@ -600,7 +650,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
           )}
           <div className={paused ? 'session-grid session-paused' : 'session-grid'}>
             <div className="viewfinder">
-              <div className="frame">
+              <div className="frame" ref={frameRef}>
                 <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} muted playsInline aria-label="Camera view" />
                 <BodyMap ref={map} leg={side} mirrored={PREVIEW_MIRRORED} />
                 <BodyMapSwitch />
@@ -619,17 +669,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               {/* The status slot: right under the camera, never on it. Its height is reserved, so nothing moves when it fills (spec section 5).
                   Priority: the alert, then the capture line, then the start step, then the cue. The CSS shows the first one. */}
               <div className="status-slot">
-                {/* B5-04: the lock box is the first thing in the slot, so it sits above the fixed bar, also when the bar holds "Count this rep". */}
-                {view.lock !== null && (
-                  <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
-                    {view.lock === 'locked' && (
-                      <button type="button" className="btn" onClick={followAgain}>
-                        {CAPTURE_TEXT.followAgain}
-                      </button>
-                    )}
-                    <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : CAPTURE_TEXT.otherPerson}</p>
-                  </div>
-                )}
                 <p role="alert" className="cue cue-alert">
                   {view.alert}
                 </p>
@@ -666,6 +705,17 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
               </div>
             </div>
             <div className="stack">
+              {/* B5-04: the lock box is out of the flow on a phone (fixed above the bar). On a wide screen it is the first thing of the right column. */}
+              {view.lock !== null && (
+                <div className="stack-s lock-box" role="status" tabIndex={-1} ref={lockRef}>
+                  {view.lock !== 'other' && (
+                    <button type="button" className="btn" onClick={followAgain} disabled={view.lock === 'looking'} aria-busy={view.lock === 'looking'}>
+                      {CAPTURE_TEXT.followAgain}
+                    </button>
+                  )}
+                  <p>{view.lock === 'locked' ? CAPTURE_TEXT.lockedOut : view.lock === 'looking' ? CAPTURE_TEXT.looking : CAPTURE_TEXT.otherPerson}</p>
+                </div>
+              )}
               {paused && (
                 <div className={resting ? 'stack-s rest-panel' : 'stack-s'}>
                   <Notice role="status" icon="clock">
@@ -687,7 +737,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   )}
                   {sets.phase === 'set-complete' && !painStop && <PainScale key={sets.setIndex} name="set-pain" value={painAnswers[sets.setIndex] ?? null} onChange={answerPain} />}
                   {sets.phase === 'set-complete' && !painStop ? (
-                    <button type="button" className="btn btn-primary btn-lg" onClick={() => applySets(nextSet(setsRef.current))}>
+                    <button type="button" className="btn btn-primary btn-lg" onClick={startNextSet}>
                       <Icon name="play" size={22} fill="currentColor" />
                       Start next set
                     </button>
@@ -734,7 +784,6 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                       </div>
                     )}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">{view.top ?? 'The angle at the top shows after a lift.'}</p>}
-                    {exercise.kind === 'straight-leg-raise' && view.topNote && <p className="detail">{view.topNote}</p>}
                     {exercise.kind === 'straight-leg-raise' && <p className="detail">The camera counts leg raises as an estimate. If a lift is missed, press Count this rep.</p>}
                     </div>
                   )}
@@ -784,31 +833,13 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
                   <p>{LEG_TEXT.identity}</p>
                 </Notice>
               )}
+              {bar}
             </div>
 
           </div>
         </>
       )}
-
-      <div className="session-bar">
-        <div className="session-bar-inner">
-          <div className="bar-actions">
-            <button type="button" className="btn btn-stop" onClick={() => end('stop')}>
-              <Icon name="square" size={22} fill="currentColor" />
-              Stop
-            </button>
-            {needsHandCount && (
-              <button type="button" className="btn btn-count" disabled={paused} onClick={countByHand}>
-                Count this rep
-              </button>
-            )}
-            <button type="button" className="btn btn-gave-way" onClick={() => end('gave-way')}>
-              <Icon name="triangle-alert" size={22} />
-              Knee gave way or hurts
-            </button>
-          </div>
-        </div>
-      </div>
+      {!setup.ok && bar}
     </section>
   );
 }

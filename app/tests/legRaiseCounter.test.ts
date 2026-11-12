@@ -155,3 +155,20 @@ describe('the straight leg raise camera count on saved real landmarks', () => {
     expect(count('04', 'right')).toBe(0);
   });
 });
+
+// U3: the live top angle belongs to the present set. A new set starts with no top angle. The session keeps the highest top angle for the Summary.
+describe('U3: the top angle at a set change', () => {
+  it('newSet clears the live top angle and keeps the session top angle', () => {
+    const made = createPipeline({ kind: 'straight-leg-raise', source: 'PROPOSAL' } as never, 'right', 1, {});
+    if (!made.ok) throw new Error('setup');
+    const p = made.pipeline;
+    const lift = () => legLandmarks('right', 25, { thighAngle: -Math.PI / 2 + 0.15, hip: { x: 0.5, y: 0.6 } });
+    for (let t = 0; t < 2000; t += 33) p.step(lift(), t);
+    const before = p.summary();
+    expect(before.setTopFlexion).not.toBeNull();
+    p.newSet();
+    const after = p.summary();
+    expect(after.setTopFlexion).toBeNull();
+    expect(after.topFlexion).toBe(before.topFlexion);
+  });
+});

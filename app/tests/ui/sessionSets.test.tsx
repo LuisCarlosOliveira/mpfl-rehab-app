@@ -1,6 +1,7 @@
 // Session set logic (plan FR9). The set code is in src/lib/sets.ts. These tests check the wiring on the screen.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { legLandmarks } from '../helpers/leg';
 import type { Exercise } from '../../src/lib/protocol';
 import { SET_TEXT } from '../../src/lib/sets';
 import { Session } from '../../src/ui/Session';
@@ -247,5 +248,27 @@ describe('Session sets: no check icon in a set notice (F5a)', () => {
     path.setAttribute('d', CHECK_PATH);
     svg.appendChild(path);
     expect(hasCheck(svg)).toBe(true);
+  });
+});
+
+// U3: the top angle of set 1 must not show in set 2, where the rep count is 0.
+describe('U3: the top angle at a set change', () => {
+  it('Start next set clears the live top angle', () => {
+    const { source } = setup(SLR);
+    const lift = (from: number) => {
+      let t = from;
+      for (; t < from + 1500; t += 30) act(() => source.emit(legLandmarks('left', 20, { thighAngle: -Math.PI / 2 + 0.15, hip: { x: 0.5, y: 0.6 } }), t));
+      for (; t < from + 2500; t += 30) act(() => source.emit(legLandmarks('left', 5, { hip: { x: 0.5, y: 0.3 } }), t));
+      return t;
+    };
+    let t = lift(0);
+    act(() => void vi.advanceTimersByTime(300));
+    expect(screen.getByText(/Estimated angle at the top: \d+ degrees?/)).toBeInTheDocument();
+    t = lift(t);
+    press('Start next set');
+    act(() => source.emit(legLandmarks('left', 5, { hip: { x: 0.5, y: 0.3 } }), t + 60));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(screen.queryByText(/Estimated angle at the top/)).toBeNull();
+    expect(screen.getByText('The angle at the top shows after a lift.')).toBeInTheDocument();
   });
 });

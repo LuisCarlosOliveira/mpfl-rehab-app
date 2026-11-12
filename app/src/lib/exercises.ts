@@ -47,6 +47,11 @@ const SEGMENT_RATIO: [number, number] = [0.4, 2.5];
 const CONFIRM_MS = 2000;
 const STEADY_RADIUS = 0.05;
 const PROBE_MIN_FRAMES = 5;
+// B6-01. A press before the probe has an answer waits. The wait ends at the probe answer, or after PROBE_WAIT_MS (the probe is 2000 ms
+// plus a margin) when the source gives no answer. Then the distance rule of B4-01 decides. While "someone else" shows, the probe runs
+// again every REPROBE_MS, so a person who is alone is never stuck. These values are ENGINEERING, not clinical.
+const PROBE_WAIT_MS = 3000;
+const REPROBE_MS = 10000;
 const PROBE_MANY_SHARE = 0.2;
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
 // The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
@@ -141,6 +146,8 @@ export interface Summary {
   peakFlexion: number | null;
   // Estimated angle at the top of the straight leg raise. The highest value over the lifts.
   topFlexion: number | null;
+  // The same for the present set only. `newSet()` clears it (U3). The live screen shows this one.
+  setTopFlexion?: number | null;
   // The top angle against maxTopFlexion: above, below or cannot-tell. 'no-limit' when the
   // protocol sets none. null for any other exercise.
   topState: LimitState | 'no-limit' | null;
@@ -159,6 +166,8 @@ export interface StepOutput {
   lockedOut?: boolean;
   // True once, on the frame where the lockout starts. The source then returns two poses for a short probe (B5-02).
   probe?: boolean;
+  // True while a press waits for the answer of the probe (B6-01). The screen shows that it looks for the camera view.
+  looking?: boolean;
   // True after a press when the hip is far from the start hip. The camera follows someone else, or the person moved far. No numbers show (B4-01).
   otherPerson?: boolean;
 }
@@ -168,6 +177,8 @@ export interface Pipeline {
   step(landmarks: Landmark[] | null, tMs: number, extra?: Landmark[][]): StepOutput;
   /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
   setBaseline(deg: number): void;
+  /** A new set starts. The top angle of the present set clears. The top angle of the session stays for the Summary (U3). */
+  newSet(): void;
   /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
   followAgain(): void;
   summary(): Summary;
@@ -205,11 +216,15 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   // Straight leg raise state. `top` is the angle at the top of the current lift.
   let top = lagInitial();
   let highestTop: number | null = null;
+  let setHighest: number | null = null; // the highest top angle of the present set (U3)
   let lift: { settleSince: number | null; counted: boolean; belowSince: number | null } | null = null;
   let lifts = 0;
 
   const closeLift = () => {
-    if (top.lag !== null) highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
+    if (top.lag !== null) {
+      highestTop = highestTop === null ? top.lag : Math.max(highestTop, top.lag);
+      setHighest = setHighest === null ? top.lag : Math.max(setHighest, top.lag);
+    }
     top = lagInitial();
     lift = null;
   };
@@ -234,9 +249,19 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
   // B5-02: when the lockout starts, the source returns two poses for a short probe (frames carry `extra`). One pose: the patient moved alone.
   // Two or more: another person is in view. The decision comes at the first frame after the probe.
   let probeAsked = false;
+  let probeAt = 0; // the time when the last probe was asked (B6-01)
+  let pendingPress = false; // the person pressed before the probe had an answer
   let probeFrames = 0;
   let probeMany = 0;
   let poseCount: 'one' | 'many' | null = null;
+  const resetProbe = () => {
+    farSince = null;
+    probeAsked = false;
+    probeFrames = 0;
+    probeMany = 0;
+    poseCount = null;
+    pendingPress = false;
+  };
   const dist = (a: Landmark, b: Landmark) => Math.hypot(a.x - b.x, (a.y - b.y) / aspect);
   const plausibleLeg = (hip: Landmark, knee: Landmark, ankle: Landmark): boolean => {
     if (!visible(hip) || !visible(knee) || !visible(ankle)) return false;
@@ -273,16 +298,21 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
 
   // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
   const unseen = (t: number, lockedOut = false, probe = false): StepOutput => {
+    if (probe) probeAt = t;
     filter.reset();
     pauseLift();
     if (setup.kind === 'reps') reps = repsStep(reps, { flexion: null, t }, setup.config).state;
     else if (setup.kind === 'hold') hold = holdStep(hold, { flexion: null, t }, setup.config).state;
-    return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson, otherPerson, probe };
+    return { flexion: null, event: 'paused', repMs: null, lockedOut: lockedOut && !otherPerson && !pendingPress, otherPerson, probe, looking: pendingPress };
   };
 
   return {
     ok: true,
     pipeline: {
+      newSet() {
+        closeLift();
+        setHighest = null;
+      },
       setBaseline(deg) {
         if (setup.kind === 'reps') setup = { ...setup, config: { ...setup.config, baseline: deg } };
       },
@@ -292,15 +322,14 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           // One pose was in view during the probe: the patient moved alone. The press anchors with no distance limit.
           anchor = latestHip;
           startHip = latestHip;
+        } else if (probeAsked) {
+          pendingPress = true; // B6-01: the probe has no answer yet. Do not decide.
+          return;
         } else if (startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) {
           otherPerson = true;
           return;
         } else anchor = latestHip;
-        farSince = null;
-        probeAsked = false;
-        probeFrames = 0;
-        probeMany = 0;
-        poseCount = null;
+        resetProbe();
       },
       step(landmarks, t, extra) {
         if (extra !== undefined) {
@@ -310,10 +339,29 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           // The probe ended. Many poses: another person is in view. Few frames: ask again at the next lockout.
           if (probeFrames >= PROBE_MIN_FRAMES) {
             poseCount = probeMany / probeFrames >= PROBE_MANY_SHARE ? 'many' : 'one';
-            if (poseCount === 'many') otherPerson = true;
+            if (poseCount === 'many') {
+              otherPerson = true;
+              pendingPress = false;
+            } else if (otherPerson) {
+              // One pose again: the person is alone. Clear the state (B6-01).
+              otherPerson = false;
+              resetProbe();
+            } else if (pendingPress && latestHip !== null) {
+              anchor = latestHip; // the press waited: the patient moved alone, so it anchors with no distance limit
+              startHip = latestHip;
+              resetProbe();
+            }
           } else probeAsked = false;
           probeFrames = 0;
           probeMany = 0;
+        } else if (pendingPress && probeFrames === 0 && t - probeAt > PROBE_WAIT_MS) {
+          // The source gave no answer (it cannot probe). The distance rule of B4-01 decides.
+          pendingPress = false;
+          if (latestHip !== null && startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) otherPerson = true;
+          else {
+            if (latestHip !== null) anchor = latestHip;
+            resetProbe();
+          }
         }
         if (landmarks === null) return unseen(t);
         // During a probe the pose whose hip is nearest the confirmed anchor is the patient (the continuity rule).
@@ -331,7 +379,11 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           }
         }
         const [hip, knee, ankle] = selectLeg(chosen, side);
-        if (otherPerson) return unseen(t);
+        if (otherPerson) {
+          // B6-01: ask again while "someone else" shows, so a person who is alone is not stuck.
+          const again = probeFrames === 0 && t - probeAt >= REPROBE_MS;
+          return unseen(t, false, again);
+        }
         const check = checkHip(hip, knee, ankle, t);
         if (check.far) {
           farSince ??= t;
@@ -390,6 +442,8 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
         const current = top.lag;
         const topFlexion =
           setup.kind === 'lag' ? (highestTop === null ? current : current === null ? highestTop : Math.max(highestTop, current)) : null;
+        const setTopFlexion =
+          setup.kind === 'lag' ? (setHighest === null ? current : current === null ? setHighest : Math.max(setHighest, current)) : null;
         let topState: Summary['topState'] = null;
         if (setup.kind === 'lag') {
           topState =
@@ -400,6 +454,7 @@ export function createPipeline(exercise: Exercise, side: Side, aspect: number, o
           holds: setup.kind === 'hold' ? hold.holds : null,
           peakFlexion: peak,
           topFlexion,
+          setTopFlexion,
           topState,
           eventCounts: { ...counts },
           countBlock: setup.kind === 'reps' ? countBlock(setup.config) : null,

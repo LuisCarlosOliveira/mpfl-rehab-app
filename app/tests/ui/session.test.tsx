@@ -239,9 +239,12 @@ describe('Session screen', () => {
     tick();
   };
 
-  it('adds the sources and the camera error under the top angle when the angle is above the camera error', () => {
+  // U2: the live screen shows the angle at the top and its label only. The longer text reads as a comparison after every rep.
+  it('shows only the angle at the top and its label, with no sentence about the sources or the camera error', () => {
     liftWith(20);
-    expect(screen.getByText(/The sources describe a straight knee\. The camera error is about 9 degrees or more/)).toBeInTheDocument();
+    expect(screen.getByText(/Estimated angle at the top: \d+ degrees? \(estimated angle, not a medical measurement\)/)).toBeInTheDocument();
+    expect(screen.queryByText(/The sources describe a straight knee/)).toBeNull();
+    expect(screen.queryByText(/The camera error is about/)).toBeNull();
   });
 
   it('adds nothing under the top angle when the angle is inside the camera error', () => {

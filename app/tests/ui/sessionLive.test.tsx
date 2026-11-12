@@ -145,7 +145,8 @@ describe('B3-01: Follow me again', () => {
     let t = feedAt(source, 0.7, 0, 3000);
     t = feedAt(source, 0.4, t, 5000);
     fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
-    feedAt(source, 0.4, t, 1000);
+    feedAt(source, 0.4, t, 4000); // no probe answer comes: the press waits, then the distance rule decides (B6-01)
+    act(() => void vi.advanceTimersByTime(600));
     expect(readout(view)).toBe('--');
     expect(view.container.textContent).toContain(OTHER);
     expect(screen.queryByRole('button', { name: 'Follow me again' })).toBeNull();
@@ -238,5 +239,64 @@ describe('B3-01: Follow me again', () => {
     expect(calls.length).toBeGreaterThan(0);
     spy.mockRestore();
     feedAt(source, 0.3, t, 100);
+  });
+
+  // B6-01: a press before the probe has an answer waits. It never decides "someone else" alone.
+  const probeFor = (source: ReturnType<typeof mockSource>, x: number, from: number, ms: number, extra: () => ReturnType<typeof at>[]) => {
+    let t = from;
+    for (; t < from + ms; t += 100) act(() => source.emit(at(x, 20), t, extra()));
+    return t;
+  };
+  it('B6-01: a press 0.3 s into the probe waits, shows the looking text, and ends re-anchored when the probe saw one pose', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    t = probeFor(source, 0.3, t, 300, () => []);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    t = probeFor(source, 0.3, t, 1000, () => []);
+    act(() => void vi.advanceTimersByTime(300));
+    expect(view.container.textContent).toContain(CAPTURE_TEXT.looking);
+    expect(view.container.textContent).not.toContain(OTHER);
+    const wait = screen.getByRole('button', { name: 'Follow me again' });
+    expect(wait).toBeDisabled();
+    expect(wait.getAttribute('aria-busy')).toBe('true');
+    expect(readout(view)).toBe('--');
+    t = probeFor(source, 0.3, t, 1000, () => []);
+    act(() => source.emit(at(0.3, 20), t)); // the probe ended
+    t = feedAt(source, 0.3, t + 100, 800);
+    act(() => void vi.advanceTimersByTime(600)); // the lock box holds 500 ms after the lock ends
+    expect(view.container.textContent).not.toContain(OTHER);
+    expect(view.container.textContent).not.toContain(CAPTURE_TEXT.looking);
+    expect(readout(view)).not.toBe('--');
+  });
+
+  it('B6-01: a press early with a probe that saw two poses ends in the other-person text', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    t = probeFor(source, 0.3, t, 300, () => [at(0.7, 20)]);
+    fireEvent.click(screen.getByRole('button', { name: 'Follow me again' }));
+    t = probeFor(source, 0.3, t, 1800, () => [at(0.7, 20)]);
+    act(() => source.emit(at(0.3, 90), t));
+    t = feedAt(source, 0.3, t + 100, 800);
+    expect(view.container.textContent).toContain(OTHER);
+    expect(readout(view)).toBe('--');
+  });
+
+  it('B6-01: while the other-person text shows, the screen asks for a probe again after 10 s, and one pose clears it', () => {
+    const { source, view } = open(5);
+    let t = feedAt(source, 0.7, 0, 3000);
+    t = feedAt(source, 0.3, t, 5000);
+    t = probeFor(source, 0.3, t, 2000, () => [at(0.7, 20)]);
+    t = feedAt(source, 0.3, t, 500);
+    expect(view.container.textContent).toContain(OTHER);
+    expect(source.probe).toHaveBeenCalledTimes(1);
+    t = feedAt(source, 0.3, t, 11000);
+    expect(source.probe).toHaveBeenCalledTimes(2);
+    t = probeFor(source, 0.7, t, 2000, () => []); // the other person left: one pose, at the first place
+    act(() => source.emit(at(0.7, 20), t));
+    feedAt(source, 0.7, t + 100, 800);
+    expect(view.container.textContent).not.toContain(OTHER);
+    expect(readout(view)).not.toBe('--');
   });
 });

@@ -71,7 +71,7 @@ describe('Summary: the leg raise peak (M8)', () => {
 describe('Summary: the leg raise top angle (F5a)', () => {
   it('shows the number when the top angle is 30 degrees or less', () => {
     summaryOf(SLR, { ...base, topFlexion: 30 });
-    expect(screen.getByText(/Estimated angle at the top: 30 degrees/)).toBeInTheDocument();
+    expect(screen.getByText('Angle at the top').closest('.stat')!.textContent).toMatch(/30\s*degrees/);
   });
 
   it('shows the plain sentence and no number when the top angle is above 30 degrees', () => {
@@ -88,6 +88,24 @@ describe('Summary: the leg raise top angle (F5a)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Session saved.');
     expect((await db.sessions.toArray())[0]!.topFlexion).toBe(85);
+  });
+});
+
+// U4: the Summary shows the angle at the top that the sets showed, as its own line. A high peak shows no value in its own line only.
+describe('Summary: the angle at the top is its own line (U4)', () => {
+  it('shows the angle at the top of 14 degrees next to a peak of 156 that shows no value', () => {
+    summaryOf(SLR, { ...base, topFlexion: 14.4, peakFlexion: 156 });
+    const top = screen.getByText('Angle at the top').closest('.stat')!;
+    expect(top.textContent).toContain('14');
+    expect(top.textContent).toContain('estimated angle, not a medical measurement');
+    const peak = screen.getByText('Highest knee bend').closest('.stat')!;
+    expect(peak.textContent).toContain(PEAK_NO_VALUE_TEXT);
+    expect(peak.textContent).not.toMatch(/\b156\b/);
+  });
+
+  it('shows no line when the session has no top angle', () => {
+    summaryOf(SLR, { ...base, topFlexion: null, peakFlexion: 12 });
+    expect(screen.queryByText('Angle at the top')).toBeNull();
   });
 });
 
