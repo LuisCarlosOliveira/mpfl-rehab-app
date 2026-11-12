@@ -35,7 +35,7 @@ test('Progress shows a chart with a data table for each series that has values, 
   await expect(page.locator('main table.data-table')).toHaveCount(2);
   await expect(page.getByRole('region', { name: /^Data table:/ })).toHaveCount(2);
   // The peak knee bend series has no value: only its title and one line, no empty frame (final review C2-05).
-  await expect(page.getByRole('heading', { name: /^Peak knee bend, heel slide/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Peak knee bend, Heel slide/ })).toBeVisible();
   await expect(page.getByText('No values.')).toHaveCount(1);
   await page.getByRole('button', { name: 'Back' }).click();
   await expectScreen(page, 'Home');
