@@ -7,6 +7,7 @@ import { surgeonField, SURGEON_FIELDS, type Exercise, type PlanExercise, type Pr
 import { isMonitored, isNumericKind } from '../lib/monitor/monitored';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
+import { CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, progressCard } from '../lib/progressHome';
 import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, monitorLine, NO_LIMIT_GIVEN, PLAN_NAMES, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
@@ -88,14 +89,14 @@ interface Props {
   onOpenPrivacy?: () => void;
   /** Opens "Update my plan". It shows only for a plan that the app made, and only when the handler is given. */
   onUpdatePlan?: () => void;
+  /** Opens "Check my progress". It shows only for a plan that the app made, and only when the handler is given. */
+  onCheckProgress?: () => void;
 }
 
 export const REVIEW_TITLE = 'Review your plan with your care team';
-/** The generator makes a plan only for weeks 0 to 11 after surgery. */
-export const LAST_PLAN_WEEK = 11;
 export const NO_PLAN_AFTER_WEEK = `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`;
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onOpenPrivacy, onUpdatePlan }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onOpenPrivacy, onUpdatePlan, onCheckProgress }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -127,6 +128,11 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
   const madeByApp = protocol.generated !== undefined;
   const pastPlanWeeks = weeks !== null && weeks > LAST_PLAN_WEEK;
   const canUpdate = madeByApp && !pastPlanWeeks && onUpdatePlan !== undefined;
+  // The progress row shows in weeks 0 to 11. It becomes a card when phase 2 can start (week 7 with phase 1 active) or the review date has passed.
+  const checkOpen = madeByApp && weeks !== null && weeks <= LAST_PLAN_WEEK && onCheckProgress !== undefined;
+  const checkCard = checkOpen && ((weeks >= 7 && activePhase === 1) || review);
+  // After week 11 the review card says it. Without a review card the plan end shows here, with no button.
+  const planEnd = madeByApp && pastPlanWeeks && !review;
 
   const exercises = phase?.exercises ?? [];
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
@@ -148,6 +154,28 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                 Dismiss
               </button>
             </div>
+          </Notice>
+        </div>
+      )}
+
+      {checkCard && (
+        <div className="contact-card">
+          <Notice icon="chart-line" title={CHECK_TITLE}>
+            <p>{progressCard(weeks)}</p>
+            <div className="actions">
+              <button type="button" className="btn btn-primary" onClick={onCheckProgress}>
+                <Icon name="chart-line" size={18} />
+                {CHECK_TITLE}
+              </button>
+            </div>
+          </Notice>
+        </div>
+      )}
+
+      {planEnd && (
+        <div className="contact-card">
+          <Notice icon="info">
+            <p>{NO_PLAN_AFTER_WEEK}</p>
           </Notice>
         </div>
       )}
@@ -182,6 +210,16 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
           </Notice>
         </div>
       )}
+
+      {checkOpen && !checkCard && (
+        <div className="progress-row">
+          <button type="button" className="btn" onClick={onCheckProgress}>
+            <Icon name="chart-line" size={18} />
+            {CHECK_TITLE}
+          </button>
+        </div>
+      )}
+      {last && <p className="detail last-session">{lastSessionLine(last)}</p>}
 
       <div className="home-grid">
         <section aria-labelledby="exercises-title" className="stack-s">

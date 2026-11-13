@@ -143,7 +143,7 @@ describe('Home, contact card (B1)', () => {
     setup(protocol(), db);
     await settle();
     expect(card()).not.toBeNull();
-    expect(screen.getByText(/2026-03-05/)).toBeInTheDocument();
+    expect(screen.getByText(/On 2026-03-05 you pressed/)).toBeInTheDocument();
   });
 
   it('holds no verdict word and uses no verdict icon or colour class', async () => {

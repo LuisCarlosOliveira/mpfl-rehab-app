@@ -369,6 +369,14 @@ describe('plan generator flow', () => {
     expect(appReducer(patient, { type: 'open', screen: 'update' }).screen).toBe('home');
   });
 
+  it('opens Check my progress only with a stored protocol and not in patient mode, and Back goes Home', () => {
+    expect(appReducer(home(), { type: 'open', screen: 'progress' }).screen).toBe('progress');
+    expect(appReducer(noProtocol(), { type: 'open', screen: 'progress' }).screen).toBe('load');
+    const patient = initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' });
+    expect(appReducer(patient, { type: 'open', screen: 'progress' }).screen).toBe('home');
+    expect(backStep(appReducer(home(), { type: 'open', screen: 'progress' }))).toEqual({ type: 'open', screen: 'home' });
+  });
+
   it('ignores a draft in patient mode', () => {
     const patient = initialAppState({ seenPrivacy: true, hasProtocol: true, mode: 'patient' });
     const s = appReducer(patient, { type: 'draft', draft: planDraft('create') });

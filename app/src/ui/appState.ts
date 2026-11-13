@@ -104,6 +104,7 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
   }
   if (!state.hasProtocol) return 'load';
   switch (target) {
+    case 'progress':
     case 'update':
       return state.mode === 'patient' ? 'home' : target;
     case 'home':

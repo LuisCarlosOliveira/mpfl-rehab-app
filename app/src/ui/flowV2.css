@@ -641,3 +641,13 @@
   background: var(--ink);
   color: var(--bg);
 }
+
+/* ---------- Home: the progress row and the last session line ---------- */
+.v2-home .progress-row {
+  margin-bottom: var(--s-4);
+}
+.v2-home .last-session {
+  margin: 0 0 var(--s-4);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
