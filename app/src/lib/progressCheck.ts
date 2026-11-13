@@ -74,6 +74,8 @@ export interface ProgressCheck {
 
 // ---------------------------------------------------------------- the one place for every sentence
 
+const times = (n: number): string => `${n} ${n === 1 ? 'time' : 'times'}`;
+
 const lowerName = (kind: SessionRecord['exercise']): string => PLAN_NAMES[kind].toLowerCase();
 
 const T = {
@@ -82,7 +84,7 @@ const T = {
   week: weekLine,
   noDate: 'The app has no date of your surgery. Open Update my plan to enter it.',
   phase1: 'Phase 1 covers weeks 0 to 6 (S1, P3).',
-  phase2: 'Phase 2 starts from week 7. Week 7 is the own boundary of the app. Time alone does not start phase 2.',
+  phase2: 'Phase 2 starts from week 7. Week 7 is a boundary that the app sets. No guideline gives it. Time alone does not start phase 2.',
   clearance: 'You must report that your care team said you can start phase 2.',
   week4: 'P1 says: "Contact surgeon if ROM not trending towards 90° by 4 weeks" (audit row V12, EXACT). The app does not measure this.',
   noPlan: `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`,
@@ -123,7 +125,7 @@ const T = {
   e6P2: 'P2 lists, for ages 8 to 25 and its phase: pain of 2 or less out of 10 during walking. Source: P2, audit row V52 (EXACT).',
   e6None: 'The app compares no number.',
   e7Title: 'Swelling',
-  swellingList: (none: number, some: number, more: number) => `Swelling since your plan date: none ${none}, some ${some}, more than before ${more}.`,
+  swellingList: (none: number, some: number, more: number) => `Swelling since your plan date: none ${times(none)}, some ${times(some)}, more than before ${times(more)}.`,
   swellingWhat: 'swelling',
   // E8
   e8Title: 'Safety events',
@@ -166,7 +168,7 @@ export function allProgressTexts(): string[] {
     T.e1Title, T.e1Criterion, T.e1Passive, T.e1Surgeon(90),
     T.e2Title, T.e2Criterion,
     T.askedHere, ...answers.map(T.answer), T.e3Title, T.e3Criterion, T.e3P2, T.e3Lag, T.e4Title, T.e4Criterion,
-    T.e5Title, T.painList('2, 3'), T.noNumber(T.painWhat), T.e6Title, T.e6Asked, T.e6P2, T.e6None, T.e7Title, T.swellingList(3, 1, 0), T.noNumber(T.swellingWhat),
+    T.e5Title, T.painList('2, 3'), T.noNumber(T.painWhat), T.e6Title, T.e6Asked, T.e6P2, T.e6None, T.e7Title, T.swellingList(3, 1, 0), T.swellingList(1, 2, 0), T.noNumber(T.swellingWhat),
     T.e8Title, T.e8None, T.e8Listed, T.pause(7, false), T.pause(5, true), T.e8Source,
     T.e9Title, ...names.map((n) => T.repsSets(n, '8, 8')), ...names.map((n) => T.reps(n, 10)), T.planDose(1, 10), T.planDose(2, 10), T.e9P2, T.noNumber(T.minReps),
     T.e10Title, T.noNumber(T.holdWhat), T.e10P2,

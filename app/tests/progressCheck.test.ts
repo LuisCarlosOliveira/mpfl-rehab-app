@@ -50,7 +50,7 @@ describe('Time section', () => {
     expect(w7.time[0]).toBe('You are in week 7 after your surgery.');
     expect(w7.time.join(' ')).toContain('You must report that your care team said you can start phase 2.');
     expect(w6.time.join(' ')).toContain('Phase 1 covers weeks 0 to 6 (S1, P3).');
-    expect(w6.time.join(' ')).toContain('Week 7 is the own boundary of the app.');
+    expect(w6.time.join(' ')).toContain('Week 7 is a boundary that the app sets. No guideline gives it.');
   });
   it('reads the phase as a property of the plan and never sets it', () => {
     expect(checkProgress(input()).time.join(' ')).toContain('Your plan is in phase 1.');
@@ -129,7 +129,15 @@ describe('rows', () => {
     ];
     const c = checkProgress(input({ sessions }));
     expect(row(c, 'E5').lines[0]).toBe('Pain after each session since your plan date: 2, 3 (0 to 10).');
-    expect(row(c, 'E7').lines[0]).toBe('Swelling since your plan date: none 1, some 1, more than before 0.');
+    expect(row(c, 'E7').lines[0]).toBe('Swelling since your plan date: none 1 time, some 1 time, more than before 0 times.');
+  });
+  it('writes time for one and times for any other count of a swelling answer', () => {
+    const sessions = [
+      session({ date: '2026-11-06T10:00:00.000Z', swelling: 'some' }),
+      session({ date: '2026-11-05T10:00:00.000Z', swelling: 'some' }),
+      session({ date: '2026-11-04T10:00:00.000Z', swelling: 'none' }),
+    ];
+    expect(row(checkProgress(input({ sessions })), 'E7').lines[0]).toBe('Swelling since your plan date: none 1 time, some 2 times, more than before 0 times.');
   });
   it('gives no number where the guideline has none (E5, E7, E9, E10)', () => {
     const c = checkProgress(input());
@@ -233,7 +241,7 @@ describe('wording rules', () => {
     for (const r of rich.rows) expect(Object.keys(r).sort()).toEqual(['id', 'lines', 'state', 'title', 'type']);
   });
   it('writes every sentence in allProgressTexts (digits and lists aside)', () => {
-    const norm = (s: string) => s.replace(/\d+(?:\.\d+)?(?:, \d+)*/g, '#');
+    const norm = (s: string) => s.replace(/\d+(?:\.\d+)?(?: times?)?(?:, \d+)*/g, '#');
     const known = new Set(allProgressTexts().map(norm));
     for (const line of [...flat(rich), ...flat(empty)]) expect(known.has(norm(line)), line).toBe(true);
   });
