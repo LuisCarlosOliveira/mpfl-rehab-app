@@ -53,7 +53,7 @@ The app reuses the generator rules. It adds no number. R: `app/src/lib/protocolG
 | Window | Rule id | Source and quote | Audit row | Note |
 |---|---|---|---|---|
 | Phase 1: weeks 0 to 6 | `PH1` | S1 Table 1 "0 to 6 weeks". P3 "Immediate post-op to 2 weeks" | V3, V4 EXACT | The app keeps one phase. P3 splits at week 2 |
-| Phase 2: from week 7 | `PH2` | S1 Table 1 "6-12 weeks". P3 "2 weeks to 12 weeks approximately" | V3, V4 EXACT | Week 7 has no number in the guideline. It is the own boundary of the app (`appOwn`) |
+| Phase 2: from week 7 | `PH2` | S1 Table 1 "6-12 weeks". P3 "2 weeks to 12 weeks approximately" | V3, V4 EXACT | Week 7 has no number in the guideline. It is a boundary that the app sets (`appOwn`) |
 | Start of phase 2 | `PH2` | S1 "progress through phases based on meeting clinical criteria" (`research/rehab-rules.md` section 1) | Row not named in `rules.ts`. UNVERIFIED | Time alone never starts phase 2. The person must report the clearance |
 | End of the plan: week 11 | `W1`, `R10` | S1 "12-16 weeks". P3 "12 weeks to discharge" | V3, V4 EXACT | After week 11 the app makes no plan. Home shows `NO_PLAN_AFTER_WEEK` |
 | Review dates: week 6 and week 12 | `REVIEW` | Derived from the windows above | V3, V4 EXACT | Home shows a card on the date. R: `ui/Home.tsx` |
@@ -113,7 +113,7 @@ The text "You are in week N" shows the real week. After week 11 the card shows `
 - Heading: `Check my progress`
 - Lede: `This page shows your numbers next to published guidelines. The app changes nothing until you press Confirm on a plan.`
 - Line under the lede: `Not approved by a clinician.`
-- Section "Time": `You are in week 8 after your surgery. Phase 1 covers weeks 0 to 6 (S1, P3). Phase 2 starts from week 7. Week 7 is the own boundary of the app. You must report that your care team said you can start phase 2.`
+- Section "Time": `You are in week 8 after your surgery. Phase 1 covers weeks 0 to 6 (S1, P3). Phase 2 starts from week 7. Week 7 is a boundary that the app sets. You must report that your care team said you can start phase 2.`
 - Type labels: `Measured by the app`, `Reported by you`, `The app cannot measure this`.
 - Row E1: `Knee bend, heel slide, last session: 84 degrees (estimated angle, not a medical measurement). Camera error: plus or minus 9 degrees. S1 lists knee flexion greater than 110 degrees. Cannot tell, the difference is smaller than the camera error.`
 - Row E5: `Pain after each session since your plan date: 2, 3, 2 (0 to 10). No number in the guideline for pain after a session.`

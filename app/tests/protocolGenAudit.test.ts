@@ -55,7 +55,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
     expect(missing).toEqual([]);
   });
 
-  it('lists an audit row for every rule whose text, caveat, display or values hold a number, unless the rule is engineering or the number is the own number of the app', () => {
+  it('lists an audit row for every rule whose text, caveat, display or values hold a number, unless the rule is engineering or the app sets the number', () => {
     const missing = RULE_IDS.map((id) => RULES[id])
       .filter((r) => digits(r) && r.kind !== 'engineering' && r.appOwn !== true)
       .filter((r) => (r.auditRows?.length ?? 0) === 0)
@@ -63,10 +63,10 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
     expect(missing).toEqual([]);
   });
 
-  it('says in the text of a rule with an own number of the app that the number is the own boundary or value of the app', () => {
+  it('says in the text of a rule with a number that only the app sets that the number is a boundary or a value that the app sets', () => {
     const own = RULE_IDS.map((id) => RULES[id]).filter((r) => r.appOwn === true);
     expect(own.map((r) => r.id).sort()).toEqual(['PAIN', 'PH2']);
-    for (const r of own) expect(`${r.text} ${r.conservative ?? ''} ${r.reason ?? ''}`, r.id).toMatch(/own boundary of the app|app rule/i);
+    for (const r of own) expect(`${r.text} ${r.conservative ?? ''} ${r.reason ?? ''}`, r.id).toMatch(/(boundary|value) that the app sets|app rule/i);
   });
 
   it('says in the text of an engineering rule that the value is an engineering value of the app', () => {
