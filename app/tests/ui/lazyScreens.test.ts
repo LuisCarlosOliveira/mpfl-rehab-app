@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const app = readFileSync('src/ui/App.tsx', 'utf8');
 
-const LAZY = ['Dashboard', 'DataScreen', 'ClinicianView', 'ConfirmPlan', 'Onboarding', 'PairCompanion', 'PlanResult', 'Session', 'Setup', 'Summary', 'UpdatePlan'];
+const LAZY = ['Dashboard', 'DataScreen', 'ClinicianView', 'CheckProgress', 'ConfirmPlan', 'Onboarding', 'PairCompanion', 'PlanResult', 'Session', 'Setup', 'Summary', 'UpdatePlan'];
 
 describe('App.tsx lazy screens', () => {
   it.each(LAZY)('%s loads with retryableLazy and has no static import', (name) => {
@@ -26,7 +26,7 @@ describe('App.tsx lazy screens', () => {
   });
 
   it('moves the focus to the heading of every lazy screen, but not on the first screen', () => {
-    for (const id of ['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']) {
+    for (const id of ['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'progress', 'companion']) {
       expect(app).toMatch(new RegExp(`LAZY_SCREENS[^;]*'${id}'`));
     }
     expect(app).not.toMatch(/LAZY_SCREENS[^;]*'privacy'/);

@@ -9,19 +9,20 @@
 import { classifyAgainstLimit, MARGIN_SOURCE, type LimitState } from './margin';
 import { contactReason } from './contactCard';
 import { hasAngleChart, sortByDate } from './progress';
-import { localIsoDate, PLAN_NAMES, weeksSince } from './planView';
+import { ANGLE, CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard, weekLine } from './progressHome';
+import { PLAN_NAMES, weeksSince } from './planView';
 import { NOT_APPROVED } from './protocolGen';
 import { PAIN_FLOOR } from './safety';
 import { STATE } from './reviewSummary';
 import type { Protocol } from './protocol/schema';
 import type { SessionRecord, StoredInputs } from './storage';
 
-/** The last week for which the app makes a plan. S1 and P3 start the next stage at week 12 (audit rows V3 and V4, EXACT). */
-export const LAST_PLAN_WEEK = 11;
 /** S1 "knee flexion greater than 110°", audit row V100 (EXACT). S1 does not say if it is passive or active. */
 const S1_FLEXION = 110;
 /** Plan date to use when a plan has no `generated.on`: every session counts. */
 const NO_PLAN_DATE = '0000-00-00';
+
+export { LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard };
 
 export type RowType = 'measured' | 'reported' | 'cannot-measure';
 export type RowId = 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'E10' | 'E11' | 'E12';
@@ -73,13 +74,12 @@ export interface ProgressCheck {
 
 // ---------------------------------------------------------------- the one place for every sentence
 
-const ANGLE = 'estimated angle, not a medical measurement';
 const lowerName = (kind: SessionRecord['exercise']): string => PLAN_NAMES[kind].toLowerCase();
 
 const T = {
   notApproved: `${NOT_APPROVED}.`,
   // Time
-  week: (n: number) => `You are in week ${n} after your surgery.`,
+  week: weekLine,
   noDate: 'The app has no date of your surgery. Open Update my plan to enter it.',
   phase1: 'Phase 1 covers weeks 0 to 6 (S1, P3).',
   phase2: 'Phase 2 starts from week 7. Week 7 is the own boundary of the app. Time alone does not start phase 2.',
@@ -172,13 +172,33 @@ export function allProgressTexts(): string[] {
     T.e10Title, T.noNumber(T.holdWhat), T.e10P2,
     T.e11Title, T.planLimit(90), T.noLimit,
     T.e12Title, T.e12Weeks, T.e12Cannot,
+    CHECK_SCREEN.title, CHECK_SCREEN.lede, CHECK_SCREEN.timeTitle, CHECK_SCREEN.eventsTitle, CHECK_SCREEN.rowsTitle, ...Object.values(CHECK_SCREEN.types),
+    CHECK_SCREEN.update, CHECK_SCREEN.back, CHECK_SCREEN.again, CHECK_SCREEN.readError, progressCard(8),
+    ...(Object.keys(PLAN_NAMES) as SessionRecord['exercise'][]).flatMap((kind) => {
+      const base = { date: '2026-11-05T10:00:00.000Z', exercise: kind } as SessionRecord;
+      return [lastSessionLine({ ...base, peakFlexion: 84, reps: 10, holdSeconds: null }), lastSessionLine({ ...base, peakFlexion: null, reps: 10, holdSeconds: null }),
+        lastSessionLine({ ...base, peakFlexion: null, reps: null, holdSeconds: 10 }), lastSessionLine({ ...base, peakFlexion: null, reps: null, holdSeconds: null })];
+    }),
   ];
 }
 
-// ---------------------------------------------------------------- dates
+// ---------------------------------------------------------------- the fixed strings of the screens
 
-/** The local calendar day of a stored timestamp. The plan date is a local date, so the UTC day (slice of the text) can be a day off. */
-export const localDayOf = (iso: string): string => localIsoDate(new Date(iso));
+/** The fixed strings of the screen "Check my progress". allProgressTexts lists them, so the word checks cover them. */
+export const CHECK_SCREEN = {
+  title: CHECK_TITLE,
+  lede: 'This page shows your numbers next to published guidelines. The app changes nothing until you press Confirm on a plan.',
+  timeTitle: 'Time',
+  eventsTitle: 'Safety events since your plan date',
+  rowsTitle: 'Your numbers and the guidelines',
+  types: { measured: 'Measured by the app', reported: 'Reported by you', 'cannot-measure': 'The app cannot measure this' } satisfies Record<RowType, string>,
+  update: 'Update my plan',
+  back: 'Back to Home',
+  again: 'The app checks your plan again from the date of today and your answers. You confirm the change or keep your plan.',
+  readError: 'The app cannot read your sessions. Go back and try again.',
+};
+
+// ---------------------------------------------------------------- dates
 
 /** The sessions on or after the plan date, by local day. */
 export const sessionsSince = (sessions: readonly SessionRecord[], since: string): SessionRecord[] => sessions.filter((s) => localDayOf(s.date) >= since);

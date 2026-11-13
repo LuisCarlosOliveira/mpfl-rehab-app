@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 const FIRST_LOAD_GZIP_LIMIT = 195_000; // measured 187,136 gzip on 2026-11-12 (was 172,736): the plan source notes, the registry of nine exercises and the larger Home. Margin 4 percent.
 const ENTRY_RAW_LIMIT = 335_000; // measured 314,359
 // Source files that only a later screen needs. None of them may sit in a chunk that the first load fetches.
-const LATER_ONLY = ['src/ui/Setup.tsx', 'src/ui/Session.tsx', 'src/ui/Summary.tsx', 'src/ui/Onboarding.tsx', 'src/ui/PlanResult.tsx', 'src/ui/ConfirmPlan.tsx', 'src/ui/UpdatePlan.tsx', 'src/ui/PairCompanion.tsx', 'src/ui/Dashboard.tsx', 'src/ui/DataScreen.tsx', 'src/ui/ClinicianView.tsx', 'src/pose/landmarker.ts', 'node_modules/jsqr/', 'node_modules/recharts/', 'node_modules/@mediapipe/'];
+const LATER_ONLY = ['src/ui/Setup.tsx', 'src/ui/Session.tsx', 'src/ui/Summary.tsx', 'src/ui/Onboarding.tsx', 'src/ui/PlanResult.tsx', 'src/ui/CheckProgress.tsx', 'src/ui/ConfirmPlan.tsx', 'src/ui/UpdatePlan.tsx', 'src/ui/PairCompanion.tsx', 'src/ui/Dashboard.tsx', 'src/ui/DataScreen.tsx', 'src/ui/ClinicianView.tsx', 'src/pose/landmarker.ts', 'node_modules/jsqr/', 'node_modules/recharts/', 'node_modules/@mediapipe/'];
 
 type Chunk = Extract<Rolldown.OutputChunk | Rolldown.OutputAsset, { type: 'chunk' }>;
 

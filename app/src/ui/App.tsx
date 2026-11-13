@@ -37,6 +37,7 @@ const ClinicianView = retryableLazy(() => import('./ClinicianView').then((m) => 
 
 // The plan generator, the exercise flow (the pose code starts only when a session starts) and the phone screen of the
 // second camera (QR code, jsQR) are not on the first screens either (L4-02). They load by the same rule.
+const CheckProgress = retryableLazy(() => import('./CheckProgress').then((m) => ({ default: m.CheckProgress })));
 const ConfirmPlan = retryableLazy(() => import('./ConfirmPlan').then((m) => ({ default: m.ConfirmPlan })));
 const Onboarding = retryableLazy(() => import('./Onboarding').then((m) => ({ default: m.Onboarding })));
 const PairCompanion = retryableLazy(() => import('./PairCompanion').then((m) => ({ default: m.PairCompanion })));
@@ -48,7 +49,7 @@ const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ def
 
 // The screens that load on demand. The shell cannot move the focus to their heading while the chunk loads,
 // so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
-const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'companion']);
+const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'progress', 'companion']);
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
@@ -254,6 +255,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
               onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
               onUpdatePlan={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'update' }) : undefined}
+              onCheckProgress={mode === 'demo' ? () => dispatch({ type: 'open', screen: 'progress' }) : undefined}
             />
           );
         }
@@ -389,6 +391,11 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               onKeep={() => dispatch({ type: 'plan-kept' })}
             />
           );
+        }
+        break;
+      case 'progress':
+        if (protocol) {
+          return <CheckProgress db={db} protocol={protocol} today={localIsoDate(now())} onUpdate={() => dispatch({ type: 'open', screen: 'update' })} onBack={() => dispatch({ type: 'open', screen: 'home' })} />;
         }
         break;
       case 'update':

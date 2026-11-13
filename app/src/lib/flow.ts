@@ -16,6 +16,7 @@ export const SCREEN_IDS = [
   'plan', // the plan that the app made, with "Why this plan". Nothing is saved yet.
   'referral', // the refusal: no plan, contact your care team
   'confirm', // the one step that saves a plan that the app made: Confirm or Keep my plan
+  'progress', // "Check my progress": a read-only page. It saves nothing. It leads to "Update my plan".
   'update', // "Update my plan": the app checks the plan again and proposes. The person confirms or keeps.
 ] as const;
 

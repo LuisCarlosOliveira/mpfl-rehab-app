@@ -649,3 +649,61 @@
   opacity: 0;
   cursor: pointer;
 }
+
+/* ---------- Check my progress ---------- */
+/* Read-only screen. Only tokens, so the dark theme follows. The type label is a word, not a colour. */
+.v2-check .check-block {
+  display: grid;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+  padding-top: var(--s-3);
+  border-top: 3px solid var(--ink);
+}
+.v2-check .check-block > h2 {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 800;
+}
+.v2-check .check-block p,
+.v2-check .check-row p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.v2-check .check-events,
+.v2-check .check-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+.v2-check .check-events li {
+  font-weight: 650;
+}
+.v2-check .check-row {
+  display: grid;
+  gap: var(--s-1);
+  justify-items: start;
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+.v2-check .check-row h3 {
+  margin: var(--s-1) 0 0;
+  font-size: var(--step-0);
+  font-weight: 750;
+}
+.v2-check .check-row:last-child {
+  border-bottom: 0;
+}
+/* The three types differ by the edge of the label, so the difference does not depend on colour. */
+.v2-check .check-row[data-type='reported'] .chip {
+  background: transparent;
+  border: 1.5px solid var(--edge);
+}
+.v2-check .check-row[data-type='cannot-measure'] .chip {
+  background: transparent;
+  border: 1.5px dashed var(--edge);
+}
+.v2-check > .actions {
+  margin-top: var(--s-5);
+}

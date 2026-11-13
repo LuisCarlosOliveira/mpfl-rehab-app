@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';
-import { markExported, saveSession } from '../../src/lib/storage';
+import { generateProtocol, type GeneratorInputs } from '../../src/lib/protocolGen';
+import { markExported, saveGeneratorInputs, saveSession } from '../../src/lib/storage';
 import { ASK_SURGEON_ITEMS } from '../../src/ui/askSurgeon';
 import { Home } from '../../src/ui/Home';
 import { freshDb, protocolText, sessionInput } from './helpers';
@@ -185,5 +186,89 @@ describe('Home, second camera entry (T12b)', () => {
   it('shows no phone button without the handler', () => {
     setup();
     expect(screen.queryByRole('button', { name: /second camera/i })).toBeNull();
+  });
+});
+
+// The progress row, the card and the last session line (design docs/progression-evaluation-design.md, 5.2).
+describe('Home, check my progress', () => {
+  const answers: GeneratorInputs = {
+    writtenPlan: 'no', procedure: 'mpflr-only', ageBand: '18-plus', bothKnees: false, firstSurgery: 'yes', specialRules: 'no',
+    surgeryDate: '2026-10-15', side: 'left', surgeonLimit: { kind: 'degrees', degrees: 60 }, phaseClearance: 'no', redFlags: {}, pain: 2, swelling: 'none',
+  };
+  const generated = (): Protocol => {
+    const r = generateProtocol(answers, '2026-11-08');
+    if (r.kind !== 'protocol') throw new Error('expected a plan');
+    return { ...r.protocol, phases: r.protocol.phases.map((p) => ({ ...p, reviewDate: undefined })) };
+  };
+  const settle = () => act(async () => void (await new Promise((r) => setTimeout(r, 40))));
+  async function home(day: string, p: Protocol = generated(), rows: Partial<ReturnType<typeof sessionInput>>[] = []) {
+    const db = freshDb();
+    await saveGeneratorInputs(db, answers as never);
+    for (const r of rows) await saveSession(db, { ...sessionInput(), ...r });
+    const onCheckProgress = vi.fn();
+    const phase = p.phases.find((x) => x.id === p.activePhase);
+    render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={db} now={() => new Date(`${day}T10:00:00`)} onStart={vi.fn()} onLoadProtocol={vi.fn()} onCheckProgress={onCheckProgress} />);
+    await settle();
+    return { onCheckProgress };
+  }
+  const CARD_TEXT = /You are in week \d+ after your surgery\. The app compares your sessions with published guidelines\. The app changes nothing\./;
+
+  it('shows a quiet row with a plan made by the app in week 3, and it opens the screen', async () => {
+    const { onCheckProgress } = await home('2026-11-08');
+    expect(screen.queryByText(CARD_TEXT)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Check my progress' }));
+    expect(onCheckProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no row for a plan from a care team file', async () => {
+    await home('2026-11-08', protocol());
+    expect(screen.queryByRole('button', { name: 'Check my progress' })).toBeNull();
+  });
+
+  it('shows no row without the handler', async () => {
+    const db = freshDb();
+    await saveGeneratorInputs(db, answers as never);
+    const p = generated();
+    render(<Home protocol={p} phase={p.phases[0]} activePhase={1} db={db} now={() => new Date('2026-11-08T10:00:00')} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
+    await settle();
+    expect(screen.queryByRole('button', { name: 'Check my progress' })).toBeNull();
+  });
+
+  it('shows a card with the real week in week 8 with phase 1 active', async () => {
+    await home('2026-12-10');
+    expect(screen.getByText('You are in week 8 after your surgery. The app compares your sessions with published guidelines. The app changes nothing.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Check my progress' })).toHaveLength(1);
+  });
+
+  it('shows the card when the review date has passed, before week 7', async () => {
+    const p = generated();
+    const withReview = { ...p, phases: p.phases.map((x) => ({ ...x, reviewDate: '2026-11-01' })) };
+    await home('2026-11-08', withReview);
+    expect(screen.getByText(CARD_TEXT)).toBeInTheDocument();
+  });
+
+  it('shows the row still in week 11, and nothing after week 11 except the plan end text', async () => {
+    await home('2027-01-06'); // 83 days, week 11
+    expect(screen.getByRole('button', { name: 'Check my progress' })).toBeInTheDocument();
+    cleanup();
+    await home('2027-01-07'); // 84 days, week 12
+    expect(screen.queryByRole('button', { name: 'Check my progress' })).toBeNull();
+    expect(screen.getByText('The app has no plan after week 11. Contact your care team for your next plan.')).toBeInTheDocument();
+  });
+
+  it('shows one line with the last session and its measured number, with no verdict', async () => {
+    await home('2026-11-08', generated(), [{ date: '2026-11-05T10:00:00.000Z', peakFlexion: 84 }, { date: '2026-11-07T10:00:00.000Z', peakFlexion: 91 }]);
+    const line = screen.getByText(/^Last session:/);
+    expect(line.textContent).toBe('Last session: 2026-11-07, heel slide, peak knee bend 91 degrees (estimated angle, not a medical measurement).');
+  });
+
+  it('shows the last session line for a plan from a care team file too, and a rep count when there is no angle', async () => {
+    await home('2026-11-08', protocol(), [{ exercise: 'straight-leg-raise', peakFlexion: null, reps: 12, date: '2026-11-07T10:00:00.000Z' }]);
+    expect(screen.getByText('Last session: 2026-11-07, straight leg raise, 12 reps.')).toBeInTheDocument();
+  });
+
+  it('shows no last session line without sessions', async () => {
+    await home('2026-11-08');
+    expect(screen.queryByText(/^Last session:/)).toBeNull();
   });
 });
