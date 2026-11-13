@@ -37,7 +37,7 @@ export interface Rule {
   flag?: 'clinical-review-needed';
   /** Rows of research/citation-audit.md (V ids, verdict EXACT) that hold the quote behind each number of `values`. */
   auditRows?: readonly string[];
-  /** True when a number in the text is the own number of the app and no source gives it. The text must say so. */
+  /** True when a number in the text is a value that the app sets and no source gives it. The text must say so. */
   appOwn?: true;
   /** The words that the plan screens show next to a number from a published source. One place for each sentence. */
   display?: {
@@ -110,8 +110,8 @@ const defs = {
     grade: 'OPINION',
     population: ADULT_ISO,
     conservative:
-      'S1 lists the second stage as 6-12 weeks. Week 7 is the own boundary of the app. Time alone never starts phase 2. You must report that your care team said you can start it.',
-    text: 'Phase 2 starts from week 7, the own boundary of the app. It needs your report that your care team said you can start the next stage.',
+      'S1 lists the second stage as 6-12 weeks. Week 7 is a boundary that the app sets. Time alone never starts phase 2. You must report that your care team said you can start it.',
+    text: 'Phase 2 starts from week 7, a boundary that the app sets. It needs your report that your care team said you can start the next stage.',
   },
   // Exercises
   SLR: {
