@@ -1,9 +1,9 @@
 // "Update my plan". The person opens it. The app checks the plan again from today's date and the stored answers.
 // It proposes a change with the reason, and the person confirms or keeps the plan on the next screen (ConfirmPlan).
-// This screen saves nothing. A change that moves forward needs VITE_SELF_PROGRESSION, and a safety event since the plan holds it.
+// This screen saves nothing. A change that moves forward is held when VITE_SELF_PROGRESSION is off, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
-import { describeChanges, draftOf, eventsSince, gaveWaySince, HOLD_LIMIT, HOLD_NEXT_STAGE, movesForward, raisesKneeLimit, weeksSince, type PlanDraft } from '../lib/planView';
+import { describeChanges, draftOf, eventsSince, gaveWaySince, holdTextFor, losesPainLimit, movesForward, weeksSince, type PlanDraft } from '../lib/planView';
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
@@ -18,7 +18,7 @@ interface Props {
   protocol: Protocol;
   /** The calendar date of today, as year-month-day. The app gives it from the clock. */
   today: string;
-  /** True when VITE_SELF_PROGRESSION is on. It is off by default. */
+  /** True when VITE_SELF_PROGRESSION is on. It is on by default. Only "false" or "0" turns it off. */
   selfProgression: boolean;
   onDone: (draft: PlanDraft) => void;
   onCancel: () => void;
@@ -122,8 +122,8 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
       return;
     }
     const forward = movesForward(protocol, result.protocol);
-    const heldText = raisesKneeLimit(protocol, result.protocol) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
-    const hold = !forward ? null : !selfProgression ? heldText : events > 0 ? HOLD_EVENT : null;
+    // A stored clinician pain limit holds the move whatever the flag says. The flag or an event holds every other forward move.
+    const hold = !forward ? null : !selfProgression || losesPainLimit(protocol, result.protocol) ? holdTextFor(protocol, result.protocol) : events > 0 ? HOLD_EVENT : null;
     onDone(draftOf(result, 'update', inputs, describeChanges(protocol, result.protocol, inputs), hold));
   }
 

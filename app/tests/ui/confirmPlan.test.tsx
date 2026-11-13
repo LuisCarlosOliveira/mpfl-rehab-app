@@ -186,7 +186,8 @@ describe('ConfirmPlan, a stored plan', () => {
 });
 
 describe('ConfirmPlan, a new plan over a stored plan that it would move forward (A-02)', () => {
-  it('case A: a phase 2 plan over a stored phase 1 plan shows the hold at once and offers no Confirm', async () => {
+  it('case A: with the flag off, a phase 2 plan over a stored phase 1 plan shows the hold at once and offers no Confirm', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-10-15' });
     setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
@@ -214,8 +215,17 @@ describe('ConfirmPlan, a new plan over a stored plan that it would move forward 
     expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
   });
 
-  it('with the flag on, Confirm stays open for a move forward', async () => {
-    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+  it('case C with the flag off: the pain limit reason shows too', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
+    const db = freshDb();
+    const base = await stored(db, { surgeonLimit: { kind: 'degrees', degrees: 80 } });
+    const current = { ...base, approvedOn: '2026-01-02', generated: undefined, painPauseThreshold: 3 } as Protocol;
+    setup(createDraft({ surgeonLimit: { kind: 'degrees', degrees: 60 } }), current, db);
+    expect(screen.getByText(/pain limit from your clinician/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  });
+
+  it('by default, Confirm stays open for a move forward', async () => {
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-10-15' });
     setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
@@ -265,6 +275,7 @@ describe('ConfirmPlan, an update', () => {
   });
 
   it('refuses a change that moves forward when the flag is off, even with a click, and keeps the plan', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-09-15' });
     const before = (await db.protocol.get('current'))!.raw;
@@ -275,8 +286,7 @@ describe('ConfirmPlan, an update', () => {
     expect((await db.protocol.get('current'))!.raw).toBe(before);
   });
 
-  it('accepts a change that moves forward only when the flag is on', async () => {
-    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+  it('accepts a change that moves forward by default, after a click', async () => {
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-09-15' });
     const { onAccepted } = setup(updateDraft(current, { surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);

@@ -4,7 +4,7 @@
 import { useRef, useState } from 'react';
 import type { Mode, Protocol } from '../lib/protocol';
 import { acceptProposal, confirmByPerson, selfProgressionOn } from '../lib/protocol/accept';
-import { describeNewPlan, doseScope, holdTextFor, movesForward, type PlanDraft } from '../lib/planView';
+import { describeNewPlan, doseScope, holdTextFor, losesPainLimit, movesForward, type PlanDraft } from '../lib/planView';
 import { SourceNote } from './SourceNote';
 import { saveGeneratorInputs, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
@@ -61,7 +61,7 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
   const noChange = update && draft.changes.length === 0;
   // An update comes with its hold. A new plan over a stored plan gets the same hold here, before the person acts. The save step refuses the same cases.
   const hold =
-    draft.hold ?? (!update && current !== null && movesForward(current, draft.protocol) && !selfProgressionOn() ? holdTextFor(current, draft.protocol) : null);
+    draft.hold ?? (!update && current !== null && movesForward(current, draft.protocol) && (!selfProgressionOn() || losesPainLimit(current, draft.protocol)) ? holdTextFor(current, draft.protocol) : null);
   const canConfirm = hold === null && !noChange;
 
   async function onConfirm(event: React.MouseEvent<HTMLButtonElement>) {

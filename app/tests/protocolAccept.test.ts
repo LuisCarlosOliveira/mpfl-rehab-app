@@ -1,4 +1,4 @@
-import { createDb, loadStoredProtocol, type MpflDb } from '../src/lib/storage';
+import { createDb, loadStoredProtocol, saveProtocol, type MpflDb } from '../src/lib/storage';
 import { createProtocolStore, loadProtocol } from '../src/lib/protocol';
 import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
@@ -245,18 +245,54 @@ describe('acceptProposal: the active phase', () => {
 
   const phase2 = () => plan(8, { phaseClearance: 'yes' });
 
-  it('refuses a phase advance while the flag is off and keeps the stored bytes', async () => {
+  // User decision 2026-11-13: the flag is on by default. Only the exact text false or 0 turns it off.
+  it('with no flag value, a forward move saves after a trusted click', async () => {
+    await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
+    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+    const stored = await loadStoredProtocol(db, 'demo');
+    expect(stored?.ok && stored.protocol.activePhase).toBe(2);
+  });
+
+  it.each(['false', '0'])('with the flag text %s, a forward move is refused with progression-off and the bytes stay', async (value) => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
     const before = await storedRaw();
-    const r = await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo');
-    expect(r).toMatchObject({ ok: false, code: 'progression-off' });
+    vi.stubEnv('VITE_SELF_PROGRESSION', value);
+    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
   });
 
-  it('refuses a flag value that is not the exact text true', async () => {
-    vi.stubEnv('VITE_SELF_PROGRESSION', '1');
+  it.each([undefined, 'true'])('a stored clinician pain limit is never lost, flag value %s', async (value) => {
+    if (value !== undefined) vi.stubEnv('VITE_SELF_PROGRESSION', value);
+    const base = plan(4);
+    const clinician = { ...base, generated: undefined, approvedOn: '2026-01-02', painPauseThreshold: 3 } as Protocol;
+    const saved = await saveProtocol(db, JSON.stringify(clinician), 'demo');
+    if (!saved.ok) throw new Error(saved.error.message);
+    const before = await storedRaw();
+    expect(await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'pain-limit' });
+    expect(await storedRaw()).toBe(before);
+  });
+
+  it('with the flag text false, a lost pain limit is also refused', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
+    const clinician = { ...plan(4), generated: undefined, approvedOn: '2026-01-02', painPauseThreshold: 3 } as Protocol;
+    await saveProtocol(db, JSON.stringify(clinician), 'demo');
+    const r = await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo');
+    expect(r.ok).toBe(false);
+  });
+
+  it('without a trusted click the answer is no-confirmation and the stored bytes stay equal', async () => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
-    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
+    const before = await storedRaw();
+    const forged = { type: 'click', isTrusted: true } as unknown as PersonConfirmation;
+    expect(await acceptProposal(db, proposalOf(phase2()), forged, 'demo')).toMatchObject({ ok: false, code: 'no-confirmation' });
+    expect(confirmByPerson(new MouseEvent('click'))).toBeNull();
+    expect(await storedRaw()).toBe(before);
+  });
+
+  it.each(['1', 'true', 'yes', ''])('keeps the flag on for the value "%s": only false or 0 turn it off', async (value) => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', value);
+    await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
+    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 
   it('accepts a phase advance when the flag is on', async () => {
@@ -276,17 +312,18 @@ describe('acceptProposal: the active phase', () => {
     await acceptProposal(db, proposalOf(plan(8, open)), confirmed(), 'demo');
     const before = await storedRaw();
     const more = plan(8, { ...open, ...answers });
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
-    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
     expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 
   it('accepts the removal of a mini squat with the flag off, because it loads the knee less', async () => {
-    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     const gates = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
     await acceptProposal(db, proposalOf(plan(8, gates)), confirmed(), 'demo');
-    vi.unstubAllEnvs();
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const without = plan(8, { ...gates, kneeGaveWay: true });
     expect(await acceptProposal(db, proposalOf(without), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
@@ -294,6 +331,7 @@ describe('acceptProposal: the active phase', () => {
   it('refuses a higher limit while the flag is off', async () => {
     await acceptProposal(db, proposalOf(plan(4, { surgeonLimit: { kind: 'degrees', degrees: 60 } })), confirmed(), 'demo');
     const before = await storedRaw();
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const higher = plan(4, { surgeonLimit: { kind: 'degrees', degrees: 90 } });
     expect(await acceptProposal(db, proposalOf(higher), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
@@ -303,12 +341,14 @@ describe('acceptProposal: the active phase', () => {
     const yes = { phaseClearance: 'yes' } as const;
     await acceptProposal(db, proposalOf(plan(8, { ...yes, surgeonLimit: { kind: 'degrees', degrees: 60 } })), confirmed(), 'demo');
     const noLimit = plan(8, { ...yes, surgeonLimit: { kind: 'none' } });
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(noLimit), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
   });
 
   it('accepts a lower limit with the flag off', async () => {
     await acceptProposal(db, proposalOf(plan(4, { surgeonLimit: { kind: 'degrees', degrees: 90 } })), confirmed(), 'demo');
     const lower = plan(4, { surgeonLimit: { kind: 'degrees', degrees: 60 } });
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(lower), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 
@@ -318,6 +358,7 @@ describe('acceptProposal: the active phase', () => {
 
   it('accepts the same plan again with the flag off', async () => {
     await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo');
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 });

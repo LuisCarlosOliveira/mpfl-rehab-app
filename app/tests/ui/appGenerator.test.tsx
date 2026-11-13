@@ -13,6 +13,7 @@ import { installDialogStub } from './t11helpers';
 // The value false (off) is tested in protocolGenV2.test.ts, onboardingModel.test.ts and ui/updatePlanV2.test.tsx.
 vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
 beforeEach(() => vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true'));
+afterEach(() => vi.unstubAllEnvs()); // a test that sets VITE_SELF_PROGRESSION must not leak it
 
 vi.mock('../../src/lib/protocol/trustedFlag', () => ({ trustedFlag: () => (globalThis as { __trust?: boolean }).__trust === true }));
 const trust = (on: boolean) => ((globalThis as { __trust?: boolean }).__trust = on);
@@ -254,6 +255,7 @@ describe('Update my plan, in the whole app', () => {
   });
 
   it('the next stage is held with the flag off, and the stored plan stays', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const { db, unmount } = await openHomeWithPlan();
     const before = (await db.protocol.get('current'))!.raw;
     unmount();
