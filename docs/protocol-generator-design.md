@@ -138,6 +138,8 @@ Steps:
 
 Upward changes (phase 2, a higher surgeon limit) sit behind the flag `VITE_SELF_PROGRESSION` of `docs/adaptation-and-live-form-design.md` section 5.5. The flag is off by default. With it off, the screen shows "Ask your care team about the next stage" and changes nothing. A more conservative change (a lower surgeon limit, a removed exercise) needs only Confirm. A new referral case sets the generated plan aside after "I understand", so sessions need a care-team file. The app never changes a dose in Update my plan. P2 rec 26 Note 2 leaves a change "per clinical judgment". In option B, the person can enter a new dose from the care team.
 
+Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
+
 Proposed FR4 text: "The active phase comes only from the protocol field `activePhase`. The store is read-only and has no setter. A protocol changes only after an action of the person: a loaded file (FR1, FR29), or Confirm on a generated proposal (FR30, FR31). The generator in `src/lib/protocolGen/` is pure and never saves. Only `acceptProposal` in `src/lib/protocol/` saves a generated protocol. It needs a `PersonConfirmation` value that only the Confirm handler creates." AC: a type test shows that `PersonConfirmation` cannot be built outside `src/ui/ConfirmPlan.tsx`. An e2e test moves the clock forward and reloads, and the phase stays until Confirm. "Keep my current plan" leaves the stored bytes unchanged.
 
 Proposed additions to `app/scripts/phase-check.sh` (the existing patterns stay):

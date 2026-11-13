@@ -26,6 +26,8 @@ The active phase comes only from the protocol field `activePhase`. The app has n
 
 Update 2026-11-09: a plan that the app made changes the stored protocol only after the person presses Confirm (`app/src/ui/ConfirmPlan.tsx`, `app/src/lib/protocol/accept.ts`). A later date does not move the phase. An upward change (phase 2, a higher limit) sits behind the flag `VITE_SELF_PROGRESSION`, which is off by default. A script in the same page can still call the save function. The check cannot stop it. A file that the person edits can carry an `approvedOn` date that no one verified (open item L2-05).
 
+Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
+
 ## The safety floor
 
 The app pauses the session and shows "pause and contact your care team" when the pain or swelling entry reaches a set level. A protocol can set a lower pain threshold. The floor is an app rule. It is not a clinical default. Its value is a PROPOSAL. A clinician must review it. The value is stated once, in [plan FR12](../MPFL_APP_PLAN.md).
