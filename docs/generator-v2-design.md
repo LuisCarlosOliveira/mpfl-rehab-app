@@ -380,3 +380,5 @@ The user decided that the app proposes the full plan from the guidelines. The fu
 The flag gates four things: the mini squat (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE), the seated hold (HOLD_P2, ENG_HOLD), the heel slide in phase 2 for an unknown limit (HEEL_P2_UNKNOWN), and the three questions about walking, the leg raise and the clearance of the hold (`gatesAsked` in `app/src/lib/onboarding.ts`, and the Update my plan screen).
 The flag value `false` keeps the old behaviour, with the rule EXTENDED_OFF. `VITE_SELF_PROGRESSION` is unchanged. Every number of these rules has an EXACT audit row or is marked as an own value of the app (test `app/tests/protocolGenAudit.test.ts`, run with the flag unset, `true` and `false`).
 
+Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
+
