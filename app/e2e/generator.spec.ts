@@ -222,7 +222,7 @@ test('week 12 gives the refusal at the date question', async ({ page }) => {
   expect(await readStore(page, 'protocol')).toHaveLength(0);
 });
 
-test('the clock moves and the phase stays 1 until Update my plan and Confirm, and the next stage is held while the self progression is off', async ({ page }) => {
+test('the clock moves and the phase stays 1 until Update my plan and Confirm, and Confirm moves it to 2 with the flag at its default (on)', async ({ page }) => {
   await toHomeWithPlan(page);
   const [before] = (await readStore(page, 'protocol')) as { raw: string }[];
   // Fix the date of the page 4 weeks later, then reload. The stored plan is the same.
@@ -234,22 +234,32 @@ test('the clock moves and the phase stays 1 until Update my plan and Confirm, an
   const [afterReload] = (await readStore(page, 'protocol')) as { raw: string }[];
   expect(afterReload!.raw).toBe(before!.raw);
 
-  await toUpdate(page);
-  await radio(page, '2'); await radio(page, 'No swelling');
-  await radio(page, 'Yes');
-  // The extended items are on by default: the three questions for the next exercises show after the answer yes.
-  for (const legend of ['Do you walk without crutches?', 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?', 'Did your surgeon say that you can do knee straightening exercises while you sit?']) {
-    await page.getByRole('group', { name: legend }).getByRole('radio', { name: 'Yes', exact: true }).check();
-  }
-  await press(page, 'Check my plan');
-  await expectScreen(page, 'Change held');
-  await expect(page.getByText('Ask your care team about the next stage.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0);
+  const answerNextStage = async () => {
+    await toUpdate(page);
+    await radio(page, '2'); await radio(page, 'No swelling');
+    await radio(page, 'Yes');
+    // The extended items are on by default: the three questions for the next exercises show after the answer yes.
+    for (const legend of ['Do you walk without crutches?', 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?', 'Did your surgeon say that you can do knee straightening exercises while you sit?']) {
+      await page.getByRole('group', { name: legend }).getByRole('radio', { name: 'Yes', exact: true }).check();
+    }
+    await press(page, 'Check my plan');
+    await expectScreen(page, 'Confirm the change');
+  };
+  await answerNextStage();
+  // The screen offers Confirm. Nothing is saved before the click.
+  await expect(page.getByText('Ask your care team about the next stage.')).toHaveCount(0);
+  expect(((await readStore(page, 'protocol')) as { raw: string }[])[0]!.raw).toBe(before!.raw);
   await press(page, 'Keep my plan');
   await expectScreen(page, 'Home');
+  const [kept] = (await readStore(page, 'protocol')) as { raw: string }[];
+  expect(kept!.raw).toBe(before!.raw);
+  expect(JSON.parse(kept!.raw).activePhase).toBe(1);
+
+  await answerNextStage();
+  await press(page, 'Confirm');
+  await expectScreen(page, 'Home');
   const [after] = (await readStore(page, 'protocol')) as { raw: string }[];
-  expect(after!.raw).toBe(before!.raw);
-  expect(JSON.parse(after!.raw).activePhase).toBe(1);
+  expect(JSON.parse(after!.raw).activePhase).toBe(2);
 });
 
 test('Keep my plan changes nothing, and Confirm saves a lower limit after a real click', async ({ page }) => {

@@ -241,7 +241,7 @@ const EXERCISE_CEILINGS = ['maxFlexion', 'maxTopFlexion'] as const;
  * higher or gone, or a straightest angle that is lower or gone. A new exercise is not a number, so it does not count here.
  */
 export function raisesKneeLimit(current: Protocol, next: Protocol): boolean {
-  if (current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold)) return true;
+  if (losesPainLimit(current, next)) return true;
   for (const phase of next.phases) {
     const before = current.phases.find((p) => p.id === phase.id);
     for (const exercise of phase.exercises) {
@@ -278,10 +278,13 @@ export const HOLD_NEXT_STAGE = 'Ask your care team about the next stage.';
 export const HOLD_LIMIT = 'A higher limit needs your care team. The app keeps your current limit.';
 export const HOLD_PAIN_LIMIT = 'Your stored plan has a pain limit from your clinician. A new plan from your answers would remove or raise it. Ask your care team. The app keeps your plan.';
 
+/** True when the stored plan has a clinician pain limit and the proposal removes it or raises it. No flag allows this. */
+export const losesPainLimit = (current: Protocol, next: Protocol): boolean =>
+  current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
+
 /** The reason that the app offers no Confirm for a plan that moves forward, with the right words for the cause. */
 export function holdTextFor(current: Protocol, next: Protocol): string {
-  const painLimit = current.painPauseThreshold !== undefined && (next.painPauseThreshold === undefined || next.painPauseThreshold > current.painPauseThreshold);
-  if (painLimit) return HOLD_PAIN_LIMIT;
+  if (losesPainLimit(current, next)) return HOLD_PAIN_LIMIT;
   return raisesKneeLimit(current, next) ? HOLD_LIMIT : HOLD_NEXT_STAGE;
 }
 

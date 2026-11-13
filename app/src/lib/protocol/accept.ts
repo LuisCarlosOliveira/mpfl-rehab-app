@@ -3,7 +3,7 @@
 // It does not stop script in the same page: such script can call any function. It stops a plan or a phase change
 // that no click of a person asked for. FR4 and FR30 to FR31 of the plan.
 
-import { movesForward } from '../planView';
+import { HOLD_PAIN_LIMIT, losesPainLimit, movesForward } from '../planView';
 import { loadStoredProtocol, saveProtocol, type MpflDb } from '../storage/db';
 import type { Mode } from './loader';
 import { protocolSchema, type Protocol } from './schema';
@@ -29,8 +29,14 @@ export function confirmByPerson(event: Event): PersonConfirmation | null {
   return confirmation;
 }
 
-/** Only the exact text "true" turns self progression on. It is off by default. */
-export const selfProgressionOn = (): boolean => import.meta.env.VITE_SELF_PROGRESSION === 'true';
+/**
+ * Self progression is on by default (decision of the user, 2026-11-13). Only the exact text "false" or "0" in
+ * VITE_SELF_PROGRESSION turns it off. A person still confirms each change, and a stored clinician pain limit stays whatever the flag says.
+ */
+export const selfProgressionOn = (): boolean => {
+  const flag = import.meta.env.VITE_SELF_PROGRESSION;
+  return flag !== 'false' && flag !== '0';
+};
 
 /** The result of `generateProtocol` with kind "protocol" fits this type. */
 export interface Proposal {
@@ -45,6 +51,7 @@ export type AcceptCode =
   | 'not-generated'
   | 'has-approval'
   | 'progression-off'
+  | 'pain-limit'
   | 'refused-by-loader'
   | 'save-failed';
 
@@ -55,7 +62,8 @@ const refuse = (code: AcceptCode, message: string): AcceptResult => ({ ok: false
 /**
  * Save a generated plan after a confirmation of a person. It uses the same `saveProtocol` path as a loaded file,
  * so the loader checks the saved text again. The stored `activePhase` field is the only source of the phase.
- * A proposal that moves forward (a later phase, a higher or removed limit) needs VITE_SELF_PROGRESSION.
+ * A proposal that moves forward (a later phase, a higher or removed limit) is refused when VITE_SELF_PROGRESSION is "false" or "0".
+ * A proposal that removes or raises a stored clinician pain limit is refused whatever the flag says.
  */
 export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmation: PersonConfirmation, mode: Mode): Promise<AcceptResult> {
   const record = typeof confirmation === 'object' && confirmation !== null ? issued.get(confirmation) : undefined;
@@ -72,8 +80,9 @@ export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmatio
 
   try {
     const stored = await loadStoredProtocol(db, mode);
-    if (stored?.ok && movesForward(stored.protocol, next) && !selfProgressionOn()) {
-      return refuse('progression-off', 'Ask your care team about the next stage. The plan did not change.');
+    if (stored?.ok && movesForward(stored.protocol, next)) {
+      if (!selfProgressionOn()) return refuse('progression-off', 'Ask your care team about the next stage. The plan did not change.');
+      if (losesPainLimit(stored.protocol, next)) return refuse('pain-limit', HOLD_PAIN_LIMIT);
     }
     const saved = await saveProtocol(db, JSON.stringify(next), mode);
     return saved.ok ? { ok: true, protocol: saved.protocol } : refuse('refused-by-loader', saved.error.message);
