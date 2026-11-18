@@ -1,5 +1,5 @@
 // The screen "Check my progress" (design docs/progression-evaluation-design.md, step 3). It is read only.
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PROTOTYPE_BANNER } from '../../src/lib/mode';
 import type { Protocol } from '../../src/lib/protocol';
@@ -44,12 +44,36 @@ async function open(rows: Partial<ReturnType<typeof sessionInput>>[] = []) {
 }
 
 describe('Check my progress', () => {
-  it('shows the lede, the Time section and the three type labels', async () => {
-    await open([{ peakFlexion: 84 }]);
+  it('shows the week, the phase and the date of surgery at the top, and the guidelines behind a closed details', async () => {
+    const { view } = await open([{ peakFlexion: 84 }]);
     expect(screen.getByText(CHECK_SCREEN.lede)).toBeInTheDocument();
-    expect(screen.getByText('You are in week 8 after your surgery.')).toBeInTheDocument();
-    for (const label of ['Measured by the app', 'Reported by you', 'The app cannot measure this']) expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Peak knee bend, heel slide, last session: 84 degrees \(estimated angle, not a medical measurement\)/).length).toBeGreaterThan(0);
+    const facts = view.container.querySelector('.check-facts') as HTMLElement;
+    expect(facts.textContent).toContain('Week 8 (the ninth week after surgery)');
+    expect(facts.textContent).toContain('Phase 1');
+    expect(facts.textContent).toContain('15 October 2026');
+    const details = view.container.querySelector('details.check-more') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary')?.textContent).toBe('Guidelines the app cannot measure');
+    for (const label of ['Reported by you', 'The app cannot measure this']) expect(within(details).getAllByText(label).length).toBeGreaterThan(0);
+    expect(within(details).queryByText('Measured by the app')).toBeNull();
+    for (const title of ['Knee bend, heel slide', 'Safety events', 'Reps and sets', 'Knee bend against the limit in your plan']) expect(within(details).queryByText(title)).toBeNull();
+    for (const title of ['Full knee extension', 'Pain after a session', 'Swelling', 'End of phase 2']) expect(within(details).getByText(title)).toBeInTheDocument();
+    expect(screen.getAllByText(/Peak knee bend, heel slide, last session: 84 degrees \(estimated angle, not a medical measurement\)/)).toHaveLength(1); // E1 and E11 hold the same line, the screen shows it once
+  });
+
+  it('lists the last sessions with the date, the exercise and the number, and the angle label for a camera angle', async () => {
+    const { view } = await open([{ peakFlexion: 84 }]);
+    const list = view.container.querySelector('.check-sessions') as HTMLElement;
+    expect(within(list).getByText('2026-11-20')).toBeInTheDocument();
+    expect(within(list).getByText('heel slide')).toBeInTheDocument();
+    expect(within(list).getByText('peak knee bend 84 degrees')).toBeInTheDocument();
+    expect(within(list).getByText('estimated angle, not a medical measurement')).toBeInTheDocument();
+  });
+
+  it('says that the app has no saved session, and "No heel slide done yet"', async () => {
+    await open([]);
+    expect(screen.getByText(CHECK_SCREEN.noSessions)).toBeInTheDocument();
+    expect(screen.getByText('No heel slide done yet')).toBeInTheDocument();
   });
 
   it('shows Not enough data for a person with no session', async () => {
@@ -86,7 +110,7 @@ describe('Check my progress', () => {
     expect(screen.getByText(HOLD_EVENT)).toBeInTheDocument();
     const event = screen.getByText(/pressed "Knee gave way or hurts"/);
     expect(event.textContent).toMatch(/2026-11-20/);
-    const firstRow = screen.getAllByText('Measured by the app')[0]!;
+    const firstRow = screen.getByRole('heading', { level: 2, name: 'Your last sessions' });
     expect(event.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByText(CHECK_SCREEN.again)).toBeNull();
     expect(screen.getByRole('button', { name: 'Update my plan' })).toBeInTheDocument();

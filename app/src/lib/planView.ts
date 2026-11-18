@@ -116,13 +116,36 @@ export function weeksSince(surgery: string, today: string): number | null {
   return Math.floor((b - a) / 7);
 }
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'];
+const ordinal = (k: number): string => {
+  const suffix = k % 100 >= 11 && k % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[k % 10] ?? 'th';
+  return ORDINALS[k - 1] ?? `${k}${suffix}`;
+};
+
+/** A date as year-month-day in plain words, for example "29 October 2026". The text must be a real date. */
+export function dateWords(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number) as [number, number, number];
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+
+/** The week after surgery in plain words. Week 2 means two whole weeks are complete, so it is the third week. */
+export const weekWords = (week: number): string => `week ${week} (the ${ordinal(week + 1)} week after surgery)`;
+
+/** The surgery date and its week in plain words. Only the date for a date in the future. null for no date and for a date that is not real. */
+export function surgeryDateWords(surgery: string, today: string): string | null {
+  if (weeksSince(surgery, '9999-12-31') === null) return null;
+  const week = weeksSince(surgery, today);
+  return week === null ? dateWords(surgery) : `${dateWords(surgery)}, ${weekWords(week)}`;
+}
+
 /** True on the review date and after it. */
 export function reviewDue(reviewDate: string | undefined, today: string): boolean {
   return reviewDate !== undefined && reviewDate <= today;
 }
 
 const activeExercises = (p: Protocol): PlanExercise[] => p.phases.find((ph) => ph.id === p.activePhase)?.exercises ?? [];
-const phaseName = (p: Protocol) => {
+export const phaseName = (p: Protocol) => {
   const ph = p.phases.find((x) => x.id === p.activePhase);
   return `Phase ${p.activePhase} ${ph?.name ?? ''}`.trim();
 };

@@ -38,7 +38,7 @@ const input = (over: Partial<ProgressInput> = {}): ProgressInput => ({
 });
 const text = (c: ProgressCheck) => JSON.stringify(c);
 const row = (c: ProgressCheck, id: string) => c.rows.find((r) => r.id === id)!;
-const flat = (c: ProgressCheck) => [...c.time, ...c.events.map((e) => e.text), ...c.rows.flatMap((r) => [r.title, ...r.lines])];
+const flat = (c: ProgressCheck) => [...c.notices, ...c.guidelines, ...c.events.map((e) => e.text), ...c.rows.flatMap((r) => [r.title, ...r.lines])];
 
 describe('Time section', () => {
   it('shows week 6 and week 7 with their own text', () => {
@@ -46,24 +46,51 @@ describe('Time section', () => {
     const w7 = checkProgress(input({ today: '2026-11-08' }));
     expect(w6.week).toBe(6);
     expect(w7.week).toBe(7);
-    expect(w6.time[0]).toBe('You are in week 6 after your surgery.');
-    expect(w7.time[0]).toBe('You are in week 7 after your surgery.');
-    expect(w7.time.join(' ')).toContain('You must report that your care team said you can start phase 2.');
-    expect(w6.time.join(' ')).toContain('Phase 1 covers weeks 0 to 6 (S1, P3).');
-    expect(w6.time.join(' ')).toContain('Week 7 is a boundary that the app sets. No guideline gives it.');
+    expect(w6.weekText).toBe('Week 6 (the seventh week after surgery)');
+    expect(w7.weekText).toBe('Week 7 (the eighth week after surgery)');
+    expect(w7.notices).toContain('You must report that your care team said you can start phase 2.');
+    expect(w6.notices).not.toContain('You must report that your care team said you can start phase 2.');
+    expect(w6.guidelines).toContain('Phase 1 covers weeks 0 to 6 (S1, P3).');
+    expect(w6.guidelines.join(' ')).toContain('Week 7 is a boundary that the app sets. No guideline gives it.');
+  });
+  it('gives week 2 (the third week) for a surgery on 2026-10-29 and today 2026-11-18, and names the date used', () => {
+    const c = checkProgress(input({ inputs: stored({ surgeryDate: '2026-10-29' }), today: '2026-11-18' }));
+    expect(c.week).toBe(2); // two whole weeks are complete
+    expect(c.weekText).toBe('Week 2 (the third week after surgery)');
+    expect(c.surgeryDate).toBe('29 October 2026');
   });
   it('reads the phase as a property of the plan and never sets it', () => {
-    expect(checkProgress(input()).time.join(' ')).toContain('Your plan is in phase 1.');
+    expect(checkProgress(input()).phase).toBe('Phase 1 Protection');
   });
   it('says the app has no plan after week 11, and says so when the date is missing', () => {
-    expect(checkProgress(input({ today: '2026-12-20' })).time.join(' ')).toContain('The app has no plan after week 11.');
+    expect(checkProgress(input({ today: '2026-12-20' })).notices.join(' ')).toContain('The app has no plan after week 11.');
     const none = checkProgress(input({ inputs: null }));
     expect(none.week).toBeNull();
-    expect(none.time.join(' ')).toContain('The app has no date of your surgery.');
+    expect(none.weekText).toBeNull();
+    expect(none.surgeryDate).toBeNull();
+    expect(none.notices.join(' ')).toContain('The app has no date of your surgery.');
   });
   it('quotes the week 4 check of P1 with its audit row, only in weeks 4 to 6', () => {
-    expect(checkProgress(input({ today: '2026-10-20' })).time.join(' ')).toContain('Contact surgeon if ROM not trending towards 90° by 4 weeks');
-    expect(checkProgress(input({ today: '2026-10-05' })).time.join(' ')).not.toContain('Contact surgeon');
+    expect(checkProgress(input({ today: '2026-10-20' })).guidelines.join(' ')).toContain('Contact surgeon if ROM not trending towards 90° by 4 weeks');
+    expect(checkProgress(input({ today: '2026-10-05' })).guidelines.join(' ')).not.toContain('Contact surgeon');
+  });
+});
+
+describe('last sessions', () => {
+  it('lists the newest first with the date, the exercise and the measured number, with the angle label only for a camera angle', () => {
+    const c = checkProgress(input({ sessions: [
+      session({ date: '2026-11-04T10:00:00.000Z', exercise: 'heel-slide', peakFlexion: 84 }),
+      session({ date: '2026-11-05T10:00:00.000Z', exercise: 'straight-leg-raise', peakFlexion: null, reps: 10 }),
+    ] }));
+    expect(c.recent).toEqual([
+      { day: '2026-11-05', name: 'straight leg raise', measure: '10 reps', angle: false },
+      { day: '2026-11-04', name: 'heel slide', measure: 'peak knee bend 84 degrees', angle: true },
+    ]);
+  });
+  it('lists the last 5 sessions and no more, and is empty with no session', () => {
+    const many = Array.from({ length: 8 }, (_, i) => session({ date: `2026-11-0${i + 1}T10:00:00.000Z` }));
+    expect(checkProgress(input({ sessions: many })).recent.map((r) => r.day)).toEqual(['2026-11-08', '2026-11-07', '2026-11-06', '2026-11-05', '2026-11-04']);
+    expect(checkProgress(input({ sessions: [] })).recent).toEqual([]);
   });
 });
 
@@ -80,7 +107,8 @@ describe('rows', () => {
   it('shows "Not enough data" with no session, and no state', () => {
     const c = checkProgress(input({ sessions: [] }));
     expect(c.noSessions).toBe(true);
-    for (const id of ['E1', 'E5', 'E7', 'E8', 'E9', 'E11']) expect(row(c, id).lines[0]).toBe(STATE.notEnough);
+    for (const id of ['E5', 'E7', 'E8', 'E9', 'E11']) expect(row(c, id).lines[0]).toBe(STATE.notEnough);
+    expect(row(c, 'E1').lines[0]).toBe('No heel slide done yet');
     expect(c.rows.every((r) => r.state === null)).toBe(true);
     expect(c.events).toEqual([]);
   });
@@ -110,6 +138,12 @@ describe('rows', () => {
     expect(e1(84).lines.join(' ')).toContain('estimated angle, not a medical measurement');
     expect(e1(84).lines.join(' ')).toContain(MARGIN_SOURCE);
   });
+  it('says "No heel slide done yet" when other sessions exist but no heel slide, and "Not enough data" for a heel slide with no angle', () => {
+    const other = checkProgress(input({ sessions: [session({ exercise: 'straight-leg-raise', peakFlexion: null })] }));
+    expect(row(other, 'E1').lines[0]).toBe('No heel slide done yet');
+    const noAngle = checkProgress(input({ sessions: [session({ exercise: 'heel-slide', peakFlexion: null })] }));
+    expect(row(noAngle, 'E1').lines[0]).toBe(STATE.notEnough);
+  });
   it('says when the surgeon limit is lower than 110', () => {
     const c = checkProgress(input({ inputs: stored({ surgeonLimit: { kind: 'degrees', degrees: 90 } }) }));
     expect(row(c, 'E1').lines.join(' ')).toContain('Your surgeon limit is 90 degrees. This is lower than 110 degrees.');
@@ -121,15 +155,24 @@ describe('rows', () => {
     expect(row(c, 'E4').lines[0]).toBe('Your answer in Update my plan: yes.');
     expect(row(c, 'E3').lines[0]).toBe('Your answer in Update my plan: no.');
   });
-  it('lists pain and swelling answers since the plan date, oldest first, with no total', () => {
+  it('lists the last pain answers with the date and the exercise of each, oldest first, with no total', () => {
     const sessions = [
-      session({ date: '2026-11-06T10:00:00.000Z', pain: 3, swelling: 'some' }),
+      session({ date: '2026-11-06T10:00:00.000Z', exercise: 'straight-leg-raise', peakFlexion: null, pain: 3, swelling: 'some' }),
       session({ date: '2026-11-05T10:00:00.000Z', pain: 2, swelling: 'none' }),
       session({ date: '2026-10-20T10:00:00.000Z', pain: 9, swelling: 'more' }), // before the plan date
     ];
     const c = checkProgress(input({ sessions }));
-    expect(row(c, 'E5').lines[0]).toBe('Pain after each session since your plan date: 2, 3 (0 to 10).');
+    expect(row(c, 'E5').lines.slice(0, 2)).toEqual([
+      '2026-11-05, heel slide: pain 2 out of 10 after the session.',
+      '2026-11-06, straight leg raise: pain 3 out of 10 after the session.',
+    ]);
+    expect(row(c, 'E5').lines.join(' ')).not.toContain('9 out of 10');
     expect(row(c, 'E7').lines[0]).toBe('Swelling since your plan date: none 1 time, some 1 time, more than before 0 times.');
+  });
+  it('lists at most the last 5 pain answers', () => {
+    const sessions = Array.from({ length: 7 }, (_, i) => session({ date: `2026-11-0${i + 1}T10:00:00.000Z`, pain: i }));
+    const lines = row(checkProgress(input({ sessions })), 'E5').lines.filter((l) => /^\d{4}-/.test(l));
+    expect(lines.map((l) => l.slice(0, 10))).toEqual(['2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07']);
   });
   it('writes time for one and times for any other count of a swelling answer', () => {
     const sessions = [
@@ -172,8 +215,8 @@ describe('safety events', () => {
     expect(c.events.map((e) => e.kind)).toEqual(['gave-way', 'pain', 'swelling', 'red-flag']);
     expect(c.events[0]?.text).toBe('On 2026-11-03 you pressed "Knee gave way or hurts".');
     expect(c.events[1]?.text).toBe('On 2026-11-04 you reported pain 8 out of 10.');
-    expect(Object.keys(c).indexOf('events')).toBeLessThan(Object.keys(c).indexOf('time'));
-    expect(Object.keys(c).indexOf('time')).toBeLessThan(Object.keys(c).indexOf('rows'));
+    expect(Object.keys(c).indexOf('events')).toBeLessThan(Object.keys(c).indexOf('week'));
+    expect(Object.keys(c).indexOf('week')).toBeLessThan(Object.keys(c).indexOf('rows'));
   });
   it('uses the clinician pain limit when it is lower than 7', () => {
     const c = checkProgress(input({ sessions: [session({ pain: 5 })], protocol: plan(90, { painPauseThreshold: 5 }) }));

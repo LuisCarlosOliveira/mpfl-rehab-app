@@ -3,12 +3,12 @@
 // Nothing is saved here. The generator runs only when the person presses "Make my plan", and it saves nothing.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import {
-  answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, surgeryDateProblem, toInputs,
+  answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, toInputs,
   type Answers, type StepId,
 } from '../lib/onboarding';
-import { draftOf, type PlanDraft } from '../lib/planView';
+import { draftOf, surgeryDateWords, type PlanDraft } from '../lib/planView';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
-import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
+import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SurgeryDateField, SwellingChoice, YES_NO, YES_NO_UNKNOWN } from './answerControls';
 import { focusHeading } from './focusHeading';
 import { Icon } from './Icon';
 import { PainScale } from './PainScale';
@@ -99,7 +99,7 @@ const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More 
 const word = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'no' ? 'No' : 'I do not know');
 
 /** The answer of one step as a short line for the summary. */
-function valueText(step: Exclude<StepId, 'summary'>, a: Answers): string {
+function valueText(step: Exclude<StepId, 'summary'>, a: Answers, today: string): string {
   switch (step) {
     case 'writtenPlan': case 'firstSurgery': case 'specialRules':
       return word(a[step]);
@@ -110,7 +110,7 @@ function valueText(step: Exclude<StepId, 'summary'>, a: Answers): string {
     case 'procedure': return PROCEDURES.find((p) => p.value === a.procedure)?.label ?? '';
     case 'ageBand': return AGES.find((p) => p.value === a.ageBand)?.label ?? '';
     case 'bothKnees': return a.bothKnees ? 'Yes' : 'No';
-    case 'surgeryDate': return a.surgeryDate;
+    case 'surgeryDate': return surgeryDateWords(a.surgeryDate, today) ?? '';
     case 'side': return a.side === 'left' ? 'Left' : 'Right';
     case 'limit': return a.limitKind === 'degrees' ? `${limitNumber(a.limitDegrees)} degrees` : a.limitKind === 'none' ? 'No limit' : 'I do not know';
     case 'redFlags': {
@@ -184,8 +184,6 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
     onDone(draftOf(generateProtocol(inputs, today), 'create', inputs));
   }
 
-  const dateProblem = surgeryDateProblem(answers.surgeryDate, today);
-
   const body = (() => {
     switch (step) {
       case 'writtenPlan':
@@ -211,25 +209,10 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
         return <ChoiceGroup name="specialRules" legend={TITLES.specialRules} value={answers.specialRules} choices={YES_NO_UNKNOWN} onChange={(v) => set({ specialRules: v as Answers['specialRules'] })} />;
       case 'surgeryDate':
         return (
-          <div className="field choices">
-            <label htmlFor="surgery-date">Date of surgery</label>
-            <input
-              id="surgery-date"
-              className="text-input"
-              type="date"
-              max={today}
-              value={answers.surgeryDate}
-              aria-invalid={dateProblem !== null}
-              aria-describedby={dateProblem === null ? undefined : 'surgery-date-problem'}
-              onChange={(e) => set({ surgeryDate: e.target.value })}
-            />
-            {dateProblem !== null && (
-              <p id="surgery-date-problem" className="detail" role="alert">
-                {dateProblem}
-              </p>
-            )}
+          <>
+            <SurgeryDateField value={answers.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
             <p className="detail">The app keeps this date on this device only. It uses the date to count the weeks since surgery.</p>
-          </div>
+          </>
         );
       case 'side':
         return <ChoiceGroup name="side" legend={TITLES.side} value={answers.side} choices={SIDES} onChange={(v) => set({ side: v as Answers['side'] })} />;
@@ -277,7 +260,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
               <li key={s} className="answer-row">
                 <div>
                   <p className="answer-label">{SUMMARY_LABELS[s]}</p>
-                  <p className="answer-value">{s === 'surgeryDate' ? <span className="num">{valueText(s, answers)}</span> : valueText(s, answers)}</p>
+                  <p className="answer-value">{s === 'surgeryDate' ? <span className="num">{valueText(s, answers, today)}</span> : valueText(s, answers, today)}</p>
                 </div>
                 <button
                   type="button"

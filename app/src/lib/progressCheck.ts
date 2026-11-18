@@ -9,8 +9,8 @@
 import { classifyAgainstLimit, MARGIN_SOURCE, type LimitState } from './margin';
 import { contactReason } from './contactCard';
 import { hasAngleChart, sortByDate } from './progress';
-import { ANGLE, CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard, weekLine } from './progressHome';
-import { PLAN_NAMES, weeksSince } from './planView';
+import { ANGLE, CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard, sessionParts, weekLine, type SessionParts } from './progressHome';
+import { dateWords, phaseName, PLAN_NAMES, weeksSince, weekWords } from './planView';
 import { NOT_APPROVED } from './protocolGen';
 import { PAIN_FLOOR } from './safety';
 import { STATE } from './reviewSummary';
@@ -22,7 +22,7 @@ const S1_FLEXION = 110;
 /** Plan date to use when a plan has no `generated.on`: every session counts. */
 const NO_PLAN_DATE = '0000-00-00';
 
-export { LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard };
+export { ANGLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard };
 
 export type RowType = 'measured' | 'reported' | 'cannot-measure';
 export type RowId = 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'E10' | 'E11' | 'E12';
@@ -63,8 +63,18 @@ export interface ProgressCheck {
   events: SafetyEvent[];
   /** Whole weeks since surgery. null when the date is missing or in the future. */
   week: number | null;
-  /** The Time section. */
-  time: string[];
+  /** The week in plain words, for example "Week 2 (the third week after surgery)". null with no week. */
+  weekText: string | null;
+  /** The phase of the plan, as a property that the app only shows. */
+  phase: string;
+  /** The surgery date that the app uses, in plain words. null when the app has no date. */
+  surgeryDate: string | null;
+  /** Lines about the time that the person must read: no date, no plan after week 11, the clearance report. */
+  notices: string[];
+  /** The guideline lines about the weeks, with their sources. */
+  guidelines: string[];
+  /** The newest sessions, newest first. */
+  recent: SessionParts[];
   rows: ProgressRow[];
   /** True when no session is stored. */
   noSessions: boolean;
@@ -88,7 +98,6 @@ const T = {
   clearance: 'You must report that your care team said you can start phase 2.',
   week4: 'P1 says: "Contact surgeon if ROM not trending towards 90° by 4 weeks" (audit row V12, EXACT). The app does not measure this.',
   noPlan: `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`,
-  inPhase: (n: number) => `Your plan is in phase ${n}.`,
   // Safety events
   gaveWay: (day: string) => `On ${day} you pressed "Knee gave way or hurts".`,
   pain: (day: string, v: number) => `On ${day} you reported pain ${v} out of 10.`,
@@ -101,6 +110,7 @@ const T = {
   cannot: 'The app cannot measure this. Ask your care team.',
   // E1
   e1Title: 'Knee bend, heel slide',
+  e1None: 'No heel slide done yet',
   e1Criterion: `S1 lists knee flexion greater than ${S1_FLEXION} degrees. Source: S1, audit row V100 (EXACT).`,
   e1Passive: 'S1 does not say if this is a passive bend or an active bend.',
   e1Surgeon: (d: number) => `Your surgeon limit is ${d} degrees. This is lower than ${S1_FLEXION} degrees.`,
@@ -118,7 +128,7 @@ const T = {
   e4Criterion: 'S1 lists walking without crutches. Source: S1, audit row V101 (EXACT).',
   // E5, E6, E7
   e5Title: 'Pain after a session',
-  painList: (list: string) => `Pain after each session since your plan date: ${list} (0 to 10).`,
+  painEntry: (day: string, name: string, v: number) => `${day}, ${name}: pain ${v} out of 10 after the session.`,
   painWhat: 'pain after a session',
   e6Title: 'Pain during walking',
   e6Asked: 'The app asks pain after a session. P2 means pain during walking.',
@@ -161,21 +171,22 @@ export function allProgressTexts(): string[] {
   const names = (Object.keys(PLAN_NAMES) as SessionRecord['exercise'][]).map(lowerName);
   const answers: Answer[] = ['yes', 'no', 'unknown'];
   return [
-    T.notApproved, T.week(8), T.noDate, T.phase1, T.phase2, T.clearance, T.week4, T.noPlan, T.inPhase(1),
+    T.notApproved, T.week(8), T.noDate, T.phase1, T.phase2, T.clearance, T.week4, T.noPlan,
     T.gaveWay('2026-11-03'), T.pain('2026-11-04', 8), T.swelling('2026-11-05'), T.redFlag('2026-11-06'),
     ...names.map((n) => T.peak(n, 84)), T.margin(9, MARGIN_SOURCE), T.cannot,
     ...Object.values(STATE_TEXT), STATE.notEnough,
-    T.e1Title, T.e1Criterion, T.e1Passive, T.e1Surgeon(90),
+    T.e1Title, T.e1None, T.e1Criterion, T.e1Passive, T.e1Surgeon(90),
     T.e2Title, T.e2Criterion,
     T.askedHere, ...answers.map(T.answer), T.e3Title, T.e3Criterion, T.e3P2, T.e3Lag, T.e4Title, T.e4Criterion,
-    T.e5Title, T.painList('2, 3'), T.noNumber(T.painWhat), T.e6Title, T.e6Asked, T.e6P2, T.e6None, T.e7Title, T.swellingList(3, 1, 0), T.swellingList(1, 2, 0), T.noNumber(T.swellingWhat),
+    T.e5Title, ...names.map((n) => T.painEntry('2026-11-05', n, 2)), T.noNumber(T.painWhat), T.e6Title, T.e6Asked, T.e6P2, T.e6None, T.e7Title, T.swellingList(3, 1, 0), T.swellingList(1, 2, 0), T.noNumber(T.swellingWhat),
     T.e8Title, T.e8None, T.e8Listed, T.pause(7, false), T.pause(5, true), T.e8Source,
     T.e9Title, ...names.map((n) => T.repsSets(n, '8, 8')), ...names.map((n) => T.reps(n, 10)), T.planDose(1, 10), T.planDose(2, 10), T.e9P2, T.noNumber(T.minReps),
     T.e10Title, T.noNumber(T.holdWhat), T.e10P2,
     T.e11Title, T.planLimit(90), T.noLimit,
     T.e12Title, T.e12Weeks, T.e12Cannot,
-    CHECK_SCREEN.title, CHECK_SCREEN.lede, CHECK_SCREEN.timeTitle, CHECK_SCREEN.eventsTitle, CHECK_SCREEN.rowsTitle, ...Object.values(CHECK_SCREEN.types),
-    CHECK_SCREEN.update, CHECK_SCREEN.back, CHECK_SCREEN.again, CHECK_SCREEN.readError, progressCard(8),
+    ...Object.values(CHECK_SCREEN).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))),
+    weekHead(0), weekHead(2), weekHead(11), weekWords(2),
+    CHECK_SCREEN.update, progressCard(8),
     ...(Object.keys(PLAN_NAMES) as SessionRecord['exercise'][]).flatMap((kind) => {
       const base = { date: '2026-11-05T10:00:00.000Z', exercise: kind } as SessionRecord;
       return [lastSessionLine({ ...base, peakFlexion: 84, reps: 10, holdSeconds: null }), lastSessionLine({ ...base, peakFlexion: null, reps: 10, holdSeconds: null }),
@@ -190,15 +201,31 @@ export function allProgressTexts(): string[] {
 export const CHECK_SCREEN = {
   title: CHECK_TITLE,
   lede: 'This page shows your numbers next to published guidelines. The app changes nothing until you press Confirm on a plan.',
-  timeTitle: 'Time',
   eventsTitle: 'Safety events since your plan date',
-  rowsTitle: 'Your numbers and the guidelines',
+  weekLabel: 'Week',
+  phaseLabel: 'Phase',
+  dateLabel: 'Date of surgery used',
+  dateHelp: 'If this date is not right, change it in Update my plan.',
+  sessionsTitle: 'Your last sessions',
+  noSessions: 'No session is saved yet.',
+  checkTitle: 'What the app can check',
+  moreTitle: 'Guidelines the app cannot measure',
+  weeksTitle: 'Weeks and phases',
   types: { measured: 'Measured by the app', reported: 'Reported by you', 'cannot-measure': 'The app cannot measure this' } satisfies Record<RowType, string>,
   update: 'Update my plan',
   back: 'Back to Home',
   again: 'The app checks your plan again from the date of today and your answers. You confirm the change or keep your plan.',
   readError: 'The app cannot read your sessions. Go back and try again.',
 };
+
+/** The week in plain words with a capital letter, for the top of the screen. */
+export const weekHead = (week: number): string => {
+  const w = weekWords(week);
+  return `${w.charAt(0).toUpperCase()}${w.slice(1)}`;
+};
+
+/** The number of the newest sessions in the list and of the newest pain answers. The screen does not say the number. */
+const SHOWN = 5;
 
 // ---------------------------------------------------------------- dates
 
@@ -225,15 +252,14 @@ function eventsOf(sessions: readonly SessionRecord[], threshold: number | undefi
   });
 }
 
-function timeOf(week: number | null, phase: number): string[] {
-  if (week === null) return [T.noDate, T.inPhase(phase)];
-  if (week > LAST_PLAN_WEEK) return [T.week(week), T.noPlan, T.inPhase(phase)];
-  return [
-    T.week(week), T.phase1, T.phase2,
-    ...(week >= 7 && phase < 2 ? [T.clearance] : []),
-    ...(week >= 4 && week <= 6 ? [T.week4] : []),
-    T.inPhase(phase),
-  ];
+/** The lines about the time, in two groups: what the person must read, and the guideline lines with their sources. */
+function timeOf(week: number | null, phase: number): { notices: string[]; guidelines: string[] } {
+  if (week === null) return { notices: [T.noDate], guidelines: [] };
+  if (week > LAST_PLAN_WEEK) return { notices: [T.noPlan], guidelines: [] };
+  return {
+    notices: week >= 7 && phase < 2 ? [T.clearance] : [],
+    guidelines: [T.phase1, T.phase2, ...(week >= 4 && week <= 6 ? [T.week4] : [])],
+  };
 }
 
 const row = (id: RowId, type: RowType, title: string, lines: string[], state: LimitState | null = null): ProgressRow => ({ id, type, title, lines, state });
@@ -245,6 +271,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
   const since = protocol.generated?.on ?? NO_PLAN_DATE;
   const inWindow = sessionsSince(sorted, since);
   const week = inputs?.surgeryDate ? weeksSince(inputs.surgeryDate, today) : null;
+  const time = timeOf(week, protocol.activePhase);
   const events = eventsOf(inWindow, protocol.painPauseThreshold);
   const enough = (lines: () => string[]): string[] => (noSessions ? [STATE.notEnough] : lines());
 
@@ -257,17 +284,18 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
   // E1: the heel slide peak against the 110 degrees of S1, with the three margin states.
   const surgeonDeg = inputs?.surgeonLimit.kind === 'degrees' ? inputs.surgeonLimit.degrees : undefined;
   const e1State = lastHeelSlide ? classifyAgainstLimit(lastHeelSlide.peakFlexion, S1_FLEXION, lastHeelSlide.marginDeg) : null;
+  const heelSlideDone = sorted.some((s) => s.exercise === 'heel-slide');
   const e1: ProgressRow = lastHeelSlide && e1State
     ? row('E1', 'measured', T.e1Title, [
       T.peak(lowerName('heel-slide'), Math.round(lastHeelSlide.peakFlexion as number)), T.margin(lastHeelSlide.marginDeg, lastHeelSlide.marginSource),
       STATE_TEXT[e1State], T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : []),
     ], e1State)
-    : row('E1', 'measured', T.e1Title, [STATE.notEnough, T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : [])]);
+    : row('E1', 'measured', T.e1Title, [heelSlideDone ? STATE.notEnough : T.e1None, T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : [])]);
 
   const asked = (a: Answer | undefined) => (a === undefined ? T.askedHere : T.answer(a));
 
   // E5 and E7: the answers since the plan date.
-  const pains = inWindow.flatMap((s) => (s.pain === undefined ? [] : [s.pain]));
+  const pains = inWindow.flatMap((s) => (s.pain === undefined ? [] : [T.painEntry(localDayOf(s.date), lowerName(s.exercise), s.pain)])).slice(-SHOWN);
   const swell = inWindow.flatMap((s) => (s.swelling === undefined ? [] : [s.swelling]));
   const count = (v: 'none' | 'some' | 'more') => swell.filter((x) => x === v).length;
 
@@ -297,7 +325,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
     row('E2', 'cannot-measure', T.e2Title, [T.cannot, T.e2Criterion]),
     row('E3', 'reported', T.e3Title, [asked(answers?.legRaiseStraight), T.e3Criterion, T.e3P2, T.e3Lag]),
     row('E4', 'reported', T.e4Title, [asked(answers?.walksWithoutCrutches), T.e4Criterion]),
-    row('E5', 'reported', T.e5Title, [pains.length === 0 ? STATE.notEnough : T.painList(pains.join(', ')), T.noNumber(T.painWhat)]),
+    row('E5', 'reported', T.e5Title, [...(pains.length === 0 ? [STATE.notEnough] : pains), T.noNumber(T.painWhat)]),
     row('E6', 'reported', T.e6Title, [T.e6Asked, T.e6P2, T.e6None]),
     row('E7', 'reported', T.e7Title, [swell.length === 0 ? STATE.notEnough : T.swellingList(count('none'), count('some'), count('more')), T.noNumber(T.swellingWhat)]),
     row('E8', 'measured', T.e8Title, [...enough(() => [events.length === 0 ? T.e8None : T.e8Listed]), T.pause(pauseValue, clinicianPause), T.e8Source]),
@@ -307,5 +335,9 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
     row('E12', 'cannot-measure', T.e12Title, [T.e12Weeks, T.e12Cannot]),
   ];
 
-  return { events, week, time: timeOf(week, protocol.activePhase), rows, noSessions, notApproved: T.notApproved };
+  return {
+    events, week, weekText: week === null ? null : weekHead(week), phase: phaseName(protocol),
+    surgeryDate: inputs?.surgeryDate && weeksSince(inputs.surgeryDate, '9999-12-31') !== null ? dateWords(inputs.surgeryDate) : null,
+    ...time, recent: [...sorted].reverse().slice(0, SHOWN).map(sessionParts), rows, noSessions, notApproved: T.notApproved,
+  };
 }

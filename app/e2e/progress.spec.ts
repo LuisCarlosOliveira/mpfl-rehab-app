@@ -4,7 +4,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, PROTOTYPE_BANNER, readStore } from './helpers/app';
-import { press, radio, toHomeWithPlan } from './helpers/plan';
+import { ago, h1, press, radio, referralQuestions, toHomeWithPlan, toLoadAny, toSummary } from './helpers/plan';
 import { hasVerdictWord } from '../tests/ui/verdict';
 
 // The fixed text of the app for the margin source. The schema accepts only the listed values.
@@ -120,6 +120,42 @@ test('a safety event since the plan date shows HOLD_EVENT, and Update my plan sh
   await expect(page.getByText(HOLD_EVENT)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0);
   expect(await planRaw(page)).toBe(before);
+});
+
+const words = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+test('a date typed into the field is the date in words under it, and the keyboard fills the segments', async ({ page }) => {
+  await toLoadAny(page);
+  await press(page, 'Create my plan');
+  await referralQuestions(page);
+  await h1(page, 'What was the date of your surgery?');
+  const date = ago(20);
+  const [y, m, d] = date.split('-') as [string, string, string];
+  await page.getByLabel('Date of surgery').focus();
+  // Headless Chromium orders the segments month, day, year whatever the locale. The value is always year-month-day.
+  await page.keyboard.type(`${m}${d}${y}`);
+  await expect(page.getByLabel('Date of surgery')).toHaveValue(date);
+  await expect(page.getByText(`You chose ${words(date)}, week 2 (the third week after surgery).`)).toBeVisible();
+});
+
+test('the surgery date shows in words on Check your answers and Check my progress, and Update my plan asks it with the stored value', async ({ page }) => {
+  const date = ago(20); // 20 days is two whole weeks: week 2, the third week
+  await toSummary(page, 20);
+  await expect(page.getByText(`${words(date)}, week 2 (the third week after surgery)`)).toBeVisible();
+  await press(page, 'Make my plan');
+  await expectScreen(page, 'Your plan');
+  await press(page, 'Use this plan');
+  await press(page, 'Confirm');
+  await expectScreen(page, 'Home');
+  await goCheck(page);
+  const facts = page.locator('.check-facts');
+  await expect(facts).toContainText('Week 2 (the third week after surgery)');
+  await expect(facts).toContainText(words(date));
+  await press(page, 'Update my plan');
+  await expectScreen(page, 'Update my plan');
+  await expect(page.getByLabel('Date of surgery')).toHaveValue(date);
+  await page.getByLabel('Date of surgery').fill(ago(27));
+  await expect(page.getByText(`You chose ${words(ago(27))}, week 3 (the fourth week after surgery).`)).toBeVisible();
 });
 
 for (const size of [{ width: 360, height: 640 }, { width: 1280, height: 800 }]) {
