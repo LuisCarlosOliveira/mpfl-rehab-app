@@ -54,9 +54,11 @@ const H = 1000; // view box height. The width is the aspect times H.
 const DEFAULT_ASPECT = 16 / 9;
 // ENGINEERING, not clinical. Measured on 7 real clips in the real app (docs/live-test/skeleton-validation.md): a point leaves its place for one
 // update and comes back (11 times in 200 s at 6 updates each second, 22 times at 17 updates each second, 3 to 15 percent of the picture width). A point that is further than this fraction of
-// the width from where a steady move would put it waits, up to MAX_HOLD updates. If the later updates agree, it is drawn. If not, it was a spike.
+// the width from where a steady move would put it waits, up to HOLD_MS after the first jumped update. If the later updates agree, it is drawn. If not, it was a spike.
 const SPIKE_FRACTION = 0.02;
-const MAX_HOLD = 2; // ENGINEERING. Some spikes last two updates (a point on the other leg for 170 ms). A real jump, such as a cut, waits at most this many updates.
+// ENGINEERING. The hold is by time, so a slow update rate does not freeze the picture. At 7 updates each second the old limit of 2 updates held a point for 285 ms.
+// The first jumped update is always held (it can be a one-update spike). A real jump, such as a cut, waits at most this long after that update.
+const HOLD_MS = 100;
 // ENGINEERING. A text sits on the inner side of the picture. It changes side only when the point is this far past the middle, so it does not hop.
 const SIDE_BAND = 0.06;
 // The width of a text is estimated: a letter is about 0.6 of the font size wide. The estimate is on the wide side, so a text stays inside.
@@ -101,7 +103,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const unit = useRef(1 / 0.4); // view box units for one screen pixel. The observer sets the real value.
   const aspect = useRef(DEFAULT_ASPECT);
   const lowSince = useRef<(number | null)[]>([null, null, null]);
-  const track = useRef(new Map<number, { last: Landmark; prev: Landmark; held: number }>());
+  const track = useRef(new Map<number, { last: Landmark; prev: Landmark; since: number | null }>());
   const sides = useRef({ arc: 1, chosen: 1 });
   const chosenHidden = useRef(false);
   const arcDrawn = useRef(false); // the arc of the chosen knee is on, so the angle text can show
@@ -204,17 +206,17 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
             return p;
           }
           if (!t) {
-            track.current.set(id, { last: p, prev: p, held: 0 });
+            track.current.set(id, { last: p, prev: p, since: null });
             return p;
           }
           const from = (a: Landmark, b: Landmark) => Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
           const expected = { x: 2 * t.last.x - t.prev.x, y: 2 * t.last.y - t.prev.y };
           const spike = Math.min(from(p, expected), from(p, t.last)) > SPIKE_FRACTION * W;
-          if (spike && t.held < MAX_HOLD) {
-            t.held += 1;
+          if (spike && (t.since === null || timeMs - t.since < HOLD_MS)) {
+            t.since ??= timeMs;
             return t.last;
           }
-          t.held = 0;
+          t.since = null;
           t.prev = t.last;
           t.last = p;
           return p;

@@ -217,6 +217,14 @@ describe('frame bridge: the worker never waits for the next tick', () => {
 });
 
 describe('frame bridge: stop and failure', () => {
+  it('tells the caller when the worker has the 2-pose model ready', async () => {
+    const onProbeReady = vi.fn();
+    const { worker, onResult } = await ready({ onProbeReady });
+    worker.emit({ type: 'probe-ready' });
+    expect(onProbeReady).toHaveBeenCalledOnce();
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
   it('close ends the worker and takes no more frames', async () => {
     const { bridge, worker } = await ready();
     bridge.close();

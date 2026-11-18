@@ -34,6 +34,11 @@ describe('createLandmarker', () => {
     });
   });
 
+  it('makes a 2-pose instance on request', async () => {
+    await createLandmarker(undefined, 2);
+    expect(createFromOptions).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ numPoses: 2 }));
+  });
+
   it('returns 33 landmarks as {x,y,visibility}', async () => {
     detectForVideo.mockReturnValue({ landmarks: [Array.from({ length: 33 }, (_, i) => lm(i))] });
     const l = await createLandmarker();

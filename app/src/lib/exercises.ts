@@ -7,7 +7,7 @@
 // A rep ends when the knee is back within `returnWithinDeg` of the resting angle (T17, PROPOSAL). The old fixed
 // fraction of the target is gone from the app path. Without a protocol value or a baseline no rep counts.
 
-import { MIN_VISIBILITY, flexion, kneeAngle, selectFoot, selectLeg, type Landmark, type Side } from './angle';
+import { MIN_VISIBILITY, flexion, kneeAngle, pick, selectFoot, selectLeg, type Landmark, type Side } from './angle';
 import {
   countBlock,
   holdInitial,
@@ -321,8 +321,10 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     anchor = { ...(anchor as Landmark), x: (anchor as Landmark).x + (hip.x - (anchor as Landmark).x) * k, y: (anchor as Landmark).y + (hip.y - (anchor as Landmark).y) * k };
   };
   /** `far` is true when a confirmed anchor reads this frame as another place. `plausible` is true for a whole, plausible leg. */
-  const checkHip = (hip: Landmark, knee: Landmark, ankle: Landmark, t: number): { far: boolean; plausible: boolean } => {
-    const plausible = plausibleLeg(hip, knee, ankle);
+  // The anchor is always the HIP (landmark 23 or 24), also when the trio of the exercise has no hip (the ankle pump: knee, ankle, foot index).
+  // A knee as anchor made a knee that moved by 0.1 of the width start the lockout and the probe. The trio only checks that the leg is whole.
+  const checkHip = (hip: Landmark, trioA: Landmark, trioB: Landmark, trioC: Landmark, t: number): { far: boolean; plausible: boolean } => {
+    const plausible = visible(hip) && plausibleLeg(trioA, trioB, trioC);
     if (plausible) latestHip = hip;
     if (!confirmed) {
       if (!plausible) return { far: false, plausible };
@@ -416,7 +418,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
         if (confirmed && anchor !== null && extra !== undefined && extra.length > 0) {
           let best = Infinity;
           for (const pose of [landmarks, ...extra]) {
-            const h = trio(pose)[0];
+            const h = pick(pose, side, 'hip');
             if (!visible(h)) continue;
             const d = dist(h, anchor);
             if (d < best) {
@@ -431,7 +433,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           const again = probeFrames === 0 && t - probeAt >= REPROBE_MS;
           return unseen(t, false, again);
         }
-        const check = checkHip(hip, knee, ankle, t);
+        const check = checkHip(pick(chosen, side, 'hip'), hip, knee, ankle, t);
         if (check.far) {
           farSince ??= t;
           const locked = check.plausible && t - farSince > LOCKED_OUT_MS;

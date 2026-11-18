@@ -45,11 +45,11 @@ describe('the points of the body map', () => {
   it('do not show a two-update spike: the ankle that leaves for two updates and comes back keeps its place', () => {
     const m = mount();
     m.push(lying(), 0);
-    m.push(lying(), 100);
-    m.push(lying({ ankle: { x: 0.85, y: 0.3 } }), 200);
-    m.push(lying({ ankle: { x: 0.85, y: 0.3 } }), 300);
+    m.push(lying(), 40);
+    m.push(lying({ ankle: { x: 0.85, y: 0.3 } }), 80);
+    m.push(lying({ ankle: { x: 0.85, y: 0.3 } }), 120); // 40 ms after the first jumped update: still held
     expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
-    m.push(lying(), 400);
+    m.push(lying(), 160);
     expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
   });
 
@@ -63,15 +63,65 @@ describe('the points of the body map', () => {
     expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
   });
 
-  it('show a move that holds, at the third update', () => {
+  it('show a move that holds, 100 ms after the first jumped update', () => {
     const m = mount();
     m.push(lying(), 0);
     m.push(lying({ ankle: { x: 0.9, y: 0.3 } }), 100);
-    m.push(lying({ ankle: { x: 0.9, y: 0.3 } }), 200);
+    m.push(lying({ ankle: { x: 0.9, y: 0.3 } }), 150);
     expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
-    m.push(lying({ ankle: { x: 0.9, y: 0.3 } }), 300);
+    m.push(lying({ ankle: { x: 0.9, y: 0.3 } }), 200);
     expect(m.pos('left-j2')[0]).toBeCloseTo(0.9 * W, 0);
     expect(m.pos('left-j2')[1]).toBeCloseTo(0.3 * 1000, 0);
+  });
+
+  // The hold of a jumped point is by time (about 100 ms), not by update count. The time is the timestamp of the update (a fake clock).
+  describe('hold by time', () => {
+    const jumped = () => lying({ ankle: { x: 0.9, y: 0.3 } });
+    const settle = (m: ReturnType<typeof mount>, gap: number) => {
+      m.push(lying(), 0);
+      m.push(lying(), gap);
+    };
+
+    it('shows a jump that stays at the first update that comes 100 ms after the jump, also when updates are slow (143 ms)', () => {
+      const m = mount();
+      settle(m, 143);
+      m.push(jumped(), 286); // the first jumped update: held, it can be a one-update spike
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
+      m.push(jumped(), 429); // 143 ms after the jump: shown. The old rule held this update too (285 ms in all)
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.9 * W, 0);
+    });
+
+    it('holds a spike of two fast updates (30 ms apart) and ignores it when the point comes back', () => {
+      const m = mount();
+      settle(m, 30);
+      m.push(jumped(), 60);
+      m.push(jumped(), 90);
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
+      m.push(lying(), 120);
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
+    });
+
+    it('never holds a jump longer than 100 ms, however many fast updates come', () => {
+      const m = mount();
+      settle(m, 20);
+      for (const t of [40, 60, 80, 100, 120, 139]) {
+        m.push(jumped(), t);
+        expect(m.pos('left-j2')[0], `t=${t}`).toBeCloseTo(0.7 * W, 0);
+      }
+      m.push(jumped(), 140); // 100 ms after the first jumped update
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.9 * W, 0);
+    });
+
+    it('starts a new hold for a second jump later', () => {
+      const m = mount();
+      settle(m, 143);
+      m.push(jumped(), 286);
+      m.push(jumped(), 429);
+      m.push(lying(), 572); // the point goes back: a new jump, a new hold
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.9 * W, 0);
+      m.push(lying(), 715);
+      expect(m.pos('left-j2')[0]).toBeCloseTo(0.7 * W, 0);
+    });
   });
 
   it('show a leg that moves steadily with no delay at all', () => {

@@ -32,7 +32,7 @@ Not noise and not the mapping. There are three causes. (1) Single-update spikes 
 
 ## Repairs
 
-1. A spike filter in `app/src/ui/BodyMap.tsx` for the drawing only. A point that is further than 2 percent of the width from where a steady move puts it waits for at most 2 updates. If the later updates agree, it is drawn. The pipeline, the angle, the counters and the safety rules read the raw landmarks and are not changed. The constants `SPIKE_FRACTION` and `MAX_HOLD` are ENGINEERING values with a comment.
+1. A spike filter in `app/src/ui/BodyMap.tsx` for the drawing only. A point that is further than 2 percent of the width from where a steady move puts it waits. The wait ends 100 ms (`HOLD_MS`, by the timestamp of the update) after the first jumped update. If the later updates agree, it is drawn. The first jumped update is always held, because it can be a one-update spike. The pipeline, the angle, the counters and the safety rules read the raw landmarks and are not changed. The constants `SPIKE_FRACTION` and `HOLD_MS` are ENGINEERING values with a comment.
 2. The angle text sits on the inner side of the picture at the height of the knee. It changes side only when the knee is 6 percent past the middle.
 3. The leg label moves above the angle text when the two boxes cross.
 4. The switch "Hide body map" sits on the corner of the camera picture in Session. A first try put it in the header row. At 390 px the title became 0 px wide and the header was 255 px high. A row under the picture pushed the angle under the fixed bar. The layout check caught both. With the switch on the picture, the header is 48 px and the gaps are the same as before the map (see layout below).
