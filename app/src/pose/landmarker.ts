@@ -69,30 +69,37 @@ function releaseFetchGuard() {
   original = undefined;
 }
 
-/** GPU is the default (about 2.5 times the frame rate on an Intel UHD 630). If the GPU start fails, retry once on the CPU. Both landmarkers use this. */
-async function createWithFallback(fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>, numPoses: 1 | 2): Promise<PoseLandmarker> {
-  const make = (delegate: 'GPU' | 'CPU') =>
-    PoseLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: MODEL_PATH, delegate },
-      runningMode: 'VIDEO',
-      numPoses,
-    });
+type Fileset = Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>;
+type Delegate = 'GPU' | 'CPU';
+
+const make = (fileset: Fileset, numPoses: 1 | 2, delegate: Delegate) =>
+  PoseLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+    runningMode: 'VIDEO',
+    numPoses,
+  });
+
+/** GPU is the default (about 2.5 times the frame rate on an Intel UHD 630). If the GPU start fails, use the CPU. If the GPU graph starts and then fails when it runs, createLandmarker rebuilds once on the CPU. */
+async function createWithFallback(fileset: Fileset, numPoses: 1 | 2): Promise<{ pose: PoseLandmarker; delegate: Delegate }> {
   try {
-    return await make('GPU');
+    return { pose: await make(fileset, numPoses, 'GPU'), delegate: 'GPU' };
   } catch {
-    return make('CPU');
+    return { pose: await make(fileset, numPoses, 'CPU'), delegate: 'CPU' };
   }
 }
 
 /** `onProgress` is optional. It gets the size of each chunk of the files that load from the own origin. `poses` is 1, or 2 for the probe instance. */
-export async function createLandmarker(onProgress?: (bytes: number) => void, poses: 1 | 2 = 1): Promise<Landmarker> {
+export async function createLandmarker(onProgress?: (bytes: number) => void, startPoses: 1 | 2 = 1): Promise<Landmarker> {
+  let poses = startPoses;
   users += 1;
   blockForeignFetch();
   onBytes = onProgress;
+  let fileset: Fileset;
   let pose: PoseLandmarker;
+  let delegate: Delegate;
   try {
-    const fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
-    pose = await createWithFallback(fileset, poses);
+    fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
+    ({ pose, delegate } = await createWithFallback(fileset, poses));
   } catch (err) {
     onBytes = undefined;
     releaseFetchGuard();
@@ -102,23 +109,63 @@ export async function createLandmarker(onProgress?: (bytes: number) => void, pos
   // MediaPipe needs strictly increasing timestamps in VIDEO mode.
   let lastTs = -1;
   let closed = false;
+  // The GPU graph can start in createFromOptions and still fail when it runs (no usable GPU, GPU lost). Then rebuild once on the CPU.
+  // Frames in between are dropped. A failure of the CPU model, or of its start, is thrown to the caller. No second rebuild.
+  let rebuilding: Promise<void> | null = null;
+  let broken: unknown;
+  const rebuildOnCpu = () => {
+    delegate = 'CPU';
+    try {
+      pose.close();
+    } catch {
+      // the GPU model is lost already
+    }
+    rebuilding = make(fileset, poses, 'CPU')
+      .then(
+        (made) => {
+          if (closed) made.close();
+          else pose = made;
+        },
+        (err: unknown) => {
+          broken = err ?? new Error('CPU model failed');
+        },
+      )
+      .finally(() => (rebuilding = null));
+  };
+  /** Run one detection. Returns `empty` while the CPU model builds. */
+  const guarded = <T>(run: (p: PoseLandmarker) => T, empty: T): T => {
+    if (broken !== undefined) throw broken;
+    if (rebuilding) return empty;
+    try {
+      return run(pose);
+    } catch (err) {
+      if (delegate !== 'GPU') throw err;
+      rebuildOnCpu();
+      return empty;
+    }
+  };
+  const result = (image: HTMLVideoElement | ImageBitmap, timestampMs: number) => guarded((p) => p.detectForVideo(image, timestampMs).landmarks, null);
   return {
     detect(image, timestampMs) {
       if (closed || timestampMs <= lastTs) return null;
       lastTs = timestampMs;
-      const first = pose.detectForVideo(image, timestampMs).landmarks[0];
+      const first = result(image, timestampMs)?.[0];
       if (!first || first.length === 0) return null;
       return first.map(({ x, y, visibility }) => ({ x, y, visibility }));
     },
     detectAll(image, timestampMs) {
       if (closed || timestampMs <= lastTs) return [];
       lastTs = timestampMs;
-      return pose
-        .detectForVideo(image, timestampMs)
-        .landmarks.filter((one) => one.length > 0)
+      return (result(image, timestampMs) ?? [])
+        .filter((one) => one.length > 0)
         .map((one) => one.map(({ x, y, visibility }) => ({ x, y, visibility })));
     },
-    setPoses: (count) => (closed ? Promise.resolve() : pose.setOptions({ numPoses: count })),
+    async setPoses(count) {
+      if (closed) return;
+      poses = count; // a rebuild that runs now, or later, takes this count
+      await rebuilding;
+      if (!closed && broken === undefined) await pose.setOptions({ numPoses: count });
+    },
     close() {
       if (closed) return;
       closed = true;

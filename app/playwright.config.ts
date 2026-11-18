@@ -52,6 +52,12 @@ export default defineConfig({
       use: { browserName: 'chromium', baseURL: `http://127.0.0.1:${APP_PORT}`, launchOptions: { args: fake } },
     },
     {
+      name: 'no-gpu',
+      testMatch: 'no-gpu.spec.ts',
+      // WebGL is off (no GPU, no SwiftShader). The GPU delegate cannot start, so the app must use the CPU delegate.
+      use: { browserName: 'chromium', baseURL: `http://127.0.0.1:${APP_PORT}`, launchOptions: { args: [...fake, '--disable-gpu', '--disable-software-rasterizer'] } },
+    },
+    {
       name: 'webkit',
       testMatch: 'webkit.spec.ts',
       // The Safari engine on the real built app. No fake camera flags exist, so the spec stubs getUserMedia.

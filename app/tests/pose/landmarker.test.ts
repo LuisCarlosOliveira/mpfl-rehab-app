@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { detectForVideo, close, createFromOptions, forVisionTasks } = vi.hoisted(() => {
   const detectForVideo = vi.fn();
@@ -49,6 +49,48 @@ describe('createLandmarker', () => {
     expect(delegates).toEqual(['GPU', 'CPU']);
     expect(createFromOptions).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ numPoses: poses }));
     createFromOptions.mockImplementation(async () => ({ detectForVideo, close }));
+  });
+
+  describe('GPU that starts but fails at run time', () => {
+    const gpuPose = { detectForVideo: vi.fn(() => { throw new Error('StartGraph failed: kGpuService'); }), close: vi.fn(), setOptions: vi.fn() };
+    const cpuPose = { detectForVideo: vi.fn(() => ({ landmarks: [[lm(1)]] })), close: vi.fn(), setOptions: vi.fn(async () => undefined) };
+    let t = 10;
+    beforeEach(() => {
+      t = 10;
+      gpuPose.detectForVideo.mockClear();
+      cpuPose.detectForVideo.mockClear();
+      createFromOptions.mockImplementation(async (_f, o) => (o.baseOptions.delegate === 'GPU' ? gpuPose : cpuPose));
+    });
+    afterEach(() => createFromOptions.mockImplementation(async () => ({ detectForVideo, close })));
+
+    it('rebuilds once with the CPU delegate, drops that frame, and goes on', async () => {
+      const l = await createLandmarker(undefined, 2);
+      expect(l.detect(video, 10)).toBeNull();
+      expect(gpuPose.close).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(l.detect(video, (t += 10))).toHaveLength(1));
+      expect(createFromOptions.mock.calls.map((c) => c[1].baseOptions.delegate)).toEqual(['GPU', 'CPU']);
+      expect(createFromOptions).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ numPoses: 2 }));
+      expect(gpuPose.detectForVideo).toHaveBeenCalledTimes(1);
+    });
+
+    it('never loops: if the CPU model fails to start, the next frame throws and no third model is made', async () => {
+      createFromOptions.mockImplementation(async (_f, o) => {
+        if (o.baseOptions.delegate === 'GPU') return gpuPose;
+        throw new Error('cpu failed');
+      });
+      const l = await createLandmarker();
+      expect(l.detectAll(video, 10)).toEqual([]);
+      await vi.waitFor(() => expect(() => l.detect(video, (t += 10))).toThrow('cpu failed'));
+      expect(createFromOptions).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry when the CPU model itself throws while running', async () => {
+      cpuPose.detectForVideo.mockImplementationOnce(() => { throw new Error('cpu run failed'); });
+      const l = await createLandmarker();
+      l.detect(video, 10);
+      await vi.waitFor(() => expect(() => l.detect(video, (t += 10))).toThrow('cpu run failed'));
+      expect(createFromOptions).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('makes a 2-pose instance on request', async () => {
