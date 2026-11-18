@@ -1,5 +1,6 @@
 // The forms and the progress page on the v3 parts (docs/ui-redesign-v3.md, sections 4 and 7.4).
 // The behaviour and the words of these screens are pinned by their own test files. This file pins the v3 structure.
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { draftOf, type PlanDraft } from '../../src/lib/planView';
@@ -45,6 +46,14 @@ describe('answer controls on the v3 parts', () => {
     const group = screen.getByRole('group', { name: 'Limit?' });
     expect(group.querySelector('.v3-radios')).not.toBeNull();
     expect(within(group).getByLabelText('Limit in degrees')).toHaveValue(60);
+  });
+});
+
+describe('the chosen segment keeps its name', () => {
+  // jsdom does not run CSS, so this reads the source. The e2e spec generator.spec.ts checks the real name after a click.
+  it('hides the check mark from the accessible name with the alt text of content', () => {
+    const css = readFileSync('src/ui/formsV3.css', 'utf8');
+    expect(css).toMatch(/\.v3-seg-cell input:checked \+ span::before\s*\{\s*content:[^;]*\/ ''/);
   });
 });
 

@@ -175,3 +175,9 @@ main:has(.v3-screen) {
   border-radius: var(--v3-r-card);
   background: var(--raised);
 }
+
+/* The check mark on the chosen segment is a picture. The alt text after the slash keeps it out of the accessible name,
+   so the radio is still named "No" and not "check mark No". The state is already "checked". */
+.v3-seg-cell input:checked + span::before {
+  content: '\2713\00a0' / '';
+}
