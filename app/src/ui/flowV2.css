@@ -651,3 +651,39 @@
   color: var(--muted);
   overflow-wrap: anywhere;
 }
+
+/* ===== Today's session: the progress mark, the start card on Home, the Next card and the list at the end ===== */
+.v2-flow.plan-progress {
+  margin-bottom: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+}
+.v2-flow .plan-progress-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  margin: 0;
+}
+.v2-flow .plan-progress-count {
+  font-weight: 700;
+}
+.v2-home .session-start-card {
+  padding: var(--s-4);
+  background: var(--sunken);
+  border-radius: var(--r-s);
+}
+.v2-flow.v2-overview .overview-list {
+  display: grid;
+  gap: var(--s-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-flow.v2-overview .overview-item {
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--edge);
+}
+.v2-flow.v2-overview .overview-item h2 {
+  margin: 0;
+}

@@ -54,6 +54,8 @@ interface Props {
   onNext: () => void;
   /** Timer exercises only: the button starts the exercise. */
   onStart: () => void;
+  /** The six steps with their drawings and nothing else. The compact Get ready card opens them with "Show the steps". */
+  stepsOnly?: boolean;
 }
 
 export function SetupGuide({
@@ -76,6 +78,7 @@ export function SetupGuide({
   onOpenPair,
   onNext,
   onStart,
+  stepsOnly = false,
 }: Props) {
   const otherLegChosen = askLeg && leg !== side;
   const techniqueLines = techniqueFor(kind);
@@ -110,6 +113,7 @@ export function SetupGuide({
       <p className="detail">The drawing shows the movement. It is not your limit.</p>
     </>
   );
+  if (stepsOnly) return <StepGuide steps={notes} figure={figureFor} />;
   return (
     <div className="stack v2-flow v2-setup">
       {askLeg && (

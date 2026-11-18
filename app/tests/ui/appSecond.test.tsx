@@ -281,7 +281,8 @@ describe('the Session with a phone', () => {
     click('Start Heel slide');
     click(/none of these apply/i);
     await heading('Set up the camera');
-    click('Next: set up the camera');
+    // The guide was seen in the first session, so the second start shows the compact card and goes to the camera step.
+    expect(screen.queryByRole('button', { name: 'Next: set up the camera' })).toBeNull();
     click('Start camera');
     fireEvent.click(await screen.findByRole('button', { name: 'Start exercise' }));
     await heading('Heel slide');

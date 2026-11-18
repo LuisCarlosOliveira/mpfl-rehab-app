@@ -4,9 +4,12 @@ import { Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactN
 import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
 import { createProtocolStore, type Mode, type Protocol } from '../lib/protocol';
+import { usesCamera } from '../lib/monitor/engine';
 import { isMonitored } from '../lib/monitor/monitored';
+import { keepsCamera } from '../lib/sessionPlan';
+import { plural } from '../lib/sets';
 import { selfProgressionOn } from '../lib/protocol/accept';
-import { hasSeenPrivacyNotice, loadStoredProtocol, readValidRows, saveSession, type MpflDb, type SessionRecord } from '../lib/storage';
+import { getGuideSeen, getLegPrefs, hasSeenPrivacyNotice, loadStoredProtocol, markGuideSeen, readValidRows, saveSession, setLegPrefs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
@@ -41,6 +44,8 @@ const CheckProgress = retryableLazy(() => import('./CheckProgress').then((m) => 
 const ConfirmPlan = retryableLazy(() => import('./ConfirmPlan').then((m) => ({ default: m.ConfirmPlan })));
 const Onboarding = retryableLazy(() => import('./Onboarding').then((m) => ({ default: m.Onboarding })));
 const PairCompanion = retryableLazy(() => import('./PairCompanion').then((m) => ({ default: m.PairCompanion })));
+const NextCard = retryableLazy(() => import('./PlanSession').then((m) => ({ default: m.NextCard })));
+const SessionOverview = retryableLazy(() => import('./PlanSession').then((m) => ({ default: m.SessionOverview })));
 const PlanResult = retryableLazy(() => import('./PlanResult').then((m) => ({ default: m.PlanResult })));
 const Session = retryableLazy(() => import('./Session').then((m) => ({ default: m.Session })));
 const Setup = retryableLazy(() => import('./Setup').then((m) => ({ default: m.Setup })));
@@ -49,7 +54,7 @@ const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ def
 
 // The screens that load on demand. The shell cannot move the focus to their heading while the chunk loads,
 // so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
-const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'progress', 'companion']);
+const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'progress', 'companion', 'next', 'overview']);
 
 /** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
@@ -234,6 +239,20 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     focusHeading(main.current?.querySelector<HTMLElement>('h1'));
   }, [state.screen]);
 
+  // Today's session. The place in the plan, and whether the camera of the exercise before is still on.
+  const plan = state.plan;
+  const planMark = plan ? { index: plan.index, total: plan.kinds.length } : undefined;
+  const last = plan?.entries[plan.entries.length - 1];
+  const cameraKept = plan !== null && plan.index > 0 && last?.run != null && last.kind === plan.kinds[plan.index - 1] && keepsCamera(plan.kinds, plan.index - 1);
+  // The camera stays on between two camera exercises only: on the Done step, and on the Next card when the next one uses it too.
+  // The summary at the end stops it. Session and Setup also stop it by themselves. A single exercise has no plan, so it is not touched here.
+  const screenNow = state.screen;
+  const nextUsesCamera = state.exercise !== null && usesCamera(state.exercise);
+  useEffect(() => {
+    const keep = screenNow === 'setup' || screenNow === 'session' || (plan !== null && (screenNow === 'summary' || (screenNow === 'next' && nextUsesCamera)));
+    if (plan !== null && !keep) source.stop();
+  }, [screenNow, plan, nextUsesCamera, source]);
+
   const banners = bannersFor(mode, protocol?.example === true, protocol?.generated !== undefined && protocol.approvedOn === undefined);
 
   const screen = (() => {
@@ -250,6 +269,10 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               db={db}
               now={now}
               onStart={(kind) => dispatch({ type: 'choose-exercise', exercise: kind })}
+              onStartSession={(kinds) => {
+                sound.unlock(); // inside the press, so the browser allows audio later
+                dispatch({ type: 'start-session', kinds });
+              }}
               onLoadProtocol={() => dispatch({ type: 'open', screen: 'load' })}
               onOpenData={() => dispatch({ type: 'open', screen: 'data' })}
               onOpenCompanion={() => dispatch({ type: 'open', screen: 'companion' })}
@@ -282,7 +305,17 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               source={source}
               pair={{ pairing, view: pairingView }}
               sound={sound}
-              onReady={(done) => dispatch({ type: 'setup-done', ...done })}
+              compact={getGuideSeen().includes(exercise.kind)}
+              initialLeg={state.exerciseLeg ?? getLegPrefs().leg}
+              initialCameraSide={state.cameraSide ?? getLegPrefs().cameraSide}
+              plan={planMark && { ...planMark, detail: exercise.sets === undefined ? null : `${exercise.sets} ${plural(exercise.sets, 'set')}` }}
+              cameraKept={cameraKept}
+              onReady={(done) => {
+                // The next start remembers the two answers and that the guide was seen. Only the words left or right are stored.
+                if (usesCamera(exercise.kind)) setLegPrefs(done.exerciseLeg, done.cameraSide);
+                markGuideSeen(exercise.kind);
+                dispatch({ type: 'setup-done', ...done });
+              }}
               onCancel={() => dispatch({ type: 'open', screen: 'home' })}
             />
           );
@@ -301,6 +334,8 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               sound={sound}
               painPauseThreshold={protocol.painPauseThreshold}
               stopRef={stopSession}
+              plan={planMark}
+              keepCamera={plan !== null && keepsCamera(plan.kinds, plan.index)}
               onEnd={(reason, summary) => {
                 // The run is saved now, before any question. A closed tab or a crash after this point keeps the run.
                 const run = { reason, summary };
@@ -328,10 +363,29 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               cameraSide={state.cameraSide ?? undefined}
               db={db}
               now={now}
-              onDone={() => dispatch({ type: 'finish' })}
+              plan={planMark && { ...planMark, keepCamera: plan !== null && keepsCamera(plan.kinds, plan.index) }}
+              onDone={() => dispatch(plan ? { type: 'plan-continue' } : { type: 'finish' })}
+              onStop={() => dispatch({ type: 'plan-stop' })}
             />
           );
         }
+        break;
+      case 'next':
+        if (plan && state.exercise) {
+          return (
+            <NextCard
+              name={EXERCISE_NAMES[state.exercise]}
+              index={plan.index}
+              total={plan.kinds.length}
+              onStart={() => dispatch({ type: 'open', screen: 'setup' })}
+              onSkip={() => dispatch({ type: 'plan-skip' })}
+              onStop={() => dispatch({ type: 'plan-stop' })}
+            />
+          );
+        }
+        break;
+      case 'overview':
+        if (plan) return <SessionOverview entries={plan.entries} onDone={() => dispatch({ type: 'finish' })} />;
         break;
       case 'dashboard':
         return <Progress db={db} onBack={() => dispatch({ type: 'open', screen: 'home' })} />;

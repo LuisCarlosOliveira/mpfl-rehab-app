@@ -20,6 +20,7 @@ import { isNumericKind } from '../lib/monitor/monitored';
 import { usesCamera as kindUsesCamera } from '../lib/monitor/engine';
 import { specFor } from '../lib/monitor/registry';
 import { distanceText, type CameraView } from '../lib/figure';
+import { PlanProgress } from './PlanProgress';
 import type { AnyGuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
 import { DEFAULT_PROFILE, createSetupStabilizer, setupProfileFor, type SetupRuleId } from '../lib/setupRules';
@@ -31,7 +32,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -69,6 +70,7 @@ const cameraCaption = (view: CameraView, kind: AnyGuideKind): string =>
     ? `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`
     : `Camera in front of you, at ${kind === 'leg-raise-side' ? 'hip' : 'knee'} height, ${distanceText()} away.`;
 const SLOW_START_MS = 8000;
+const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
 // The number 6 in the camera drawing matches the sixth note of the guide (see SetupGuide.tsx).
 const CAMERA_MARKS: Mark[] = [{ n: 6, at: 'lens', dx: -2.4, dy: 2.4 }];
 
@@ -86,15 +88,27 @@ interface Props {
   /** The pairing of the second camera. Missing means that this app run offers one camera only. */
   pair?: { pairing: Pairing; view: PairingView };
   sound: Sound;
+  /** The guide was seen before: one compact "Get ready" card replaces the guide. "Show the steps" opens it. */
+  compact?: boolean;
+  /** The leg and the camera side that the person chose before. They are the first answers, not a new choice. */
+  initialLeg?: Side;
+  initialCameraSide?: Side;
+  /** Today's session: the place of this exercise. The progress mark shows above the steps. */
+  plan?: { index: number; total: number; detail?: string | null };
+  /** Today's session: the camera of the exercise before is still on. Setup starts the same source again with no new press. */
+  cameraKept?: boolean;
   onReady: (done: SetupDone) => void;
   onCancel: () => void;
 }
 
-export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, onReady, onCancel }: Props) {
-  const [step, setStep] = useState<'guide' | 'pair' | 'camera'>('guide');
+export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, compact = false, initialLeg, initialCameraSide, plan, cameraKept = false, onReady, onCancel }: Props) {
   // The definition of the exercise sets the rules of the check, the views and the questions (lib/monitor/registry.ts).
   const spec = specFor(kind);
   const usesCamera = kindUsesCamera(kind); // false: the two timers. The app times the hold and never starts the camera.
+  const [changing, setChanging] = useState(false); // "Change leg or camera side" opens the full guide again
+  const compactNow = compact && !changing;
+  const [step, setStep] = useState<'guide' | 'pair' | 'camera'>(compactNow && usesCamera ? 'camera' : 'guide');
+  const [showSteps, setShowSteps] = useState(false);
   const profile = setupProfileFor(kind) ?? DEFAULT_PROFILE; // a timer never reaches the camera step, so its profile is not read
   const askLeg = usesCamera && (spec === undefined || spec.view.legs === 'chosen');
   const askCameraSide = usesCamera && (spec === undefined || spec.view.cameraSide === 'operated-leg-near');
@@ -110,10 +124,11 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const [live, setLive] = useState<Live | null>(null);
   const [stabilizer] = useState(() => createSetupStabilizer());
   // `side` is the leg of the protocol. `leg` is the leg that the person chose. Only `leg` reaches the next screen.
-  const [leg, setLeg] = useState<Side>(side);
-  const [cameraSide, setCameraSide] = useState<Side>(side);
-  const cameraChosen = useRef(false);
-  const [confirmedOther, setConfirmedOther] = useState(false);
+  const [leg, setLeg] = useState<Side>(initialLeg ?? side);
+  const [cameraSide, setCameraSide] = useState<Side>(initialCameraSide ?? initialLeg ?? side);
+  const cameraChosen = useRef(initialCameraSide !== undefined);
+  // A leg that differs from the plan and was stored was confirmed when the person chose it.
+  const [confirmedOther, setConfirmedOther] = useState(initialLeg !== undefined && initialLeg !== side);
   const baseline = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -130,6 +145,13 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     },
     [source],
   );
+
+  // Today's session. A camera that the exercise before left on stops when this exercise needs none.
+  // It starts again with no new press when this one needs it too. The source keeps the stream and the model.
+  useEffect(() => {
+    if (!usesCamera) source.stop();
+    else if (compactNow && cameraKept) void startCamera();
+  }, []);
 
   function begin() {
     if (handedOff.current) return;
@@ -241,6 +263,56 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   // A timer exercise has one step: the guide and the start button. No camera runs.
   const order: readonly (typeof step)[] = !usesCamera ? ['guide'] : pairUsed ? ['guide', 'pair', 'camera'] : ['guide', 'camera'];
   const labels = { guide: 'Position guide', pair: 'Second camera', camera: 'Camera' } as const;
+  const guideProps = {
+    kind,
+    usesCamera,
+    askLeg,
+    askCameraSide,
+    side,
+    leg,
+    cameraSide,
+    legend,
+    targetFlexion,
+    limit,
+    confirmedOther,
+    cameraGuide: cameraViews.length === 0 ? null : cameraGuide,
+    returnNotice,
+    onLegChange: chooseLeg,
+    onCameraSideChange: (value: Side) => {
+      cameraChosen.current = true;
+      setCameraSide(value);
+    },
+    onConfirmOther: () => setConfirmedOther(true),
+    onOpenPair: pair && usesCamera ? openPair : undefined,
+    onNext: () => setStep('camera'),
+    onStart: begin,
+  };
+  // The leg and the camera side were stored. "Change" stops the camera and opens the full guide with the two questions.
+  function changeAnswers() {
+    source.stop();
+    setCamera({ kind: 'idle' });
+    setLive(null);
+    setChanging(true);
+    setStep('guide');
+  }
+  const answersLine = [askLeg ? `${SIDE_WORD[leg]} leg.` : null, askCameraSide ? `Camera on your ${cameraSide} side.` : null].filter(Boolean).join(' ');
+  const getReady = compactNow && (
+    <div className="card card-flat stack-s get-ready">
+      <h2>Get ready</h2>
+      <p>{usesCamera ? answersLine : TIMER_NOTE}</p>
+      <div className="actions">
+        <button type="button" className="btn" aria-expanded={showSteps} onClick={() => setShowSteps((v) => !v)}>
+          {showSteps ? 'Hide the steps' : 'Show the steps'}
+        </button>
+        {usesCamera && (askLeg || askCameraSide) && (
+          <button type="button" className="btn" onClick={changeAnswers}>
+            Change leg or camera side
+          </button>
+        )}
+      </div>
+      {showSteps && <SetupGuide {...guideProps} stepsOnly />}
+    </div>
+  );
   const stepList = usesCamera && (
     <ol className="steps" aria-label="Steps">
       {order.map((id, i) => {
@@ -297,33 +369,24 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
         </button>
       </header>
 
+      {plan && <PlanProgress index={plan.index} total={plan.total} detail={plan.detail} />}
+
       {stepList}
 
       {step === 'guide' ? (
-        <SetupGuide
-          kind={kind}
-          usesCamera={usesCamera}
-          askLeg={askLeg}
-          askCameraSide={askCameraSide}
-          side={side}
-          leg={leg}
-          cameraSide={cameraSide}
-          legend={legend}
-          targetFlexion={targetFlexion}
-          limit={limit}
-          confirmedOther={confirmedOther}
-          cameraGuide={cameraViews.length === 0 ? null : cameraGuide}
-          returnNotice={returnNotice}
-          onLegChange={chooseLeg}
-          onCameraSideChange={(value) => {
-            cameraChosen.current = true;
-            setCameraSide(value);
-          }}
-          onConfirmOther={() => setConfirmedOther(true)}
-          onOpenPair={pair && usesCamera ? openPair : undefined}
-          onNext={() => setStep('camera')}
-          onStart={begin}
-        />
+        compactNow ? (
+          <div className="stack v2-flow v2-setup">
+            {getReady}
+            <div className="action-bar">
+              <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
+                <Icon name="play" size={20} />
+                Start exercise
+              </button>
+            </div>
+          </div>
+        ) : (
+          <SetupGuide {...guideProps} />
+        )
       ) : (
         <div className="setup-grid">
           <div className="stack">
@@ -410,6 +473,7 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
           </div>
 
           <aside className="stack">
+            {getReady}
             <div className="card card-flat stack-s">
               <h2>Before you start</h2>
               <p>The app uses the camera to find your leg. It does not record or send video.</p>

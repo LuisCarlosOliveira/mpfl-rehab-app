@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
 import { surgeonField, SURGEON_FIELDS, type Exercise, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { isMonitored, isNumericKind } from '../lib/monitor/monitored';
+import { sessionKinds } from '../lib/sessionPlan';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
 import { CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, progressCard } from '../lib/progressHome';
@@ -79,6 +80,8 @@ interface Props {
   db: MpflDb;
   now: () => Date;
   onStart: (kind: ExerciseKind) => void;
+  /** Starts today's session with these exercises, in plan order. The button shows only when the handler is given and one exercise can start. */
+  onStartSession?: (kinds: ExerciseKind[]) => void;
   /** Goes to the Load screen. It erases nothing. Old sessions stay (ux-flow U6). */
   onLoadProtocol: () => void;
   /** The two buttons show only when the handler is given, as in the data screen. */
@@ -96,7 +99,7 @@ interface Props {
 export const REVIEW_TITLE = 'Review your plan with your care team';
 export const NO_PLAN_AFTER_WEEK = `The app has no plan after week ${LAST_PLAN_WEEK}. Contact your care team for your next plan.`;
 
-export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadProtocol, onOpenData, onOpenCompanion, onOpenPrivacy, onUpdatePlan, onCheckProgress }: Props) {
+export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSession, onLoadProtocol, onOpenData, onOpenCompanion, onOpenPrivacy, onUpdatePlan, onCheckProgress }: Props) {
   const lastExport = getLastExport();
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
@@ -135,6 +138,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
   const planEnd = madeByApp && pastPlanWeeks && !review;
 
   const exercises = phase?.exercises ?? [];
+  const toRun = sessionKinds(exercises);
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
 
   return (
@@ -224,6 +228,15 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
       <div className="home-grid">
         <section aria-labelledby="exercises-title" className="stack-s">
           <h2 id="exercises-title">Your exercises</h2>
+          {onStartSession && toRun.length > 0 && (
+            <div className="session-start-card stack-s">
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => onStartSession(toRun)}>
+                <Icon name="play" size={22} />
+                Start today's session
+              </button>
+              <p className="detail">{`${plural(toRun.length, 'exercise')} in the order of your plan. One check before you start.`}</p>
+            </div>
+          )}
           <ul className="exercise-list">
             {exercises.map((e, i) => {
               const name = PLAN_NAMES[e.kind];
@@ -279,7 +292,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onLoadPro
                   <div className="exercise-go">
                     <button
                       type="button"
-                      className={featured ? 'btn btn-primary btn-lg' : 'btn btn-primary'}
+                      className={onStartSession && toRun.length > 0 ? 'btn' : featured ? 'btn btn-primary btn-lg' : 'btn btn-primary'}
                       disabled={!ready}
                       aria-label={`Start ${name}`}
                       onClick={() => onStart(e.kind)}
