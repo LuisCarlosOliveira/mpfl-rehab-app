@@ -9,7 +9,9 @@ import { Notice } from './Notice';
 import { prescription } from './Home';
 import { PlanLines } from './HomeExercises';
 import { SourceNote, SourceNotes } from './SourceNote';
+import { Actions } from './v3/shellParts';
 import './screensV2.css';
+import './formsV3.css';
 
 /** Why the heel slide is not in phase 1 without a limit. Sources: S1 and P3 (audit row V36). P1 starts it in phase 2 (V37 note). No number. */
 const HEEL_NOT_ADDED =
@@ -113,98 +115,107 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
   const phaseOneStays = why.find((e) => e.ruleId === 'PH2' && e.outcome === 'refused');
 
   return (
-    <section aria-labelledby="plan-title" className="narrow v2-screens">
-      <header className="page-head">
-        <h1 id="plan-title" tabIndex={-1}>
-          Your plan
-        </h1>
-      </header>
-      <div className="stack">
-        <Notice role="note" icon="info">
-          <p>{GENERATED_BANNER}</p>
-        </Notice>
+    <section aria-labelledby="plan-title" className="v3 v3-screen v2-screens v3-plan-result">
+      <div className="v3-cols">
+        <div className="v3-fields">
+          <header className="page-head">
+            <h1 id="plan-title" tabIndex={-1}>
+              Your plan
+            </h1>
+          </header>
+          <Notice role="note" icon="info">
+            <p>{GENERATED_BANNER}</p>
+          </Notice>
 
-        <section className="stack-s" aria-labelledby="plan-phase">
-          <h2 id="plan-phase">{phase ? `Phase ${phase.id} ${phase.name}` : `Phase ${protocol.activePhase}`}</h2>
-          <ul className="plan-exercises dose-list" aria-label="Exercises in your plan">
-            {exercises.map((e) => {
-              const lines = prescription(e, true);
-              // The first line is the dose (sets and reps, or sets, or the hold). The other lines stay under the name as plain text.
-              const [dose, ...rest] = lines;
-              return (
-                <li key={e.kind} className="dose-row">
-                  <p className="exercise-name dose-name">{PLAN_NAMES[e.kind]}</p>
-                  {dose && <p className="dose">{dose.text}</p>}
-                  {rest.length > 0 && (
-                    <ul className="dose-notes">
-                      {rest.map((line) => (
-                        <li key={line.text}>{line.text}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {monitorLine(e.kind) !== null && <p className="detail dose-note">{monitorLine(e.kind)}</p>}
-                  {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">{HOLD_TIME_LINE}</p>}
-                  {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
-                </li>
-              );
-            })}
-          </ul>
-          <SourceNotes made={made.map((e) => e.ruleId)} scope={doseScope(protocol)} />
-          {!hasHeel && (
-            <Notice role="note" icon="info">
-              <p>{heelNote}</p>
-            </Notice>
-          )}
-          {phaseOneStays !== undefined && (
-            <Notice role="note" icon="info">
-              <p>{phaseOneStays.text}</p>
-            </Notice>
-          )}
-          <PlanLines protocol={protocol} why={why} />
-          <div className="range-reference">
+          <section className="stack-s" aria-labelledby="plan-phase">
+            <h2 id="plan-phase">{phase ? `Phase ${phase.id} ${phase.name}` : `Phase ${protocol.activePhase}`}</h2>
+            <ul className="plan-exercises dose-list" aria-label="Exercises in your plan">
+              {exercises.map((e) => {
+                const lines = prescription(e, true);
+                // The first line is the dose (sets and reps, or sets, or the hold). The other lines stay under the name as plain text.
+                const [dose, ...rest] = lines;
+                return (
+                  <li key={e.kind} className="dose-row">
+                    <p className="exercise-name dose-name">{PLAN_NAMES[e.kind]}</p>
+                    {dose && <p className="dose">{dose.text}</p>}
+                    {rest.length > 0 && (
+                      <ul className="dose-notes">
+                        {rest.map((line) => (
+                          <li key={line.text}>{line.text}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {monitorLine(e.kind) !== null && <p className="detail dose-note">{monitorLine(e.kind)}</p>}
+                    {e.kind === 'seated-extension-hold' && e.holdSeconds === undefined && <p className="detail dose-note">{HOLD_TIME_LINE}</p>}
+                    {e.targetFlexion !== undefined && e.kind !== 'seated-extension-hold' && <p className="detail dose-note">{countStartText(e.targetFlexion)}.</p>}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </div>
+
+        <div className="v3-fields">
+          <div className="stack-s">
+            <SourceNotes made={made.map((e) => e.ruleId)} scope={doseScope(protocol)} />
+            {!hasHeel && (
+              <Notice role="note" icon="info">
+                <p>{heelNote}</p>
+              </Notice>
+            )}
+            {phaseOneStays !== undefined && (
+              <Notice role="note" icon="info">
+                <p>{phaseOneStays.text}</p>
+              </Notice>
+            )}
+            <PlanLines protocol={protocol} why={why} />
+            <div className="range-reference">
               <SourceNote rule="RANGE_NONE" />
             </div>
-          <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
-        </section>
-
-        <details className="card disclosure">
-          <summary>
-            <h2>Why this plan</h2>
-            <span className="chip chip-accent">{made.length + left.length} rules</span>
-            <span className="chev">
-              <Icon name="chevron-down" />
-            </span>
-          </summary>
-          <div className="disclosure-body stack">
-            <div className="stack-s">
-              <p className="why-group">Your answers</p>
-              <ul className="why-answers" aria-label="Your answers">
-                {answerLines(inputs).map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="stack-s">
-              <p className="why-group">Rules behind your plan</p>
-              <WhyList entries={made} label="Rules behind your plan" asks={false} />
-            </div>
-            <div className="stack-s">
-              <p className="why-group">Not in your plan, and why</p>
-              <WhyList entries={left} label="Not in your plan, and why" asks />
-            </div>
+            <p className="detail">Other doses and the next stage: ask your care team. Open Why this plan to see the source of each rule.</p>
           </div>
-        </details>
+
+          <details className="card disclosure">
+            <summary>
+              <h2>Why this plan</h2>
+              <span className="chip chip-accent">{made.length + left.length} rules</span>
+              <span className="chev">
+                <Icon name="chevron-down" />
+              </span>
+            </summary>
+            <div className="disclosure-body stack">
+              <div className="stack-s">
+                <p className="why-group">Your answers</p>
+                <ul className="why-answers" aria-label="Your answers">
+                  {answerLines(inputs).map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="stack-s">
+                <p className="why-group">Rules behind your plan</p>
+                <WhyList entries={made} label="Rules behind your plan" asks={false} />
+              </div>
+              <div className="stack-s">
+                <p className="why-group">Not in your plan, and why</p>
+                <WhyList entries={left} label="Not in your plan, and why" asks />
+              </div>
+            </div>
+          </details>
+        </div>
       </div>
 
-      <div className="action-bar">
-        <button type="button" className="btn btn-primary btn-lg" onClick={onUse}>
-          Use this plan
-        </button>
-        <button type="button" className="btn btn-lg" onClick={onBack}>
-          <Icon name="arrow-left" size={18} />
-          Back
-        </button>
-      </div>
+      <Actions label="Your plan buttons">
+        <div className="v3-btnrow">
+          <button type="button" className="btn btn-primary btn-lg" onClick={onUse}>
+            Use this plan
+          </button>
+          <button type="button" className="btn btn-lg" onClick={onBack}>
+            <Icon name="arrow-left" size={18} />
+            Back
+          </button>
+        </div>
+      </Actions>
     </section>
   );
 }

@@ -62,13 +62,13 @@ describe('StepTrack', () => {
 });
 
 describe('C1 question screens', () => {
-  it('shows a track of 3 marks, with Back before Continue, under the root class', () => {
+  // Changed on purpose (v3 forms): the 3 marks of StepTrack are the 3 segments of SessionProgress, and the sticky bar is the v3 action bar.
+  it('shows a progress bar of 3 steps, with Back before Continue, under the root class', () => {
     const { container } = render(<Onboarding today={TODAY} onDone={vi.fn()} onCancel={vi.fn()} />);
     expect(container.querySelector('.v2-screens')).not.toBeNull();
-    const track = container.querySelector('.step-track')!;
-    expect(track.querySelectorAll('li')).toHaveLength(3);
+    expect(container.querySelectorAll('.v3-segs i')).toHaveLength(3);
     expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
-    const buttons = [...container.querySelectorAll('.action-bar button')].map((b) => b.textContent);
+    const buttons = [...container.querySelectorAll('.v3-actions button')].map((b) => b.textContent);
     expect(buttons).toEqual(['Back', 'Continue to your surgeon']);
   });
 });

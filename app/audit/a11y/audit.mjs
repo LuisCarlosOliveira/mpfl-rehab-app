@@ -99,31 +99,42 @@ async function saveOneSession(page) {
   await page.getByRole('button', { name: 'Done' }).click();
   await expectH1(page, 'Home');
 }
+// The questions run in 3 groups (Onboarding.tsx). A legend names the group of radio buttons of one question.
+const pick = (page, q, a) => page.getByRole('group', { name: q }).getByRole('radio', { name: a, exact: true }).check();
+const Q_LIMIT = 'Did your surgeon give a limit for how far you can bend your knee, also with a brace?';
 async function referralQuestions(page) {
-  await expectH1(page, 'Did your care team give you a written rehab plan?');
-  for (const a of ['No', 'MPFL reconstruction only', '18 or older', 'No', 'Yes', 'No']) {
-    await radio(page, a);
-    await press(page, 'Next');
-  }
+  await expectH1(page, 'You and your surgery');
+  await pick(page, 'Did your care team give you a written rehab plan?', 'No');
+  await pick(page, 'Which operation did you have?', 'MPFL reconstruction only');
+  await pick(page, 'How old are you?', '18 or older');
+  await pick(page, 'Did you have surgery on both knees?', 'No');
+  await pick(page, 'Is this your first MPFL surgery on this knee?', 'Yes');
+  await pick(page, 'Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?', 'No');
+  await press(page, 'Continue to your surgeon');
 }
 async function toQuestionsDate(page) {
   await toLoad(page);
   await press(page, 'Create my plan');
   await referralQuestions(page);
+  await expectH1(page, 'Your surgeon');
+}
+async function fillSurgeon(page) {
+  const [y, m, d] = ago(24).split('-');
+  await page.getByLabel('Day', { exact: true }).fill(String(Number(d)));
+  await page.getByLabel('Month', { exact: true }).fill(String(Number(m)));
+  await page.getByLabel('Year', { exact: true }).fill(y);
+  await pick(page, 'Which knee did you have surgery on?', 'Left');
+  await pick(page, Q_LIMIT, 'Yes, my limit is');
+  await page.getByLabel('Limit in degrees').fill('60');
 }
 async function toCheckAnswers(page) {
   await toQuestionsDate(page);
-  await page.getByLabel('Date of surgery').fill(ago(24));
-  await press(page, 'Next');
-  await radio(page, 'Left');
-  await press(page, 'Next');
-  await radio(page, 'Yes, my limit is');
-  await page.getByLabel('Limit in degrees').fill('60');
-  await press(page, 'Next');
-  await press(page, 'Next'); // red flags: none ticked
-  await radio(page, '2');
+  await fillSurgeon(page);
+  await press(page, 'Continue to today');
+  await expectH1(page, 'How are you today?');
+  await radio(page, '2'); // red flags: none ticked
   await radio(page, 'No swelling');
-  await press(page, 'Next');
+  await press(page, 'Check my answers');
   await expectH1(page, 'Check your answers');
 }
 async function toPlan(page) {
@@ -252,7 +263,7 @@ export const SCREENS = [
     go: async (p) => {
       await toLoad(p);
       await press(p, 'Create my plan');
-      await expectH1(p, 'Did your care team give you a written rehab plan?');
+      await expectH1(p, 'You and your surgery');
     },
   },
   {
@@ -260,21 +271,22 @@ export const SCREENS = [
     go: async (p) => {
       await toLoad(p);
       await press(p, 'Create my plan');
-      await radio(p, 'Yes');
-      await press(p, 'Next');
+      await pick(p, 'Did your care team give you a written rehab plan?', 'Yes');
+      await pick(p, 'Which operation did you have?', 'MPFL reconstruction only');
+      await pick(p, 'How old are you?', '18 or older');
+      await pick(p, 'Did you have surgery on both knees?', 'No');
+      await pick(p, 'Is this your first MPFL surgery on this knee?', 'Yes');
+      await pick(p, 'Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?', 'No');
+      await press(p, 'Continue to your surgeon');
       await expectH1(p, 'No plan from the app');
     },
   },
-  { name: 'Generator, date question', go: async (p) => { await toQuestionsDate(p); await expectH1(p, 'What was the date of your surgery?'); } },
+  { name: 'Generator, date question', go: async (p) => { await toQuestionsDate(p); } },
   {
     name: 'Generator, limit question',
     go: async (p) => {
       await toQuestionsDate(p);
-      await p.getByLabel('Date of surgery').fill(ago(24));
-      await press(p, 'Next');
-      await radio(p, 'Left');
-      await press(p, 'Next');
-      await radio(p, 'Yes, my limit is');
+      await fillSurgeon(p);
     },
   },
   { name: 'Generator, check answers', go: toCheckAnswers },

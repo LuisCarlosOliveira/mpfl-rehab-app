@@ -12,8 +12,10 @@ import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SurgeryDate
 import { focusHeading } from './focusHeading';
 import { Icon } from './Icon';
 import { PainScale } from './PainScale';
-import { StepTrack } from './StepTrack';
+import { Actions } from './v3/shellParts';
+import { SessionProgress } from './v3/SessionProgress';
 import './screensV2.css';
+import './formsV3.css';
 
 interface Props {
   /** The calendar date of today, as year-month-day. The app gives it from the clock. */
@@ -191,7 +193,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   }
 
   const yn = (name: keyof typeof TITLES, value: string | null, onChange: (v: string) => void, choices = YES_NO_UNKNOWN) => (
-    <ChoiceGroup key={name} name={name} legend={TITLES[name]} showLegend row value={value} choices={choices} onChange={onChange} />
+    <ChoiceGroup key={name} name={name} legend={TITLES[name]} row value={value} choices={choices} onChange={onChange} />
   );
 
   const body = (() => {
@@ -200,13 +202,13 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
         return (
           <>
             {yn('writtenPlan', answers.writtenPlan, (v) => set({ writtenPlan: v as Answers['writtenPlan'] }))}
-            <ChoiceGroup name="procedure" legend={TITLES.procedure} showLegend value={answers.procedure} choices={PROCEDURES} onChange={(v) => set({ procedure: v as Answers['procedure'] })} />
+            <ChoiceGroup name="procedure" legend={TITLES.procedure} value={answers.procedure} choices={PROCEDURES} onChange={(v) => set({ procedure: v as Answers['procedure'] })} />
             <p className="detail">Your discharge letter names the operation. If you are not sure, choose I do not know.</p>
             <p className="detail">
               Another procedure can be a bone cut below the kneecap (tibial tubercle osteotomy), groove reshaping (trochleoplasty), cartilage repair, or a release or
               lengthening of the outer tissue.
             </p>
-            <ChoiceGroup name="ageBand" legend={TITLES.ageBand} showLegend row value={answers.ageBand} choices={AGES} onChange={(v) => set({ ageBand: v as Answers['ageBand'] })} />
+            <ChoiceGroup name="ageBand" legend={TITLES.ageBand} row value={answers.ageBand} choices={AGES} onChange={(v) => set({ ageBand: v as Answers['ageBand'] })} />
             {yn('bothKnees', answers.bothKnees === null ? null : answers.bothKnees ? 'yes' : 'no', (v) => set({ bothKnees: v === 'yes' }), YES_NO)}
             {yn('firstSurgery', answers.firstSurgery, (v) => set({ firstSurgery: v as Answers['firstSurgery'] }))}
             {yn('specialRules', answers.specialRules, (v) => set({ specialRules: v as Answers['specialRules'] }))}
@@ -217,11 +219,10 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
           <>
             <SurgeryDateField value={answers.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
             <p className="detail">The app keeps this date on this device only. It uses the date to count the weeks since surgery.</p>
-            <ChoiceGroup name="side" legend={TITLES.side} showLegend row value={answers.side} choices={SIDES} onChange={(v) => set({ side: v as Answers['side'] })} />
+            <ChoiceGroup name="side" legend={TITLES.side} row value={answers.side} choices={SIDES} onChange={(v) => set({ side: v as Answers['side'] })} />
             <LimitChoice
               name="limit"
               legend={TITLES.limit}
-              showLegend
               kind={answers.limitKind}
               degrees={answers.limitDegrees}
               onKind={(limitKind) => set({ limitKind })}
@@ -234,7 +235,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
       case 'today':
         return (
           <>
-            <fieldset className="choices">
+            <fieldset className="v3-choice">
               <legend>{TITLES.redFlags}</legend>
               <p className="lede">Tick each sentence that is true today.</p>
               <RedFlagChecklist ticked={answers.redFlags} onToggle={(id, on) => set({ redFlags: { ...answers.redFlags, [id]: on } })} />
@@ -281,38 +282,35 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   const summary = step === 'summary';
   const page = summary ? null : GROUP_PAGES[step];
   return (
-    <section aria-labelledby="question-title" className="narrow v2-screens v2-questions">
-      <header className="page-head">
-        <div className="stack-s">
-          {page && (
-            <>
-              <p className="detail question-count">{`Step ${index + 1} of ${GROUP_IDS.length}`}</p>
-              <StepTrack total={GROUP_IDS.length} current={index} label="Steps" />
-            </>
-          )}
+    <section aria-labelledby="question-title" className="v3 v3-screen v2-screens v3-questions">
+      <div className="v3-cols">
+        <header className="v3-formhead">
+          {page && <SessionProgress total={GROUP_IDS.length} current={index + 1} unit="Step" />}
           <h1 id="question-title" tabIndex={-1} ref={heading}>
             {page ? page.title : 'Check your answers'}
           </h1>
           {page && <p className="lede">{page.intro}</p>}
-        </div>
-      </header>
-      <div className={page ? 'stack question-group' : 'stack'}>{body}</div>
-      <div className="action-bar">
-        <button type="button" className="btn btn-lg btn-back" onClick={goBack}>
-          <Icon name="arrow-left" size={18} />
-          Back
-        </button>
-        {page ? (
-          <button type="button" className="btn btn-primary btn-lg" disabled={!groupAnswered(step as GroupId, answers, today)} onClick={goNext}>
-            {page.next}
-            <Icon name="chevron-right" size={20} />
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary btn-lg" onClick={makePlan}>
-            Make my plan
-          </button>
-        )}
+        </header>
+        <div className="v3-fields">{body}</div>
       </div>
+      <Actions label="Question buttons">
+        <div className="v3-btnrow">
+          <button type="button" className="btn btn-lg btn-back" onClick={goBack}>
+            <Icon name="arrow-left" size={18} />
+            Back
+          </button>
+          {page ? (
+            <button type="button" className="btn btn-primary btn-lg" disabled={!groupAnswered(step as GroupId, answers, today)} onClick={goNext}>
+              {page.next}
+              <Icon name="chevron-right" size={20} />
+            </button>
+          ) : (
+            <button type="button" className="btn btn-primary btn-lg" onClick={makePlan}>
+              Make my plan
+            </button>
+          )}
+        </div>
+      </Actions>
     </section>
   );
 }
