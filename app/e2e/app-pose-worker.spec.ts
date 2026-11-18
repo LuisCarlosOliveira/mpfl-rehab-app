@@ -85,13 +85,4 @@ test('Back from the Session ends the worker', async ({ page }) => {
   await expect.poll(async () => (await probe(page)).terminated).toBe(1);
   expect((await trackStates(page)).every((s) => s === 'video:ended')).toBe(true);
 });
-
-test('a browser with no Worker still runs the model on the main thread', async ({ page, baseURL }) => {
-  await probeWorker(page, { hideWorker: true });
-  const seen = watch(page, new URL(baseURL!).origin);
-  await toSession(page);
-  await page.waitForTimeout(1500);
-  expect(await page.evaluate(() => window.Worker)).toBeUndefined();
-  expect(seen.requests.some((u) => u.endsWith('/models/pose_landmarker_lite.task'))).toBe(true);
-  await seen.expectClean('Session on the main thread');
-});
+// The main-thread test (no Worker) is in no-gpu.spec.ts. Software WebGL makes the GPU delegate too slow for it.
