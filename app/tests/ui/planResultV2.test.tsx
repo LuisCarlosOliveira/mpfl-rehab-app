@@ -195,7 +195,7 @@ describe('Home, a plan with the five exercises', () => {
 
   it('shows the five as rows with a Start button, and the lines of the plan', () => {
     show(protocol());
-    const row = screen.getByRole('heading', { level: 3, name: 'Quadriceps set' }).closest('li') as HTMLElement;
+    const row = screen.getByText('Quadriceps set', { selector: '.v3-plan-name' }).closest('li') as HTMLElement;
     expect(within(row).getByRole('button', { name: 'Start Quadriceps set' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Start Straight leg raise' })).toBeEnabled();
     expect(screen.getByText(RULES.PT_VISITS.text)).toBeInTheDocument();
@@ -222,17 +222,17 @@ describe('Home, a plan with the five exercises', () => {
 
   it('shows the dose range in the exercise chips and "ask your care team" for the heel slide, and no undefined or NaN', () => {
     const { container } = show(protocol({ ...week8, walksWithoutCrutches: 'yes', legRaiseStraight: 'yes', seatedHoldCleared: 'yes' }));
-    expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Start Seated knee extension hold' })).toBeNull(); // v3: no Start for a hold that cannot start
     expect(screen.getAllByText('Hold time: no number in the guideline. The seated hold cannot start until a hold time is set.')).toHaveLength(1);
     expect(screen.queryByText(/Hold time missing/)).toBeNull();
     const text = container.textContent ?? '';
     expect(text).not.toMatch(/undefined|NaN/);
-    expect(screen.getAllByText('Straightest knee angle: 40 degrees').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Limit 50 degrees').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('2 sets of 10 to 15, then 3 sets as tolerated').length).toBeGreaterThan(1);
-    expect(screen.getAllByText('How many: ask your care team').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Straightest knee angle: 40 degrees/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Limit 50 degrees/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2 sets of 10 to 15, then 3 sets as tolerated/).length).toBeGreaterThan(1);
+    expect(screen.getAllByText(/How many: ask your care team/).length).toBeGreaterThan(0);
     // The plan has the answer "No limit", so the heel slide row says that the surgeon gave none (A3-10).
-    expect(screen.getAllByText('No knee-bend limit was given by your surgeon').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/No knee-bend limit was given by your surgeon/).length).toBeGreaterThan(0);
   });
 });
 

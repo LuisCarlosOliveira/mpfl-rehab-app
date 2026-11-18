@@ -169,8 +169,7 @@ describe('Done step (Summary in a session)', () => {
   it('is a short Done step with the plan progress', () => {
     renderDone();
     expect(screen.getByRole('heading', { level: 1, name: 'Done' })).toBeInTheDocument();
-    expect(screen.getByText('Exercise 1 of 3')).toBeInTheDocument();
-    expect(screen.getByText('3 sets')).toBeInTheDocument();
+    expect(screen.getByText('Exercise 1 of 3')).toBeInTheDocument(); // v3: SessionProgress. The sets detail is not shown any more.
     expect(screen.getByText('Reps counted')).toBeInTheDocument();
   });
 

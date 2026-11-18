@@ -15,13 +15,13 @@ async function downloadOf(page: Page, buttonName: string | RegExp) {
 
 test('Home links to Progress and My data', async ({ page }) => {
   await toHome(page);
-  await expect(page.getByRole('button', { name: 'Your sessions' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sessions' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'My data' })).toBeVisible();
 });
 
 test('Progress with no session shows the empty text', async ({ page }) => {
   await toHome(page);
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.getByText('No sessions yet.')).toBeVisible();
 });
@@ -29,7 +29,7 @@ test('Progress with no session shows the empty text', async ({ page }) => {
 test('Progress shows a chart with a data table for each series that has values, and "No values." for the others', async ({ page }) => {
   // The fake camera sees no person, so the saved session has a rep count and a pain answer but no knee angle.
   await saveOneSession(page);
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.locator('main [role="img"].dash-chart-box')).toHaveCount(2);
   await expect(page.locator('main table.data-table')).toHaveCount(2);
@@ -38,7 +38,7 @@ test('Progress shows a chart with a data table for each series that has values, 
   await expect(page.getByRole('heading', { name: /^Peak knee bend, Heel slide/ })).toBeVisible();
   await expect(page.getByText('No values.')).toHaveCount(1);
   await page.getByRole('button', { name: 'Back' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 });
 
 test('My data exports JSON with the method of the angle, and CSV', async ({ page }) => {
@@ -174,7 +174,7 @@ test('the care team view reads an exported file in memory only', async ({ page }
 
   // A reload drops the file from memory.
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   expect(await readStore(page, 'sessions')).toEqual(sessionsBefore);
 });
 

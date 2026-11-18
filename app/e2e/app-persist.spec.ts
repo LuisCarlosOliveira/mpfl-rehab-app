@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function findInYourSessions(page: Page) {
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.getByText(/no sessions/i)).toHaveCount(0);
   await expect(page.getByRole('table').first()).toBeVisible();
@@ -19,7 +19,7 @@ test('a run that ends with Stop is found after a reload, and the person never pr
   await stopButton(page).click();
   await expectScreen(page, 'Summary');
   await page.reload(); // the tab closes here: no question was answered
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await findInYourSessions(page);
   const [record] = await readStore(page, 'sessions');
   expect(record).toMatchObject({ exercise: 'heel-slide', gaveWayPresses: 0 });
@@ -31,7 +31,7 @@ test('Back of the browser from the Session saves the run', async ({ page }) => {
   await page.goBack();
   await expectScreen(page, 'Summary');
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await findInYourSessions(page);
 });
 

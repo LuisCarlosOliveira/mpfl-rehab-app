@@ -88,7 +88,7 @@ describe('Check my progress', () => {
     const generatedRaw = JSON.stringify({ ...generated(), approvedOn: undefined });
     await db.protocol.put({ key: 'current', raw: generatedRaw, savedAt: '2026-11-08T00:00:00.000Z' });
     render(<App db={db} mode="demo" source={mockSource()} now={() => new Date(2026, 11, 10, 10, 0, 0)} />);
-    await screen.findByRole('heading', { level: 1, name: 'Home' });
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
     fireEvent.click(await screen.findByRole('button', { name: 'Check my progress' }));
     await screen.findByRole('heading', { level: 1, name: 'Check my progress' });
     expect(screen.getByText(PROTOTYPE_BANNER)).toBeInTheDocument();

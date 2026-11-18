@@ -29,12 +29,12 @@ async function openHome() {
   markPrivacyNoticeSeen();
   await saveProtocol(db, protocolText(), 'demo');
   render(<App db={db} mode="demo" source={mockSource()} />);
-  await screen.findByRole('heading', { level: 1, name: 'Home' });
+  await screen.findByRole('heading', { level: 1, name: 'Today' });
 }
 
 describe('lazy screens that fail to load', () => {
   it.each([
-    ['Your sessions', 'Your sessions'],
+    ['Sessions', 'Your sessions'],
     ['My data', 'My data'],
   ])('%s: shows the message with a heading and a way back to Home', async (button) => {
     await openHome();
@@ -43,7 +43,7 @@ describe('lazy screens that fail to load', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
   });
 });
 
@@ -51,12 +51,12 @@ describe('a lazy screen that fails to load while the device is offline', () => {
   it('shows the offline text and the same two buttons', async () => {
     await openHome();
     vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Your sessions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sessions' }));
     expect(await screen.findByText('You are offline. Reconnect, then press Try again. Saved sessions stay on this device. Unsaved answers are lost.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Screen not loaded' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
-    expect(await screen.findByRole('heading', { level: 1, name: 'Home' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 });

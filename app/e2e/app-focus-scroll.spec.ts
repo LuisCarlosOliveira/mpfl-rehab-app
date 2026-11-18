@@ -41,7 +41,7 @@ for (const size of SIZES) {
       await page.getByRole('button', { name: 'Privacy' }).click();
       await expectHeadingInView(page, 'Privacy');
       await page.getByRole('button', { name: 'I understand' }).click();
-      await expectHeadingInView(page, 'Home');
+      await expectHeadingInView(page, 'Today');
     });
 
     test('Home to Load protocol and back', async ({ page }) => {
@@ -50,7 +50,7 @@ for (const size of SIZES) {
       await page.getByRole('button', { name: 'Load a new protocol file' }).click();
       await expectHeadingInView(page, 'Load protocol file');
       await page.getByRole('button', { name: 'Back to Home' }).click();
-      await expectHeadingInView(page, 'Home');
+      await expectHeadingInView(page, 'Today');
     });
   });
 }

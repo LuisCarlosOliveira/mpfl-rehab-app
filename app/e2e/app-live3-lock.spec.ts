@@ -16,7 +16,7 @@ async function toLock(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "I understand" }).click();
   await page.getByLabel("Choose a file from your care team").setInputFiles(EXAMPLE);
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
   await page.getByRole("button", { name: "Start Heel slide" }).click();
   await page.getByRole("button", { name: "None of these apply. Continue" }).click();
   await page.getByRole("button", { name: "Next: set up the camera" }).click();

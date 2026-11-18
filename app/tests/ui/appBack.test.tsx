@@ -37,7 +37,7 @@ async function openHome(source: MockSource = mockSource()) {
   await saveProtocol(db, protocolText(), 'demo');
   await saveSession(db, { ...sessionInput(), date: '2026-03-01T10:00:00.000Z' });
   const view = render(<App db={db} mode="demo" source={source} />);
-  await heading('Home');
+  await heading('Today');
   return { db, source, ...view };
 }
 const toSetup = async () => {
@@ -62,9 +62,9 @@ describe('Back of the browser stays in the app', () => {
     await heading('My data');
     expect(window.history.length).toBe(before + 1);
     click('Back');
-    await heading('Home');
+    await heading('Today');
     await act(() => new Promise((r) => setTimeout(r, 30))); // the entry goes away with an async history step
-    click('Your sessions');
+    click('Sessions');
     await heading('Your sessions');
     expect(window.history.length).toBeLessThanOrEqual(before + 1);
   });
@@ -80,22 +80,22 @@ describe('Back of the browser stays in the app', () => {
   });
   async function toSetupFromData() {
     click('Back');
-    await heading('Home');
+    await heading('Today');
     await toSetup();
   }
 
   it.each([
     ['My data', async () => { click('My data'); await heading('My data'); }],
-    ['Your sessions', async () => { click('Your sessions'); await heading('Your sessions'); }],
+    ['Your sessions', async () => { click('Sessions'); await heading('Your sessions'); }],
     ['the red-flag check', async () => { click('Start Heel slide'); await heading('Check before you exercise'); }],
     ['Setup', toSetup],
   ])('Back from %s goes Home, and Forward does nothing', async (_name, open) => {
     await openHome();
     await open();
     await back();
-    expect(currentHeading()).toBe('Home');
+    expect(currentHeading()).toBe('Today');
     await forward();
-    expect(currentHeading()).toBe('Home');
+    expect(currentHeading()).toBe('Today');
     expect(GUARDED).not.toContain(currentHeading());
     // Forward went to the entry above and came back at once, so the history stands on the first entry of Home.
     expect(window.history.state).toBe('home');
@@ -118,7 +118,7 @@ describe('Back of the browser stays in the app', () => {
     await back();
     expect(currentHeading()).toBe('Summary');
     click('Skip the questions');
-    await heading('Home');
+    await heading('Today');
   });
 
   it('never reaches Setup or Session by Back, Forward or a reload from any screen without the red-flag step', async () => {
@@ -126,7 +126,7 @@ describe('Back of the browser stays in the app', () => {
     const seen: (string | null)[] = [];
     const screens = [
       async () => { click('My data'); await heading('My data'); },
-      async () => { click('Your sessions'); await heading('Your sessions'); },
+      async () => { click('Sessions'); await heading('Your sessions'); },
       async () => { click('Start Heel slide'); await heading('Check before you exercise'); },
     ];
     for (const open of screens) {
@@ -137,14 +137,14 @@ describe('Back of the browser stays in the app', () => {
         await forward();
         seen.push(currentHeading());
       }
-      if (currentHeading() !== 'Home') click(/^(Back|Cancel)$/);
-      await heading('Home');
+      if (currentHeading() !== 'Today') click(/^(Back|Cancel)$/);
+      await heading('Today');
     }
     expect(seen.filter((h) => GUARDED.includes(h ?? ''))).toEqual([]);
     // A reload starts the app again. The first start still goes through the check.
     unmount();
     render(<App db={db} mode="demo" source={source} />);
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
   });
@@ -154,9 +154,9 @@ describe('Back of the browser stays in the app', () => {
     click('Start Heel slide');
     await heading('Check before you exercise');
     await back();
-    await heading('Home');
+    await heading('Today');
     await forward();
-    expect(currentHeading()).toBe('Home');
+    expect(currentHeading()).toBe('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
     expect(screen.getByRole('button', { name: /none of these apply/i })).toBeEnabled();
@@ -168,10 +168,10 @@ describe('Back of the browser stays in the app', () => {
     const start = window.history.length;
     await toSetup();
     click('Cancel');
-    await heading('Home');
+    await heading('Today');
     await act(() => new Promise((r) => setTimeout(r, 30)));
     await forward(); // the entry that Cancel left ahead does nothing
-    expect(currentHeading()).toBe('Home');
+    expect(currentHeading()).toBe('Today');
     expect(window.history.length).toBeGreaterThanOrEqual(start);
   });
 

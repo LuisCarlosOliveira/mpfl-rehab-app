@@ -13,7 +13,7 @@ async function toLock(page: Page, exercise: string, leg: "left" | "right") {
   await page.goto("/");
   await page.getByRole("button", { name: "I understand" }).click();
   await page.getByLabel("Choose a file from your care team").setInputFiles(EXAMPLE);
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
   await page.getByRole("button", { name: `Start ${exercise}` }).click();
   await page.getByRole("button", { name: "None of these apply. Continue" }).click();
   const radio = page.locator(`input[name=exercise-leg][value=${leg}]`);

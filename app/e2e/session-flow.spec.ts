@@ -53,7 +53,7 @@ async function toHomeSix(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'I understand' }).click();
   await page.getByLabel('Choose a file from your care team').setInputFiles(sixFile());
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 const gum = (page: Page) => page.evaluate(() => window.__probes.gumCalls);
@@ -106,7 +106,7 @@ async function runSession(page: Page, count: Count, first: boolean, shots?: (nam
   await expectScreen(page, "Today's session");
   if (shots) await shots('overview');
   await tap(press(page, 'Done'));
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 test('the whole plan session: one check, no Home in between, one summary, one row for each exercise', async ({ page }) => {
@@ -117,7 +117,7 @@ test('the whole plan session: one check, no Home in between, one summary, one ro
   const seen = await screens(page);
   // The check shows once. Home shows at the start and at the end only.
   expect(seen.filter((h) => h === 'Check before you exercise')).toHaveLength(1);
-  expect(seen.filter((h) => h === 'Home')).toHaveLength(2);
+  expect(seen.filter((h) => h === 'Today')).toHaveLength(2);
   expect(seen.filter((h) => h === "Today's session")).toHaveLength(1);
   // Every exercise saved its own row, as before.
   const rows = await readStore(page, 'sessions');
@@ -133,7 +133,7 @@ test('second session: compact Get ready, remembered leg, fewer presses. The came
   await toHomeSix(page);
   const first: Count = { taps: 0 };
   await runSession(page, first, true);
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   const screensBefore = (await screens(page)).length;
   const second: Count = { taps: 0 };
   const gumBefore = await gum(page);
@@ -159,7 +159,7 @@ test('the red-flag check returns when the person leaves the session', async ({ p
   await press(page, 'None of these apply. Continue').click();
   await expectScreen(page, 'Set up the camera');
   await press(page, 'Cancel').click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await press(page, "Start today's session").click();
   await expectScreen(page, 'Check before you exercise');
 });

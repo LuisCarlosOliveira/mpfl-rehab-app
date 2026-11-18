@@ -67,10 +67,34 @@ describe('AppShell', () => {
     expect(go).toHaveBeenCalledWith('data');
   });
 
-  it('keeps the action bar a sibling after main, so it never covers the content', () => {
+  // The bar moves to the slot after main (a portal), so a screen can declare it inside main and the bar still spans the page.
+  it('puts the action bar after main in the page flow and outside it, so it never covers the content', () => {
     shell();
     const main = screen.getByRole('main');
-    expect(main.nextElementSibling).toBe(screen.getByRole('region', { name: 'Session actions' }));
+    const bar = screen.getByRole('region', { name: 'Session actions' });
+    expect(main.contains(bar)).toBe(false);
+    expect(main.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('shows no tabs when the tab is null, and one notice for each text of a list', () => {
+    render(
+      <AppShell tab={null} onNavigate={() => {}} banner={[BANNER, 'EXAMPLE, NOT APPROVED']}>
+        <AppShell.Main>
+          <h1>Load</h1>
+        </AppShell.Main>
+      </AppShell>,
+    );
+    expect(screen.queryByRole('navigation')).toBeNull();
+    expect(screen.getAllByRole('complementary', { name: 'Notice' })).toHaveLength(2);
+  });
+
+  it('keeps the bar where it is declared when there is no shell', () => {
+    render(
+      <AppShell.Actions label="Alone">
+        <button type="button">Go</button>
+      </AppShell.Actions>,
+    );
+    expect(screen.getByRole('region', { name: 'Alone' })).toBeInTheDocument();
   });
 });
 

@@ -24,7 +24,7 @@ async function toSession() {
   await saveProtocol(db, protocolText(), 'demo');
   const source = mockSource();
   render(<App db={db} mode="demo" source={source} />);
-  await heading('Home');
+  await heading('Today');
   click('Start Heel slide');
   await heading('Check before you exercise');
   click(/none of these apply/i);

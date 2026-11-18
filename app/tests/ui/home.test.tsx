@@ -43,7 +43,7 @@ describe('Home screen', () => {
     expect(screen.getByText('Heel slide')).toBeInTheDocument();
     expect(screen.getByText('Straight leg raise')).toBeInTheDocument();
     expect(screen.queryByText('Mini squat')).toBeNull();
-    expect(screen.getAllByText('3 sets of 10 reps')).toHaveLength(2);
+    expect(screen.getAllByText(/3 sets of 10 reps/)).toHaveLength(2);
   });
 
   it('starts an exercise from its button', () => {
@@ -81,7 +81,8 @@ describe('Home screen', () => {
       phases: [{ id: 1, name: 'Protection', exercises: [{ kind: 'heel-slide', source: 'test' }] }],
     });
     setup(p);
-    expect(screen.getByRole('button', { name: 'Start Heel slide' })).toBeDisabled();
+    // v3: an exercise that cannot start has no Start button. It sits under "Not in today's session" with its reason.
+    expect(screen.queryByRole('button', { name: 'Start Heel slide' })).toBeNull();
     expect(screen.getByText(/target missing\. ask your surgeon/i)).toBeInTheDocument();
   });
 
@@ -122,7 +123,7 @@ describe('Home screen', () => {
 
   it('has no Your sessions or My data tile: the bottom bar of the app holds them (redesign)', () => {
     setup();
-    expect(screen.queryByRole('button', { name: 'Your sessions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sessions' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'My data' })).toBeNull();
   });
 
@@ -149,20 +150,18 @@ describe('Home screen', () => {
     for (const item of ASK_SURGEON_ITEMS) expect(within(details).getByText(item)).toBeInTheDocument();
   });
 
-  it('makes the first exercise with a target the hero card, with its end-position drawing', () => {
+  it('shows the end-position drawing of the next exercise in the card of today\'s session and the large Start of that exercise', () => {
     setup();
-    const cards = screen.getAllByRole('listitem').filter((li) => li.classList.contains('exercise'));
-    expect(cards[0]).toHaveClass('exercise-featured');
-    expect(cards[1]).not.toHaveClass('exercise-featured');
-    expect(within(cards[0]!).getByRole('img', { name: /end position/i })).toBeInTheDocument();
-    expect(within(cards[1]!).queryByRole('img')).toBeNull();
-    expect(within(cards[0]!).getByRole('button', { name: 'Start Heel slide' })).toHaveClass('btn-lg');
+    expect(screen.getAllByRole('img', { name: /end position/i })).toHaveLength(1);
+    const rows = within(screen.getByRole('list', { name: "Today's plan" })).getAllByRole('listitem');
+    expect(rows[0]).toHaveAttribute('aria-current', 'step');
+    // Without a handler for the session, the Start of the next exercise is the large button.
+    expect(screen.getByRole('button', { name: 'Start Heel slide' })).toHaveClass('btn-lg');
   });
 
-  it('shows the plan of an exercise as chips and hides every icon from assistive technology', () => {
+  it('shows the dose of an exercise as text in its row and hides every icon from assistive technology', () => {
     setup();
-    const chips = screen.getAllByText('3 sets of 10 reps').map((c) => c.closest('li'));
-    for (const chip of chips) expect(chip).toHaveClass('chip');
+    expect(within(screen.getByRole('list', { name: "Today's plan" })).getAllByText(/3 sets of 10 reps/)).toHaveLength(2);
     for (const icon of document.querySelectorAll('svg:not([role="img"])')) expect(icon).toHaveAttribute('aria-hidden', 'true');
   });
 

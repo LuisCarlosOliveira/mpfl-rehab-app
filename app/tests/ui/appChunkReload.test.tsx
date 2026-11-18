@@ -32,7 +32,7 @@ describe('a failed screen chunk, then Try again', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     fireEvent.click(screen.getByRole('button', { name: 'Start Heel slide' }));
     await heading('Check before you exercise');
     fireEvent.click(screen.getByRole('button', { name: /none of these apply/i }));
@@ -43,7 +43,7 @@ describe('a failed screen chunk, then Try again', () => {
     // The reload makes a new page: new memory, the same IndexedDB.
     cleanup();
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.queryByRole('heading', { name: 'Set up the camera' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Start Heel slide' }));
     await heading('Check before you exercise');

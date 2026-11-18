@@ -6,10 +6,13 @@ import { MESSAGES } from '../lib/redflags';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
-import { PlanProgress } from './PlanProgress';
 import { RunStats } from './RunStats';
 import type { PlanEntry } from './appState';
+import { AppShell } from './v3/AppShell';
+import { PlanList, type PlanItem } from './v3/PlanList';
+import { SessionProgress } from './v3/SessionProgress';
 import './flowV2.css';
+import './v3home.css';
 
 /** How long the Next card waits. ENGINEERING value, no clinical source. */
 export const NEXT_CARD_MS = 5000;
@@ -18,12 +21,14 @@ interface NextProps {
   name: string;
   index: number;
   total: number;
+  /** The whole plan in order. Without it the card shows the progress bar only. */
+  items?: readonly PlanItem[];
   onStart: () => void;
   onSkip: () => void;
   onStop: () => void;
 }
 
-export function NextCard({ name, index, total, onStart, onSkip, onStop }: NextProps) {
+export function NextCard({ name, index, total, items, onStart, onSkip, onStop }: NextProps) {
   const [waiting, setWaiting] = useState(true);
   const start = useRef(onStart);
   useEffect(() => {
@@ -39,17 +44,18 @@ export function NextCard({ name, index, total, onStart, onSkip, onStop }: NextPr
     action();
   };
   return (
-    <section aria-labelledby="next-title" className="narrow v2-flow v2-next" onKeyDownCapture={() => setWaiting(false)} onPointerDownCapture={() => setWaiting(false)}>
+    <section aria-labelledby="next-title" className="v2-flow v2-next v3h-next-card" onKeyDownCapture={() => setWaiting(false)} onPointerDownCapture={() => setWaiting(false)}>
       <header className="page-head">
         <h1 id="next-title" tabIndex={-1}>
           Next: {name}
         </h1>
       </header>
-      <div className="stack">
-        <PlanProgress index={index} total={total} />
+      <div className="stack v3h-single">
+        <SessionProgress total={total} current={index + 1} unit="Exercise" />
+        {items && items.length > 0 && <PlanList items={items} currentId={items[index]?.id ?? null} />}
         <p className="detail">{waiting ? 'The next screen opens in 5 seconds. Press any key to stay here.' : 'Press Start now when you are ready.'}</p>
       </div>
-      <div className="action-bar">
+      <AppShell.Actions label="Actions">
         <button type="button" className="btn btn-primary btn-lg" onClick={press(onStart)}>
           <Icon name="play" size={20} />
           Start now
@@ -60,7 +66,7 @@ export function NextCard({ name, index, total, onStart, onSkip, onStop }: NextPr
         <button type="button" className="btn btn-lg" onClick={press(onStop)}>
           Stop session
         </button>
-      </div>
+      </AppShell.Actions>
     </section>
   );
 }
@@ -68,7 +74,7 @@ export function NextCard({ name, index, total, onStart, onSkip, onStop }: NextPr
 export function SessionOverview({ entries, onDone }: { entries: readonly PlanEntry[]; onDone: () => void }) {
   const gaveWay = entries.some((e) => e.run?.reason === 'gave-way');
   return (
-    <section aria-labelledby="overview-title" className="narrow v2-flow v2-summary v2-overview">
+    <section aria-labelledby="overview-title" className="v2-flow v2-summary v2-overview v3h-overview">
       <header className="page-head">
         <h1 id="overview-title" tabIndex={-1}>
           Today's session
@@ -90,11 +96,11 @@ export function SessionOverview({ entries, onDone }: { entries: readonly PlanEnt
         </ul>
         <p className="detail">Each exercise is saved in Your sessions.</p>
       </div>
-      <div className="action-bar">
+      <AppShell.Actions label="Actions">
         <button type="button" className="btn btn-primary btn-lg" onClick={onDone}>
           Done
         </button>
-      </div>
+      </AppShell.Actions>
     </section>
   );
 }

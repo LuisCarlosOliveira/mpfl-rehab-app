@@ -81,7 +81,7 @@ test('every screen without a camera has no violation, no console error and no fo
   await seen.expectClean('Load protocol with an error');
 
   await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await seen.expectClean('Home');
 
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
@@ -92,7 +92,7 @@ test('every screen without a camera has no violation, no console error and no fo
   await expect(page.getByText('Stop. Do not exercise. Call emergency services now.')).toBeVisible();
   await seen.expectClean('RedFlag, blocked');
   await page.getByRole('button', { name: 'Back to Home' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
@@ -112,9 +112,9 @@ test('Summary, Progress and My data work after one saved session', async ({ page
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Session saved.')).toBeVisible();
   await page.getByRole('button', { name: 'Done' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.locator('main [role="img"]').first()).toBeVisible();
   await seen.expectClean('Your sessions');
@@ -137,7 +137,7 @@ test('the red-flag block is sticky for the visit and Back to Home works', async 
   await expect(stop).toBeVisible();
   await expect(page.getByRole('button', { name: 'None of these apply. Continue' })).toBeDisabled();
   await page.getByRole('button', { name: 'Back to Home' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 });
 
 test('the first screen does not move the focus, and each change moves it to the new h1', async ({ page }) => {
@@ -149,8 +149,8 @@ test('the first screen does not move the focus, and each change moves it to the 
   await expectScreen(page, 'Load protocol file');
   await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Load protocol file' });
   await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-  await expectScreen(page, 'Home');
-  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Home' });
+  await expectScreen(page, 'Today');
+  await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Today' });
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
   await expect.poll(() => focused(page)).toMatchObject({ tag: 'H1', text: 'Check before you exercise' });
@@ -180,7 +180,7 @@ for (const name of ['NotAllowedError', 'NotFoundError'] as const) {
     expect(await alert.innerText()).not.toMatch(/DOMException|Error:|undefined|stub/);
     await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
     await page.getByRole('button', { name: 'Cancel' }).click();
-    await expectScreen(page, 'Home');
+    await expectScreen(page, 'Today');
   });
 }
 
@@ -193,7 +193,7 @@ test('IndexedDB keeps a session after a reload, and localStorage works', async (
   await expect(page.getByText('Session saved.')).toBeVisible();
   expect(await readStore(page, 'sessions')).toHaveLength(1);
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   expect(await readStore(page, 'sessions')).toHaveLength(1);
   expect(await readStore(page, 'protocol')).toHaveLength(1);
   expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('mpfl.')))).toContain('mpfl.privacySeen');
@@ -268,7 +268,7 @@ test('pairing screens load: the laptop step in Setup and the phone screen', asyn
   await page.getByRole('button', { name: 'Skip, use one camera' }).click();
   await expect(page.getByRole('button', { name: 'Start camera' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Use this phone as the second camera' }).click();
   await expect(heading(page)).toHaveText('Use this phone as the second camera');
   await expect(page.getByRole('button', { name: 'Scan the laptop code' })).toBeVisible();

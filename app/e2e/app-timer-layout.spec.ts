@@ -29,7 +29,7 @@ async function toTimer(page: Page) {
     mimeType: "application/json",
     buffer: Buffer.from(quadProtocol()),
   });
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
   await page.getByRole("button", { name: "Start Quadriceps set" }).click();
   await page
     .getByRole("button", { name: "None of these apply. Continue" })

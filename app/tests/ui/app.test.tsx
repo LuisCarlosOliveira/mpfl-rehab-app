@@ -32,7 +32,7 @@ describe('App flow', () => {
     await heading('Load protocol file');
     banners(false);
     pickFile(exampleText());
-    await heading('Home');
+    await heading('Today');
     banners(true);
     click('Start Heel slide');
     await heading('Check before you exercise');
@@ -52,7 +52,7 @@ describe('App flow', () => {
     fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
     click('Save');
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
-    await heading('Home');
+    await heading('Today');
     banners(true);
   });
 
@@ -62,7 +62,7 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
     expect(screen.getByText(PROTOTYPE_BANNER)).toBeInTheDocument();
-    await heading('Home');
+    await heading('Today');
     expect(screen.queryByText(EXAMPLE_BANNER)).toBeNull();
   });
 
@@ -71,7 +71,7 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'patient');
     render(<App db={db} mode="patient" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.queryByText(PROTOTYPE_BANNER)).toBeNull();
   });
 
@@ -98,7 +98,7 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.getByText('Test clinic')).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     click('My data');
     await heading('My data');
     click('Privacy notice');
@@ -131,7 +131,7 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} />);
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
     const emergency = RED_FLAGS.find((f) => f.group === 'emergency')!;
@@ -148,7 +148,7 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} />);
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     click(/none of these apply/i);
     click('Next: set up the camera');
@@ -171,7 +171,7 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     click(/none of these apply/i);
     click('Next: set up the camera');
@@ -184,7 +184,7 @@ describe('App flow', () => {
     fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
     click('Save');
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
   });
@@ -195,7 +195,7 @@ describe('App flow', () => {
     render(<App db={db} mode="demo" source={mockSource()} />);
     await heading('Load protocol file');
     pickFile(protocolText({ authoredBy: '<img src=x onerror=alert(1)>' }));
-    await heading('Home');
+    await heading('Today');
     await waitFor(() => expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument());
     expect(document.querySelector('img')).toBeNull();
   });
@@ -211,12 +211,12 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText({ authoredBy: 'First clinic' }), 'demo');
     await db.sessions.add({ ...sessionInput(), schemaVersion: 1 } as never);
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.getByText('First clinic')).toBeInTheDocument();
     click('Load a new protocol file');
     await heading('Load protocol file');
     pickFile(protocolText({ authoredBy: 'Second clinic' }));
-    await heading('Home');
+    await heading('Today');
     await waitFor(() => expect(screen.getByText('Second clinic')).toBeInTheDocument());
     expect(await db.sessions.count()).toBe(1);
   });
@@ -226,11 +226,11 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
+    await heading('Today');
     click('Load a new protocol file');
     await heading('Load protocol file');
     click('Back to Home');
-    await heading('Home');
+    await heading('Today');
   });
 
   it('shows Loading while a lazy screen loads, then the screen with the focus on its heading', async () => {
@@ -238,8 +238,8 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
-    click('Your sessions');
+    await heading('Today');
+    click('Sessions');
     expect(screen.getByRole('heading', { level: 1, name: 'Loading' })).toBeInTheDocument();
     const h1 = await heading('Your sessions');
     await waitFor(() => expect(h1).toHaveFocus());
@@ -254,8 +254,8 @@ describe('App flow', () => {
     await db.sessions.add({ ...sessionInput(), date: 12345, schemaVersion: 1 } as never);
     await db.sessions.add({ ...sessionInput(), date: '2026-11-02T10:00:00.000Z', peakFlexion: -5, reps: 1e21, schemaVersion: 1 } as never);
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
-    click('Your sessions');
+    await heading('Today');
+    click('Sessions');
     await heading('Your sessions');
     expect(screen.queryByText(/Screen not loaded/)).toBeNull();
     expect(screen.getByText('2 saved rows could not be read and are left out.')).toBeInTheDocument();
@@ -269,8 +269,8 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     await db.sessions.add({ ...sessionInput(), schemaVersion: 1 } as never);
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
-    click('Your sessions');
+    await heading('Today');
+    click('Sessions');
     await heading('Your sessions');
     expect(screen.queryByText(/could not be read/)).toBeNull();
   });
@@ -280,8 +280,8 @@ describe('App flow', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await heading('Home');
-    click('Your sessions');
+    await heading('Today');
+    click('Sessions');
     await heading('Your sessions');
     expect(screen.getByText(PROTOTYPE_BANNER)).toBeInTheDocument();
   });
@@ -292,11 +292,11 @@ describe('App flow', () => {
     await saveProtocol(db, protocolText(), 'demo');
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} />);
-    await heading('Home');
-    click('Your sessions');
+    await heading('Today');
+    click('Sessions');
     await heading('Your sessions');
     click('Back');
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
     expect(source.start).not.toHaveBeenCalled();

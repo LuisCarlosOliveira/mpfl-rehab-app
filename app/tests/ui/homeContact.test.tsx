@@ -36,15 +36,16 @@ async function settle() {
 describe('Home, seated hold card', () => {
   it('draws the protocol hold angle on the end drawing of a ready hold', () => {
     setup(protocol(holdPhase({ holdSeconds: 5, minFlexion: 40, targetFlexion: 60 })));
-    const card = screen.getAllByRole('listitem').find((li) => li.classList.contains('exercise-featured'))!;
-    expect(within(card).getByRole('img', { name: /end position/i }).textContent).toContain('60°');
+    // v3: the figure of the next exercise sits in the card of today's session.
+    expect(screen.getByRole('img', { name: /end position/i }).textContent).toContain('60°');
   });
 
   it('names the missing value and asks the surgeon for the hold angle, never "Target missing"', () => {
     setup(protocol(holdPhase({ holdSeconds: 5, targetFlexion: 60 })));
     expect(screen.getByText(/Straightest knee angle missing\. Ask your surgeon how far you can straighten your knee in this exercise\./)).toBeInTheDocument();
     expect(screen.queryByText(/target missing/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Start Seated knee extension hold' })).toBeDisabled();
+    // v3: an exercise that cannot start has no Start button. It sits under "Not in today's session" with its reason.
+    expect(screen.queryByRole('button', { name: 'Start Seated knee extension hold' })).toBeNull();
   });
 
   it('names a missing hold angle and a missing hold time', () => {

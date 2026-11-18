@@ -71,7 +71,7 @@ test('text from the protocol file shows as plain text', async ({ page }) => {
   await toLoad(page);
   const raw = { ...JSON.parse(readFileSync(EXAMPLE, 'utf8')), authoredBy: '<img src=x onerror="window.__pwned=1">' };
   await page.getByLabel('Choose a file from your care team').setInputFiles({ name: 'p.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(raw)) });
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await expect(page.getByText('<img src=x onerror="window.__pwned=1">')).toBeVisible();
   expect(await page.locator('main img').count()).toBe(0);
   expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
@@ -88,7 +88,7 @@ test('Home shows the protocol, and a reload keeps it (FR26)', async ({ page }) =
   await expect(page.getByRole('button', { name: 'Start Heel slide' })).toBeEnabled();
 
   await page.reload();
-  await expectScreen(page, 'Home'); // no Privacy and no Load screen
+  await expectScreen(page, 'Today'); // no Privacy and no Load screen
   await expectBanners(page, { example: true });
   await expect(page.locator('dl.facts').first()).toContainText('1, Protection');
   expect(await readStore(page, 'protocol')).toHaveLength(1);
@@ -128,7 +128,7 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   // The app has no URL router. A direct address loads the app, and the app opens Home.
   for (const path of ['/setup', '/session', '/#setup', '/#session', '/summary']) {
     await page.goto(path);
-    await expectScreen(page, 'Home');
+    await expectScreen(page, 'Today');
   }
 
   // A cleared check does not survive a Cancel: the next start asks again.
@@ -136,7 +136,7 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
   await page.getByRole('button', { name: 'Cancel' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
 
@@ -152,7 +152,7 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   await page.getByLabel('No swelling').check();
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('button', { name: 'Done' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
 
@@ -160,27 +160,27 @@ test('there is no way to Setup or Session without the red-flag step', async ({ p
   // Forward does nothing. Home never leads into Setup without the check.
   await page.goto('about:blank');
   await page.goto('/');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
   await page.goBack(); // Back stays in the app: it goes Home, not to about:blank
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   expect(page.url()).not.toBe('about:blank');
   await page.goForward(); // Forward is undone at once
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise'); // the check is asked again: no way around it
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
   await expectScreen(page, 'Set up the camera');
   // The same with history.back() called from the page.
   await page.evaluate(() => history.back());
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.evaluate(() => history.forward());
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   // After a reload the first start still goes through the check.
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
 });

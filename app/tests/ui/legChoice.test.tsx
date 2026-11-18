@@ -407,7 +407,7 @@ describe('App: the choice reaches the pipeline and the record', () => {
     await saveProtocol(db, protocolText(), 'demo'); // the protocol side is left, the active phase is 1
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} />);
-    await screen.findByRole('heading', { level: 1, name: 'Home' });
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
     fireEvent.click(screen.getByRole('button', { name: 'Start Heel slide' }));
     fireEvent.click(screen.getByRole('button', { name: /none of these apply/i }));
     await screen.findByRole('heading', { level: 1, name: 'Set up the camera' });
@@ -469,7 +469,7 @@ describe('App: the choice reaches the pipeline and the record', () => {
     fireEvent.click(radio(LEG_Q, 'Right'));
     expect(radio(LEG_Q, 'Right')).toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    await screen.findByRole('heading', { level: 1, name: 'Home' });
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
     fireEvent.click(screen.getByRole('button', { name: 'Start Heel slide' }));
     fireEvent.click(screen.getByRole('button', { name: /none of these apply/i }));
     await screen.findByRole('heading', { level: 1, name: 'Set up the camera' });

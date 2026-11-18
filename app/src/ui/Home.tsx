@@ -9,7 +9,7 @@ import { sessionKinds } from '../lib/sessionPlan';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
 import { DOSE_SHOWN } from '../lib/protocolGen';
 import { CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, progressCard } from '../lib/progressHome';
-import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, monitorLine, NO_LIMIT_GIVEN, PLAN_NAMES, localIsoDate, reviewDue, weeksSince } from '../lib/planView';
+import { ASK_HOW_MANY, ASK_LIMIT, doseScope, HOLD_TIME_LINE, monitorLine, NO_LIMIT_GIVEN, PLAN_NAMES, localIsoDate, reviewDue, surgeryDateWords, weeksSince } from '../lib/planView';
 import { dismissContact, exportReminderDue, getContactDismissed, getLastExport, lastSession, loadGeneratorInputs, type MpflDb, type SessionRecord } from '../lib/storage';
 import { ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from './askSurgeon';
 import { guideFor } from '../lib/guides';
@@ -21,7 +21,10 @@ import { Icon, type IconName } from './Icon';
 import { Notice } from './Notice';
 import { notReadyText } from './notReady';
 import type { ExerciseKind } from './appState';
+import { AppShell } from './v3/AppShell';
+import { PlanList, type PlanItem } from './v3/PlanList';
 import './flowV2.css';
+import './v3home.css';
 
 // The words of the phone card, now one row of the facts list. They stay as they were.
 const COMPANION_TEXT = 'This phone can be the second camera of the app on your laptop. It sends body points only. It records nothing and counts nothing.';
@@ -35,18 +38,6 @@ const SURGEON_LABELS: Record<SurgeonField, string> = {
 };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
-
-const EXERCISE_ICONS = {
-  'heel-slide': 'footprints',
-  'straight-leg-raise': 'bed-single',
-  'mini-squat': 'dumbbell',
-  'seated-extension-hold': 'armchair',
-  'quad-set': 'bed-single',
-  'gluteal-set': 'bed-single',
-  'ankle-pump': 'footprints',
-  'leg-raise-side': 'dumbbell',
-  'leg-raise-back': 'dumbbell',
-} as const satisfies Record<PlanExercise['kind'], IconName>;
 
 /**
  * What the protocol sets for one exercise, as short plain lines. Each line shows as a chip with an icon.
@@ -70,6 +61,14 @@ export function prescription(e: PlanExercise, madeByApp = false): { text: string
     lines.push({ text: e.kind === 'heel-slide' && e.source.includes('No limit entered') ? NO_LIMIT_GIVEN : ASK_LIMIT, icon: 'ruler' });
   }
   return lines;
+}
+
+/** The rows of today's plan for the v3 list: one row for each kind, in the order given. The dose is the prescription as one line. */
+export function planItems(exercises: readonly PlanExercise[], kinds: readonly ExerciseKind[], madeByApp: boolean): PlanItem[] {
+  return kinds.map((kind) => {
+    const e = exercises.find((x) => x.kind === kind);
+    return { id: kind, name: PLAN_NAMES[kind], dose: e ? prescription(e, madeByApp).map((l) => l.text).join(', ') : '' };
+  });
 }
 
 interface Props {
@@ -104,14 +103,17 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
   const [hasSessions, setHasSessions] = useState(false);
   const [last, setLast] = useState<SessionRecord | undefined>(undefined);
   const [dismissed, setDismissed] = useState(getContactDismissed);
-  const [weeks, setWeeks] = useState<number | null>(null);
+  const [surgery, setSurgery] = useState<string | null>(null);
+  const [doneToday, setDoneToday] = useState<readonly string[]>([]);
   useEffect(() => {
     let alive = true;
     // A failed read shows no reminder and no contact card. It must not become an unhandled rejection.
     void db.sessions.count().then((n) => alive && setHasSessions(n > 0), () => undefined);
     void lastSession(db).then((s) => alive && setLast(s), () => undefined);
     // The weeks come from the stored answers. Without them the app cannot tell, and the update stays open.
-    void loadGeneratorInputs(db).then((i) => alive && setWeeks(i?.surgeryDate ? weeksSince(i.surgeryDate, localIsoDate(now())) : null), () => undefined);
+    void loadGeneratorInputs(db).then((i) => alive && setSurgery(i?.surgeryDate ?? null), () => undefined);
+    // The exercises that a saved session of today covers. Today's plan marks them Done and starts with the rest.
+    void db.sessions.toArray().then((all) => alive && setDoneToday(all.filter((x) => localIsoDate(new Date(x.date)) === localIsoDate(now())).map((x) => x.exercise)), () => undefined);
     return () => {
       alive = false;
     };
@@ -123,6 +125,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
     dismissContact(last.id);
     setDismissed(last.id);
   }
+  const weeks = surgery ? weeksSince(surgery, localIsoDate(now())) : null;
   const reminder = exportReminderDue(lastExport, now(), hasSessions);
 
   // B3: on the review date of the active phase and after it, a neutral card. The app decides nothing. The person or the care team does.
@@ -140,15 +143,28 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
   const exercises = phase?.exercises ?? [];
   const toRun = sessionKinds(exercises);
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
+  // Today's plan. An exercise that a saved session of today covers is Done and sits first. The rest keep the plan order.
+  const done = toRun.filter((k) => doneToday.includes(k));
+  const left = toRun.filter((k) => !doneToday.includes(k));
+  const next = left[0] ?? null;
+  const nextExercise = exercises.find((e) => e.kind === next);
+  const startKinds = next === null ? toRun : left; // all done: the button runs the plan again
+  // The second path: one exercise alone, with the quiet button style. It also runs an exercise again. Today's session is the big button.
+  const singleStarts = Object.fromEntries(
+    toRun.map((kind) => [
+      kind,
+      <button key={kind} type="button" className={onStartSession || kind !== next ? 'btn' : 'btn btn-primary btn-lg'} aria-label={`Start ${PLAN_NAMES[kind]}`} onClick={() => onStart(kind)}>
+        <Icon name="play" size={18} />
+        Start
+      </button>,
+    ]),
+  );
+  const surgeryWords = surgery ? surgeryDateWords(surgery, localIsoDate(now())) : null;
+  // A kind that cannot start now: no definition, or a value of the protocol is missing. It shows its reason and has no Start.
+  const others = exercises.filter((e) => !toRun.includes(e.kind));
 
-  return (
-    <section aria-labelledby="home-title" className="v2-flow v2-home">
-      <header className="page-head">
-        <h1 id="home-title" tabIndex={-1}>
-          Home
-        </h1>
-      </header>
-
+  const notices = (
+    <>
       {contact && (
         <div className="contact-card">
           <Notice tone="strong" icon="heart-pulse" title={CONTACT_TITLE}>
@@ -214,97 +230,73 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
           </Notice>
         </div>
       )}
+    </>
+  );
 
-      {checkOpen && !checkCard && (
-        <div className="progress-row">
-          <button type="button" className="btn" onClick={onCheckProgress}>
-            <Icon name="chart-line" size={18} />
-            {CHECK_TITLE}
-          </button>
-        </div>
-      )}
-      {last && <p className="detail last-session">{lastSessionLine(last)}</p>}
+  return (
+    <section aria-labelledby="home-title" className="v2-flow v2-home v3h-home">
+      <AppShell.Columns>
+        <div className="v3h-col">
+          <header className="page-head">
+            <h1 id="home-title" tabIndex={-1}>
+              Today
+            </h1>
+          </header>
+          {notices}
 
-      <div className="home-grid">
-        <section aria-labelledby="exercises-title" className="stack-s">
-          <h2 id="exercises-title">Your exercises</h2>
-          {onStartSession && toRun.length > 0 && (
-            <div className="session-start-card stack-s">
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => onStartSession(toRun)}>
-                <Icon name="play" size={22} />
-                Start today's session
-              </button>
-              <p className="detail">{`${plural(toRun.length, 'exercise')} in the order of your plan. One check before you start.`}</p>
-            </div>
+          <section aria-labelledby="exercises-title" className="v3h-card">
+            <h2 id="exercises-title">Today's session</h2>
+            {toRun.length > 0 ? (
+              <>
+                <PlanList items={planItems(exercises, [...done, ...left], madeByApp).map((i) => ({ ...i, note: monitorLine(i.id) ?? undefined }))} currentId={next} actions={singleStarts} />
+                <p className="detail">
+                  {next === null
+                    ? 'Every exercise of today is saved. You can run the plan again.'
+                    : `${plural(left.length, 'exercise')} to do, in the order of your plan. One check before you start.`}
+                </p>
+              </>
+            ) : (
+              <p className="detail">No exercise of your plan can start yet. The reasons are below.</p>
+            )}
+            {last && <p className="detail last-session">{lastSessionLine(last)}</p>}
+            {surgeryWords && <p className="detail surgery-line">{`Surgery date used for your plan: ${surgeryWords}.`}</p>}
+            {nextExercise && isMonitored(nextExercise.kind) && (
+              <figure className="exercise-figure v3h-figure">
+                <GuideFigure kind={nextExercise.kind} frame="end" side={protocol.side} kneeDeg={madeByApp ? undefined : nextExercise.targetFlexion} description={`End position. ${guideFor(nextExercise.kind).range}`} />
+              </figure>
+            )}
+          </section>
+
+          {others.length > 0 && (
+            <section aria-labelledby="others-title" className="v3h-card">
+              <h2 id="others-title">Not in today's session</h2>
+              <ul className="exercise-list">
+                {others.map((e) => {
+                  const setup = isNumericKind(e.kind) ? counterSetup(e as Exercise) : null;
+                  return (
+                    <li key={e.kind} className="exercise">
+                      <div className="exercise-body">
+                        <h3 className="exercise-name">{PLAN_NAMES[e.kind]}</h3>
+                        <ul className="chips">
+                          {prescription(e, madeByApp).map((line) => (
+                            <li key={line.text} className="chip">
+                              <Icon name={line.icon} size={16} />
+                              {line.text}
+                            </li>
+                          ))}
+                        </ul>
+                        {setup && !setup.ok && isNumericKind(e.kind) ? (
+                          <p className="detail">{madeByApp && e.kind === 'seated-extension-hold' && setup.missing === 'holdSeconds' ? HOLD_TIME_LINE : notReadyText(e.kind, setup.missing)}</p>
+                        ) : (
+                          <p className="detail">{monitorLine(e.kind)}</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
-          <ul className="exercise-list">
-            {exercises.map((e, i) => {
-              const name = PLAN_NAMES[e.kind];
-              // The camera monitors every exercise that has a definition (isMonitored). A kind with no definition has no Start and no figure.
-              if (!isMonitored(e.kind)) {
-                return (
-                  <li key={e.kind} className="exercise">
-                    <div className="exercise-body">
-                      <h3 className="exercise-name">{name}</h3>
-                      <ul className="chips">
-                        {prescription(e, madeByApp).map((line) => (
-                          <li key={line.text} className="chip">
-                            <Icon name={line.icon} size={16} />
-                            {line.text}
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="detail">{monitorLine(e.kind)}</p>
-                    </div>
-                  </li>
-                );
-              }
-              // The four kinds with numbers need their values first. The five new kinds start without a value: a timer
-              // exercise gets its hold time from the plan or from the person (docs/exercise-monitoring-design.md).
-              const setup = isNumericKind(e.kind) ? counterSetup(e as Exercise) : ({ ok: true } as const);
-              const ready = setup.ok;
-              const featured = i === 0 && ready;
-              return (
-                <li key={e.kind} className={featured ? 'exercise exercise-featured' : 'exercise'}>
-                  {featured && (
-                    <span className="exercise-icon">
-                      <Icon name={EXERCISE_ICONS[e.kind]} size={28} />
-                    </span>
-                  )}
-                  <div className="exercise-body">
-                    <h3 className="exercise-name">{name}</h3>
-                    <ul className="chips">
-                      {prescription(e, madeByApp).map((line) => (
-                        <li key={line.text} className="chip">
-                          <Icon name={line.icon} size={16} />
-                          {line.text}
-                        </li>
-                      ))}
-                    </ul>
-                    {!setup.ok && isNumericKind(e.kind) && <p className="detail">{madeByApp && e.kind === 'seated-extension-hold' && setup.missing === 'holdSeconds' ? HOLD_TIME_LINE : notReadyText(e.kind, setup.missing)}</p>}
-                    {setup.ok && monitorLine(e.kind) !== null && <p className="detail">{monitorLine(e.kind)}</p>}
-                  </div>
-                  {featured && (
-                    <figure className="exercise-figure">
-                      <GuideFigure kind={e.kind} frame="end" side={protocol.side} kneeDeg={madeByApp ? undefined : e.targetFlexion} description={`End position. ${guideFor(e.kind).range}`} />
-                    </figure>
-                  )}
-                  <div className="exercise-go">
-                    <button
-                      type="button"
-                      className={onStartSession && toRun.length > 0 ? 'btn' : featured ? 'btn btn-primary btn-lg' : 'btn btn-primary'}
-                      disabled={!ready}
-                      aria-label={`Start ${name}`}
-                      onClick={() => onStart(e.kind)}
-                    >
-                      <Icon name="play" size={featured ? 22 : 18} />
-                      Start
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
           <SourceNotes made={protocol.generated?.rules ?? []} scope={doseScope(protocol)} />
           <PlanLines protocol={protocol} />
           {madeByApp && (
@@ -312,9 +304,17 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
               <SourceNote rule="RANGE_NONE" />
             </div>
           )}
-        </section>
+        </div>
 
-        <div className="stack">
+        <div className="v3h-col">
+          {checkOpen && !checkCard && (
+            <div className="progress-row">
+              <button type="button" className="btn" onClick={onCheckProgress}>
+                <Icon name="chart-line" size={18} />
+                {CHECK_TITLE}
+              </button>
+            </div>
+          )}
           <section className="card" aria-labelledby="protocol-title">
             <h2 id="protocol-title">Your protocol</h2>
             <dl className="facts facts-split">
@@ -425,7 +425,19 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
           </section>
 
         </div>
-      </div>
+      </AppShell.Columns>
+      {onStartSession && startKinds.length > 0 && (
+        <AppShell.Actions label="Start">
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            onClick={() => onStartSession!(startKinds)}
+          >
+            <Icon name="play" size={22} />
+            {next !== null && left.length < toRun.length ? "Continue today's session" : "Start today's session"}
+          </button>
+        </AppShell.Actions>
+      )}
     </section>
   );
 }

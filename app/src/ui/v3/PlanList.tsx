@@ -9,6 +9,8 @@ export interface PlanItem {
   id: string;
   name: string;
   dose: string;
+  /** One more line under the dose, for example what the camera does for this exercise. */
+  note?: string;
 }
 
 type Status = 'done' | 'next' | 'later';
@@ -20,9 +22,11 @@ interface Props {
   currentId: string | null;
   label?: string;
   children?: ReactNode;
+  /** A control for a row, by item id. It shows in that row in any status. */
+  actions?: Readonly<Record<string, ReactNode>>;
 }
 
-export function PlanList({ items, currentId, label = "Today's plan", children }: Props) {
+export function PlanList({ items, currentId, label = "Today's plan", children, actions }: Props) {
   if (items.length === 0) return <p className="v3-empty">No exercises in the plan.</p>;
   const at = currentId === null ? items.length : items.findIndex((i) => i.id === currentId);
   const position = at === -1 ? items.length + 1 : at; // an unknown id marks nothing as current
@@ -39,9 +43,11 @@ export function PlanList({ items, currentId, label = "Today's plan", children }:
             <span className="v3-plan-text">
               <span className="v3-plan-name">{item.name}</span>
               <span className="v3-plan-dose">{item.dose}</span>
+              {item.note ? <span className="v3-plan-dose v3-plan-note">{item.note}</span> : null}
             </span>
             <span className="v3-tag">{WORD[s]}</span>
             {s === 'next' && children ? <div className="v3-plan-action">{children}</div> : null}
+            {actions?.[item.id] ? <div className="v3-plan-row-action">{actions[item.id]}</div> : null}
           </li>
         );
       })}

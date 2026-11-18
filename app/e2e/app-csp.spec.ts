@@ -30,7 +30,7 @@ test('every screen of the real app has no violation, no console error and no for
   await seen.expectClean('Load protocol with an error');
 
   await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await seen.expectClean('Home');
 
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
@@ -43,7 +43,7 @@ test('every screen of the real app has no violation, no console error and no for
 
   // The block is sticky for the visit. Only a fresh visit from Home continues.
   await page.getByRole('button', { name: 'Back to Home' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await page.getByRole('button', { name: 'Start Heel slide' }).click();
   await expectScreen(page, 'Check before you exercise');
   await page.getByRole('button', { name: 'None of these apply. Continue' }).click();
@@ -80,7 +80,7 @@ test('Progress, My data, the erase dialog and the care team view have no violati
   const seen = watch(page, new URL(baseURL!).origin);
   await saveOneSession(page);
 
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.locator('.dash-chart-box svg').first()).toBeVisible(); // Recharts drew under the CSP
   await seen.expectClean('Progress with charts');

@@ -28,7 +28,7 @@ async function openHome(withProtocol = true) {
   if (withProtocol) await saveProtocol(db, exampleText(), 'demo');
   const source = mockSource();
   render(<App db={db} mode="demo" source={source} pairingDeps={pairingDeps} />);
-  await heading(withProtocol ? 'Home' : 'Load protocol file');
+  await heading(withProtocol ? 'Today' : 'Load protocol file');
   return { db, source };
 }
 
@@ -86,7 +86,7 @@ describe('the phone screen (companion)', () => {
     expect(screen.getByText(/body points only/i)).toBeInTheDocument();
     expect(screen.getByText(/never sends video or pictures/i)).toBeInTheDocument();
     click('Back');
-    await heading('Home');
+    await heading('Today');
   });
 
   it('opens on a device with no stored protocol, from the Load screen, and goes back to the Load screen', async () => {
@@ -120,7 +120,7 @@ describe('the phone screen (companion)', () => {
     click(PHONE_BUTTON);
     await heading(PHONE_BUTTON);
     click('Back');
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
   });
@@ -133,7 +133,7 @@ describe('the phone screen (companion)', () => {
     click(PHONE_BUTTON);
     await heading(PHONE_BUTTON);
     click('Back');
-    await heading('Home');
+    await heading('Today');
     expect(phaseText()).toBe(before);
   });
 
@@ -166,7 +166,7 @@ describe('the laptop step in Setup', () => {
     click('Start pairing');
     await screen.findByRole('img', { name: 'Pairing code of this laptop' });
     click('Cancel');
-    await heading('Home');
+    await heading('Today');
     expect(lastPeer().closed).toBe(true);
   });
 
@@ -174,7 +174,7 @@ describe('the laptop step in Setup', () => {
     await toSetupGuide();
     await pairInSetup();
     click('Cancel');
-    await heading('Home');
+    await heading('Today');
     expect(lastPeer().closed).toBe(true);
   });
 
@@ -184,7 +184,7 @@ describe('the laptop step in Setup', () => {
     click('Continue');
     expect(lastPeer().closed).toBe(false);
     click('Cancel');
-    await heading('Home');
+    await heading('Today');
     expect(lastPeer().closed).toBe(true);
   });
 });
@@ -277,7 +277,7 @@ describe('the Session with a phone', () => {
     fireEvent.click(screen.getByRole('radio', { name: /no swelling/i }));
     click('Save');
     fireEvent.click(await screen.findByRole('button', { name: 'Done' }));
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     click(/none of these apply/i);
     await heading('Set up the camera');

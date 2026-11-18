@@ -33,16 +33,17 @@ describe('B1 Home: one tinted card, list rows, one facts list', () => {
     const { container } = home();
     expect(container.querySelector('section.v2-flow')).not.toBeNull();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getAllByRole('heading', { name: 'Your exercises' })).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { name: "Today's session" })).toHaveLength(1);
   });
 
-  it('puts the dose and the Start button of every other exercise in its own row', () => {
+  // v3: the exercises are the rows of the plan list. The dose is one line of text in the row, not a row of chips.
+  it('puts the dose and a quiet Start button of every exercise in its own plan row', () => {
     home();
-    const rows = screen.getAllByRole('listitem').filter((li) => li.classList.contains('exercise') && !li.classList.contains('exercise-featured'));
+    const rows = within(screen.getByRole('list', { name: "Today's plan" })).getAllByRole('listitem');
     expect(rows.length).toBeGreaterThan(0);
-    for (const row of rows) {
-      expect(within(row).getByRole('button', { name: /^Start / })).not.toHaveClass('btn-lg');
-      expect(row.querySelectorAll('.chip').length).toBeGreaterThan(0);
+    for (const row of rows.slice(1)) {
+      expect(within(row).getByRole('button', { name: /^Start / })).not.toHaveClass('btn-lg'); // the first row has the large one when the app gives no session handler
+      expect(row.querySelector('.v3-plan-dose')?.textContent).not.toBe('');
     }
   });
 
