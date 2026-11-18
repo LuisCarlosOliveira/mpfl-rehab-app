@@ -335,7 +335,7 @@ describe('the guard follows the life of the landmarker', () => {
   });
 
   it('is removed if the model fails to load', async () => {
-    createFromOptions.mockRejectedValueOnce(new Error('wasm failed'));
+    createFromOptions.mockRejectedValueOnce(new Error('wasm failed')).mockRejectedValueOnce(new Error('wasm failed'));
     await expect(createLandmarker()).rejects.toThrow('wasm failed');
     expect(globalThis.fetch).toBe(real);
   });

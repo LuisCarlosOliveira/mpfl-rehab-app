@@ -6,7 +6,7 @@ const { detectForVideo, close, createFromOptions, forVisionTasks } = vi.hoisted(
   return {
     detectForVideo,
     close,
-    createFromOptions: vi.fn(async () => ({ detectForVideo, close })),
+    createFromOptions: vi.fn<(fileset: unknown, options: { baseOptions: { delegate: string }; numPoses: number }) => Promise<unknown>>(async () => ({ detectForVideo, close })),
     forVisionTasks: vi.fn(async (base: string) => ({ wasmLoaderPath: base, wasmBinaryPath: base })),
   };
 });
@@ -28,10 +28,27 @@ describe('createLandmarker', () => {
     await createLandmarker();
     expect(forVisionTasks).toHaveBeenCalledWith('/models/wasm');
     expect(createFromOptions).toHaveBeenCalledWith(expect.anything(), {
-      baseOptions: { modelAssetPath: '/models/pose_landmarker_lite.task' },
+      baseOptions: { modelAssetPath: '/models/pose_landmarker_lite.task', delegate: 'GPU' },
       runningMode: 'VIDEO',
       numPoses: 1,
     });
+  });
+
+  it('uses the GPU delegate once when it works', async () => {
+    await createLandmarker();
+    expect(createFromOptions).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([1, 2] as const)('retries once with the CPU delegate if the GPU fails (%s poses)', async (poses) => {
+    createFromOptions.mockImplementation(async (_f, o) => {
+      if (o.baseOptions.delegate === 'GPU') throw new Error('gpu failed');
+      return { detectForVideo, close };
+    });
+    await createLandmarker(undefined, poses);
+    const delegates = createFromOptions.mock.calls.map((c) => c[1].baseOptions.delegate);
+    expect(delegates).toEqual(['GPU', 'CPU']);
+    expect(createFromOptions).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ numPoses: poses }));
+    createFromOptions.mockImplementation(async () => ({ detectForVideo, close }));
   });
 
   it('makes a 2-pose instance on request', async () => {
@@ -64,7 +81,7 @@ describe('createLandmarker', () => {
   });
 
   it('passes an init error to the caller', async () => {
-    createFromOptions.mockRejectedValueOnce(new Error('wasm failed'));
+    createFromOptions.mockRejectedValueOnce(new Error('wasm failed')).mockRejectedValueOnce(new Error('wasm failed'));
     await expect(createLandmarker()).rejects.toThrow('wasm failed');
   });
 

@@ -69,6 +69,21 @@ function releaseFetchGuard() {
   original = undefined;
 }
 
+/** GPU is the default (about 2.5 times the frame rate on an Intel UHD 630). If the GPU start fails, retry once on the CPU. Both landmarkers use this. */
+async function createWithFallback(fileset: Awaited<ReturnType<typeof FilesetResolver.forVisionTasks>>, numPoses: 1 | 2): Promise<PoseLandmarker> {
+  const make = (delegate: 'GPU' | 'CPU') =>
+    PoseLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: MODEL_PATH, delegate },
+      runningMode: 'VIDEO',
+      numPoses,
+    });
+  try {
+    return await make('GPU');
+  } catch {
+    return make('CPU');
+  }
+}
+
 /** `onProgress` is optional. It gets the size of each chunk of the files that load from the own origin. `poses` is 1, or 2 for the probe instance. */
 export async function createLandmarker(onProgress?: (bytes: number) => void, poses: 1 | 2 = 1): Promise<Landmarker> {
   users += 1;
@@ -77,11 +92,7 @@ export async function createLandmarker(onProgress?: (bytes: number) => void, pos
   let pose: PoseLandmarker;
   try {
     const fileset = await FilesetResolver.forVisionTasks(WASM_DIR);
-    pose = await PoseLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: MODEL_PATH },
-      runningMode: 'VIDEO',
-      numPoses: poses,
-    });
+    pose = await createWithFallback(fileset, poses);
   } catch (err) {
     onBytes = undefined;
     releaseFetchGuard();
