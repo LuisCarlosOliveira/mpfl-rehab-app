@@ -1,17 +1,24 @@
 // The frame of the live screens. No navigation. The notice banner stays.
-// Order in the document: Header (the exercise name), Camera, Panel (numbers and controls). One column on a phone.
+// Order in the document: Header (the exercise name), Camera, Panel (numbers and controls), then the Actions. One column on a phone.
 // From 900 px the camera sits left and the panel right. The Header spans both.
-import type { ReactNode } from 'react';
+import { Children, isValidElement, type ReactNode } from 'react';
 import { Actions, Banner, SkipLink } from './shellParts';
 import './parts.css';
 
-export function LiveShell({ banner, children }: { banner: string; children: ReactNode }) {
+// `banner` is one text, or the list of notices of the app (prototype, example, not approved). A list shows as one notice.
+export function LiveShell({ banner, children }: { banner: string | readonly string[]; children: ReactNode }) {
+  // The action bar is sticky. A grid item can only stick inside its own grid area, so the bar stays outside the grid: after it, in the flow of main.
+  const parts = Children.toArray(children);
+  const isActions = (c: ReactNode) => isValidElement(c) && c.type === Actions;
+  const actions = parts.filter(isActions);
+  const rest = parts.filter((c) => !isActions(c));
   return (
     <div className="v3 v3-shell">
       <SkipLink />
-      <Banner>{banner}</Banner>
-      <main id="main" className="v3-main v3-live">
-        {children}
+      <Banner>{typeof banner === 'string' ? banner : banner.join(' ')}</Banner>
+      <main id="main" className="v3-main v3-live-main">
+        <div className="v3-live">{rest}</div>
+        {actions}
       </main>
     </div>
   );

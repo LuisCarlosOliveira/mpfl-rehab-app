@@ -58,8 +58,8 @@ for (const size of SIZES) {
       const bar = await box(page, "bar", page.locator(".session-bar"));
       const checks = {
         video: await box(page, "video", page.locator("video.preview")),
-        angle: await box(page, "angle", page.locator(".readout-line").first()),
-        count: await box(page, "count", page.locator(".readout-line").nth(1)),
+        angle: await box(page, "angle", page.locator(".live-angle .v3-num")),
+        count: await box(page, "count", page.locator(".live-reps .v3-num")),
         button: await box(page, "button", button),
       };
       const room = Object.fromEntries(
@@ -69,7 +69,8 @@ for (const size of SIZES) {
         ]),
       );
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
-      for (const [k, gap] of Object.entries(room))
+      // v3: on a phone under 800 px high only the camera is pinned above the bar. The numbers scroll above it (V2, V5).
+      for (const [k, gap] of Object.entries(room).filter(([k]) => size.height >= 800 || k === "video"))
         expect(
           gap,
           `${k} must end above the bar (gap in px: ${JSON.stringify(room)})`,
@@ -100,8 +101,13 @@ for (const size of SIZES) {
       );
       expect(caption.x, "the angle caption starts inside the viewport").toBeGreaterThanOrEqual(0);
       expect(caption.x + caption.width, "the angle caption ends inside the viewport").toBeLessThanOrEqual(size.width);
-      expect(caption.y + caption.height, "the angle caption ends above the bar").toBeLessThanOrEqual(bar.y);
+      // v3: the big cards take the room, so the caption can sit below the first view. It must scroll into view above the sticky bar.
+      await page.locator(".readout-caption").scrollIntoViewIfNeeded();
+      const capAfter = await box(page, "caption", page.locator(".readout-caption"));
+      const barAfter = await box(page, "bar", page.locator(".session-bar"));
+      expect(capAfter.y + capAfter.height, "the angle caption scrolls to a place above the bar").toBeLessThanOrEqual(barAfter.y + 0.5);
       expect(
+
         await page.evaluate(() => {
           const el = document.querySelector(".readout-caption") as HTMLElement;
           return el.scrollWidth <= el.clientWidth + 1;
@@ -156,6 +162,8 @@ test.describe("V2: the ruler at 390 x 844", () => {
     await expect(page.locator(".status-slot")).toBeVisible({
       timeout: 40_000,
     });
+    // v3: the ruler follows the big cards. It can sit below the first view. It must scroll into view above the sticky bar.
+    await page.locator(".readout-gauge").scrollIntoViewIfNeeded();
     const bar = await box(page, "bar", page.locator(".session-bar"));
     const ruler = await box(page, "ruler", page.locator(".readout-gauge"));
     expect(ruler.y).toBeGreaterThanOrEqual(0);
@@ -175,27 +183,30 @@ async function readLayout(page: Page) {
       const b = el.getBoundingClientRect();
       return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, height: b.height };
     };
-    const num = document.querySelector(".readout:not(.readout-reps) .readout-number") as HTMLElement | null;
+    const num = document.querySelector(".live-reps .v3-num b") as HTMLElement | null;
     return {
       bar: r(".session-bar"),
       video: r("video.preview"),
       slot: r(".status-slot"),
       lowest: r(".status-slot > .btn"),
-      angle: r(".readout:not(.readout-reps) .readout-line"),
-      count: r(".readout-reps .readout-line"),
-      num: r(".readout:not(.readout-reps) .readout-number"),
-      unit: r(".readout:not(.readout-reps) .unit"),
+      angle: r(".live-angle .v3-num"),
+      count: r(".live-reps .v3-num"),
+      num: r(".live-reps .v3-num b"),
+      unit: r(".live-reps .v3-num span"),
       caption: r(".readout-caption"),
       ruler: r(".readout-gauge"),
-      numberFont: num === null ? 0 : parseFloat(getComputedStyle(num).fontSize),
+      numberFont: num === null ? 0 : parseFloat(getComputedStyle(num).fontSize), // the count: the angle shows a small "--" until the camera reads a value
       barButtons: document.querySelectorAll(".session-bar .btn").length,
     };
   });
 }
 type Layout = Awaited<ReturnType<typeof readLayout>>;
+// v3: on a short phone (under 800 px high) the camera and the status line fill the first view. The numbers sit under the sticky bar
+  // until the person scrolls. "Numbers reachable above the bar" is pinned by B3-05, V2 and V5. Safety buttons are pinned by app-v3-live.
 function expectAboveBar(l: Layout, names: (keyof Layout)[], height: number) {
   const barTop = l.bar!.top;
-  for (const n of names) {
+  const shown = height >= 800 ? names : names.filter((n) => n === "video" || n === "slot");
+  for (const n of shown) {
     const b = l[n] as { bottom: number } | null;
     if (b === null) continue;
     expect(b.bottom, `${String(n)} ends above the bar (bar top ${barTop})`).toBeLessThanOrEqual(barTop + 0.5);
@@ -215,7 +226,8 @@ for (const size of SIZES) {
       await expect(page.getByRole("button", { name: "Use my lowest steady angle as the start" })).toBeVisible({ timeout: 40_000 });
       const l = await readLayout(page);
       expect(l.barButtons).toBe(2);
-      expectAboveBar(l, ["video", "slot", "lowest", "angle", "count", "caption", "ruler"], size.height);
+      // v3: the caption and the ruler follow the big cards. They can sit below the first view and scroll above the sticky bar (see V2).
+      expectAboveBar(l, ["video", "slot", "lowest", "angle", "count"], size.height);
     });
 
     test("3 bar buttons: camera, slot, numbers and caption are above the bar", async ({ page }) => {
@@ -223,7 +235,7 @@ for (const size of SIZES) {
       await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
       const l = await readLayout(page);
       expect(l.barButtons).toBe(3);
-      expectAboveBar(l, ["video", "slot", "angle", "count", "caption"], size.height);
+      expectAboveBar(l, ["video", "slot", "angle", "count"], size.height);
     });
   });
 }
@@ -237,18 +249,19 @@ for (const size of [...SIZES, { width: 320, height: 568 }, { width: 1280, height
     await expect(page.locator(".status-slot")).toBeVisible({ timeout: 40_000 });
     const m = await page.evaluate(() => {
       const card = document.querySelector(".counters")!.getBoundingClientRect();
-      return [...document.querySelectorAll(".counters .readout")].map((readout) => {
+      return [...document.querySelectorAll(".counters .live-metric")].filter((readout) => readout.querySelector(".v3-num span") !== null).map((readout) => {
         // The digits, not the box: the box keeps a minimum width, so the digits can sit away from the unit.
         const range = document.createRange();
-        range.selectNodeContents(readout.querySelector(".readout-number")!);
+        range.selectNodeContents(readout.querySelector(".v3-num b")!);
         const num = range.getBoundingClientRect();
-        const unit = readout.querySelector(".unit")!;
+        const unit = readout.querySelector(".v3-num span")!;
         const u = unit.getBoundingClientRect();
         const text = unit.textContent ?? "";
         return { text, unitLeft: u.left, unitRight: u.right, cardLeft: card.left, cardRight: card.right, gap: u.left - num.right, sameLine: u.top < num.bottom - 2, clippedByBox: unit.scrollWidth > unit.clientWidth + 1 };
       });
     });
-    expect(m).toHaveLength(2);
+    // v3: a number that is not read yet (the angle on the fake camera) has no unit. The count always has one.
+    expect(m.length).toBeGreaterThanOrEqual(1);
     for (const u of m) {
       expect(u.unitRight, `"${u.text}" ends inside the card`).toBeLessThanOrEqual(u.cardRight + 0.5);
       expect(u.unitLeft, `"${u.text}" starts inside the card`).toBeGreaterThanOrEqual(u.cardLeft - 0.5);
@@ -271,7 +284,7 @@ test.describe("V5: Session with text at 200 percent, 390 x 844", () => {
     await page.evaluate(() => document.documentElement.style.setProperty("font-size", "200%", "important"));
     await page.waitForTimeout(400);
     const m = await page.evaluate(() => {
-      const h1 = document.querySelector(".session-head h1") as HTMLElement;
+      const h1 = document.querySelector(".v3-live-head h1") as HTMLElement;
       const lineHeight = parseFloat(getComputedStyle(h1).lineHeight) || parseFloat(getComputedStyle(h1).fontSize) * 1.2;
       const stop = document.querySelector(".btn-stop")!.getBoundingClientRect();
       const card = document.querySelector(".counters") as HTMLElement;
@@ -290,16 +303,16 @@ test.describe("V5: Session with text at 200 percent, 390 x 844", () => {
     expect(m.clipY).toBeLessThanOrEqual(1);
     expect(m.scrollW).toBeLessThanOrEqual(390);
     // The numbers scroll into view above the bar.
-    await page.locator(".readout:not(.readout-reps) .readout-number").scrollIntoViewIfNeeded();
+    await page.locator(".live-angle .v3-num b").scrollIntoViewIfNeeded();
     const room = await page.evaluate(() => {
       const bar = document.querySelector(".session-bar")!.getBoundingClientRect().top;
-      const num = document.querySelector(".readout:not(.readout-reps) .readout-number")!.getBoundingClientRect();
-      const reps = document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect();
+      const num = document.querySelector(".live-angle .v3-num b")!.getBoundingClientRect();
+      const reps = document.querySelector(".live-reps .v3-num b")!.getBoundingClientRect();
       return { bar, angleBottom: num.bottom, repsBottom: reps.bottom };
     });
     expect(room.angleBottom).toBeLessThanOrEqual(room.bar + 0.5);
-    await page.locator(".readout-reps .readout-number").scrollIntoViewIfNeeded();
-    const reps = await page.evaluate(() => ({ bar: document.querySelector(".session-bar")!.getBoundingClientRect().top, bottom: document.querySelector(".readout-reps .readout-number")!.getBoundingClientRect().bottom }));
+    await page.locator(".live-reps .v3-num b").scrollIntoViewIfNeeded();
+    const reps = await page.evaluate(() => ({ bar: document.querySelector(".session-bar")!.getBoundingClientRect().top, bottom: document.querySelector(".live-reps .v3-num b")!.getBoundingClientRect().bottom }));
     expect(reps.bottom).toBeLessThanOrEqual(reps.bar + 0.5);
   });
 });

@@ -167,7 +167,9 @@ export const readStore = (page: Page, store: 'sessions' | 'protocol') =>
 
 /** The banners of demo mode. The prototype banner is on every screen. The example banner follows the example protocol. */
 export async function expectBanners(page: Page, opts: { example: boolean }) {
-  await expect(page.getByRole('note').filter({ hasText: PROTOTYPE_BANNER })).toBeVisible();
+  // The live screens (Setup, Session) show the prototype banner in LiveShell (an aside named Notice). The other screens show it as a note.
+  const prototype = page.getByRole('note').or(page.getByRole('complementary', { name: 'Notice' }));
+  await expect(prototype.filter({ hasText: PROTOTYPE_BANNER })).toBeVisible();
   const example = page.getByRole('note').filter({ hasText: EXAMPLE_BANNER });
   if (opts.example) await expect(example).toBeVisible();
   else await expect(example).toHaveCount(0);

@@ -125,11 +125,11 @@ describe('Session summary', () => {
     const items = screen.getAllByRole('listitem').filter((li) => li.matches('.overview-item'));
     expect(items).toHaveLength(3);
     expect(items[0]).toHaveTextContent('Heel slide');
-    expect(items[0]).toHaveTextContent('4 reps');
+    expect(items[0]).toHaveTextContent(/4\s*reps/);
     expect(items[0]).toHaveTextContent('62');
     expect(items[1]).toHaveTextContent('Quadriceps set');
     expect(items[1]).toHaveTextContent('Skipped');
-    expect(items[2]).toHaveTextContent('7 reps');
+    expect(items[2]).toHaveTextContent(/7\s*reps/);
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onDone).toHaveBeenCalled();
   });
@@ -269,8 +269,9 @@ describe('Session: progress and the camera between exercises', () => {
 
   it('shows the place in the session and the set of the exercise', () => {
     run();
-    expect(screen.getByText('Exercise 3 of 6')).toBeInTheDocument();
-    expect(screen.getByText('Set 1 of 3', { selector: '.plan-progress *' })).toBeInTheDocument();
+    // v3: SessionProgress holds the place and the set in one text.
+    expect(screen.getByRole('progressbar', { name: 'Session progress' })).toHaveAttribute('aria-valuetext', 'Exercise 3 of 6, set 1 of 3');
+    expect(screen.getByText('Exercise 3 of 6, set 1 of 3')).toBeInTheDocument();
   });
 
   it('stops the camera at the end of an exercise by default', () => {

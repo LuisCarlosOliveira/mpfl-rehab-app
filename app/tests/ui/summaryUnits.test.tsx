@@ -61,14 +61,14 @@ describe('Summary units agree with the number (R2-03)', () => {
 
   it('writes the unit of the stat cards by the number', () => {
     show(base, [1]);
-    expect(screen.getByText('Reps counted').nextElementSibling).toHaveTextContent(/^1 rep$/);
-    expect(screen.getByText('Highest knee bend').nextElementSibling).toHaveTextContent(/^1 degree/);
+    expect(screen.getByText('Reps counted').nextElementSibling).toHaveTextContent(/^1\s*rep$/);
+    expect(screen.getByText('Highest knee bend').nextElementSibling).toHaveTextContent(/^1\s*degree/);
     cleanup();
     show({ ...base, reps: null, holds: 1 }, [1]);
-    expect(screen.getByText('Holds counted').nextElementSibling).toHaveTextContent(/^1 hold$/);
+    expect(screen.getByText('Holds counted').nextElementSibling).toHaveTextContent(/^1\s*hold$/);
     cleanup();
     show({ ...base, reps: 0 }, [0]);
-    expect(screen.getByText('Reps counted').nextElementSibling).toHaveTextContent(/^0 reps$/);
+    expect(screen.getByText('Reps counted').nextElementSibling).toHaveTextContent(/^0\s*reps$/);
   });
 });
 
@@ -78,7 +78,7 @@ describe('C3-05 the Summary shows the whole degree of the stored value', () => {
     expect(storedWhole(141.46)).toBe(142);
     expect(storedWhole(null)).toBeNull();
     show({ ...base, peakFlexion: 141.46 }, [10]);
-    const dl = screen.getByText('Highest knee bend').closest('.stat')!;
-    expect(dl.querySelector('.num')!.textContent).toBe(String(storedWhole(141.46)));
+    const dl = screen.getByText('Highest knee bend').closest('.v3-metric')!;
+    expect(dl.querySelector('.v3-num b')!.textContent).toBe(String(storedWhole(141.46)));
   });
 });

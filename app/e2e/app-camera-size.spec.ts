@@ -75,8 +75,9 @@ for (const size of SIZES) {
         expect(setup.frame.w, "setup camera width").toBeGreaterThanOrEqual(size.width * 0.55);
         expect(setup.frame.y + setup.frame.h, "the setup camera ends inside the window").toBeLessThanOrEqual(size.height);
       } else {
-        expect(session.frame.w, "the phone camera is full width").toBe(size.width);
-        if (size.height >= 800) expect(session.frame.h, "the tall phone camera is a full 4:3 picture").toBeGreaterThanOrEqual(Math.floor(size.width * 0.75) - 2);
+        // v3: the camera card fills the content width. LiveShell keeps 16 px of padding at each side of a phone.
+        expect(session.frame.w, "the phone camera fills the content width (the card has a 1 px border)").toBe(size.width - 34);
+        if (size.height >= 800) expect(session.frame.h, "the tall phone camera is a full 4:3 picture").toBeGreaterThanOrEqual(Math.floor((size.width - 34) * 0.75) - 2);
       }
       expect(session.scrollY).toBe(0);
       expect(session.bannerTop).toBeGreaterThanOrEqual(0);

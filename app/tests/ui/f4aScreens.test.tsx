@@ -39,7 +39,7 @@ describe('Summary: the leg raise peak (M8)', () => {
 
   it('C-06: the highest knee bend line says "No value" and does not claim that the camera could not read', () => {
     summaryOf(SLR, { ...base, peakFlexion: 46.5, topFlexion: 3 });
-    const stat = screen.getByText('Highest knee bend').closest('.stat') as HTMLElement;
+    const stat = screen.getByText('Highest knee bend').closest('.v3-metric') as HTMLElement;
     expect(stat.textContent).toContain(PEAK_NO_VALUE_TEXT);
     expect(stat.textContent).not.toMatch(/camera could not read|46/);
     expect(screen.getByText(/Reps counted/)).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('Summary: the leg raise peak (M8)', () => {
 describe('Summary: the leg raise top angle (F5a)', () => {
   it('shows the number when the top angle is 30 degrees or less', () => {
     summaryOf(SLR, { ...base, topFlexion: 30 });
-    expect(screen.getByText('Angle at the top').closest('.stat')!.textContent).toMatch(/30\s*degrees/);
+    expect(screen.getByText('Angle at the top').closest('.v3-metric')!.textContent).toMatch(/30\s*degrees/);
   });
 
   it('shows the plain sentence and no number when the top angle is above 30 degrees', () => {
@@ -95,10 +95,10 @@ describe('Summary: the leg raise top angle (F5a)', () => {
 describe('Summary: the angle at the top is its own line (U4)', () => {
   it('shows the angle at the top of 14 degrees next to a peak of 156 that shows no value', () => {
     summaryOf(SLR, { ...base, topFlexion: 14.4, peakFlexion: 156 });
-    const top = screen.getByText('Angle at the top').closest('.stat')!;
+    const top = screen.getByText('Angle at the top').closest('.v3-metric')!;
     expect(top.textContent).toContain('14');
     expect(top.textContent).toContain('estimated angle, not a medical measurement');
-    const peak = screen.getByText('Highest knee bend').closest('.stat')!;
+    const peak = screen.getByText('Highest knee bend').closest('.v3-metric')!;
     expect(peak.textContent).toContain(PEAK_NO_VALUE_TEXT);
     expect(peak.textContent).not.toMatch(/\b156\b/);
   });

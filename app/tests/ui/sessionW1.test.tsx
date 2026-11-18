@@ -66,7 +66,7 @@ const w1Rules = w1.replace(/\/\*[\s\S]*?\*\//g, '');
 describe('U4: live numbers and units', () => {
   it('writes 1 rep and 2 reps, and 1 hold and 2 holds, so the unit agrees with the number', () => {
     const { source } = setup({ ...HEEL_SLIDE, sets: 1, reps: 5 });
-    const unit = () => document.querySelector('.readout-reps .unit')!.textContent;
+    const unit = () => document.querySelector('.live-reps .v3-num span')!.textContent;
     expect(unit()).toBe('reps'); // 0 reps
     const t = playRep(source, 'left', 60);
     act(() => void vi.advanceTimersByTime(300));
@@ -78,10 +78,9 @@ describe('U4: live numbers and units', () => {
 
   it('keeps the unit in its own element, after a number element', () => {
     setup();
-    for (const readout of document.querySelectorAll('.counters .readout')) {
-      const number = readout.querySelector('.readout-number')!;
-      expect(number.nextElementSibling).toHaveClass('unit');
-    }
+    // The angle shows "--" and no unit until the first frame. The count always has its unit.
+    const number = document.querySelector('.counters .live-reps .v3-num b')!;
+    expect(number.nextElementSibling?.tagName).toBe('SPAN');
   });
 
   it('gives the live number tabular figures and a fixed width of 3 characters', () => {
@@ -101,7 +100,7 @@ describe('U3: the camera is first on a phone, the angle is left of the count', (
 
   it('labels each number: Knee bend with the estimate text under it, and Reps (A2)', () => {
     setup();
-    const labels = [...document.querySelectorAll('.readout-label')].map((n) => n.textContent);
+    const labels = [...document.querySelectorAll('.v3-metric-label')].map((n) => n.textContent);
     expect(labels).toEqual(['Knee bend', 'Reps']);
     expect(screen.getByText(/estimated angle, not a medical measurement/)).toBeInTheDocument();
   });
@@ -177,7 +176,7 @@ describe('U6: the hold timer', () => {
     expect(bar.className).toBe(classBefore);
     expect(document.querySelector('.hold-meter')!.textContent).not.toMatch(/goal|target|reached|success|done|complete/i);
     expect(hasVerdictWord(document.querySelector('.hold-meter')!.textContent ?? '')).toBeNull();
-    expect(document.querySelector('.readout-reps .unit')!.textContent).toBe('hold');
+    expect(document.querySelector('.live-reps .v3-num span')!.textContent).toBe('hold');
   });
 
   it('takes the 5 from the protocol, so another hold time gives another number', () => {
@@ -232,7 +231,7 @@ describe('L3-06: notices sit above the camera and the fixed bar', () => {
     const { again } = setup(HEEL_SLIDE, link('connected'));
     again(link('closed'));
     const notice = screen.getByText('The second camera stopped. The session continues with one camera.').closest('.notice')!;
-    const grid = document.querySelector('.session-grid')!;
+    const grid = document.querySelector('.v3-cam')!;
     expect(notice.closest('.session-notices')).not.toBeNull();
     expect(Boolean(notice.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
     expect(document.querySelector('.session-bar')!.contains(notice)).toBe(false);
@@ -275,7 +274,7 @@ describe('L3-07: the page goes to the background', () => {
     act(() => void vi.advanceTimersByTime(300));
     expect(document.body.textContent).not.toContain('Show your whole leg.');
     expect(document.body.textContent).not.toMatch(/Estimated angle at the top/);
-    expect(document.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent).toBe('--');
+    expect(document.querySelector('.live-angle .v3-num b')!.textContent).toBe('--');
   });
 
   it('starts the camera again after the press and removes the notice', () => {

@@ -29,7 +29,7 @@ describe('B-05: one angle on the screen', () => {
     // A fast jump: the filtered value lags behind the raw value.
     act(() => source.emit(legLandmarks('left', 70), 200));
     act(() => void vi.advanceTimersByTime(300));
-    const readout = view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+    const readout = view.container.querySelector('.live-angle .v3-num b')!.textContent!.trim();
     const mapText = view.container.querySelector('[data-k="arc-text"] tspan')!.textContent!.trim();
     expect(readout).not.toBe('--');
     expect(mapText.replace('°', '').trim()).toBe(readout);
@@ -40,7 +40,7 @@ describe('B-05: one angle on the screen', () => {
     const source = mockSource();
     const audio = audioHarness();
     const view = render(<Session exercise={SLR} side="left" baselineDeg={0} source={source} sound={audio.sound} onEnd={vi.fn()} />);
-    const readout = () => view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+    const readout = () => view.container.querySelector('.live-angle .v3-num b')!.textContent!.trim();
     const mapText = () => {
       const el = view.container.querySelector('[data-k="arc-text"]') as SVGElement;
       if (el.getAttribute('display') === 'none') return '--';
@@ -119,7 +119,7 @@ describe('B3-01: Follow me again', () => {
     act(() => void vi.advanceTimersByTime(300));
     return t;
   };
-  const readout = (view: ReturnType<typeof render>) => view.container.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+  const readout = (view: ReturnType<typeof render>) => view.container.querySelector('.live-angle .v3-num b')!.textContent!.trim();
 
   const OTHER = 'The camera is following someone else. Make sure that only you are in the camera view, then stop and start again from Setup.';
   const cue = (view: ReturnType<typeof render>) => view.container.querySelector('.status-slot .cue')!.textContent!.trim();

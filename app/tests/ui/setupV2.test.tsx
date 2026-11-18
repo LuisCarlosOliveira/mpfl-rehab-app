@@ -165,11 +165,12 @@ describe('A3: Setup camera, before and while the camera runs', () => {
     expect(document.querySelector('.frame .setup-state')).toBeNull();
   });
 
-  it('shows a status chip on the picture whose text equals the first rule that failed', async () => {
+  // v3: the chip sits at the top of the panel, beside the camera, so it never covers a joint label.
+  it('shows a status chip next to the picture whose text equals the first rule that failed', async () => {
     const { source } = open();
     await start();
     act(() => source.emit(null, 0));
-    const chip = document.querySelector('.frame .status-line')!;
+    const chip = document.querySelector('.v3-live-panel .status-line')!;
     expect(chip).toHaveTextContent(chipFor('no-pose').text);
     expect(chip).toHaveTextContent(orderedRuleRows('no-pose')[0]!.label);
   });

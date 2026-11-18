@@ -73,8 +73,8 @@ describe('Session sets: labels in the counter header', () => {
 describe('Session header', () => {
   it('keeps the title and the mute button in one header row for the straight leg raise', () => {
     setup(SLR);
-    const head = screen.getByRole('heading', { level: 1, name: 'Straight leg raise' }).closest('.page-head')!;
-    expect(head).toHaveClass('session-head');
+    const head = screen.getByRole('heading', { level: 1, name: 'Straight leg raise' }).closest('.v3-live-head')!;
+    expect(head).not.toBeNull();
     expect(head.contains(screen.getByRole('button', { name: /sound/ }))).toBe(true);
   });
 });

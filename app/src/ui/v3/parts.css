@@ -147,6 +147,11 @@
 }
 
 /* ---------- Live shell ---------- */
+/* The live frame is wider than the other screens, so the camera column is at least 55 percent of the window (design doc 2, principle 3). */
+.v3-main.v3-live-main {
+  --v3-live-width: 120rem; /* 1920 px: at 1440 px the camera column is 57 percent of the window, at 1910 px it is 57 percent too */
+  max-width: var(--v3-live-width);
+}
 .v3-live {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -178,7 +183,8 @@
   max-width: calc(100% - 1.5rem);
 }
 .v3-live-panel {
-  display: grid;
+  display: flex; /* not a grid: a sticky bar inside the panel (Setup guide) sticks in a flex container but not in a grid area */
+  flex-direction: column;
   gap: var(--v3-s4);
   min-width: 0;
 }

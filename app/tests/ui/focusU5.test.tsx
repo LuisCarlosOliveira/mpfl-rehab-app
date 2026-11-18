@@ -34,7 +34,7 @@ describe('U5: focus', () => {
     fireEvent.click(button);
     const active = document.activeElement as HTMLElement;
     expect(active).not.toBe(document.body);
-    expect(active.classList.contains('readout-line')).toBe(true);
+    expect(active.classList.contains('v3-num')).toBe(true);
     expect(active.getAttribute('tabindex')).toBe('-1');
     expect(document.documentElement.scrollTop).toBe(0);
   });

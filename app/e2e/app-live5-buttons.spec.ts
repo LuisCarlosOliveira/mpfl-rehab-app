@@ -18,7 +18,7 @@ async function toSession(page: Page) {
     const box = document.createElement("div");
     box.className = "lock-box";
     box.innerHTML = '<button type="button" class="btn" id="probe-follow">Follow me again</button>';
-    document.querySelector(".v2-session")!.appendChild(box);
+    document.querySelector(".v3-live-panel")!.appendChild(box);
   });
 }
 
