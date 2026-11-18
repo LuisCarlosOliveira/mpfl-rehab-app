@@ -2,6 +2,7 @@
 // The page is scrolled down before each Next, so a step that keeps the old scroll fails.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, PROTOTYPE_BANNER, toLoad } from './helpers/app';
+import { fillDate, pick, QUESTION } from './helpers/plan';
 
 const ago = (days: number) => {
   const d = new Date();
@@ -12,10 +13,10 @@ const ago = (days: number) => {
 const radio = (page: Page, name: string) => page.getByRole('radio', { name, exact: true }).check();
 
 let steps = 0;
-/** Scrolls down, presses Next, then asserts that the new step is at the top with the banner in view. */
-async function next(page: Page) {
+/** Scrolls down, presses the button that goes on, then asserts that the new step is at the top with the banner in view. */
+async function next(page: Page, name: string) {
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await page.getByRole('button', { name: /^(Next|Make my plan)$/ }).click();
+  await page.getByRole('button', { name, exact: true }).click();
   steps += 1;
   await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe('H1');
   const where = await page.evaluate(() => ({ y: window.scrollY, vh: window.innerHeight }));
@@ -35,26 +36,26 @@ for (const size of [
       await installProbes(page);
     });
 
-    test('every question step opens at the top', async ({ page }) => {
+    test('every question group opens at the top', async ({ page }) => {
       steps = 0;
       await toLoad(page);
       await page.getByRole('button', { name: 'Create my plan' }).click();
-      await expectScreen(page, 'Did your care team give you a written rehab plan?');
-      await radio(page, 'No'); await next(page);
-      await radio(page, 'MPFL reconstruction only'); await next(page);
-      await radio(page, '18 or older'); await next(page);
-      await radio(page, 'No'); await next(page);
-      await radio(page, 'Yes'); await next(page);
-      await radio(page, 'No'); await next(page);
-      await page.getByLabel('Date of surgery').fill(ago(60)); await next(page);
-      await radio(page, 'Left'); await next(page);
-      await radio(page, 'Yes, my limit is');
+      await expectScreen(page, 'You and your surgery');
+      await pick(page, QUESTION.written, 'No');
+      await pick(page, QUESTION.procedure, 'MPFL reconstruction only');
+      await pick(page, QUESTION.age, '18 or older');
+      await pick(page, QUESTION.both, 'No');
+      await pick(page, QUESTION.first, 'Yes');
+      await pick(page, QUESTION.rules, 'No');
+      await next(page, 'Continue to your surgeon');
+      await fillDate(page, ago(60));
+      await pick(page, QUESTION.side, 'Left');
+      await pick(page, QUESTION.limit, 'Yes, my limit is');
       await page.getByLabel('Limit in degrees').fill('60');
-      await next(page);
-      await next(page); // red flags: none ticked
-      await radio(page, '2'); await radio(page, 'No swelling'); await next(page);
-      await expect(page.getByRole('heading', { level: 1, name: /Has your surgeon or physiotherapist said/ })).toBeVisible();
-      await radio(page, 'No'); await next(page);
+      await next(page, 'Continue to today');
+      await radio(page, '2'); await radio(page, 'No swelling');
+      await pick(page, QUESTION.clearance, 'No');
+      await next(page, 'Check my answers');
       await expectScreen(page, 'Check your answers');
     });
   });

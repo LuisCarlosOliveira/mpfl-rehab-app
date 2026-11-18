@@ -1,6 +1,7 @@
 // The answer controls that the questions share: a radio group of cards, the limit question, the swelling question
 // and the red-flag tick list. Onboarding and "Update my plan" use them, so the two screens ask in the same way.
-import { limitProblem, surgeryDateProblem } from '../lib/onboarding';
+import { useState } from 'react';
+import { limitProblem, surgeryDateFromParts } from '../lib/onboarding';
 import { surgeryDateWords } from '../lib/planView';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, type RedFlagGroup } from '../lib/redflags';
 import type { SwellingAnswer } from '../lib/safety';
@@ -18,16 +19,18 @@ interface GroupProps {
   legend: string;
   /** True shows the legend as the visible question. The legend stays the one name of the group, so a screen reader reads it once. */
   showLegend?: boolean;
+  /** True puts a short list of answers (2 or 3) side by side. The inputs stay radio buttons. */
+  row?: boolean;
   value: string | null;
   choices: readonly Choice[];
   onChange: (value: string) => void;
 }
 
-export function ChoiceGroup({ name, legend, showLegend = false, value, choices, onChange }: GroupProps) {
+export function ChoiceGroup({ name, legend, showLegend = false, row = false, value, choices, onChange }: GroupProps) {
   return (
     <fieldset className="choices">
       <legend className={showLegend ? undefined : 'visually-hidden'}>{legend}</legend>
-      <div className="options options-stack">
+      <div className={row ? 'options options-row' : 'options options-stack'}>
         {choices.map((c) => (
           <label key={c.value} className="option">
             <input type="radio" name={name} checked={value === c.value} onChange={() => onChange(c.value)} />
@@ -39,30 +42,66 @@ export function ChoiceGroup({ name, legend, showLegend = false, value, choices, 
   );
 }
 
+const partsOf = (iso: string) => {
+  const [y = '', m = '', d = ''] = iso.split('-');
+  return iso === '' ? { day: '', month: '', year: '' } : { day: String(Number(d)), month: String(Number(m)), year: y };
+};
+
 /**
- * The date of surgery. The field shows the date in the format of the browser. The line under it says the same date in words,
- * so a date that the browser set by itself (for example the Today button of the calendar) is visible before the person goes on.
- * Onboarding and "Update my plan" use it. An empty or invalid date stays as it is. The app never uses today instead.
+ * The date of surgery as three plain number fields: day, month and year. A native date field shows the format of the browser
+ * and has a popup with a Today button, so the shown date and the kept date can differ. These fields have one meaning in every locale.
+ * The value kept is the ISO date, and only when the three parts make a real date that is not in the future. Otherwise it is empty.
+ * The line under the fields says the date in words. A click elsewhere or a blur never changes the value.
+ * Onboarding and "Update my plan" use it. The app never uses today instead of a missing date.
  */
 export function SurgeryDateField({ value, today, onChange }: { value: string; today: string; onChange: (value: string) => void }) {
-  const problem = surgeryDateProblem(value, today);
-  const words = problem === null ? surgeryDateWords(value, today) : null;
-  return (
-    <div className="field choices">
-      <label htmlFor="surgery-date">Date of surgery</label>
+  const [parts, setParts] = useState(() => partsOf(value));
+  const [yearLeft, setYearLeft] = useState(false);
+  const { iso, problem } = surgeryDateFromParts(parts.day, parts.month, parts.year, today);
+  // A value from outside (for example the stored date that loads late) replaces the typed parts. The empty value keeps them.
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    if (value !== '' && value !== iso) setParts(partsOf(value));
+  }
+  const set = (patch: Partial<typeof parts>) => {
+    const next = { ...parts, ...patch };
+    setParts(next);
+    onChange(surgeryDateFromParts(next.day, next.month, next.year, today).iso ?? '');
+  };
+  // While the year is still being typed, 202 is not an error yet. A 4-digit year or a left year field shows the message.
+  const shown = problem !== null && (parts.year.trim().length >= 4 || yearLeft || problem !== 'Enter a real date') ? problem : null;
+  const words = iso === null ? null : surgeryDateWords(iso, today);
+  const describedBy = shown !== null ? 'surgery-date-problem' : words !== null ? 'surgery-date-words' : undefined;
+  const part = (key: keyof typeof parts, label: string, max: number, extra?: { onBlur: () => void }) => (
+    <div className="field date-part" data-part={key}>
+      <label htmlFor={`surgery-date-${key}`}>{label}</label>
       <input
-        id="surgery-date"
+        id={`surgery-date-${key}`}
         className="text-input"
-        type="date"
-        max={today}
-        value={value}
-        aria-invalid={problem !== null}
-        aria-describedby={problem !== null ? 'surgery-date-problem' : words !== null ? 'surgery-date-words' : undefined}
-        onChange={(e) => onChange(e.target.value)}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={max}
+        value={parts[key]}
+        aria-invalid={shown !== null}
+        aria-describedby={describedBy}
+        onChange={(e) => set({ [key]: e.target.value })}
+        onBlur={extra?.onBlur}
       />
-      {problem !== null && (
-        <p id="surgery-date-problem" className="detail" role="alert">
-          {problem}
+    </div>
+  );
+  return (
+    <fieldset className="choices date-field">
+      <legend>Date of surgery</legend>
+      <div className="date-parts">
+        {part('day', 'Day', 2)}
+        {part('month', 'Month', 2)}
+        {part('year', 'Year', 4, { onBlur: () => setYearLeft(true) })}
+      </div>
+      {shown !== null && (
+        <p id="surgery-date-problem" className="detail date-problem" role="alert">
+          {shown}
         </p>
       )}
       {words !== null && (
@@ -70,7 +109,7 @@ export function SurgeryDateField({ value, today, onChange }: { value: string; to
           {`You chose ${words}.`}
         </p>
       )}
-    </div>
+    </fieldset>
   );
 }
 
@@ -121,14 +160,16 @@ interface LimitProps {
   onDegrees: (text: string) => void;
   /** The legend for a screen reader. */
   legend: string;
+  /** True shows the legend as the visible question. */
+  showLegend?: boolean;
 }
 
-export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend }: LimitProps) {
+export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend, showLegend = false }: LimitProps) {
   const problem = limitProblem(degrees);
   const problemId = `${name}-degrees-problem`;
   return (
     <fieldset className="choices">
-      <legend className="visually-hidden">{legend}</legend>
+      <legend className={showLegend ? undefined : 'visually-hidden'}>{legend}</legend>
       <div className="options options-stack">
         <label className="option">
           <input type="radio" name={name} checked={kind === 'degrees'} onChange={() => onKind('degrees')} />

@@ -62,14 +62,14 @@ describe('StepTrack', () => {
 });
 
 describe('C1 question screens', () => {
-  it('shows a track of marks, with Back before Next, under the root class', () => {
+  it('shows a track of 3 marks, with Back before Continue, under the root class', () => {
     const { container } = render(<Onboarding today={TODAY} onDone={vi.fn()} onCancel={vi.fn()} />);
     expect(container.querySelector('.v2-screens')).not.toBeNull();
     const track = container.querySelector('.step-track')!;
-    expect(track.querySelectorAll('li').length).toBeGreaterThan(5);
-    expect(screen.getByText(/^Question 1 of \d+$/)).toBeInTheDocument();
+    expect(track.querySelectorAll('li')).toHaveLength(3);
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
     const buttons = [...container.querySelectorAll('.action-bar button')].map((b) => b.textContent);
-    expect(buttons).toEqual(['Back', 'Next']);
+    expect(buttons).toEqual(['Back', 'Continue to your surgeon']);
   });
 });
 

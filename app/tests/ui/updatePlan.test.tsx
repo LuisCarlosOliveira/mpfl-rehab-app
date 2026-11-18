@@ -45,6 +45,11 @@ async function setup(over: Partial<StoredInputs> = {}, props: { today?: string; 
   );
   return { db, protocol, onDone, onCancel, onCreate, view };
 }
+const typeDate = (d: number, m: number, y: number) => {
+  fireEvent.change(screen.getByLabelText('Day'), { target: { value: String(d) } });
+  fireEvent.change(screen.getByLabelText('Month'), { target: { value: String(m) } });
+  fireEvent.change(screen.getByLabelText('Year'), { target: { value: String(y) } });
+};
 const ready = () => screen.findByRole('button', { name: 'Check my plan' });
 const answerToday = () => {
   fireEvent.click(screen.getByRole('radio', { name: '2' }));
@@ -64,13 +69,13 @@ describe('UpdatePlan, the date of surgery', () => {
   it('asks the date with the stored value, and shows it in words', async () => {
     await setup({ surgeryDate: '2026-10-29' }, { today: '2026-11-18' });
     await ready();
-    expect((screen.getByLabelText('Date of surgery') as HTMLInputElement).value).toBe('2026-10-29');
+    expect(['Day', 'Month', 'Year'].map((l) => (screen.getByLabelText(l) as HTMLInputElement).value)).toEqual(['29', '10', '2026']);
     expect(screen.getByText('You chose 29 October 2026, week 2 (the third week after surgery).')).toBeInTheDocument();
   });
   it('uses the corrected date for the new check, and keeps the other answers', async () => {
     const { onDone } = await setup({ surgeryDate: '2026-10-15' }, { today: '2026-11-18' });
     await ready();
-    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '2026-10-29' } });
+    typeDate(29, 10, 2026);
     answerToday();
     await check();
     expect(onDone.mock.calls[0]![0].inputs).toMatchObject({ surgeryDate: '2026-10-29', side: 'left' });
@@ -79,9 +84,9 @@ describe('UpdatePlan, the date of surgery', () => {
     await setup({}, { today: '2026-11-18' });
     await ready();
     answerToday();
-    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Day'), { target: { value: '' } });
     expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '2026-12-01' } });
+    typeDate(1, 12, 2026);
     expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
   });
 });

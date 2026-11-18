@@ -109,29 +109,39 @@ describe('L2-03: a higher limit is held with the reason', () => {
 });
 
 describe('L2-07: the date question refuses a date in the future', () => {
+  const GO = 'Continue to today';
   function toDate() {
     render(<Onboarding today={TODAY} onDone={vi.fn()} onCancel={vi.fn()} />);
-    for (const label of ['No', 'MPFL reconstruction only', '18 or older', 'No', 'Yes', 'No']) {
-      fireEvent.click(screen.getByRole('radio', { name: label }));
-      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    }
+    const about: [string | RegExp, string][] = [
+      ['Did your care team give you a written rehab plan?', 'No'], ['Which operation did you have?', 'MPFL reconstruction only'], ['How old are you?', '18 or older'],
+      ['Did you have surgery on both knees?', 'No'], ['Is this your first MPFL surgery on this knee?', 'Yes'], [/Did your surgeon give special rules/, 'No'],
+    ];
+    for (const [q, a] of about) fireEvent.click(within(screen.getByRole('group', { name: q })).getByRole('radio', { name: a }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to your surgeon' }));
+    // The other questions of the group are answered, so only the date decides if Continue opens.
+    fireEvent.click(within(screen.getByRole('group', { name: 'Which knee did you have surgery on?' })).getByRole('radio', { name: 'Left' }));
+    fireEvent.click(within(screen.getByRole('group', { name: /Did your surgeon give a limit/ })).getByRole('radio', { name: 'No limit' }));
   }
-  const type = (v: string) => fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: v } });
+  const type = (d: string, m: string, y: string) => {
+    fireEvent.change(screen.getByLabelText('Day'), { target: { value: d } });
+    fireEvent.change(screen.getByLabelText('Month'), { target: { value: m } });
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: y } });
+  };
 
-  it('keeps Next closed and says why for a future date', () => {
+  it('keeps Continue closed and says why for a future date', () => {
     toDate();
-    type('2026-12-01');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('The date of your surgery cannot be in the future. Enter the date of your surgery.');
-    expect(screen.getByLabelText('Date of surgery')).toHaveAttribute('aria-invalid', 'true');
+    type('1', '12', '2026');
+    expect(screen.getByRole('button', { name: GO })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('The date cannot be in the future');
+    expect(screen.getByLabelText('Day')).toHaveAttribute('aria-invalid', 'true');
   });
 
-  it('opens Next for today and for a past date, with no message', () => {
+  it('opens Continue for today and for a past date, with no message', () => {
     toDate();
-    type(TODAY);
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    type('8', '11', '2026'); // TODAY
+    expect(screen.getByRole('button', { name: GO })).toBeEnabled();
     expect(screen.queryByRole('alert')).toBeNull();
-    type('2026-10-15');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    type('15', '10', '2026');
+    expect(screen.getByRole('button', { name: GO })).toBeEnabled();
   });
 });

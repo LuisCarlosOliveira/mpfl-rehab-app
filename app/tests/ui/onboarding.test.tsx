@@ -20,9 +20,18 @@ function setup(props: Partial<Parameters<typeof Onboarding>[0]> = {}) {
 }
 const h1 = () => screen.getByRole('heading', { level: 1 }).textContent;
 const choose = (name: string | RegExp) => fireEvent.click(screen.getByRole('radio', { name }));
-const next = () => fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+/** Answers one question of a group screen. The legend names the group of radio buttons. */
+const pick = (question: string | RegExp, answer: string | RegExp) =>
+  fireEvent.click(within(screen.getByRole('group', { name: question })).getByRole('radio', { name: answer }));
+const go = (label: string) => fireEvent.click(screen.getByRole('button', { name: label }));
+const GO = { surgeon: 'Continue to your surgeon', today: 'Continue to today', check: 'Check my answers' } as const;
 const back = () => fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 const type = (label: string | RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+/** Types an ISO date into the day, month and year fields. */
+const typeDate = (iso: string) => {
+  const [y, m, d] = iso.split('-') as [string, string, string];
+  type('Day', String(Number(d))); type('Month', String(Number(m))); type('Year', y);
+};
 
 const Q = {
   written: 'Did your care team give you a written rehab plan?',
@@ -31,33 +40,43 @@ const Q = {
   both: 'Did you have surgery on both knees?',
   first: 'Is this your first MPFL surgery on this knee?',
   rules: /Did your surgeon give special rules/,
-  date: 'What was the date of your surgery?',
   side: 'Which knee did you have surgery on?',
   limit: /Did your surgeon give a limit for how far you can bend your knee/,
   flags: 'Do any of these apply today?',
-  today: 'How is your knee today?',
   clearance: /Has your surgeon or physiotherapist said that you can start the next stage/,
 };
 
-/** Answers the questions up to the date question. */
-function referralQuestions() {
-  choose('No'); next();
-  choose('MPFL reconstruction only'); next();
-  choose('18 or older'); next();
-  choose('No'); next();
-  choose('Yes'); next();
-  choose('No'); next();
+/** Answers the 6 questions of group 1 with the answers that allow a plan. */
+function aboutAnswers() {
+  pick(Q.written, 'No');
+  pick(Q.procedure, 'MPFL reconstruction only');
+  pick(Q.age, '18 or older');
+  pick(Q.both, 'No');
+  pick(Q.first, 'Yes');
+  pick(Q.rules, 'No');
 }
 
-/** Answers every question from the first to the summary. The date gives week 3. */
+/** Group 1 to group 2. */
+function referralQuestions() {
+  aboutAnswers();
+  go(GO.surgeon);
+}
+
+/** Answers group 2 with a date, the left knee and a limit of 60. It stays on the screen of group 3. */
+function surgeonGroup(date: string) {
+  typeDate(date);
+  pick(Q.side, 'Left');
+  pick(Q.limit, /Yes, my limit is/); type('Limit in degrees', '60');
+  go(GO.today);
+}
+
+/** Answers every question from the first to the summary. The date gives week 3. `extra` answers the questions of group 3 that the date opens. */
 function walk(date = '2026-10-15', extra: () => void = () => undefined) {
   referralQuestions();
-  type('Date of surgery', date); next();
-  choose('Left'); next();
-  choose(/Yes, my limit is/); type('Limit in degrees', '60'); next();
-  next(); // red flags: no tick
-  choose('2'); choose('No swelling'); next();
+  surgeonGroup(date);
+  choose('2'); choose('No swelling');
   extra();
+  go(GO.check);
 }
 
 describe('Onboarding, the date that the person sees is the date that the app keeps', () => {
@@ -65,171 +84,169 @@ describe('Onboarding, the date that the person sees is the date that the app kee
     setup();
     referralQuestions();
   };
-  it('shows the chosen date in words under the field, with the week', () => {
+  it('shows the chosen date in words under the fields, with the week', () => {
     toDate();
     expect(screen.queryByText(/You chose/)).toBeNull();
-    type('Date of surgery', '2026-10-29');
+    typeDate('2026-10-29');
     expect(screen.getByText('You chose 29 October 2026, week 1 (the second week after surgery).')).toBeInTheDocument();
   });
   it('shows the date in words on Check your answers, so a wrong date is visible', () => {
     setup({ today: '2026-11-18' });
     referralQuestions();
-    type('Date of surgery', '2026-10-29'); next();
-    choose('Left'); next();
-    choose(/Yes, my limit is/); type('Limit in degrees', '60'); next();
-    next();
-    choose('2'); choose('No swelling'); next();
+    surgeonGroup('2026-10-29');
+    choose('2'); choose('No swelling');
+    go(GO.check);
     expect(h1()).toBe('Check your answers');
     expect(screen.getByText('29 October 2026, week 2 (the third week after surgery)')).toBeInTheDocument();
   });
-  it('keeps the date of the field in the stored answers, and never today', () => {
+  it('keeps the date of the fields in the stored answers, and never today', () => {
     const { onDone } = setup({ today: '2026-11-18' });
     referralQuestions();
-    type('Date of surgery', '2026-10-29'); next();
-    choose('Left'); next();
-    choose(/Yes, my limit is/); type('Limit in degrees', '60'); next();
-    next();
-    choose('2'); choose('No swelling'); next();
+    surgeonGroup('2026-10-29');
+    choose('2'); choose('No swelling');
+    go(GO.check);
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     expect(onDone.mock.calls[0]![0].inputs.surgeryDate).toBe('2026-10-29');
   });
-  it('does not replace an empty or invalid date by today: Next stays closed and no words show', () => {
+  it('does not replace an empty or invalid date by today: Continue stays closed and no words show', () => {
     toDate();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    type('Date of surgery', '2026-11-30'); // after today
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    pick(Q.side, 'Left');
+    pick(Q.limit, 'No limit');
+    expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
+    typeDate('2026-11-30'); // after today
+    expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
     expect(screen.queryByText(/You chose/)).toBeNull();
-    expect(screen.getByText('The date of your surgery cannot be in the future. Enter the date of your surgery.')).toBeInTheDocument();
+    expect(screen.getByText('The date cannot be in the future')).toBeInTheDocument();
+    typeDate('2026-11-08');
+    expect(screen.getByRole('button', { name: GO.today })).toBeEnabled();
   });
 });
 
-describe('Onboarding, one question for each screen', () => {
-  it('starts with the first referral question and counts the questions', () => {
+describe('Onboarding, 3 groups', () => {
+  it('starts with group 1 and counts the steps', () => {
     setup();
-    expect(h1()).toBe(Q.written);
-    expect(screen.getByText('Question 1 of 11')).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    expect(h1()).toBe('You and your surgery');
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(16);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('asks the referral questions first, in the order of the design', () => {
+  it('asks the 6 referral questions first, each in a fieldset with its legend, in the order of the design', () => {
     setup();
-    const seen: (string | null)[] = [h1()];
-    const answers: [string, string][] = [['No', 'next'], ['MPFL reconstruction only', 'next'], ['18 or older', 'next'], ['No', 'next'], ['Yes', 'next'], ['No', 'next']];
-    for (const [a] of answers) {
-      choose(a);
-      next();
-      seen.push(h1());
-    }
-    expect(seen).toEqual([Q.written, Q.procedure, Q.age, Q.both, Q.first, 'Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?', Q.date]);
+    const legends = [...document.querySelectorAll('fieldset > legend')].map((l) => l.textContent);
+    expect(legends).toEqual([
+      Q.written, Q.procedure, Q.age, Q.both, Q.first,
+      'Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?',
+    ]);
   });
 
-  it('keeps Next closed until the question has an answer', () => {
+  it('shows group 2 and group 3 with their questions', () => {
     setup();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    choose('No');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    referralQuestions();
+    expect(h1()).toBe('Your surgeon');
+    expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
+    const legends = [...document.querySelectorAll('fieldset > legend')].map((l) => l.textContent);
+    expect(legends[0]).toBe('Date of surgery');
+    expect(legends.slice(1)).toEqual([Q.side, 'Did your surgeon give a limit for how far you can bend your knee, also with a brace?']);
+    surgeonGroup('2026-10-15');
+    expect(h1()).toBe('How are you today?');
+    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
   });
 
-  it('Back on the first question leaves the questions, and Back on a later one keeps the answer', () => {
+  it('keeps Continue closed until every question of the group has an answer', () => {
+    setup();
+    expect(screen.getByRole('button', { name: GO.surgeon })).toBeDisabled();
+    pick(Q.written, 'No'); pick(Q.procedure, 'MPFL reconstruction only'); pick(Q.age, '18 or older'); pick(Q.both, 'No'); pick(Q.first, 'Yes');
+    expect(screen.getByRole('button', { name: GO.surgeon })).toBeDisabled();
+    pick(Q.rules, 'No');
+    expect(screen.getByRole('button', { name: GO.surgeon })).toBeEnabled();
+  });
+
+  it('Back on group 1 leaves the questions, and Back on a later group keeps the answers', () => {
     const { onCancel } = setup();
-    choose('No');
-    next();
+    referralQuestions();
     back();
-    expect(h1()).toBe(Q.written);
-    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
+    expect(h1()).toBe('You and your surgery');
+    expect(within(screen.getByRole('group', { name: Q.age })).getByRole('radio', { name: '18 or older' })).toBeChecked();
     back();
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
-  it('moves the focus to the new question heading', () => {
+  it('moves the focus to the heading of the new group', () => {
     setup();
-    choose('No');
-    next();
+    referralQuestions();
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 }));
-    expect(document.activeElement?.textContent).toBe(Q.procedure);
+    expect(document.activeElement?.textContent).toBe('Your surgeon');
   });
 
   it('shows the help line of the operation question', () => {
     setup();
-    choose('No');
-    next();
     expect(screen.getByText(/Your discharge letter names the operation/)).toBeInTheDocument();
   });
 });
 
 describe('Onboarding, early referral', () => {
   it.each([
-    ['a written plan', () => choose('Yes'), 'R1'],
-    ['a combined operation', () => { choose('No'); next(); choose('MPFL reconstruction with another procedure'); }, 'R2'],
-    ['an age under 18', () => { choose('No'); next(); choose('MPFL reconstruction only'); next(); choose('Under 18'); }, 'R3'],
-  ])('shows the referral at once for %s, with no other question and no plan', (_n, act, id) => {
+    ['a written plan', () => pick(Q.written, 'Yes'), 'R1'],
+    ['a combined operation', () => pick(Q.procedure, 'MPFL reconstruction with another procedure'), 'R2'],
+    ['an age under 18', () => pick(Q.age, 'Under 18'), 'R3'],
+    ['both knees', () => pick(Q.both, 'Yes'), 'R4'],
+    ['a repeat surgery', () => pick(Q.first, 'No'), 'R5'],
+    ['special rules', () => pick(Q.rules, 'Yes'), 'R6'],
+  ])('shows the referral at once for %s, when group 1 goes on, with no other question and no plan', (_n, act, id) => {
     const { onDone } = setup();
+    aboutAnswers();
     act();
-    next();
+    go(GO.surgeon);
     expect(onDone).toHaveBeenCalledTimes(1);
     const draft = onDone.mock.calls[0]![0];
     expect(draft).toMatchObject({ kind: 'referral', origin: 'create', reason: id, inputs: null });
     expect('protocol' in draft).toBe(false);
   });
 
-  it('refers for both knees, a repeat surgery and special rules', () => {
-    for (const [pick, id] of [['both', 'R4'], ['first', 'R5'], ['rules', 'R6']] as const) {
-      cleanup();
-      const { onDone } = setup();
-      choose('No'); next();
-      choose('MPFL reconstruction only'); next();
-      choose('18 or older'); next();
-      if (pick === 'both') { choose('Yes'); next(); }
-      else { choose('No'); next(); }
-      if (pick === 'first') { choose('No'); next(); }
-      else if (pick !== 'both') { choose('Yes'); next(); }
-      if (pick === 'rules') { choose('Yes'); next(); }
-      expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: id });
-    }
-  });
-
-  it('asks the next question when the answer allows a plan', () => {
+  it('shows no referral before group 1 goes on, and none when the answers allow a plan', () => {
     const { onDone } = setup();
-    choose('No');
-    next();
+    pick(Q.written, 'Yes');
+    expect(onDone).not.toHaveBeenCalled();
+    pick(Q.written, 'No');
+    aboutAnswers();
+    go(GO.surgeon);
     expect(onDone).not.toHaveBeenCalled();
   });
 });
 
 describe('Onboarding, the date, the knee and the limit', () => {
-  it('has a date field that stops at today, and keeps Next closed while it is empty', () => {
+  it('has three number fields in a fieldset, and keeps Continue closed while they are empty', () => {
     setup();
     referralQuestions();
-    expect(h1()).toBe(Q.date);
-    const input = screen.getByLabelText('Date of surgery') as HTMLInputElement;
-    expect(input.type).toBe('date');
-    expect(input.max).toBe(TODAY);
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(h1()).toBe('Your surgeon');
+    expect(screen.getByRole('group', { name: 'Date of surgery' })).toBeInTheDocument();
+    for (const label of ['Day', 'Month', 'Year']) expect((screen.getByLabelText(label) as HTMLInputElement).inputMode).toBe('numeric');
+    expect(document.querySelector('input[type=date]')).toBeNull();
+    expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
     expect(screen.getByText(/keeps this date on this device only/i)).toBeInTheDocument();
   });
 
   it('shows the number field only for "Yes, my limit is", and checks the range', () => {
     setup();
     referralQuestions();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    expect(h1()).toMatch(Q.limit);
+    typeDate('2026-10-15');
+    pick(Q.side, 'Left');
     expect(screen.queryByLabelText('Limit in degrees')).toBeNull();
-    choose(/Yes, my limit is/);
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    pick(Q.limit, /Yes, my limit is/);
+    expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
     type('Limit in degrees', '181');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
     type('Limit in degrees', '60');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: GO.today })).toBeEnabled();
   });
 
   it('A-06: a limit of 200, -5 or 90.5 gets a plain message and aria-invalid, and a good number clears both', () => {
     setup();
     referralQuestions();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    choose(/Yes, my limit is/);
+    typeDate('2026-10-15');
+    pick(Q.side, 'Left');
+    pick(Q.limit, /Yes, my limit is/);
     const field = () => screen.getByLabelText('Limit in degrees');
     expect(field()).not.toHaveAttribute('aria-invalid', 'true');
     expect(screen.queryByRole('alert')).toBeNull();
@@ -238,13 +255,13 @@ describe('Onboarding, the date, the knee and the limit', () => {
       expect(field()).toHaveAttribute('aria-invalid', 'true');
       expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole number of degrees from 0 to 180.');
       expect(field()).toHaveAccessibleDescription(/Enter a whole number of degrees from 0 to 180/);
-      expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: GO.today })).toBeDisabled();
     }
     type('Limit in degrees', '');
     expect(field()).not.toHaveAttribute('aria-invalid', 'true');
     type('Limit in degrees', '0');
     expect(field()).not.toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: GO.today })).toBeEnabled();
     type('Limit in degrees', '180');
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -252,22 +269,21 @@ describe('Onboarding, the date, the knee and the limit', () => {
   it('says that the heel slide needs a number from the surgeon when the answer is no limit', () => {
     setup();
     referralQuestions();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    choose('No limit');
+    pick(Q.limit, 'No limit');
     expect(screen.getByText('Before week 6, the app needs the number from your surgeon to add the heel slide.')).toBeInTheDocument();
   });
 
-  it('lists the red flags in two groups, with no tick as a valid answer', () => {
+  it('lists the red flags in two groups, with no tick as a valid answer, and asks pain and swelling on the same screen', () => {
     setup();
     referralQuestions();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    choose('I do not know'); next();
-    expect(h1()).toBe(Q.flags);
+    surgeonGroup('2026-10-15');
+    expect(h1()).toBe('How are you today?');
     expect(screen.getAllByRole('checkbox')).toHaveLength(9);
+    expect(screen.getByRole('group', { name: Q.flags })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /Call emergency services if any of these is true/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: GO.check })).toBeDisabled(); // pain and swelling are open
+    choose('2'); choose('No swelling');
+    expect(screen.getByRole('button', { name: GO.check })).toBeEnabled();
   });
 });
 
@@ -295,13 +311,13 @@ describe('Onboarding, the summary and the plan', () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 
-  it('goes to one question with Change and back to the summary with Next', () => {
+  it('goes to the group of one answer with Change, and back to the summary with Continue', () => {
     setup();
     walk();
     fireEvent.click(screen.getByRole('button', { name: 'Change the side of the knee' }));
-    expect(h1()).toBe(Q.side);
-    choose('Right');
-    next();
+    expect(h1()).toBe('Your surgeon');
+    pick(Q.side, 'Right');
+    go(GO.today);
     expect(h1()).toBe('Check your answers');
     expect(within(screen.getByRole('list', { name: 'Your answers' })).getByText('Right')).toBeInTheDocument();
   });
@@ -309,12 +325,13 @@ describe('Onboarding, the summary and the plan', () => {
   it('makes a referral from a red flag at the summary, with the message of its group', () => {
     const { onDone } = setup();
     referralQuestions();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    choose('No limit'); next();
+    typeDate('2026-10-15');
+    pick(Q.side, 'Left');
+    pick(Q.limit, 'No limit');
+    go(GO.today);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sudden shortness of breath or chest pain.' }));
-    next();
-    choose('2'); choose('No swelling'); next();
+    choose('2'); choose('No swelling');
+    go(GO.check);
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     const draft = onDone.mock.calls[0]![0];
     expect(draft).toMatchObject({ kind: 'referral', reason: 'R8' });
@@ -324,37 +341,32 @@ describe('Onboarding, the summary and the plan', () => {
   it('refers when the pain is 7 or more', () => {
     const { onDone } = setup();
     walk('2026-10-15');
-    // change the pain answer from the summary
     fireEvent.click(screen.getByRole('button', { name: 'Change the pain and swelling today' }));
+    expect(h1()).toBe('How are you today?');
     choose('9');
-    next();
+    go(GO.check);
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R9' });
   });
 
-  it('refers at week 12 with the text of the generator, at the date question', () => {
+  it('refers at week 12 with the text of the generator, when group 2 goes on', () => {
     const { onDone } = setup();
     referralQuestions();
-    type('Date of surgery', '2026-08-01'); next();
+    typeDate('2026-08-01');
+    pick(Q.side, 'Left');
+    pick(Q.limit, 'No limit');
+    go(GO.today);
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10', text: expect.stringMatching(/no plan after week 11/) });
   });
 
-  it('asks the clearance question from week 7 and puts the answer in the inputs', () => {
+  it('asks the clearance question from week 7 on the last group and puts the answer in the inputs', () => {
     const { onDone } = setup();
     walk('2026-09-15', () => {
-      expect(h1()).toMatch(Q.clearance);
-      expect(screen.getByText('Question 12 of 12')).toBeInTheDocument();
-      choose('Yes');
-      next();
-      // Generator v2: the answer yes opens three more questions.
-      expect(h1()).toMatch(/Do you walk without crutches/);
-      expect(screen.getByText('Question 13 of 15')).toBeInTheDocument();
-      choose('I do not know');
-      next();
-      choose('I do not know');
-      next();
-      choose('I do not know');
-      next();
+      expect(h1()).toBe('How are you today?');
+      pick(Q.clearance, 'Yes');
+      // Generator v2: the answer yes opens three more questions on the same screen.
+      expect(screen.getByRole('group', { name: /Do you walk without crutches/ })).toBeInTheDocument();
+      for (const q of [/Do you walk without crutches/, /Can you lift your leg/, /knee straightening exercises while you sit/]) pick(q, 'I do not know');
     });
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     const draft = onDone.mock.calls[0]![0];
@@ -362,12 +374,24 @@ describe('Onboarding, the summary and the plan', () => {
     expect(draft.protocol.activePhase).toBe(2);
   });
 
+  it('keeps Check my answers closed until the clearance question has an answer, and asks it only from week 7', () => {
+    setup();
+    referralQuestions();
+    surgeonGroup('2026-10-15');
+    expect(screen.queryByRole('group', { name: Q.clearance })).toBeNull();
+    cleanup();
+    setup();
+    referralQuestions();
+    surgeonGroup('2026-09-15');
+    choose('2'); choose('No swelling');
+    expect(screen.getByRole('button', { name: GO.check })).toBeDisabled();
+    pick(Q.clearance, 'No');
+    expect(screen.getByRole('button', { name: GO.check })).toBeEnabled();
+  });
+
   it('asks no more questions after the answer no to the clearance question', () => {
     const { onDone } = setup();
-    walk('2026-09-15', () => {
-      choose('No');
-      next();
-    });
+    walk('2026-09-15', () => pick(Q.clearance, 'No'));
     expect(h1()).toBe('Check your answers');
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     expect(onDone.mock.calls[0]![0].inputs).toMatchObject({ walksWithoutCrutches: 'unknown', legRaiseStraight: 'unknown', seatedHoldCleared: 'unknown' });
@@ -375,23 +399,18 @@ describe('Onboarding, the summary and the plan', () => {
 
   it('shows the three questions by default with a plain text, keeps each answer on Back, and shows a summary row for each', () => {
     setup();
-    walk('2026-09-15');
-    expect(h1()).toMatch(/Has your surgeon or physiotherapist said/);
-    choose('Yes'); next();
-    expect(h1()).toBe('Do you walk without crutches?');
-    choose('Yes'); next();
-    expect(h1()).toBe('Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?');
-    choose('No'); next();
-    expect(h1()).toBe('Did your surgeon say that you can do knee straightening exercises while you sit?');
-    choose('Yes');
-    back();
-    expect(h1()).toMatch(/Can you lift your leg/);
-    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
-    back();
-    expect(h1()).toBe('Do you walk without crutches?');
-    expect(screen.getByRole('radio', { name: 'Yes' })).toBeChecked();
-    next(); next(); next();
+    walk('2026-09-15', () => {
+      pick(Q.clearance, 'Yes');
+      pick(/Do you walk without crutches/, 'Yes');
+      pick(/Can you lift your leg/, 'No');
+      pick(/knee straightening exercises while you sit/, 'Yes');
+    });
     expect(h1()).toBe('Check your answers');
+    back();
+    expect(h1()).toBe('How are you today?');
+    expect(within(screen.getByRole('group', { name: /Can you lift your leg/ })).getByRole('radio', { name: 'No' })).toBeChecked();
+    expect(within(screen.getByRole('group', { name: /Do you walk without crutches/ })).getByRole('radio', { name: 'Yes' })).toBeChecked();
+    go(GO.check);
     for (const label of ['Walking without crutches', 'Leg raise with a straight knee', 'Knee straightening while you sit, said by your surgeon']) {
       expect(screen.getByText(label), label).toBeInTheDocument();
     }
@@ -403,10 +422,10 @@ describe('Onboarding, the summary and the plan', () => {
   it('leaves the mini squat and the seated hold out for a no or an unknown answer, and says so with the words of the guideline', () => {
     const { onDone } = setup();
     walk('2026-09-15', () => {
-      choose('Yes'); next();
-      choose('No'); next();
-      choose('I do not know'); next();
-      choose('I do not know'); next();
+      pick(Q.clearance, 'Yes');
+      pick(/Do you walk without crutches/, 'No');
+      pick(/Can you lift your leg/, 'I do not know');
+      pick(/knee straightening exercises while you sit/, 'I do not know');
     });
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     const draft = onDone.mock.calls[0]![0];
@@ -422,14 +441,10 @@ describe('Onboarding, the summary and the plan', () => {
   it('adds the mini squat to the plan when both answers are yes, and no hold without the surgeon answer', () => {
     const { onDone } = setup();
     walk('2026-09-15', () => {
-      choose('Yes');
-      next();
-      choose('Yes');
-      next();
-      choose('Yes');
-      next();
-      choose('No');
-      next();
+      pick(Q.clearance, 'Yes');
+      pick(/Do you walk without crutches/, 'Yes');
+      pick(/Can you lift your leg/, 'Yes');
+      pick(/knee straightening exercises while you sit/, 'No');
     });
     expect(screen.getByText('Walking without crutches')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
@@ -460,29 +475,34 @@ describe('Onboarding, a date change that opens the clearance question (A-01)', (
     setup({ initial: inputs });
     expect(screen.queryByText('Next stage said by your care team')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Change the date of surgery' }));
-    type('Date of surgery', '2026-09-10'); // week 8
-    next();
-    expect(h1()).toMatch(Q.clearance);
+    typeDate('2026-09-10'); // week 8
+    go(GO.today);
+    expect(h1()).toBe('How are you today?');
+    expect(screen.getByRole('group', { name: Q.clearance })).toBeInTheDocument();
   });
 });
 
-describe('Onboarding, a surgery date after week 11 stops the questions at the date (A-12)', () => {
-  it('shows the referral right after the date question, before the side and the other questions', () => {
+describe('Onboarding, a surgery date after week 11 stops the questions at group 2 (A-12)', () => {
+  it('shows the referral when group 2 goes on, before the questions of group 3', () => {
     const { onDone } = setup();
     referralQuestions();
-    type('Date of surgery', '2026-08-01'); // week 14
-    next();
+    typeDate('2026-08-01'); // week 14
+    pick(Q.side, 'Left');
+    pick(Q.limit, 'No limit');
+    go(GO.today);
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(onDone.mock.calls[0]![0]).toMatchObject({ kind: 'referral', reason: 'R10' });
   });
 
-  it('goes on to the side question for a date in week 11', () => {
+  it('goes on to group 3 for a date in week 11', () => {
     const { onDone } = setup();
     referralQuestions();
-    type('Date of surgery', '2026-08-23'); // week 11
-    next();
+    typeDate('2026-08-23'); // week 11
+    pick(Q.side, 'Left');
+    pick(Q.limit, 'No limit');
+    go(GO.today);
     expect(onDone).not.toHaveBeenCalled();
-    expect(h1()).toBe(Q.side);
+    expect(h1()).toBe('How are you today?');
   });
 });
 
@@ -496,8 +516,8 @@ describe('Onboarding, markup and words', () => {
     check();
     walk('2026-09-15', () => {
       check();
-      choose('Yes');
-      next();
+      pick(Q.clearance, 'Yes');
+      for (const q of [/Do you walk without crutches/, /Can you lift your leg/, /knee straightening exercises while you sit/]) pick(q, 'No');
     });
     check();
   });
@@ -505,5 +525,14 @@ describe('Onboarding, markup and words', () => {
   it('marks every icon as hidden from assistive technology', () => {
     const { view } = setup();
     for (const svg of view.container.querySelectorAll('svg')) expect(svg).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps the exact wording of the red flag step', () => {
+    setup();
+    referralQuestions();
+    surgeonGroup('2026-10-15');
+    expect(screen.getByText('Tick each sentence that is true today.')).toBeInTheDocument();
+    expect(screen.getByText('Call emergency services if any of these is true')).toBeInTheDocument();
+    expect(screen.getByText('Contact your care team if any of these is true')).toBeInTheDocument();
   });
 });

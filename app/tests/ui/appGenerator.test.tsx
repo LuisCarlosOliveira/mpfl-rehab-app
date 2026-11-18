@@ -33,8 +33,23 @@ const NOW = () => new Date(2026, 10, 8, 10, 0, 0);
 const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 1, name });
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
 const choose = (name: string | RegExp) => fireEvent.click(screen.getByRole('radio', { name }));
-const next = () => click('Next');
 const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+/** Answers one question of a group screen. The legend names the group of radio buttons. */
+const pick = (question: string | RegExp, answer: string | RegExp) =>
+  fireEvent.click(within(screen.getByRole('group', { name: question })).getByRole('radio', { name: answer }));
+const typeDate = (iso: string) => {
+  const [y, m, d] = iso.split('-') as [string, string, string];
+  type('Day', String(Number(d))); type('Month', String(Number(m))); type('Year', y);
+};
+const WRITTEN = 'Did your care team give you a written rehab plan?';
+const SIDE = 'Which knee did you have surgery on?';
+const LIMIT = /Did your surgeon give a limit/;
+/** Answers the 6 questions of group 1 with the answers that allow a plan, and goes on. */
+const aboutAnswers = () => {
+  pick(WRITTEN, 'No'); pick('Which operation did you have?', 'MPFL reconstruction only'); pick('How old are you?', '18 or older');
+  pick('Did you have surgery on both knees?', 'No'); pick('Is this your first MPFL surgery on this knee?', 'Yes'); pick(/Did your surgeon give special rules/, 'No');
+  click('Continue to your surgeon');
+};
 
 async function openLoad(mode: 'demo' | 'patient' = 'demo') {
   const db = freshDb();
@@ -46,24 +61,20 @@ async function openLoad(mode: 'demo' | 'patient' = 'demo') {
 
 /** Answers the questions up to the summary. The date 2026-10-15 is week 3. */
 function answerAll(date = '2026-10-15', limit = '60') {
-  choose('No'); next();
-  choose('MPFL reconstruction only'); next();
-  choose('18 or older'); next();
-  choose('No'); next();
-  choose('Yes'); next();
-  choose('No'); next();
-  type('Date of surgery', date); next();
-  choose('Left'); next();
-  choose(/Yes, my limit is/); type('Limit in degrees', limit); next();
-  next();
-  choose('2'); choose('No swelling'); next();
+  aboutAnswers();
+  typeDate(date);
+  pick(SIDE, 'Left');
+  pick(LIMIT, /Yes, my limit is/); type('Limit in degrees', limit);
+  click('Continue to today');
+  choose('2'); choose('No swelling');
+  click('Check my answers');
 }
 
 /** Create my plan to the confirmation screen. */
 async function toConfirm() {
   const ctx = await openLoad();
   click('Create my plan');
-  await heading('Did your care team give you a written rehab plan?');
+  await heading('You and your surgery');
   answerAll();
   await heading('Check your answers');
   click('Make my plan');
@@ -92,7 +103,7 @@ describe('Create my plan, in the whole app', () => {
   it('shows the plan with Why this plan before it is confirmed, and Back returns to the summary', async () => {
     const ctx = await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
+    await heading('You and your surgery');
     answerAll();
     click('Make my plan');
     await heading('Your plan');
@@ -132,9 +143,10 @@ describe('Create my plan, in the whole app', () => {
   it('refers at once for a combined operation, shows no plan and stores nothing', async () => {
     const { db } = await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
-    choose('No'); next();
-    choose('MPFL reconstruction with another procedure'); next();
+    await heading('You and your surgery');
+    pick(WRITTEN, 'No'); pick('Which operation did you have?', 'MPFL reconstruction with another procedure');
+    pick('How old are you?', '18 or older'); pick('Did you have surgery on both knees?', 'No'); pick('Is this your first MPFL surgery on this knee?', 'Yes'); pick(/Did your surgeon give special rules/, 'No');
+    click('Continue to your surgeon');
     await heading('No plan from the app');
     expect(screen.getByText(/MPFL reconstruction with no other procedure/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Use this plan' })).toBeNull();
@@ -147,19 +159,15 @@ describe('Create my plan, in the whole app', () => {
   it('a red flag at the summary gives the refusal and stores nothing', async () => {
     const { db } = await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
-    choose('No'); next();
-    choose('MPFL reconstruction only'); next();
-    choose('18 or older'); next();
-    choose('No'); next();
-    choose('Yes'); next();
-    choose('No'); next();
-    type('Date of surgery', '2026-10-15'); next();
-    choose('Left'); next();
-    choose('No limit'); next();
+    await heading('You and your surgery');
+    aboutAnswers();
+    typeDate('2026-10-15');
+    pick(SIDE, 'Left');
+    pick(LIMIT, 'No limit');
+    click('Continue to today');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Your knee catches or locks.' }));
-    next();
-    choose('2'); choose('No swelling'); next();
+    choose('2'); choose('No swelling');
+    click('Check my answers');
     click('Make my plan');
     await heading('No plan from the app');
     expect(screen.getByRole('alert')).toHaveTextContent('Contact your care team');
@@ -169,14 +177,12 @@ describe('Create my plan, in the whole app', () => {
   it('a plan at week 12 gives the refusal', async () => {
     await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
-    choose('No'); next();
-    choose('MPFL reconstruction only'); next();
-    choose('18 or older'); next();
-    choose('No'); next();
-    choose('Yes'); next();
-    choose('No'); next();
-    type('Date of surgery', '2026-08-01'); next(); // the referral shows at the date question
+    await heading('You and your surgery');
+    aboutAnswers();
+    typeDate('2026-08-01');
+    pick(SIDE, 'Left');
+    pick(LIMIT, 'No limit');
+    click('Continue to today'); // the referral shows when the group of the date goes on
     await heading('No plan from the app');
     expect(screen.getByText(/no plan after week 11/)).toBeInTheDocument();
   });
@@ -377,34 +383,30 @@ describe('Back of the browser inside the questions', () => {
       await new Promise((r) => setTimeout(r, 30));
     });
 
-  it('goes one question back with the answers kept, and from the first question to the Load screen', async () => {
+  it('goes one group back with the answers kept, and from the first group to the Load screen', async () => {
     await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
-    choose('No'); next();
-    await heading('Which operation did you have?');
-    choose('MPFL reconstruction only'); next();
-    await heading('How old are you?');
+    await heading('You and your surgery');
+    aboutAnswers();
+    await heading('Your surgeon');
     await browserBack();
-    await heading('Which operation did you have?');
-    expect(screen.getByRole('radio', { name: 'MPFL reconstruction only' })).toBeChecked();
-    await browserBack();
-    await heading('Did your care team give you a written rehab plan?');
-    expect(screen.getByRole('radio', { name: 'No' })).toBeChecked();
+    await heading('You and your surgery');
+    expect(within(screen.getByRole('group', { name: 'Which operation did you have?' })).getByRole('radio', { name: 'MPFL reconstruction only' })).toBeChecked();
+    expect(within(screen.getByRole('group', { name: WRITTEN })).getByRole('radio', { name: 'No' })).toBeChecked();
     await browserBack();
     await heading('Load protocol file');
   });
 
-  it('goes from "Check your answers" to the last question, and the answers stay', async () => {
+  it('goes from "Check your answers" to the last group, and the answers stay', async () => {
     await openLoad();
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
+    await heading('You and your surgery');
     answerAll();
     await heading('Check your answers');
     await browserBack();
-    await heading('How is your knee today?');
+    await heading('How are you today?');
     expect(screen.getByRole('radio', { name: '2' })).toBeChecked();
-    next();
+    click('Check my answers');
     await heading('Check your answers');
     expect(screen.getByText('Pain 2 out of 10, no swelling')).toBeInTheDocument();
   });
@@ -418,7 +420,7 @@ describe('Back of the browser inside the questions', () => {
     click('Load a new protocol file');
     await heading('Load protocol file');
     click('Create my plan');
-    await heading('Did your care team give you a written rehab plan?');
+    await heading('You and your surgery');
     await browserBack();
     await heading('Home');
   });

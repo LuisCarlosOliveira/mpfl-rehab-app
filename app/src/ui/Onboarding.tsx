@@ -1,10 +1,10 @@
 // "Create my plan": the questions of the protocol generator (docs/protocol-generator-design.md section 2).
-// One question for each screen. The referral questions come first. The answers stay in this component.
+// The questions run in 3 groups, one group for each screen. The referral questions come first. The answers stay in this component.
 // Nothing is saved here. The generator runs only when the person presses "Make my plan", and it saves nothing.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import {
-  answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, stepsFor, toInputs,
-  type Answers, type StepId,
+  earlyReferral, emptyAnswers, fromInputs, GROUP_IDS, groupAnswered, groupOf, limitNumber, stepsFor, toInputs,
+  type Answers, type GroupId, type StepId,
 } from '../lib/onboarding';
 import { draftOf, surgeryDateWords, type PlanDraft } from '../lib/planView';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
@@ -26,23 +26,28 @@ interface Props {
   onCancel: () => void;
 }
 
-const TITLES: Record<StepId, string> = {
+/** The question texts. The date question and the pain and swelling questions have their own legends in their controls. */
+const TITLES = {
   writtenPlan: 'Did your care team give you a written rehab plan?',
   procedure: 'Which operation did you have?',
   ageBand: 'How old are you?',
   bothKnees: 'Did you have surgery on both knees?',
   firstSurgery: 'Is this your first MPFL surgery on this knee?',
   specialRules: 'Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?',
-  surgeryDate: 'What was the date of your surgery?',
   side: 'Which knee did you have surgery on?',
   limit: 'Did your surgeon give a limit for how far you can bend your knee, also with a brace?',
   redFlags: 'Do any of these apply today?',
-  today: 'How is your knee today?',
   clearance: 'Has your surgeon or physiotherapist said that you can start the next stage?',
   walking: GATE_QUESTIONS.walking,
   legRaise: GATE_QUESTIONS.legRaise,
   seatedHold: GATE_QUESTIONS.seatedHold,
-  summary: 'Check your answers',
+} as const;
+
+/** The page of each group: the heading, the line under it and the label of the button that goes on. */
+const GROUP_PAGES: Record<GroupId, { title: string; intro: string; next: string }> = {
+  about: { title: 'You and your surgery', intro: 'The app keeps your answers on this device.', next: 'Continue to your surgeon' },
+  surgeon: { title: 'Your surgeon', intro: 'Use what your surgeon or physiotherapist told you.', next: 'Continue to today' },
+  today: { title: 'How are you today?', intro: 'Last step. Then you can check your answers.', next: 'Check my answers' },
 };
 
 const CHANGE_LABELS: Record<Exclude<StepId, 'summary'>, string> = {
@@ -123,8 +128,8 @@ function valueText(step: Exclude<StepId, 'summary'>, a: Answers, today: string):
 
 export function Onboarding({ today, initial = null, backRef, onDone, onCancel }: Props) {
   const [answers, setAnswers] = useState<Answers>(() => (initial ? fromInputs(initial, today) : emptyAnswers()));
-  const [step, setStep] = useState<StepId>(initial ? 'summary' : 'writtenPlan');
-  // After Change on the summary, Next goes back to the summary. A new question that the change opens comes first.
+  const [step, setStep] = useState<GroupId | 'summary'>(initial ? 'summary' : 'about');
+  // After Change on the summary, Continue goes back to the summary. A group with a new open question that the change opens comes first.
   const [fromSummary, setFromSummary] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
@@ -137,11 +142,12 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   }, [step]);
 
   const steps = stepsFor(answers, today);
-  const index = steps.indexOf(step);
+  const index = step === 'summary' ? GROUP_IDS.length : GROUP_IDS.indexOf(step);
   const set = (patch: Partial<Answers>) => setAnswers((a) => ({ ...a, ...patch }));
 
   function goNext() {
-    if (index <= steps.indexOf('surgeryDate')) {
+    // A referral can come from the first 2 groups: the 6 referral questions, and the date of surgery.
+    if (step === 'about' || step === 'surgeon') {
       const referral = earlyReferral(answers, today);
       if (referral) {
         onDone(draftOf(referral, 'create', null));
@@ -149,12 +155,12 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
       }
     }
     if (fromSummary) {
-      const open = steps.find((s) => s !== 'summary' && !answered(s, answers, today));
+      const open = GROUP_IDS.find((g) => !groupAnswered(g, answers, today));
       setStep(open ?? 'summary');
       if (open === undefined) setFromSummary(false);
       return;
     }
-    setStep(steps[index + 1] ?? 'summary');
+    setStep(GROUP_IDS[index + 1] ?? 'summary');
   }
 
   function goBack() {
@@ -162,7 +168,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
       setStep('summary');
       setFromSummary(false);
     } else if (index === 0) onCancel();
-    else setStep(steps[index - 1] as StepId);
+    else setStep(GROUP_IDS[index - 1] as GroupId);
   }
 
   // The Back button of the browser goes one question back, with the answers kept. The ref clears when the screen goes.
@@ -184,44 +190,38 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
     onDone(draftOf(generateProtocol(inputs, today), 'create', inputs));
   }
 
+  const yn = (name: keyof typeof TITLES, value: string | null, onChange: (v: string) => void, choices = YES_NO_UNKNOWN) => (
+    <ChoiceGroup key={name} name={name} legend={TITLES[name]} showLegend row value={value} choices={choices} onChange={onChange} />
+  );
+
   const body = (() => {
     switch (step) {
-      case 'writtenPlan':
-        return <ChoiceGroup name="writtenPlan" legend={TITLES.writtenPlan} value={answers.writtenPlan} choices={YES_NO_UNKNOWN} onChange={(v) => set({ writtenPlan: v as Answers['writtenPlan'] })} />;
-      case 'procedure':
+      case 'about':
         return (
           <>
-            <ChoiceGroup name="procedure" legend={TITLES.procedure} value={answers.procedure} choices={PROCEDURES} onChange={(v) => set({ procedure: v as Answers['procedure'] })} />
+            {yn('writtenPlan', answers.writtenPlan, (v) => set({ writtenPlan: v as Answers['writtenPlan'] }))}
+            <ChoiceGroup name="procedure" legend={TITLES.procedure} showLegend value={answers.procedure} choices={PROCEDURES} onChange={(v) => set({ procedure: v as Answers['procedure'] })} />
             <p className="detail">Your discharge letter names the operation. If you are not sure, choose I do not know.</p>
             <p className="detail">
               Another procedure can be a bone cut below the kneecap (tibial tubercle osteotomy), groove reshaping (trochleoplasty), cartilage repair, or a release or
               lengthening of the outer tissue.
             </p>
+            <ChoiceGroup name="ageBand" legend={TITLES.ageBand} showLegend row value={answers.ageBand} choices={AGES} onChange={(v) => set({ ageBand: v as Answers['ageBand'] })} />
+            {yn('bothKnees', answers.bothKnees === null ? null : answers.bothKnees ? 'yes' : 'no', (v) => set({ bothKnees: v === 'yes' }), YES_NO)}
+            {yn('firstSurgery', answers.firstSurgery, (v) => set({ firstSurgery: v as Answers['firstSurgery'] }))}
+            {yn('specialRules', answers.specialRules, (v) => set({ specialRules: v as Answers['specialRules'] }))}
           </>
         );
-      case 'ageBand':
-        return <ChoiceGroup name="ageBand" legend={TITLES.ageBand} value={answers.ageBand} choices={AGES} onChange={(v) => set({ ageBand: v as Answers['ageBand'] })} />;
-      case 'bothKnees':
-        return <ChoiceGroup name="bothKnees" legend={TITLES.bothKnees} value={answers.bothKnees === null ? null : answers.bothKnees ? 'yes' : 'no'} choices={YES_NO} onChange={(v) => set({ bothKnees: v === 'yes' })} />;
-      case 'firstSurgery':
-        return <ChoiceGroup name="firstSurgery" legend={TITLES.firstSurgery} value={answers.firstSurgery} choices={YES_NO_UNKNOWN} onChange={(v) => set({ firstSurgery: v as Answers['firstSurgery'] })} />;
-      case 'specialRules':
-        return <ChoiceGroup name="specialRules" legend={TITLES.specialRules} value={answers.specialRules} choices={YES_NO_UNKNOWN} onChange={(v) => set({ specialRules: v as Answers['specialRules'] })} />;
-      case 'surgeryDate':
+      case 'surgeon':
         return (
           <>
             <SurgeryDateField value={answers.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
             <p className="detail">The app keeps this date on this device only. It uses the date to count the weeks since surgery.</p>
-          </>
-        );
-      case 'side':
-        return <ChoiceGroup name="side" legend={TITLES.side} value={answers.side} choices={SIDES} onChange={(v) => set({ side: v as Answers['side'] })} />;
-      case 'limit':
-        return (
-          <>
+            <ChoiceGroup name="side" legend={TITLES.side} showLegend row value={answers.side} choices={SIDES} onChange={(v) => set({ side: v as Answers['side'] })} />
             <LimitChoice
               name="limit"
               legend={TITLES.limit}
+              showLegend
               kind={answers.limitKind}
               degrees={answers.limitDegrees}
               onKind={(limitKind) => set({ limitKind })}
@@ -231,28 +231,26 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
             {answers.limitKind === 'none' && <p className="detail">Before week 6, the app needs the number from your surgeon to add the heel slide.</p>}
           </>
         );
-      case 'redFlags':
-        return (
-          <>
-            <p className="lede">Tick each sentence that is true today.</p>
-            <RedFlagChecklist ticked={answers.redFlags} onToggle={(id, on) => set({ redFlags: { ...answers.redFlags, [id]: on } })} />
-          </>
-        );
       case 'today':
         return (
-          <div className="stack">
+          <>
+            <fieldset className="choices">
+              <legend>{TITLES.redFlags}</legend>
+              <p className="lede">Tick each sentence that is true today.</p>
+              <RedFlagChecklist ticked={answers.redFlags} onToggle={(id, on) => set({ redFlags: { ...answers.redFlags, [id]: on } })} />
+            </fieldset>
             <PainScale name="pain" value={answers.pain} onChange={(pain) => set({ pain })} />
             <SwellingChoice name="swelling" value={answers.swelling} onChange={(swelling) => set({ swelling })} />
-          </div>
+            {steps.includes('clearance') && yn('clearance', answers.phaseClearance, (v) => set({ phaseClearance: v as Answers['phaseClearance'] }))}
+            {steps.includes('walking') && (
+              <>
+                {yn('walking', answers.walksWithoutCrutches, (v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] }))}
+                {yn('legRaise', answers.legRaiseStraight, (v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] }))}
+                {yn('seatedHold', answers.seatedHoldCleared, (v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] }))}
+              </>
+            )}
+          </>
         );
-      case 'clearance':
-        return <ChoiceGroup name="clearance" legend={TITLES.clearance} value={answers.phaseClearance} choices={YES_NO_UNKNOWN} onChange={(v) => set({ phaseClearance: v as Answers['phaseClearance'] })} />;
-      case 'walking':
-        return <ChoiceGroup name="walking" legend={TITLES.walking} value={answers.walksWithoutCrutches} choices={YES_NO_UNKNOWN} onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })} />;
-      case 'legRaise':
-        return <ChoiceGroup name="legRaise" legend={TITLES.legRaise} value={answers.legRaiseStraight} choices={YES_NO_UNKNOWN} onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })} />;
-      case 'seatedHold':
-        return <ChoiceGroup name="seatedHold" legend={TITLES.seatedHold} value={answers.seatedHoldCleared} choices={YES_NO_UNKNOWN} onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })} />;
       case 'summary':
         return (
           <ul className="answer-list" aria-label="Your answers">
@@ -268,7 +266,7 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
                   aria-label={`Change ${CHANGE_LABELS[s]}`}
                   onClick={() => {
                     setFromSummary(true);
-                    setStep(s);
+                    setStep(groupOf(s));
                   }}
                 >
                   Change
@@ -281,35 +279,37 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   })();
 
   const summary = step === 'summary';
+  const page = summary ? null : GROUP_PAGES[step];
   return (
     <section aria-labelledby="question-title" className="narrow v2-screens v2-questions">
       <header className="page-head">
         <div className="stack-s">
-          {!summary && (
+          {page && (
             <>
-              <p className="detail question-count">{`Question ${index + 1} of ${steps.length - 1}`}</p>
-              <StepTrack total={steps.length - 1} current={index} label="Questions" />
+              <p className="detail question-count">{`Step ${index + 1} of ${GROUP_IDS.length}`}</p>
+              <StepTrack total={GROUP_IDS.length} current={index} label="Steps" />
             </>
           )}
           <h1 id="question-title" tabIndex={-1} ref={heading}>
-            {TITLES[step]}
+            {page ? page.title : 'Check your answers'}
           </h1>
+          {page && <p className="lede">{page.intro}</p>}
         </div>
       </header>
-      <div className="stack">{body}</div>
+      <div className={page ? 'stack question-group' : 'stack'}>{body}</div>
       <div className="action-bar">
         <button type="button" className="btn btn-lg btn-back" onClick={goBack}>
           <Icon name="arrow-left" size={18} />
           Back
         </button>
-        {summary ? (
-          <button type="button" className="btn btn-primary btn-lg" onClick={makePlan}>
-            Make my plan
+        {page ? (
+          <button type="button" className="btn btn-primary btn-lg" disabled={!groupAnswered(step as GroupId, answers, today)} onClick={goNext}>
+            {page.next}
+            <Icon name="chevron-right" size={20} />
           </button>
         ) : (
-          <button type="button" className="btn btn-primary btn-lg" disabled={!answered(step, answers, today)} onClick={goNext}>
-            Next
-            <Icon name="chevron-right" size={20} />
+          <button type="button" className="btn btn-primary btn-lg" onClick={makePlan}>
+            Make my plan
           </button>
         )}
       </div>

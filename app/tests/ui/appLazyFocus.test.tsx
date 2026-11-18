@@ -33,12 +33,12 @@ describe('focus on lazy screens', () => {
     await waitFor(() => expect(h1).toHaveFocus());
   });
 
-  it('puts the focus on the heading of the plan questions after the chunk loads', async () => {
+  it('puts the focus on the heading of the first question group after the chunk loads', async () => {
     markPrivacyNoticeSeen();
     render(<App db={freshDb()} mode="demo" source={mockSource()} />);
     await screen.findByRole('heading', { level: 1, name: 'Load protocol file' });
     fireEvent.click(screen.getByRole('button', { name: 'Create my plan' }));
-    const h1 = await screen.findByRole('heading', { level: 1, name: /written rehab plan/ });
+    const h1 = await screen.findByRole('heading', { level: 1, name: 'You and your surgery' });
     await waitFor(() => expect(h1).toHaveFocus());
   });
 });
