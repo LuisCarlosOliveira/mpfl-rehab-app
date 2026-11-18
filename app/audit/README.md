@@ -6,11 +6,11 @@ All scripts read the app. None of them writes into the repo. Output goes to a te
 
 ## What each script checks
 
-- `a11y/audit.mjs`: accessibility and layout. It runs axe (WCAG 2.2 AA), colour contrast, tap target size, text zoom to 200 percent, keyboard order and traps, and reduced motion. It covers 28 screens. Three of them are the "NEW" screens: Home with a plan, and Check my progress.
-- `sec/hostile.mjs`: hostile data. It loads bad plan files, bad stored data, bad pairing codes and fake history. It makes sure that no script runs, no CSP rule breaks, no foreign request leaves, and the screen stays usable. Case `c9-control` must fail on purpose (`CONTROL=1`). Cases `c10a` to `c10d` cover Home and Check my progress for a plan at week 8.
-- `honesty/honesty-audit.mjs`: data honesty and standing rules. It checks banners, verdict words, scores, state colours, angle labels, chart and table agreement, empty states, the red-flag gate, and the new screens. An angle in a sentence that names a source (S, P or N plus 1 or 2 digits) needs no angle label. The words "surgeon limit", "limit in your plan" and "your care team" have the same effect.
+- `a11y/audit.mjs`: accessibility and layout. It runs axe (WCAG 2.2 AA), colour contrast, tap target size, text zoom to 200 percent, keyboard order and traps, and reduced motion. It covers 28 screens. Three of them are the "NEW" screens: Home with a plan, and Check my progress. The questions of "Create my plan" run in 3 groups (Step 1 of 3 to Step 3 of 3). A helper picks an answer inside the group of one question, found by its legend. The date of surgery has the fields Day, Month and Year. The exit code is 1 if a screen or a keyboard journey step did not run (`runErrors` or `journeyFailed` above 0). A gap cannot pass.
+- `sec/hostile.mjs`: hostile data. It loads bad plan files, bad stored data, bad pairing codes and fake history. It makes sure that no script runs, no CSP rule breaks, no foreign request leaves, and the screen stays usable. Case `c9-control` must fail on purpose (`CONTROL=1`). Cases `c10a` to `c10d` cover Home and Check my progress for a plan at week 8. The exit code is 1 if a case failed or did not run to the end (`notRun` in the `SUMMARY` line).
+- `honesty/honesty-audit.mjs`: data honesty and standing rules. It checks banners, verdict words, scores, state colours, angle labels, chart and table agreement, empty states, the red-flag gate, and the new screens. An angle in a sentence that names a source (S, P or N plus 1 or 2 digits) needs no angle label. The skip link is not a tap target at rest. It waits above the page until a key focuses it. The 48 px target check leaves it out. The words "surgeon limit", "limit in your plan" and "your care team" have the same effect.
 - `honesty/audit-inpage.js`: helper code that the honesty audit injects into each page.
-- `gate/source-checks.sh`: source checks with grep. It looks for unsafe APIs, inline styles, remote URLs, dynamic links and a missing CSP. Exit code is the number of hits.
+- `gate/source-checks.sh`: source checks with grep. It looks for unsafe APIs, inline styles, remote URLs, dynamic links and a missing CSP. Exit code is the number of hits. A CSS `@import` of a relative local file in quotes (`'./tokens.css'`) is allowed. Every other `@import` is a hit: `http(s):`, protocol-relative, `url()` and a bare name. `bash audit/gate/source-checks.sh --selftest` proves that the remote forms are still caught.
 - `gate/first-load.mjs`: counts the gzip size of the first-load files of a build.
 - `gate/chain.sh`: runs all steps in one chain.
 
@@ -47,7 +47,7 @@ To leave steps out, set `SKIP`, for example `SKIP="precheck e2e" npm run gate`. 
 
 ## Self test
 
-`npm run audit:selftest` runs the honesty audit on a page with known faults. It must print `SELFTEST OK`. A broken check cannot pass this test.
+`npm run audit:selftest` runs the honesty audit on a page with known faults. It must print `SELFTEST OK`. A broken check cannot pass this test. The gate also runs `bash audit/gate/source-checks.sh --selftest`. It must print `SOURCE SELFTEST OK`.
 
 ## Recovery note
 

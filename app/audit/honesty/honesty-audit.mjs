@@ -52,17 +52,17 @@ const T = {
   startExercise: 'Start exercise',
   save: 'Save',
   done: 'Done',
-  sessions: 'Your sessions',
+  sessions: 'Sessions', // the tab. The screen it opens has the heading "Your sessions" (T.h1.sessions)
   data: 'My data',
   careTeam: 'Open a session file (care team)',
   createPlan: 'Create my plan',
   companion: 'Use this phone as the second camera',
-  h1: { redflag: 'Check before you exercise', setup: 'Set up the camera', summary: 'Summary', home: 'Home', privacy: 'Privacy', load: 'Load protocol file', sessions: 'Your sessions', data: 'My data' },
+  h1: { redflag: 'Check before you exercise', setup: 'Set up the camera', summary: 'Summary', home: 'Today', privacy: 'Privacy', load: 'Load protocol file', sessions: 'Your sessions', data: 'My data' },
   pauseMessage: 'Pause and contact your care team.',
   angleLabel: 'estimated angle, not a medical measurement',
   prototype: 'Prototype. Not for patient use.',
   example: 'EXAMPLE, NOT APPROVED',
-  navNames: ['Home', 'Your sessions', 'My data'],
+  navNames: ['Today', 'Progress', 'Sessions', 'My data'],
 };
 const EXAMPLE_FILE = path.join(APP_ROOT, 'src/lib/protocol/example-protocol.json');
 const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)';
@@ -909,14 +909,24 @@ async function newScreensStory(theme) {
       await page.getByRole('button', { name: T.understand }).click();
       await expectH1(page, T.h1.load);
       await press(page, 'Create my plan');
-      await expectH1(page, 'Did your care team give you a written rehab plan?');
-      for (const a of ['No', 'MPFL reconstruction only', '18 or older', 'No', 'Yes', 'No']) { await radio(page, a); await press(page, 'Next'); }
-      const d = new Date(); d.setDate(d.getDate() - 24);
-      await page.getByLabel('Date of surgery').fill(iso(d)); await press(page, 'Next');
-      await radio(page, 'Left'); await press(page, 'Next');
-      await radio(page, 'Yes, my limit is'); await page.getByLabel('Limit in degrees').fill('60'); await press(page, 'Next');
-      await press(page, 'Next');
-      await radio(page, '2'); await radio(page, 'No swelling'); await press(page, 'Next');
+      await expectH1(page, 'You and your surgery');
+      const pick = (q, a) => page.getByRole('group', { name: q }).getByRole('radio', { name: a, exact: true }).check();
+      await pick('Did your care team give you a written rehab plan?', 'No');
+      await pick('Which operation did you have?', 'MPFL reconstruction only');
+      await pick('How old are you?', '18 or older');
+      await pick('Did you have surgery on both knees?', 'No');
+      await pick('Is this your first MPFL surgery on this knee?', 'Yes');
+      await pick('Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?', 'No');
+      await press(page, 'Continue to your surgeon');
+      const [yy, mm, dd] = iso(new Date(Date.now() - 24 * 86400000)).split('-');
+      await page.getByLabel('Day', { exact: true }).fill(String(Number(dd)));
+      await page.getByLabel('Month', { exact: true }).fill(String(Number(mm)));
+      await page.getByLabel('Year', { exact: true }).fill(yy);
+      await pick('Which knee did you have surgery on?', 'Left');
+      await pick('Did your surgeon give a limit for how far you can bend your knee, also with a brace?', 'Yes, my limit is');
+      await page.getByLabel('Limit in degrees').fill('60');
+      await press(page, 'Continue to today');
+      await radio(page, '2'); await radio(page, 'No swelling'); await press(page, 'Check my answers');
       await expectH1(page, 'Check your answers');
       await press(page, 'Make my plan'); await expectH1(page, 'Your plan');
       await press(page, 'Use this plan'); await expectH1(page, 'Confirm your plan');

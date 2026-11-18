@@ -58,7 +58,7 @@ async function toLoad(page) {
 async function toHome(page) {
   await toLoad(page);
   await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-  await expectH1(page, 'Home');
+  await expectH1(page, 'Today');
 }
 async function toRedFlag(page) {
   await toHome(page);
@@ -97,7 +97,7 @@ async function saveOneSession(page) {
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByText('Session saved.').waitFor();
   await page.getByRole('button', { name: 'Done' }).click();
-  await expectH1(page, 'Home');
+  await expectH1(page, 'Today');
 }
 // The questions run in 3 groups (Onboarding.tsx). A legend names the group of radio buttons of one question.
 const pick = (page, q, a) => page.getByRole('group', { name: q }).getByRole('radio', { name: a, exact: true }).check();
@@ -150,7 +150,7 @@ async function toConfirm(page) {
 async function toHomeWithPlan(page) {
   await toConfirm(page);
   await press(page, 'Confirm');
-  await expectH1(page, 'Home');
+  await expectH1(page, 'Today');
 }
 
 // ---- auditnew: plan made by the app at week 8, seeded session, fixed clock (as app/e2e/progress.spec.ts does) ----
@@ -168,7 +168,7 @@ async function toWeek8Home(page, extra = {}) {
   await seedSessionNew(page, extra);
   await page.clock.setFixedTime(new Date(Date.now() + WEEK8_SHIFT_DAYS * 86_400_000));
   await page.reload();
-  await expectH1(page, 'Home');
+  await expectH1(page, 'Today');
   await page.getByText(/^Last session: /).first().waitFor({ state: 'visible', timeout: 8000 });
 }
 async function toCheckNew(page, extra = {}) {
@@ -227,7 +227,7 @@ export const SCREENS = [
     name: 'Your sessions',
     go: async (p) => {
       await saveOneSession(p);
-      await p.getByRole('button', { name: 'Your sessions' }).click();
+      await p.getByRole('button', { name: 'Sessions', exact: true }).click();
       await expectH1(p, 'Your sessions');
       await p.locator('.dash-chart-box svg').first().waitFor({ state: 'visible' });
     },
@@ -306,7 +306,7 @@ export const SCREENS = [
     go: async (p) => {
       await p.route(/\/assets\/Dashboard-[^/]*\.js/, (r) => r.abort());
       await toHome(p);
-      await p.getByRole('button', { name: 'Your sessions' }).click();
+      await p.getByRole('button', { name: 'Sessions', exact: true }).click();
       await expectH1(p, 'Screen not loaded');
     },
   },
@@ -752,7 +752,7 @@ async function keyboardJourney(browser, sink) {
     });
     await step('Load: set the example file (not by keyboard)', async () => {
       await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-      await expectH1(page, 'Home', 8000);
+      await expectH1(page, 'Today', 8000);
     });
     await reach('Home: Start Heel slide with Enter', nameRe('^Start Heel slide'), 'Enter', () => expectH1(page, 'Check before you exercise', 8000));
     await reach('Red flag: first checkbox with Space', nameRe('Sudden shortness of breath'), 'Space', async () => {
@@ -764,7 +764,7 @@ async function keyboardJourney(browser, sink) {
       return 'screen stays (Escape has no action here)';
     });
     // The block lasts for the whole visit by design, so leave and come back for a clean visit.
-    await reach('Red flag: Back to Home with Enter', nameRe('^Back to Home'), 'Enter', () => expectH1(page, 'Home', 8000));
+    await reach('Red flag: Back to Home with Enter', nameRe('^Back to Home'), 'Enter', () => expectH1(page, 'Today', 8000));
     await reach('Home: Start Heel slide again with Enter', nameRe('^Start Heel slide'), 'Enter', () => expectH1(page, 'Check before you exercise', 8000));
     await reach('Red flag: Continue with Enter', nameRe('^None of these apply'), 'Enter', () => expectH1(page, 'Set up the camera', 8000));
     await reach('Setup: Next with Enter', nameRe('^Next: set up the camera'), 'Enter', () => page.getByRole('button', { name: 'Start camera' }).waitFor({ timeout: 8000 }));
@@ -779,25 +779,25 @@ async function keyboardJourney(browser, sink) {
     await radioStep('Summary: pain 3 by arrow keys and Space', nameRe('^3$'));
     await radioStep('Summary: swelling by arrow keys and Space', nameRe('Some swelling'));
     await reach('Summary: Save with Enter', nameRe('^Save$'), 'Enter', () => page.getByText('Session saved.').waitFor({ timeout: 8000 }));
-    await reach('Summary: Done with Enter', nameRe('^Done$'), 'Enter', () => expectH1(page, 'Home', 8000));
-    await reach('Home: My data with Enter', nameRe('My data'), 'Enter', () => expectH1(page, 'My data', 8000));
+    await reach('Summary: Done with Enter', nameRe('^Done$'), 'Enter', () => expectH1(page, 'Today', 8000));
+    await reach('Home: My data with Enter', nameRe('^My data$'), 'Enter', () => expectH1(page, 'My data', 8000));
     await step('My data: Back button with Enter', async () => {
       const n = await tabTo(nameRe('^\\W*Back'), 40);
       if (n < 0) throw new Error('Back not reached');
       await page.keyboard.press('Enter');
-      await expectH1(page, 'Home', 8000);
+      await expectH1(page, 'Today', 8000);
     });
-    await reach('Home: Your sessions with Enter', nameRe('Your sessions'), 'Enter', () => expectH1(page, 'Your sessions', 10000));
+    await reach('Home: Your sessions with Enter', nameRe('^Sessions$'), 'Enter', () => expectH1(page, 'Your sessions', 10000));
     await step('Your sessions: browser Back returns Home', async () => {
       await page.goBack();
-      await expectH1(page, 'Home', 5000);
+      await expectH1(page, 'Today', 5000);
     });
-    await reach('Home: Your sessions again', nameRe('Your sessions'), 'Enter', () => expectH1(page, 'Your sessions', 10000));
+    await reach('Home: Your sessions again', nameRe('^Sessions$'), 'Enter', () => expectH1(page, 'Your sessions', 10000));
     await step('Your sessions: Back button with Enter', async () => {
       const n = await tabTo(nameRe('^\\W*Back'), 40);
       if (n < 0) throw new Error('Back not reached');
       await page.keyboard.press('Enter');
-      await expectH1(page, 'Home', 8000);
+      await expectH1(page, 'Today', 8000);
     });
     await step('Home: browser Back from a deep screen (Red flag) returns Home', async () => {
       const n = await tabTo(nameRe('^Start Heel slide'), 90);
@@ -805,7 +805,7 @@ async function keyboardJourney(browser, sink) {
       await page.keyboard.press('Enter');
       await expectH1(page, 'Check before you exercise', 8000);
       await page.goBack();
-      await expectH1(page, 'Home', 5000);
+      await expectH1(page, 'Today', 5000);
     });
   } catch (e) {
     steps.push({ step: 'journey aborted', ok: false, detail: String(e.message).split('\n')[0] });
@@ -894,6 +894,11 @@ async function main() {
   for (const r of results) for (const e of r.errors) L.push(`- ${r.name}: ${e}`);
   writeFileSync(join(OUT, `audit-${LABEL}.md`), L.join('\n'));
   console.log(JSON.stringify(totals, null, 1));
+  // A screen that did not run is a gap in the audit. It must not pass.
+  if (totals.runErrors > 0 || totals.journeyFailed > 0) {
+    console.error(`AUDIT INCOMPLETE: ${totals.runErrors} run error(s) on ${results.filter((r) => r.errors.length).length} screen(s), ${totals.journeyFailed} keyboard journey step(s) failed. See audit-${LABEL}.md`);
+    process.exit(1);
+  }
 }
 
 main().catch((e) => {

@@ -120,6 +120,8 @@
       }
       if (!deepVis(box) && !deepVis(el)) continue;
       const r = box.getBoundingClientRect();
+      // The skip link waits above the page (top: -6rem) until a key press focuses it. A person who taps never sees it, so it is not a tap target at rest.
+      if (r.bottom <= 0 && el.matches('a[href^="#"]')) continue;
       // inline link inside a sentence: WCAG 2.2 allows it. The audit marks it.
       const inline = el.tagName === 'A' && !!el.closest('p, li') && getComputedStyle(el).display === 'inline';
       out.push({ sel: sel(box), kind, name: (el.getAttribute('aria-label') || el.textContent || el.value || '').trim().slice(0, 40), w: +r.width.toFixed(2), h: +r.height.toFixed(2), inline, group: el.name || '' });
