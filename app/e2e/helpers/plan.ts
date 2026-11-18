@@ -41,15 +41,46 @@ export const readAny = (page: Page, store: string) =>
     store,
   );
 
-/** Answers the six referral questions with the answers that allow a plan. */
+/** The legend of each question of the 3 groups. A legend names its group of radio buttons. */
+export const QUESTION = {
+  written: 'Did your care team give you a written rehab plan?',
+  procedure: 'Which operation did you have?',
+  age: 'How old are you?',
+  both: 'Did you have surgery on both knees?',
+  first: 'Is this your first MPFL surgery on this knee?',
+  rules: 'Did your surgeon give special rules',
+  side: 'Which knee did you have surgery on?',
+  limit: 'Did your surgeon give a limit for how far you can bend your knee',
+  clearance: 'Has your surgeon or physiotherapist said that you can start the next stage?',
+} as const;
+
+/** Answers one question of a group screen. Several questions share the answer names, so the legend picks the group. */
+export const pick = (page: Page, question: string, answer: string) =>
+  page.getByRole('group', { name: question }).getByRole('radio', { name: answer, exact: true }).check();
+
+/** Types a date as day, month and year, the three number fields of the date question. */
+export async function fillDate(page: Page, iso: string) {
+  const [y, m, d] = iso.split('-') as [string, string, string];
+  await page.getByLabel('Day', { exact: true }).fill(String(Number(d)));
+  await page.getByLabel('Month', { exact: true }).fill(String(Number(m)));
+  await page.getByLabel('Year', { exact: true }).fill(y);
+}
+
+/** Answers the 6 questions of group 1. The default answers allow a plan. One answer can change to cause a referral. */
+export async function answerAbout(page: Page, procedure = 'MPFL reconstruction only', written = 'No') {
+  await pick(page, QUESTION.written, written);
+  await pick(page, QUESTION.procedure, procedure);
+  await pick(page, QUESTION.age, '18 or older');
+  await pick(page, QUESTION.both, 'No');
+  await pick(page, QUESTION.first, 'Yes');
+  await pick(page, QUESTION.rules, 'No');
+}
+
+/** Answers group 1 with the answers that allow a plan, and goes on to group 2. */
 export async function referralQuestions(page: Page) {
-  await h1(page, 'Did your care team give you a written rehab plan?');
-  await radio(page, 'No'); await next(page);
-  await radio(page, 'MPFL reconstruction only'); await next(page);
-  await radio(page, '18 or older'); await next(page);
-  await radio(page, 'No'); await next(page);
-  await radio(page, 'Yes'); await next(page);
-  await radio(page, 'No'); await next(page);
+  await h1(page, 'You and your surgery');
+  await answerAbout(page);
+  await press(page, 'Continue to your surgeon');
 }
 
 /** The Load screen. The first launch shows Privacy first. A later visit goes straight to Load. */
@@ -66,20 +97,19 @@ export async function toSummary(page: Page, days = WEEK3, limit: string | null =
   await toLoadAny(page);
   await press(page, 'Create my plan');
   await referralQuestions(page);
-  await page.getByLabel('Date of surgery').fill(ago(days)); await next(page);
-  await radio(page, 'Left'); await next(page);
-  if (limit === null) await radio(page, 'No limit');
+  await h1(page, 'Your surgeon');
+  await fillDate(page, ago(days));
+  await pick(page, QUESTION.side, 'Left');
+  if (limit === null) await pick(page, QUESTION.limit, 'No limit');
   else {
-    await radio(page, 'Yes, my limit is');
+    await pick(page, QUESTION.limit, 'Yes, my limit is');
     await page.getByLabel('Limit in degrees').fill(limit);
   }
-  await next(page);
-  await next(page); // red flags: none ticked
-  await radio(page, '2'); await radio(page, 'No swelling'); await next(page);
-  if (days >= 49) {
-    await h1(page, /Has your surgeon or physiotherapist said/);
-    await radio(page, 'No'); await next(page);
-  }
+  await press(page, 'Continue to today');
+  await h1(page, 'How are you today?');
+  await radio(page, '2'); await radio(page, 'No swelling'); // red flags: none ticked
+  if (days >= 49) await pick(page, QUESTION.clearance, 'No');
+  await press(page, 'Check my answers');
   await expectScreen(page, 'Check your answers');
 }
 

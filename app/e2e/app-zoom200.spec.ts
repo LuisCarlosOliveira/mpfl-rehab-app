@@ -3,6 +3,7 @@
 // and a sticky bar takes at most 40 percent of the height (a taller bar sits at the end of the content).
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, toHome, toLoad, toSummary } from './helpers/app';
+import { answerAbout, fillDate, pick, QUESTION, referralQuestions } from './helpers/plan';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -17,21 +18,15 @@ const dateAgo = (days: number) => {
 async function toUpdatePlan(page: Page) {
   await toLoad(page);
   await press(page, 'Create my plan');
-  for (const a of ['No', 'MPFL reconstruction only', '18 or older', 'No', 'Yes', 'No']) {
-    await radio(page, a);
-    await press(page, 'Next');
-  }
-  await page.getByLabel('Date of surgery').fill(dateAgo(24));
-  await press(page, 'Next');
-  await radio(page, 'Left');
-  await press(page, 'Next');
-  await radio(page, 'Yes, my limit is');
+  await referralQuestions(page);
+  await fillDate(page, dateAgo(24));
+  await pick(page, QUESTION.side, 'Left');
+  await pick(page, QUESTION.limit, 'Yes, my limit is');
   await page.getByLabel('Limit in degrees').fill('60');
-  await press(page, 'Next');
-  await press(page, 'Next');
+  await press(page, 'Continue to today');
   await radio(page, '2');
   await radio(page, 'No swelling');
-  await press(page, 'Next');
+  await press(page, 'Check my answers');
   await press(page, 'Make my plan');
   await press(page, 'Use this plan');
   await press(page, 'Confirm');
@@ -98,8 +93,8 @@ test('Update my plan at 200 percent text', async ({ page }) => {
 test('Referral (no plan from the app) at 200 percent text', async ({ page }) => {
   await toLoad(page);
   await press(page, 'Create my plan');
-  await radio(page, 'Yes');
-  await press(page, 'Next');
+  await answerAbout(page, 'MPFL reconstruction only', 'Yes');
+  await press(page, 'Continue to your surgeon');
   await expectScreen(page, 'No plan from the app');
   await checkZoom(page);
 });

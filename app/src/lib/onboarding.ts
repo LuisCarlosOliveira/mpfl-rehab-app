@@ -1,6 +1,6 @@
 // The questionnaire model of "Create my plan". It holds the order of the questions, the check that a question is
 // answered, the early referral and the conversion to the inputs of the generator. It has no screen code.
-// One question for each screen. The referral questions come first, so the app takes the least data before a refusal.
+// The questions run in 3 groups, one group for each screen. The referral questions come first, so the app takes the least data before a refusal.
 
 import { generateProtocol, RULES, type GenerateResult, type GeneratorInputs } from './protocolGen';
 import { weeksSince } from './planView';
@@ -62,6 +62,18 @@ export function stepsFor(a: Answers, today: string): StepId[] {
   ];
 }
 
+/** The 3 screens of the questions. A group holds the steps that it asks, in the order of `stepsFor`. */
+export type GroupId = 'about' | 'surgeon' | 'today';
+export const GROUP_IDS: readonly GroupId[] = ['about', 'surgeon', 'today'];
+const GROUP_OF: Record<Exclude<StepId, 'summary'>, GroupId> = {
+  writtenPlan: 'about', procedure: 'about', ageBand: 'about', bothKnees: 'about', firstSurgery: 'about', specialRules: 'about',
+  surgeryDate: 'surgeon', side: 'surgeon', limit: 'surgeon',
+  redFlags: 'today', today: 'today', clearance: 'today', walking: 'today', legRaise: 'today', seatedHold: 'today',
+};
+export const groupOf = (step: Exclude<StepId, 'summary'>): GroupId => GROUP_OF[step];
+export const groupSteps = (group: GroupId, a: Answers, today: string): Exclude<StepId, 'summary'>[] =>
+  stepsFor(a, today).filter((s): s is Exclude<StepId, 'summary'> => s !== 'summary' && GROUP_OF[s] === group);
+
 /** The number of the limit field, or null when the text is not a whole number from 0 to 180. */
 export function limitNumber(text: string): number | null {
   if (text.trim() === '' || !/^\s*-?\d+\s*$/.test(text)) return null;
@@ -75,14 +87,18 @@ export function limitProblem(text: string): string | null {
 }
 
 /**
- * A plain message for a surgery date that the app cannot use, or null. Only a date that is not real and a date in the future
- * are refused here. The window of weeks is a rule of the generator. An empty field has no message.
+ * The date of surgery from the three fields. `iso` is set only when the three parts make a real date that is not in the future.
+ * `problem` is a plain message for a full entry that cannot be used. A part that is empty gives no date and no message.
+ * The year needs 4 digits, so 26 is not 2026. The window of weeks is a rule of the generator, not of this check.
  */
-export function surgeryDateProblem(text: string, today: string): string | null {
-  if (text === '') return null;
-  const weeks = weeksSince(text, '9999-12-31');
-  if (weeks === null) return 'Enter a real date for your surgery.';
-  return weeksSince(text, today) === null ? 'The date of your surgery cannot be in the future. Enter the date of your surgery.' : null;
+export function surgeryDateFromParts(day: string, month: string, year: string, today: string): { iso: string | null; problem: string | null } {
+  const [d, m, y] = [day.trim(), month.trim(), year.trim()];
+  if (d === '' || m === '' || y === '') return { iso: null, problem: null };
+  const real = { iso: null, problem: 'Enter a real date' };
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(y)) return real;
+  const iso = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  if (weeksSince(iso, '9999-12-31') === null) return real;
+  return weeksSince(iso, today) === null ? { iso: null, problem: 'The date cannot be in the future' } : { iso, problem: null };
 }
 
 /** `today` is the calendar date of the device. It lets the date question refuse a date in the future. */
@@ -106,6 +122,9 @@ export function answered(step: StepId, a: Answers, today?: string): boolean {
     case 'summary': return true;
   }
 }
+
+/** True when every question of the group that the answers open has an answer. */
+export const groupAnswered = (group: GroupId, a: Answers, today: string): boolean => groupSteps(group, a, today).every((s) => answered(s, a, today));
 
 /** The inputs of the generator, or null when an answer is missing. */
 export function toInputs(a: Answers, today: string): GeneratorInputs | null {
