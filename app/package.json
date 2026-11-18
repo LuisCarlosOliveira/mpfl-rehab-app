@@ -11,6 +11,11 @@
     "lint": "eslint src tests",
     "test": "vitest run --maxWorkers=2",
     "e2e": "playwright test --workers=1",
+    "audit:a11y": "node audit/a11y/audit.mjs",
+    "audit:sec": "node audit/sec/hostile.mjs",
+    "audit:honesty": "node audit/honesty/honesty-audit.mjs",
+    "audit:selftest": "node audit/honesty/honesty-audit.mjs --selftest --no-shots",
+    "gate": "bash audit/gate/chain.sh",
     "e2e:pairing": "playwright test -c e2e/pairing/playwright.config.ts --workers=1",
     "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/model-hash-check.sh && bash scripts/deps-check.sh && bash scripts/claims-check.sh src && bash scripts/phase-check.sh src && bash scripts/plan-skills-check.sh"
   },
