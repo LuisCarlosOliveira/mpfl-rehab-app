@@ -49,7 +49,10 @@
   left: var(--v3-s2);
   top: -6rem;
   z-index: 5;
-  padding: var(--v3-s2) var(--v3-s4);
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 var(--v3-s4);
   border-radius: var(--v3-r-control);
   background: var(--ink);
   color: var(--bg);
