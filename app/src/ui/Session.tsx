@@ -49,6 +49,7 @@ import { Notice } from './Notice';
 import { focusHeading } from './focusHeading';
 import { useCameraTop } from '../lib/useCameraTop';
 import { PainScale } from './PainScale';
+import { PlanProgress } from './PlanProgress';
 import { CAPTURE_TEXT, LEG_TEXT, firstSentence, otherLeg } from './setupView';
 import { StatusLine } from './StatusLine';
 import './sessionV2.css';
@@ -177,10 +178,14 @@ interface Props {
   painPauseThreshold?: number;
   /** The shell calls this when the Back button of the browser is pressed. It does what the Stop button does. */
   stopRef?: MutableRefObject<(() => void) | null>;
+  /** Today's session: the place of this exercise. The progress mark shows under the title. */
+  plan?: { index: number; total: number };
+  /** Today's session: the next exercise uses the camera too, so a Stop leaves the camera on. "Knee gave way or hurts" always stops it. */
+  keepCamera?: boolean;
   onEnd: (reason: EndReason, summary: RunSummary) => void;
 }
 
-export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, stopRef, onEnd }: Props) {
+export function Session({ exercise, side, cameraSide, baselineDeg, source, second, sound, painPauseThreshold, stopRef, plan, keepCamera = false, onEnd }: Props) {
   // The five new kinds run through the definitions of the registry. The engine has no protocol value that they wait for.
   const engine = engineSpecFor(exercise.kind);
   const timerMode = engine?.mode === 'person-timer';
@@ -243,6 +248,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
   const watcher = useRef<ReturnType<typeof createIdentityWatcher> | null>(null);
   const pipeline = useRef<Pipeline | null>(null);
   const ended = useRef(false);
+  const cameraKept = useRef(false); // set when the exercise ended and left the camera on for the next one
   const recorder = useRef<FrontRecorder | null>(null);
   const wasConnected = useRef(false);
   const secondSource = second?.source;
@@ -309,6 +315,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
 
     // Runs at frame rate. It writes to refs only. It does not set state.
     const onFrame = (landmarks: Parameters<Pipeline['step']>[0], timeMs: number, extra?: Parameters<Pipeline['step']>[2]) => {
+      if (ended.current) return; // the camera can stay on after the end (today's session). A late frame changes nothing.
       const p = getPipeline();
       const out = p?.step(landmarks, timeMs, extra);
       if (out?.probe) source.probe?.(PROBE_MS);
@@ -441,7 +448,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     return () => {
       alive = false;
       clearInterval(timer);
-      source.stop();
+      if (!cameraKept.current) source.stop();
     };
   }, [exercise, side, cameraSide, baselineDeg, source, ready, attempt, needsCapture]);
 
@@ -550,7 +557,9 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     if (ended.current) return;
     ended.current = true;
     closeHold(); // a hold that is open when the session ends is saved when it lasted 1 s or more
-    source.stop();
+    // The camera stays on only for a Stop that is followed by an exercise with the camera. Every other end stops it (NFR9).
+    cameraKept.current = keepCamera && reason === 'stop';
+    if (!cameraKept.current) source.stop();
     secondSource?.stop();
     // A session with no frame still gets an empty summary from a fresh pipeline.
     // The counts come from the set logic, so a rep during a set pause is not in the result.
@@ -707,6 +716,7 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
           )}
         </div>
       </header>
+      {plan && <PlanProgress index={plan.index} total={plan.total} detail={label} />}
 
       {!setup.ok ? (
         <Notice icon="triangle-alert">

@@ -6,19 +6,20 @@
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
 import { useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
-import { PEAK_NO_VALUE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
-import type { Exercise, PlanExercise, Protocol } from '../lib/protocol';
+import type { PlanExercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
 import { plural } from '../lib/sets';
 import { saveSession, updateSessionAnswers, type MpflDb } from '../lib/storage';
 import type { RunResult } from './appState';
 import { Icon } from './Icon';
-import { ANGLE_LABEL, EXERCISE_NAMES, secondsText } from './labels';
+import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
+import { PlanProgress } from './PlanProgress';
+import { RunStats } from './RunStats';
 import { Segmented } from './Segmented';
-import { runToSessionInput, storedWhole } from './sessionRecord';
+import { runToSessionInput } from './sessionRecord';
 import type { SessionRunSummary } from './Session';
 import './flowV2.css';
 
@@ -39,14 +40,18 @@ interface Props {
   cameraSide?: Side;
   db: MpflDb;
   now: () => Date;
+  /** Today's session: this screen is the short "Done" step. `keepCamera`: the camera stays on for the next exercise. */
+  plan?: { index: number; total: number; keepCamera?: boolean };
   onDone: () => void;
+  /** Today's session only: the pause rule ended it, so the only way on is to end the session. */
+  onStop?: () => void;
 }
 
 // B2-05: the text must match the record. A kept answer is named. Without a kept answer the record holds none.
 const savedSkipText = (kept: string[]): string =>
   kept.length === 0 ? 'Session saved without answers.' : `Session saved. Your ${kept.join(' and ')} ${kept.length === 1 ? 'answer is' : 'answers are'} kept.`;
 
-export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, legTracked, cameraSide, db, now, onDone }: Props) {
+export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, legTracked, cameraSide, db, now, plan, onDone, onStop }: Props) {
   const { summary, reason } = run;
   const [pain, setPain] = useState<number | null>(null);
   const [swelling, setSwelling] = useState<SwellingAnswer | null>(null);
@@ -56,7 +61,6 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   const [kept, setKept] = useState<string[]>([]); // the answers that Skip wrote to the record (B2-05)
   const [saveError, setSaveError] = useState(false);
   const [recordFailed, setRecordFailed] = useState(false); // the write at the end of the run did not work
-  const sets = summary.sets ?? null;
   const painBetweenSets = (summary as SessionRunSummary).setPain; // the pain answers between sets (Session adds them)
   const saving = useRef(false);
   const savedNote = useRef<HTMLParagraphElement>(null);
@@ -95,6 +99,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
       else await updateSessionAnswers(db, id, { pain, swelling });
       setSaveError(false);
       setSaved(true);
+      // Today's session goes on to the next exercise at once. A pause message holds it: then only "End session" is left.
+      if (plan && !verdict?.pause) onDone();
     } catch {
       setSaveError(true);
       saving.current = false;
@@ -122,27 +128,17 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     saving.current = false;
   }
 
-  const topWhole = storedWhole(summary.topFlexion);
-  const peakWhole = storedWhole(summary.peakFlexion);
-  const overLimit = summary.eventCounts.overLimit; // the stored count: bends past the limit of the care team
-  const unit = summary.holds === null ? 'rep' : 'hold';
-  // The five new kinds. The values come from the engine (RunSummary.engine). Whole degrees, as the record stores them.
-  const engine = summary.engine;
-  const timedByPerson = engine?.timedBy === 'person';
-  const holdList = engine?.holdList ?? [];
-  const reportWhole = engine?.reportValue === undefined ? null : storedWhole(engine.reportValue);
-  const REPORT_LINE = { 'ankle-range': 'Largest ankle range', 'lift-angle': 'Largest lift angle' } as const;
-
   return (
     <section aria-labelledby="summary-title" className="narrow v2-flow v2-summary">
       <header className="page-head">
         <div className="stack-s">
           <h1 id="summary-title" tabIndex={-1}>
-            Summary
+            {plan ? 'Done' : 'Summary'}
           </h1>
           <p className="detail">Exercise: {EXERCISE_NAMES[exercise.kind]}</p>
         </div>
       </header>
+      {plan && <PlanProgress index={plan.index} total={plan.total} detail={exercise.sets === undefined ? null : `${exercise.sets} ${plural(exercise.sets, 'set')}`} />}
 
       <div className="stack">
         {reason === 'gave-way' && (
@@ -151,83 +147,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           </Notice>
         )}
 
-        <dl className="stats">
-          {summary.reps !== null && (
-            <div className="stat">
-              <dt>Reps counted</dt>
-              <dd>
-                <span className="num">{summary.reps}</span> <span className="unit">{plural(summary.reps, 'rep')}</span>
-              </dd>
-            </div>
-          )}
-          {summary.holds !== null && (
-            <div className="stat">
-              <dt>{timedByPerson ? 'Holds timed by you' : 'Holds counted'}</dt>
-              <dd>
-                <span className="num">{summary.holds}</span> <span className="unit">{plural(summary.holds, 'hold')}</span>
-              </dd>
-            </div>
-          )}
-          {engine?.reportKey !== undefined && reportWhole !== null && (
-            <div className="stat">
-              <dt>{REPORT_LINE[engine.reportKey]}</dt>
-              <dd>
-                <span className="num">{reportWhole}</span> <span className="unit">{plural(reportWhole, 'degree')}</span>
-                <span className="detail">({ANGLE_LABEL})</span>
-              </dd>
-            </div>
-          )}
-          {summary.peakFlexion !== null && (
-            <div className="stat">
-              <dt>Highest knee bend</dt>
-              {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
-              {peakUnreadable(exercise.kind as Exercise['kind'], summary.peakFlexion) /* peakFlexion is set by the four old kinds only */ ? (
-                <dd>{PEAK_NO_VALUE_TEXT}</dd>
-              ) : (
-                <dd>
-                  <span className="num">{peakWhole}</span> <span className="unit">{plural(peakWhole, 'degree')}</span>
-                  <span className="detail">({ANGLE_LABEL})</span>
-                </dd>
-              )}
-            </div>
-          )}
-          {/* U4: the angle at the top of a leg raise is its own line. It is the highest top angle of the sets, the number that the live screen showed. */}
-          {exercise.kind === 'straight-leg-raise' && topWhole !== null && (
-            <div className="stat">
-              <dt>Angle at the top</dt>
-              {topUnreadable(summary.topFlexion) ? (
-                <dd>{PEAK_NO_VALUE_TEXT}</dd>
-              ) : (
-                <dd>
-                  <span className="num">{topWhole}</span> <span className="unit">{plural(topWhole, 'degree')}</span>
-                  <span className="detail">({ANGLE_LABEL})</span>
-                </dd>
-              )}
-            </div>
-          )}
-        </dl>
-        {timedByPerson && (
-          <div className="stack-s">
-            {holdList.length > 0 && <p>{`Holds: ${secondsText(holdList)}`}</p>}
-            <p className="detail">The camera did not check these holds.</p>
-          </div>
-        )}
-        {/* The pause message sits here, above both questions, so a phone shows it at once (FR12). */}
-        <PauseNotice verdict={verdict} pain={highestPain} />
-        {sets !== null && sets.prescription.reps !== undefined && (
-          <ul className="set-list" aria-label="Reps in each set">
-            {sets.repsPerSet.map((n, i) => (
-              <li key={i}>
-                <span>Set {i + 1}:</span>{' '}
-                <span className="set-count">
-                  <span className="num">{n}</span> {plural(n, unit)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {overLimit > 0 && <p>{`Bends past your limit: ${overLimit}.`}</p>}
-        {summary.reps === 0 && <p>{overLimit > 0 ? 'No repetitions were counted. Bends past your limit do not count.' : 'No repetitions were counted.'}</p>}
+        <RunStats kind={exercise.kind} summary={summary} between={<PauseNotice verdict={verdict} pain={highestPain} />} />
 
         {!saved && !discarded ? (
           <>
@@ -245,7 +165,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
                 <p>The session could not be saved. Try again.</p>
               </Notice>
             )}
-            {(pain === null || swelling === null) && <p className="detail">Answer both questions to save.</p>}
+            {(pain === null || swelling === null) && <p className="detail">{plan ? 'The questions are optional.' : 'Answer both questions to save.'}</p>}
+            {plan?.keepCamera && <p className="detail">The camera stays on for the next exercise. The app records no video.</p>}
           </>
         ) : (
           <>
@@ -262,12 +183,12 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
         {!discarded && (
           <button type="button" className={saved ? 'btn btn-lg save-btn' : 'btn btn-primary btn-lg save-btn'} disabled={saved || saveBusy || pain === null || swelling === null} onClick={() => void save()}>
             {saved && <Icon name="check" size={20} />}
-            {saved ? 'Saved' : saveBusy ? 'Saving' : 'Save'}
+            {saved ? 'Saved' : saveBusy ? 'Saving' : plan ? 'Save and continue' : 'Save'}
           </button>
         )}
         {saved || discarded ? (
-          <button type="button" className="btn btn-primary btn-lg" onClick={onDone}>
-            Done
+          <button type="button" className="btn btn-primary btn-lg" onClick={plan ? (onStop ?? onDone) : onDone}>
+            {plan ? 'End session' : 'Done'}
           </button>
         ) : (
           <button type="button" className="btn btn-lg" onClick={() => void skipQuestions()}>

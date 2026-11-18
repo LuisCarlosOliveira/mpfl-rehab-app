@@ -3,12 +3,16 @@
 // localStorage can throw (private mode or blocked storage). No function here throws to the caller.
 
 import { z } from 'zod';
+import type { Side } from '../angle';
 
 const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
 const PERSIST_KEY = 'mpfl.persistAsked';
 const PRIVACY_KEY = 'mpfl.privacySeen';
 const CONTACT_KEY = 'mpfl.contactDismissed';
+const LEG_KEY = 'mpfl.leg';
+const CAMERA_SIDE_KEY = 'mpfl.cameraSide';
+const GUIDE_SEEN_KEY = 'mpfl.guideSeen';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = 7;
@@ -113,4 +117,33 @@ export function getContactDismissed(): number | null {
 /** Hides the card of this session. The next saved session has a new id, so its card can show again. */
 export function dismissContact(sessionId: number): void {
   write(CONTACT_KEY, String(sessionId));
+}
+
+const asSide = (v: string | null): Side | undefined => (v === 'left' || v === 'right' ? v : undefined);
+
+/** The leg and the camera side that the person chose last. Only the words left or right. A missing or other value gives no key. */
+export function getLegPrefs(): { leg?: Side; cameraSide?: Side } {
+  const leg = asSide(read(LEG_KEY));
+  const cameraSide = asSide(read(CAMERA_SIDE_KEY));
+  return { ...(leg === undefined ? {} : { leg }), ...(cameraSide === undefined ? {} : { cameraSide }) };
+}
+
+export function setLegPrefs(leg: Side, cameraSide: Side): void {
+  write(LEG_KEY, leg);
+  write(CAMERA_SIDE_KEY, cameraSide);
+}
+
+/** The exercises whose guide the person has seen in full. The next start shows the compact card. */
+export function getGuideSeen(): string[] {
+  try {
+    const list: unknown = JSON.parse(read(GUIDE_SEEN_KEY) ?? '[]');
+    return Array.isArray(list) ? list.filter((k): k is string => typeof k === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function markGuideSeen(kind: string): void {
+  const seen = getGuideSeen();
+  if (!seen.includes(kind)) write(GUIDE_SEEN_KEY, JSON.stringify([...seen, kind]));
 }

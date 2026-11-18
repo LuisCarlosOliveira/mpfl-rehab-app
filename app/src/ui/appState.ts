@@ -36,6 +36,17 @@ export interface RunResult {
   record?: Promise<number>;
 }
 
+/** Today's session. `kinds` is the list in plan order. `entries` holds one entry for each exercise that is past: its run, or null when the person skipped it. */
+export interface PlanEntry {
+  kind: ExerciseKind;
+  run: RunResult | null;
+}
+export interface PlanRun {
+  kinds: readonly ExerciseKind[];
+  index: number;
+  entries: readonly PlanEntry[];
+}
+
 export interface AppState {
   screen: ScreenId;
   hasProtocol: boolean;
@@ -48,6 +59,8 @@ export interface AppState {
   cameraSide: Side | null; // the side of the person that the camera is on
   baselineDeg: number | null; // resting flexion measured in Setup. null: none measured.
   run: RunResult | null;
+  /** Today's session. null: a single exercise or no session. While it is set, the cleared check stays for the screens of the session. */
+  plan: PlanRun | null;
   draft: PlanDraft | null;
   /** Set when the privacy notice opens from My data. "I understand" then returns there. */
   privacyFrom?: 'data';
@@ -58,6 +71,10 @@ export type Action =
   | { type: 'privacy-seen' }
   | { type: 'protocol-loaded' }
   | { type: 'choose-exercise'; exercise: ExerciseKind }
+  | { type: 'start-session'; kinds: ExerciseKind[] }
+  | { type: 'plan-continue' } // Done step: the run is kept, the next exercise opens
+  | { type: 'plan-skip' } // Next card: the exercise is passed over
+  | { type: 'plan-stop' } // Next card or Done step: the session ends here
   | { type: 'red-flags-clear' }
   | { type: 'red-flags-blocked' }
   | { type: 'setup-done'; exerciseLeg: Side; cameraSide: Side; baselineDeg: number | null }
@@ -80,9 +97,13 @@ export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: bool
     cameraSide: null,
     baselineDeg: null,
     run: null,
+    plan: null,
     draft: null,
   };
 }
+
+/** The screens where a cleared check stays while today's session runs. */
+const SESSION_SCREENS: readonly ScreenId[] = ['setup', 'session', 'summary', 'next'];
 
 const PLAN_FLOW: readonly ScreenId[] = ['onboarding', 'plan', 'confirm', 'referral'];
 
@@ -122,7 +143,21 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
       return state.exercise === null ? 'home' : target;
     case 'summary':
       return state.run === null ? 'home' : 'summary';
+    case 'next':
+    case 'overview':
+      return state.plan === null ? 'home' : target;
   }
+}
+
+/** The exercise after `entry` goes in the list. The next card opens, or the summary when none is left or `stop` is set. */
+function advance(state: AppState, entry: PlanEntry | null, stop: boolean): AppState {
+  const plan = state.plan;
+  if (plan === null) return state;
+  const entries = entry === null ? plan.entries : [...plan.entries, entry];
+  const index = plan.index + 1;
+  const next = plan.kinds[index];
+  if (stop || next === undefined) return { ...state, plan: { ...plan, entries }, run: null, redFlagCleared: false, screen: 'overview' };
+  return { ...state, plan: { ...plan, index, entries }, exercise: next, run: null, baselineDeg: null, screen: 'next' };
 }
 
 export function appReducer(state: AppState, action: Action): AppState {
@@ -130,11 +165,15 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'open': {
       const screen = resolve(state, action.screen);
       // Leaving the flow drops the cleared check. The next start needs a new one (FR5).
+      // Today's session keeps it on its own screens only. Any other screen ends the session.
+      const keep = screen === 'setup' || screen === 'session' || (state.plan !== null && SESSION_SCREENS.includes(screen));
+      const inSession = state.plan !== null && (SESSION_SCREENS.includes(screen) || screen === 'overview');
       return {
         ...state,
         screen,
         privacyFrom: screen === 'privacy' && state.screen === 'data' ? 'data' : undefined,
-        redFlagCleared: screen === 'setup' || screen === 'session' ? state.redFlagCleared : false,
+        redFlagCleared: keep ? state.redFlagCleared : false,
+        plan: inSession ? state.plan : null,
         draft: PLAN_FLOW.includes(screen) ? state.draft : null,
       };
     }
@@ -144,9 +183,26 @@ export function appReducer(state: AppState, action: Action): AppState {
       return { ...state, hasProtocol: true, screen: 'home', draft: null };
     case 'choose-exercise': {
       // Every start goes through the check, even if an earlier check was cleared.
-      const next = { ...state, exercise: action.exercise, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null };
+      const next = { ...state, plan: null, exercise: action.exercise, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null };
       return { ...next, screen: resolve(next, 'redflag') };
     }
+    case 'start-session': {
+      const first = action.kinds[0];
+      if (first === undefined) return state;
+      // One check for the whole session. The plan keeps the leg and the camera side from exercise to exercise.
+      const next = { ...state, plan: { kinds: action.kinds, index: 0, entries: [] }, exercise: first, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null, run: null };
+      return { ...next, screen: resolve(next, 'redflag') };
+    }
+    case 'plan-continue':
+      return state.screen === 'summary' && state.run !== null && state.plan !== null
+        ? advance(state, { kind: state.plan.kinds[state.plan.index]!, run: state.run }, state.run.reason === 'gave-way')
+        : state;
+    case 'plan-skip':
+      return state.screen === 'next' && state.plan !== null ? advance(state, { kind: state.plan.kinds[state.plan.index]!, run: null }, false) : state;
+    case 'plan-stop':
+      if (state.plan === null) return state;
+      if (state.screen === 'summary' && state.run !== null) return advance(state, { kind: state.plan.kinds[state.plan.index]!, run: state.run }, true);
+      return state.screen === 'next' ? advance(state, null, true) : state;
     case 'red-flags-clear': {
       const next = { ...state, redFlagCleared: true };
       return { ...next, screen: resolve(next, 'setup') };
@@ -163,7 +219,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         screen: 'summary',
-        redFlagCleared: false, // the next session needs a new check
+        redFlagCleared: state.plan !== null, // a single exercise needs a new check. Today's session asks once.
         run: { reason: action.reason, summary: action.summary, record: action.record },
       };
     case 'draft': {
@@ -172,7 +228,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return { ...state, draft: d, screen: d.kind === 'referral' ? 'referral' : d.origin === 'create' ? 'plan' : 'confirm' };
     }
     case 'plan-accepted':
-      return { ...state, hasProtocol: true, draft: null, screen: 'home', redFlagCleared: false, run: null };
+      return { ...state, hasProtocol: true, draft: null, screen: 'home', redFlagCleared: false, run: null, plan: null };
     case 'plan-kept':
       return { ...state, draft: null, screen: state.hasProtocol ? 'home' : 'load' };
     case 'erased':
@@ -183,6 +239,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...state,
         screen: 'home',
         run: null,
+        plan: null,
         exercise: null,
         redFlagCleared: false,
         redFlagBlocks: 0,
@@ -214,6 +271,10 @@ export function backStep(state: AppState): BackStep {
       return 'stop-session';
     case 'summary':
       return 'stay';
+    case 'next':
+      return { type: 'plan-stop' };
+    case 'overview':
+      return { type: 'finish' };
     case 'clinician':
       return { type: 'open', screen: 'data' };
     case 'plan':

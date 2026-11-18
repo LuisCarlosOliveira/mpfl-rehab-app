@@ -47,7 +47,7 @@ export default defineConfig({
     },
     {
       name: 'app',
-      testMatch: ['app-*.spec.ts', 'camera-exit.spec.ts', 'pairing-app.spec.ts', 'generator.spec.ts', 'progress.spec.ts'],
+      testMatch: ['app-*.spec.ts', 'camera-exit.spec.ts', 'pairing-app.spec.ts', 'generator.spec.ts', 'progress.spec.ts', 'session-flow.spec.ts'],
       // The real built app with the fake camera. The fake-ui flag accepts the permission prompt.
       use: { browserName: 'chromium', baseURL: `http://127.0.0.1:${APP_PORT}`, launchOptions: { args: fake } },
     },
