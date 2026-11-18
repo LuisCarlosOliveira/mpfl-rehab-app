@@ -741,14 +741,18 @@
 /* Where you are: three facts side by side on a wide screen, one under the other on a small screen. */
 .v2-check .check-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
   gap: var(--s-3) var(--s-5);
   margin: var(--s-5) 0 0;
   padding: var(--s-3) 0;
   border-top: 3px solid var(--ink);
   border-bottom: 1px solid var(--line);
 }
+.v2-check .check-facts > div {
+  min-width: 0;
+}
 .v2-check .check-facts dt {
+  overflow-wrap: anywhere;
   font-size: var(--step-m1);
   color: var(--muted);
 }
@@ -767,8 +771,7 @@
 }
 .v2-check .check-sessions li {
   display: grid;
-  grid-template-columns: 7.5rem 1fr;
-  column-gap: var(--s-3);
+  grid-template-columns: minmax(0, 1fr);
   padding: var(--s-2) 0;
   border-bottom: 1px solid var(--line);
 }
@@ -776,31 +779,25 @@
   border-bottom: 0;
 }
 .v2-check .check-sessions .num {
-  grid-row: span 2;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 .v2-check .check-sessions .check-name {
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 .v2-check .check-sessions .check-name::first-letter {
   text-transform: uppercase;
 }
-.v2-check .check-sessions .check-angle {
-  grid-column: 2;
-}
+.v2-check .check-sessions .check-angle,
 .v2-check .check-sessions .check-measure {
-  grid-column: 2;
+  overflow-wrap: anywhere;
 }
+/* Narrow screen: one column. Wide screen: date, name, and measure side by side. */
 @media (min-width: 40rem) {
   .v2-check .check-sessions li {
-    grid-template-columns: 7.5rem 12rem 1fr;
-  }
-  .v2-check .check-sessions .num {
-    grid-row: auto;
-  }
-  .v2-check .check-sessions .check-measure,
-  .v2-check .check-sessions .check-angle {
-    grid-column: auto;
+    grid-template-columns: 7.5rem 12rem minmax(0, 1fr);
+    column-gap: var(--s-3);
   }
   .v2-check .check-sessions .check-angle {
     grid-column: 3;
