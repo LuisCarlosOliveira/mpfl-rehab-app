@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
-import { Actions as ActionsBar, Banner, SkipLink } from './shellParts';
+import { Actions as ActionsBar, Banners, SkipLink } from './shellParts';
 import './parts.css';
 
 export type ShellTab = 'today' | 'progress' | 'sessions' | 'data';
@@ -34,9 +34,7 @@ export function AppShell({ tab, onNavigate, banner, children }: Props) {
   return (
     <div className="v3 v3-shell">
       <SkipLink />
-      {notices.map((text) => (
-        <Banner key={text}>{text}</Banner>
-      ))}
+      <Banners notices={notices} />
       <header className="v3-appbar">
         <span className="v3-brand" translate="no">
           <span className="v3-mark">

@@ -2,7 +2,7 @@
 // Order in the document: Header (the exercise name), Camera, Panel (numbers and controls), then the Actions. One column on a phone.
 // From 900 px the camera sits left and the panel right. The Header spans both.
 import { Children, isValidElement, type ReactNode } from 'react';
-import { Actions, Banner, SkipLink } from './shellParts';
+import { Actions, Banners, SkipLink } from './shellParts';
 import './parts.css';
 
 // `banner` is one text, or the list of notices of the app (prototype, example, not approved). Each notice shows on its own, as in AppShell.
@@ -16,9 +16,7 @@ export function LiveShell({ banner, children }: { banner: string | readonly stri
   return (
     <div className="v3 v3-shell">
       <SkipLink />
-      {notices.map((text) => (
-        <Banner key={text}>{text}</Banner>
-      ))}
+      <Banners notices={notices} />
       <main id="main" className="v3-main v3-live-main">
         <div className="v3-live">{rest}</div>
         {actions}

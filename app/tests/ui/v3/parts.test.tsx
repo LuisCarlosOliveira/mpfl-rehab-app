@@ -85,7 +85,21 @@ describe('AppShell', () => {
       </AppShell>,
     );
     expect(screen.queryByRole('navigation')).toBeNull();
-    expect(screen.getAllByRole('complementary', { name: 'Notice' })).toHaveLength(2);
+    // Pinned change: one landmark that holds every notice (axe landmark-unique), not one aside for each notice.
+    const aside = screen.getByRole('complementary', { name: 'Notice' });
+    expect(within(aside).getByText(BANNER)).toBeInTheDocument();
+    expect(within(aside).getByText('EXAMPLE, NOT APPROVED')).toBeInTheDocument();
+  });
+
+  it('shows no notice landmark for an empty list', () => {
+    render(
+      <AppShell tab={null} onNavigate={() => {}} banner={[]}>
+        <AppShell.Main>
+          <h1>Load</h1>
+        </AppShell.Main>
+      </AppShell>,
+    );
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 
   it('keeps the bar where it is declared when there is no shell', () => {

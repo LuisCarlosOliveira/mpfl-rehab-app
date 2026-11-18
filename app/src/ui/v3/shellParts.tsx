@@ -10,11 +10,17 @@ export function SkipLink() {
   );
 }
 
-/** The prototype notice. The shells always render it. A screen cannot switch it off. */
-export function Banner({ children }: { children: ReactNode }) {
+/**
+ * The notices of the app. One aside named Notice holds every notice as a paragraph, so the page has one such landmark.
+ * The shells always render it. A screen cannot switch it off. An empty list shows none (patient mode).
+ */
+export function Banners({ notices }: { notices: readonly string[] }) {
+  if (notices.length === 0) return null;
   return (
     <aside className="v3-banner" aria-label="Notice">
-      <p>{children}</p>
+      {notices.map((text) => (
+        <p key={text}>{text}</p>
+      ))}
     </aside>
   );
 }
