@@ -20,6 +20,7 @@ interface Boxes {
   scrollY: number;
   bannerTop: number;
   mapInside: boolean;
+  mainInner: number;
 }
 
 const measure = (page: Page): Promise<Boxes> =>
@@ -32,7 +33,9 @@ const measure = (page: Page): Promise<Boxes> =>
     const ar = video.videoWidth > 0 ? video.videoWidth / video.videoHeight : 4 / 3;
     const w = Math.min(vb.width, vb.height * ar);
     const bar = document.querySelector(".session-bar");
-    const banners = document.querySelector(".banners");
+    const banners = document.querySelector(".v3-banner");
+    const main = document.querySelector("main")!;
+    const mcs = getComputedStyle(main);
     const map = document.querySelector("svg.body-map");
     const m = map ? r(map) : null;
     return {
@@ -40,6 +43,7 @@ const measure = (page: Page): Promise<Boxes> =>
       video: { w: Math.round(w), h: Math.round(w / ar) },
       barTop: bar ? Math.round(r(bar).top) : null,
       barLeft: bar ? Math.round(r(bar).left) : null,
+      mainInner: main.clientWidth - parseFloat(mcs.paddingLeft) - parseFloat(mcs.paddingRight),
       scrollY: window.scrollY,
       bannerTop: banners ? Math.round(r(banners).top) : 0,
       mapInside: m === null || (m.left >= frame.left - 1 && m.right <= frame.right + 1 && m.top >= frame.top - 1 && m.bottom <= frame.bottom + 1),
@@ -75,9 +79,11 @@ for (const size of SIZES) {
         expect(setup.frame.w, "setup camera width").toBeGreaterThanOrEqual(size.width * 0.55);
         expect(setup.frame.y + setup.frame.h, "the setup camera ends inside the window").toBeLessThanOrEqual(size.height);
       } else {
-        // v3: the camera card fills the content width. LiveShell keeps 16 px of padding at each side of a phone.
-        expect(session.frame.w, "the phone camera fills the content width (the card has a 1 px border)").toBe(size.width - 34);
-        if (size.height >= 800) expect(session.frame.h, "the tall phone camera is a full 4:3 picture").toBeGreaterThanOrEqual(Math.floor((size.width - 34) * 0.75) - 2);
+        // v3: the camera card fills the content width of main. The page gutter (v3home.css) sets the side padding: 16 px or more, about 18 px at 390 px.
+        // The card has a 1 px border, so the frame is 2 px narrower than the content box.
+        expect(session.mainInner, "main keeps at least 16 px of padding at each side").toBeLessThanOrEqual(size.width - 32);
+        expect(session.frame.w, "the phone camera fills the content width (the card has a 1 px border)").toBeCloseTo(session.mainInner - 2, 0);
+        if (size.height >= 800) expect(session.frame.h, "the tall phone camera is a full 4:3 picture").toBeGreaterThanOrEqual(Math.floor((session.mainInner - 2) * 0.75) - 2);
       }
       expect(session.scrollY).toBe(0);
       expect(session.bannerTop).toBeGreaterThanOrEqual(0);

@@ -19,7 +19,7 @@ for (const size of [
     await page.waitForTimeout(500);
     const m = await page.evaluate(() => ({
       scrollY: window.scrollY,
-      bannerTop: Math.round(document.querySelector(".banners")!.getBoundingClientRect().top),
+      bannerTop: Math.round(document.querySelector(".v3-banner")!.getBoundingClientRect().top),
       h1Top: Math.round(document.querySelector("main h1")!.getBoundingClientRect().top),
       active: document.activeElement?.tagName,
       activeText: document.activeElement?.textContent?.trim().slice(0, 30),

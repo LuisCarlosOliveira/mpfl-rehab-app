@@ -68,7 +68,7 @@ for (const size of SIZES) {
           return {
             button: r(".hold-button"),
             bar: r(".v3-actions"),
-            banner: r(".banners"),
+            banner: r(".v3-banner"),
             scrollY: window.scrollY,
             scrollW: document.documentElement.scrollWidth,
             gum: window.__probes.gumCalls,
