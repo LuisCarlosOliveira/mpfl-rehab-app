@@ -8,7 +8,9 @@ import { plural } from '../lib/sets';
 import type { ExerciseKind, RunSummary } from './appState';
 import { ANGLE_LABEL, secondsText } from './labels';
 import { storedWhole } from './sessionRecord';
+import { BigNumber } from './v3/BigNumber';
 import './flowV2.css';
+import './liveV3.css';
 
 interface Props {
   kind: ExerciseKind;
@@ -30,63 +32,33 @@ export function RunStats({ kind, summary, between }: Props) {
   const timedByPerson = engine?.timedBy === 'person';
   const holdList = engine?.holdList ?? [];
   const reportWhole = engine?.reportValue === undefined ? null : storedWhole(engine.reportValue);
+  const note = `(${ANGLE_LABEL})`;
   return (
     <>
-      <dl className="stats">
-        {summary.reps !== null && (
-          <div className="stat">
-            <dt>Reps counted</dt>
-            <dd>
-              <span className="num">{summary.reps}</span> <span className="unit">{plural(summary.reps, 'rep')}</span>
-            </dd>
-          </div>
-        )}
+      <div className="v3 stats run-stats">
+        {summary.reps !== null && <BigNumber label="Reps counted" value={summary.reps} unit={plural(summary.reps, 'rep')} tone="primary" />}
         {summary.holds !== null && (
-          <div className="stat">
-            <dt>{timedByPerson ? 'Holds timed by you' : 'Holds counted'}</dt>
-            <dd>
-              <span className="num">{summary.holds}</span> <span className="unit">{plural(summary.holds, 'hold')}</span>
-            </dd>
-          </div>
+          <BigNumber label={timedByPerson ? 'Holds timed by you' : 'Holds counted'} value={summary.holds} unit={plural(summary.holds, 'hold')} tone="primary" />
         )}
         {engine?.reportKey !== undefined && reportWhole !== null && (
-          <div className="stat">
-            <dt>{REPORT_LINE[engine.reportKey]}</dt>
-            <dd>
-              <span className="num">{reportWhole}</span> <span className="unit">{plural(reportWhole, 'degree')}</span>
-              <span className="detail">({ANGLE_LABEL})</span>
-            </dd>
-          </div>
+          <BigNumber label={REPORT_LINE[engine.reportKey]} value={reportWhole} unit={plural(reportWhole, 'degree')} note={note} />
         )}
         {summary.peakFlexion !== null && (
-          <div className="stat">
-            <dt>Highest knee bend</dt>
-            {/* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */}
-            {peakUnreadable(kind as Exercise['kind'], summary.peakFlexion) /* peakFlexion is set by the four old kinds only */ ? (
-              <dd>{PEAK_NO_VALUE_TEXT}</dd>
-            ) : (
-              <dd>
-                <span className="num">{peakWhole}</span> <span className="unit">{plural(peakWhole, 'degree')}</span>
-                <span className="detail">({ANGLE_LABEL})</span>
-              </dd>
-            )}
-          </div>
+          /* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */
+          /* peakFlexion is set by the four old kinds only */
+          <BigNumber
+            label="Highest knee bend"
+            value={peakUnreadable(kind as Exercise['kind'], summary.peakFlexion) ? null : peakWhole}
+            unit={plural(peakWhole, 'degree')}
+            note={note}
+            missingReason={PEAK_NO_VALUE_TEXT}
+          />
         )}
         {/* U4: the angle at the top of a leg raise is its own line. It is the highest top angle of the sets, the number that the live screen showed. */}
         {kind === 'straight-leg-raise' && topWhole !== null && (
-          <div className="stat">
-            <dt>Angle at the top</dt>
-            {topUnreadable(summary.topFlexion) ? (
-              <dd>{PEAK_NO_VALUE_TEXT}</dd>
-            ) : (
-              <dd>
-                <span className="num">{topWhole}</span> <span className="unit">{plural(topWhole, 'degree')}</span>
-                <span className="detail">({ANGLE_LABEL})</span>
-              </dd>
-            )}
-          </div>
+          <BigNumber label="Angle at the top" value={topUnreadable(summary.topFlexion) ? null : topWhole} unit={plural(topWhole, 'degree')} note={note} missingReason={PEAK_NO_VALUE_TEXT} />
         )}
-      </dl>
+      </div>
       {timedByPerson && (
         <div className="stack-s">
           {holdList.length > 0 && <p>{`Holds: ${secondsText(holdList)}`}</p>}

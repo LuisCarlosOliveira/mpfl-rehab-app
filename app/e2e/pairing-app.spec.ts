@@ -137,7 +137,7 @@ test('the phone is the second camera of the laptop in the real app, and everythi
     [Array.from({ length: 30 }, (_, i) => FRONT_MESSAGE(1000 + i * 100, Math.min(10, i / 2)))],
   );
   await expect(a.page.getByText('Second camera connected')).toBeVisible();
-  const patientText = await a.page.locator('main').innerText();
+  const patientText = await a.page.locator('#main').innerText();
   expect(patientText).not.toMatch(/valgus|inward|front-view|knee alignment/i);
 
   // Stop closes the camera, the channel and the connection on both sides.

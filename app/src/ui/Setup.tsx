@@ -14,13 +14,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import type { Side } from '../lib/angle';
 import { focusHeading } from './focusHeading';
-import { useCameraTop } from '../lib/useCameraTop';
 import { countsReps, doneLying } from '../lib/exercises';
 import { isNumericKind } from '../lib/monitor/monitored';
 import { usesCamera as kindUsesCamera } from '../lib/monitor/engine';
 import { specFor } from '../lib/monitor/registry';
 import { distanceText, type CameraView } from '../lib/figure';
-import { PlanProgress } from './PlanProgress';
 import type { AnyGuideKind } from '../lib/guides';
 import { legLegend } from '../lib/figure';
 import { DEFAULT_PROFILE, createSetupStabilizer, setupProfileFor, type SetupRuleId } from '../lib/setupRules';
@@ -35,7 +33,12 @@ import { SetupGuide } from './SetupGuide';
 import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
+import { ExerciseHeader } from './v3/ExerciseHeader';
+import { LiveShell } from './v3/LiveShell';
+import { SessionProgress } from './v3/SessionProgress';
+import { liveBanners } from './liveBanners';
 import './sessionV2.css';
+import './liveV3.css';
 import type { Sound } from './sound';
 
 type Camera = { kind: 'idle' } | { kind: 'starting'; progress: StartProgress; slow: boolean } | { kind: 'running' } | { kind: 'error'; message: string };
@@ -97,11 +100,13 @@ interface Props {
   plan?: { index: number; total: number; detail?: string | null };
   /** Today's session: the camera of the exercise before is still on. Setup starts the same source again with no new press. */
   cameraKept?: boolean;
+  /** The notices of the app. The shell passes them. Missing means the notices of the build mode. */
+  banners?: readonly string[];
   onReady: (done: SetupDone) => void;
   onCancel: () => void;
 }
 
-export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, compact = false, initialLeg, initialCameraSide, plan, cameraKept = false, onReady, onCancel }: Props) {
+export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, compact = false, initialLeg, initialCameraSide, plan, cameraKept = false, banners = liveBanners(), onReady, onCancel }: Props) {
   // The definition of the exercise sets the rules of the check, the views and the questions (lib/monitor/registry.ts).
   const spec = specFor(kind);
   const usesCamera = kindUsesCamera(kind); // false: the two timers. The app times the hold and never starts the camera.
@@ -132,7 +137,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const baseline = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
-  useCameraTop(frameRef);
   const map = useRef<BodyMapHandle>(null);
   const handedOff = useRef(false);
   const lastKey = useRef('');
@@ -330,162 +334,177 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     </ol>
   );
 
+  const progress = plan && (
+    <>
+      <SessionProgress unit="Exercise" total={plan.total} current={plan.index + 1} />
+      {plan.detail && <p className="detail">{plan.detail}</p>}
+    </>
+  );
+  const header = (
+    <LiveShell.Header>
+      <ExerciseHeader eyebrow={`Exercise: ${exerciseName}`} name={usesCamera ? 'Set up the camera' : 'Get ready'} titleId="setup-title" titleRef={titleRef}>
+        {progress}
+      </ExerciseHeader>
+      <button type="button" className="btn" onClick={cancel}>
+        Cancel
+      </button>
+    </LiveShell.Header>
+  );
+
   if (step === 'pair' && pair) {
     return (
-      <div className="stack">
-        {stepList}
-        <PairHost hideTrack pairing={pair.pairing} view={pair.view} onDone={() => setStep('camera')} onSkip={() => setStep('camera')} />
-        <div className="actions">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              stopPairing();
-              setStep('guide');
-            }}
-          >
-            <Icon name="arrow-left" size={18} />
-            Back
-          </button>
-          <button type="button" className="btn" onClick={cancel}>
-            Cancel
-          </button>
-        </div>
+      <div className="v2-setup">
+        <LiveShell banner={banners}>
+          <LiveShell.Panel>
+            {stepList}
+            <PairHost hideTrack pairing={pair.pairing} view={pair.view} onDone={() => setStep('camera')} onSkip={() => setStep('camera')} />
+          </LiveShell.Panel>
+          <LiveShell.Actions label="Setup actions">
+            <div className="setup-bar">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  stopPairing();
+                  setStep('guide');
+                }}
+              >
+                <Icon name="arrow-left" size={18} />
+                Back
+              </button>
+              <button type="button" className="btn" onClick={cancel}>
+                Cancel
+              </button>
+            </div>
+          </LiveShell.Actions>
+        </LiveShell>
+      </div>
+    );
+  }
+
+  if (step === 'guide') {
+    return (
+      <div className="v2-setup">
+        <LiveShell banner={banners}>
+          {header}
+          <LiveShell.Panel>
+            {stepList}
+            {compactNow ? getReady : <SetupGuide {...guideProps} />}
+          </LiveShell.Panel>
+          {compactNow && (
+            <LiveShell.Actions label="Setup actions">
+              <div className="setup-bar">
+                <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
+                  <Icon name="play" size={20} />
+                  Start exercise
+                </button>
+              </div>
+            </LiveShell.Actions>
+          )}
+        </LiveShell>
       </div>
     );
   }
 
   return (
-    <section aria-labelledby="setup-title" className="v2-setup">
-      <header className="page-head">
-        <div className="stack-s">
-          <h1 id="setup-title" tabIndex={-1} ref={titleRef}>
-            {usesCamera ? 'Set up the camera' : 'Get ready'}
-          </h1>
-          <p className="detail">Exercise: {exerciseName}</p>
-        </div>
-        <button type="button" className="btn" onClick={cancel}>
-          Cancel
-        </button>
-      </header>
-
-      {plan && <PlanProgress index={plan.index} total={plan.total} detail={plan.detail} />}
-
-      {stepList}
-
-      {step === 'guide' ? (
-        compactNow ? (
-          <div className="stack v2-flow v2-setup">
-            {getReady}
-            <div className="action-bar">
-              <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
-                <Icon name="play" size={20} />
-                Start exercise
-              </button>
-            </div>
+    <div className="v2-setup">
+      <LiveShell banner={banners}>
+        {header}
+        {/* The live region carries only the text that the setup check announces. It changes at most every 3 seconds. It comes first in the page. */}
+        <p role="status" aria-live="polite" className="visually-hidden">
+          {live?.announced}
+        </p>
+        <LiveShell.Camera label="Camera preview">
+          <div className="frame" ref={frameRef}>
+            <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
+            {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
+            {camera.kind === 'idle' && <SetupStateCard icon="camera" line={IDLE_TEXT.line} help={IDLE_TEXT.help} />}
+            {camera.kind === 'starting' && (
+              <SetupStateCard
+                className="start-status"
+                role="status"
+                focusRef={statusRef}
+                icon="camera"
+                line={camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}
+                help={camera.progress.step === 'model' ? startText.cameraOn : undefined}
+              >
+                {camera.progress.step === 'model' && camera.progress.loadedBytes > 0 && (
+                  <progress className="load-progress" max={MODEL_BYTES} value={camera.progress.loadedBytes} aria-label={startText.progress} />
+                )}
+                {camera.slow && <p className="detail">{startText.slow}</p>}
+              </SetupStateCard>
+            )}
+            {camera.kind === 'error' && (
+              <Notice role="alert" icon="video-off" title={fixLine.title}>
+                {fixLine.rest !== '' && <p> {fixLine.rest}</p>}
+              </Notice>
+            )}
           </div>
-        ) : (
-          <SetupGuide {...guideProps} />
-        )
-      ) : (
-        <div className="setup-grid">
-          <div className="stack">
-            {/* The live region carries only the text that the setup check announces. It changes at most every 3 seconds. */}
-            <p role="status" aria-live="polite" className="visually-hidden">
-              {live?.announced}
-            </p>
+        </LiveShell.Camera>
+        <LiveShell.Panel>
+          {stepList}
+          {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
+          {running && <BodyMapSwitch />}
 
-            <div className="frame" ref={frameRef}>
-              <video ref={videoRef} className={`preview ${mirrorClass(PREVIEW_MIRRORED)}`.trim()} hidden={!running} muted playsInline aria-label="Camera view" />
-              {running && <BodyMap ref={map} leg={leg} mirrored={PREVIEW_MIRRORED} labels />}
-              {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
-              {camera.kind === 'idle' && <SetupStateCard icon="camera" line={IDLE_TEXT.line} help={IDLE_TEXT.help} />}
-              {camera.kind === 'starting' && (
-                <SetupStateCard
-                  className="start-status"
-                  role="status"
-                  focusRef={statusRef}
-                  icon="camera"
-                  line={camera.progress.step === 'camera' ? startText.camera : startText.model(camera.progress.loadedBytes)}
-                  help={camera.progress.step === 'model' ? startText.cameraOn : undefined}
-                >
-                  {camera.progress.step === 'model' && camera.progress.loadedBytes > 0 && (
-                    <progress className="load-progress" max={MODEL_BYTES} value={camera.progress.loadedBytes} aria-label={startText.progress} />
-                  )}
-                  {camera.slow && <p className="detail">{startText.slow}</p>}
-                </SetupStateCard>
+          {running && (
+            <div className="stack-s setup-live">
+              <p data-testid="instruction" className="instruction-large">
+                {live ? live.text : 'Waiting for the camera.'}
+              </p>
+              {live?.seconds != null && (
+                <p data-testid="countdown" className="countdown">
+                  Starting in <span className="num">{live.seconds}</span> {live.seconds === 1 ? 'second' : 'seconds'}.
+                </p>
               )}
-              {camera.kind === 'error' && (
-                <Notice role="alert" icon="video-off" title={fixLine.title}>
-                  {fixLine.rest !== '' && <p> {fixLine.rest}</p>}
+              {live?.progress != null && <progress className="capture-progress" max={100} value={live.progress} aria-label={CAPTURE_TEXT.progress} />}
+              {live?.resting != null && countsRepsKind && (
+                <p data-testid="resting" className="detail">
+                  {LEG_TEXT.resting(live.resting)}
+                </p>
+              )}
+              {live?.resting == null && !needsReturnValue && countsRepsKind && (
+                <Notice icon="ruler">
+                  <p>{CAPTURE_TEXT.setupNoRest}</p>
+                  <p className="detail">{CAPTURE_TEXT.setupNoRestDetail}</p>
                 </Notice>
               )}
+              <ul className="rule-list" aria-label="Camera check">
+                {orderedRuleRows(live?.rule ?? 'no-pose', profile).map((row) => {
+                  const seen = row.word === 'seen';
+                  return (
+                    <li key={row.label} className={seen ? 'rule rule-seen' : 'rule rule-missing'}>
+                      <Icon name={seen ? 'check' : 'minus'} size={16} />
+                      <span>
+                        {row.label}
+                        <span className="visually-hidden">: </span>
+                      </span>
+                      <span className="rule-word">{row.word}</span>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-            {running && <BodyMapSwitch />}
+          )}
 
-            {running && (
-              <div className="stack-s setup-live">
-                <p data-testid="instruction" className="instruction-large">
-                  {live ? live.text : 'Waiting for the camera.'}
-                </p>
-                {live?.seconds != null && (
-                  <p data-testid="countdown" className="countdown">
-                    Starting in <span className="num">{live.seconds}</span> {live.seconds === 1 ? 'second' : 'seconds'}.
-                  </p>
-                )}
-                {live?.progress != null && (
-                  <progress className="capture-progress" max={100} value={live.progress} aria-label={CAPTURE_TEXT.progress} />
-                )}
-                {live?.resting != null && countsRepsKind && (
-                  <p data-testid="resting" className="detail">
-                    {LEG_TEXT.resting(live.resting)}
-                  </p>
-                )}
-                {live?.resting == null && !needsReturnValue && countsRepsKind && (
-                  <Notice icon="ruler">
-                    <p>{CAPTURE_TEXT.setupNoRest}</p>
-                    <p className="detail">{CAPTURE_TEXT.setupNoRestDetail}</p>
-                  </Notice>
-                )}
-                <ul className="rule-list" aria-label="Camera check">
-                  {orderedRuleRows(live?.rule ?? 'no-pose', profile).map((row) => {
-                    const seen = row.word === 'seen';
-                    return (
-                      <li key={row.label} className={seen ? 'rule rule-seen' : 'rule rule-missing'}>
-                        <Icon name={seen ? 'check' : 'minus'} size={16} />
-                        <span>
-                          {row.label}
-                          <span className="visually-hidden">: </span>
-                        </span>
-                        <span className="rule-word">{row.word}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+          {running && (
+            <p className="start-status visually-hidden" role="status" tabIndex={-1} ref={runningStatusRef}>
+              {cameraStatusText(live?.rule ?? 'no-pose', profile)}
+            </p>
+          )}
 
-            {running && (
-              <p className="start-status visually-hidden" role="status" tabIndex={-1} ref={runningStatusRef}>
-                {cameraStatusText(live?.rule ?? 'no-pose', profile)}
-              </p>
-            )}
+          {getReady}
+          <div className="card card-flat stack-s">
+            <h2>Before you start</h2>
+            <p>The app uses the camera to find your leg. It does not record or send video.</p>
+            <p>{CAMERA_PEOPLE_NOTE}</p>
+            <p>{beforeYouStart(profile)}</p>
+            {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
           </div>
-
-          <aside className="stack">
-            {getReady}
-            <div className="card card-flat stack-s">
-              <h2>Before you start</h2>
-              <p>The app uses the camera to find your leg. It does not record or send video.</p>
-              <p>{CAMERA_PEOPLE_NOTE}</p>
-              <p>{beforeYouStart(profile)}</p>
-              {connected && <p>The second camera follows your chosen {leg} leg. Keep the phone in front of you.</p>}
-            </div>
-            {returnNotice}
-            {cameraGuide}
-          </aside>
-
-          <div className="action-bar setup-bar">
+          {returnNotice}
+          {cameraGuide}
+        </LiveShell.Panel>
+        <LiveShell.Actions label="Setup actions">
+          <div className="setup-bar">
             {running ? (
               <>
                 <button type="button" className="btn btn-primary btn-lg" onClick={begin}>
@@ -503,8 +522,8 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
               </button>
             )}
           </div>
-        </div>
-      )}
-    </section>
+        </LiveShell.Actions>
+      </LiveShell>
+    </div>
   );
 }

@@ -256,19 +256,20 @@ describe('B4 to B7 Summary', () => {
   it('B4: shows reps and the highest knee bend as two stat lines with their units and the angle note', () => {
     const { view } = summary();
     expect(view.container.querySelector('section.v2-flow')).not.toBeNull();
-    const stats = [...view.container.querySelectorAll('dl.stats > .stat')];
+    // v3: RunStats shows each number as a BigNumber group (label, number, unit, note).
+    const stats = [...view.container.querySelectorAll('.run-stats > .v3-metric')];
     expect(stats).toHaveLength(2);
-    expect(stats[0]!.querySelector('dt')).toHaveTextContent('Reps counted');
-    expect(stats[0]!.querySelector('dd .num')).toHaveTextContent('10');
-    expect(stats[0]!.querySelector('dd .unit')).toHaveTextContent('reps');
-    expect(stats[1]!.querySelector('dt')).toHaveTextContent('Highest knee bend');
-    expect(stats[1]!.querySelector('dd .num')).toHaveTextContent('135');
-    expect(stats[1]!.querySelector('dd')).toHaveTextContent('estimated angle, not a medical measurement');
+    expect(stats[0]!.querySelector('.v3-metric-label')).toHaveTextContent('Reps counted');
+    expect(stats[0]!.querySelector('.v3-num b')).toHaveTextContent('10');
+    expect(stats[0]!.querySelector('.v3-num span')).toHaveTextContent('reps');
+    expect(stats[1]!.querySelector('.v3-metric-label')).toHaveTextContent('Highest knee bend');
+    expect(stats[1]!.querySelector('.v3-num b')).toHaveTextContent('135');
+    expect(stats[1]).toHaveTextContent('estimated angle, not a medical measurement');
   });
 
   it('B4: guards a missing peak and a missing set list', () => {
     const { view } = summary({ peakFlexion: null, reps: 0 });
-    expect(view.container.querySelectorAll('dl.stats > .stat')).toHaveLength(1);
+    expect(view.container.querySelectorAll('.run-stats > .v3-metric')).toHaveLength(1);
     expect(screen.getByText('No repetitions were counted.')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/NaN|undefined/);
   });

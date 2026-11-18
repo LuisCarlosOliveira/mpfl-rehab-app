@@ -490,7 +490,7 @@ describe('Summary pause message position (FR12)', () => {
     answer(7, /no swelling/i);
     const notice = screen.getByText(PAUSE_MESSAGE).closest('.notice')!;
     expect(isBefore(screen.getByRole('heading', { name: 'Summary' }), notice)).toBe(true);
-    expect(isBefore(document.querySelector('dl.stats')!, notice)).toBe(true);
+    expect(isBefore(document.querySelector('.run-stats')!, notice)).toBe(true);
   });
 
   it('keeps the alert role and shows the message above the questions for swelling more than before', () => {

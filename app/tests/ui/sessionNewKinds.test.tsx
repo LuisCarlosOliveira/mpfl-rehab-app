@@ -44,9 +44,9 @@ function play(source: MockSource, pose: PoseId, reps: number) {
     last = f.tMs;
   }
 }
-const readoutLabels = (c: HTMLElement) => Array.from(c.querySelectorAll('.readout-label')).map((e) => e.textContent);
-const repNumber = (c: HTMLElement) => c.querySelector('.readout-reps .readout-number')!.textContent!.trim();
-const angleNumber = (c: HTMLElement) => c.querySelector('.readout:not(.readout-reps) .readout-number')!.textContent!.trim();
+const readoutLabels = (c: HTMLElement) => Array.from(c.querySelectorAll('.v3-metric-label')).map((e) => e.textContent);
+const repNumber = (c: HTMLElement) => c.querySelector('.live-reps .v3-num b')!.textContent!.trim();
+const angleNumber = (c: HTMLElement) => c.querySelector('.live-angle .v3-num b')!.textContent!.trim();
 
 describe('the live readout follows the definition', () => {
   it.each([
@@ -259,8 +259,9 @@ describe('the hold timer screen', () => {
   it.each([[QUAD], [GLUTE]])('%j: no mute button, because the timer makes no sound, and the timer card is in the solo layout', (exercise) => {
     const { view } = setup(exercise);
     expect(screen.queryByRole('button', { name: /mute sound/i })).toBeNull();
-    expect(view.container.querySelector('.session-timer')).not.toBeNull();
-    expect(view.container.querySelector('.session-grid.session-solo .hold-timer')).not.toBeNull();
+    // v3: a timer has no camera slot, so the panel is the only column of LiveShell.
+    expect(view.container.querySelector('.v3-cam')).toBeNull();
+    expect(view.container.querySelector('.v3-live > .v3-live-panel .hold-timer')).not.toBeNull();
     // The button is the first control of the card, before the set text and the list.
     const card = view.container.querySelector('.hold-timer')!;
     expect(card.querySelector('.hold-button')).not.toBeNull();

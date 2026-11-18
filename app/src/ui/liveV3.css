@@ -1,0 +1,350 @@
+/* v3 live screens: Setup, Session and the run numbers (docs/ui-redesign-v3.md sections 2 and 4 D2).
+   The frame is LiveShell (ui/v3/parts.css). This file holds what is specific to these screens.
+   Limits: no verdict word, no green or red, an in-range rep shows nothing, 56 px live buttons, text wraps and nothing grows wider than its box.
+   Motion: the press feedback of the buttons only. Reduced motion removes the scale. */
+
+/* ---------- The app chrome that LiveShell replaces ----------
+   App.tsx still draws its own brand bar and banner strip above a live screen, and it wraps the screen in its own main.
+   LiveShell has the banner, so the old brand bar goes, and so does the old prototype line (always the first one).
+   Other notices of the app (example, not approved) stay in the old strip until the shell passes them as `banners`. */
+.app:has(.v3-live) > .topbar {
+  display: none;
+}
+.app:has(.v3-live) > .banners .banner:first-child {
+  display: none;
+}
+.app:has(.v3-live) > .banners:not(:has(.banner:nth-child(2))) {
+  display: none;
+}
+.app:has(.v3-live) > main {
+  max-width: none;
+  padding: 0;
+}
+
+/* ---------- Header: the name on top, the small controls beside it or under it ---------- */
+.v3-live-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--v3-s3) var(--v3-s5);
+}
+.v3-live-head > .v3-exhead {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+.v3-live-head .session-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.v3-live-head .btn {
+  min-height: 3rem; /* 48 px, the target size of the a11y audit */
+}
+.v3-live .session-notices {
+  grid-column: 1 / -1;
+}
+
+/* ---------- The camera slot holds the old frame: the video, the body map and the camera notice ---------- */
+.v3-cam > .frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  border-radius: 0;
+  background: transparent;
+}
+.v3-cam .frame > .preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+  background: transparent;
+}
+.v3-cam .frame:has(> .body-map) {
+  padding-bottom: 0;
+}
+.v3-cam .frame > .body-map {
+  height: 100%;
+}
+/* The step card fills the picture and has its own surface, so its text keeps the contrast of the page tokens. */
+.v3-cam .frame > .setup-state {
+  position: absolute;
+  inset: 0;
+  align-content: center;
+  min-height: 0;
+  padding: var(--v3-s4);
+  background: var(--raised);
+  color: var(--ink);
+  overflow: auto;
+}
+/* A camera problem fills the picture. It scrolls inside the box when the text is large. */
+.v3-cam .frame > .notice {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--v3-s1);
+  min-height: 0;
+  padding: var(--v3-s2) var(--v3-s4);
+  border: 0;
+  border-radius: 0;
+  background: var(--sunken);
+  text-align: center;
+  overflow: auto;
+}
+.v3-cam .frame .body-map-switch {
+  position: absolute;
+  inset-block-start: var(--v3-s1);
+  inset-inline-end: var(--v3-s1);
+  z-index: 1;
+  min-height: 3rem;
+  padding: 0 var(--v3-s2);
+  gap: var(--v3-s2);
+  font-size: 0.875rem;
+  background: var(--raised);
+}
+
+/* ---------- The panel ---------- */
+/* A screen with no camera (the timers, the guide, the second camera step) has one column. */
+.v3-live:not(:has(.v3-cam)) > .v3-live-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 40rem;
+}
+.v3-live .status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v3-s2);
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.v3-live .status-line:empty {
+  display: none;
+}
+.v3-live .status-line svg {
+  flex: none;
+}
+.v3-live .status-word {
+  animation: status-swap 180ms var(--v3-ease) both;
+}
+/* The slot holds its height, so nothing moves when it fills. It shows the first one of: the alert, the capture line, the start step, the cue. */
+.v3-live .status-slot {
+  display: grid;
+  align-content: center;
+  gap: var(--v3-s2);
+  min-height: 3.25rem;
+}
+.v3-live .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert):not(button),
+.v3-live .status-slot:has(.capture-status) > .cue:not(.cue-alert) {
+  display: none;
+}
+.v3-live .status-slot > .cue {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+.v3-live .status-slot > .cue-alert:not(:empty) {
+  padding: var(--v3-s3) var(--v3-s4);
+  border-radius: var(--v3-r-control);
+}
+.v3-live .status-slot > .btn {
+  justify-self: stretch;
+  min-height: var(--v3-target);
+}
+.v3-live .status-slot .session-start {
+  position: static;
+  inset: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 1rem;
+  text-align: start;
+}
+.v3-live .capture-status {
+  display: grid;
+  gap: var(--v3-s2);
+}
+.v3-live .capture-status .capture-progress {
+  max-width: none;
+  height: 0.375rem;
+}
+.v3-live:has(.rest-panel) .status-slot {
+  display: none; /* during a rest the camera is not in use and the panel needs the room */
+}
+.v3-live .lock-box {
+  padding: var(--v3-s3) var(--v3-s4);
+  border: 1px solid var(--line);
+  border-radius: var(--v3-r-control);
+  background: var(--raised);
+  outline-offset: -2px;
+}
+.v3-live .lock-box > .btn {
+  display: flex;
+  min-height: var(--v3-target);
+}
+
+/* ---------- The numbers ---------- */
+.v3-live .counters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* styles.css gives .counters two columns from 40 rem */
+  gap: var(--v3-s3);
+  min-width: 0;
+  overflow: visible;
+}
+.v3-live .counters > * {
+  min-width: 0;
+}
+.v3-live .counters-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--v3-s1) var(--v3-s3);
+}
+.live-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: var(--v3-s3);
+}
+.live-metric,
+.run-stats .v3-metric {
+  border: 1px solid var(--line);
+  border-radius: var(--v3-r-card);
+  background: var(--raised);
+}
+.v3-live .readout-caption,
+.v3-live .readout-notes .detail {
+  max-width: none;
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+.v3-live .readout-notes {
+  display: grid;
+  gap: var(--v3-s1);
+}
+.v3-live .hold-timer {
+  gap: var(--v3-s3);
+}
+.v3-live .hold-timer > .counters-head {
+  order: 1;
+}
+.v3-live .hold-timer > .hold-notes {
+  order: 2;
+}
+.v3-live .hold-button {
+  width: 100%;
+  justify-content: center;
+}
+.v3-live .gauge {
+  height: 1.5rem;
+}
+
+/* ---------- The action bar: sticky, after the content, 56 px buttons ---------- */
+.v3-actions {
+  margin-top: var(--v3-s2);
+}
+.v3-actions .session-bar,
+.v3-actions .setup-bar {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--v3-s2);
+  border: 0;
+  background: transparent;
+}
+.v3-actions .session-bar .btn,
+.v3-actions .setup-bar .btn {
+  min-height: 56px; /* 56 px: a hand on a mat is not a finger on a desk. It is px, so big text does not make the bar taller than the text needs. */
+  padding-block: var(--v3-s2);
+  font-size: 0.9375rem;
+  justify-content: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: transform var(--v3-press) var(--v3-ease), background-color var(--v3-press) var(--v3-ease);
+}
+.v3-actions .session-bar .btn-gave-way {
+  padding-block: var(--v3-s1);
+  font-size: 0.875rem;
+  line-height: 1.15;
+}
+.v3-actions .session-bar .btn-count {
+  grid-column: auto;
+  order: 0;
+}
+.v3-actions .session-bar .btn-stop:hover:not(:disabled):not([aria-disabled='true']),
+.v3-actions .session-bar .btn-stop:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--accent-ink, var(--ink));
+  border-color: var(--accent-ink, var(--ink));
+  color: var(--bg);
+}
+.v3-actions .btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.v3-actions .btn-swap {
+  min-width: 0;
+}
+
+/* ---------- Wide windows: the camera on the left, the numbers on the right ---------- */
+@media (min-width: 56.25rem) {
+  .v3-live > .v3-cam {
+    position: sticky;
+    top: var(--v3-s3);
+  }
+  .v3-live-panel {
+    --v3-num: clamp(4.5rem, 7vw, 8rem);
+  }
+}
+/* On a narrow window the number never grows with the text size: two cards stay side by side and a number keeps its card. */
+@media (max-width: 56.24rem) {
+  .v3-live-panel {
+    --v3-num: min(clamp(4rem, 2rem + 12vw, 9rem), 21vw);
+  }
+}
+
+/* ---------- Narrow windows ---------- */
+@media (max-width: 56.24rem) {
+  /* During a rest the panel comes first: the pain question and "Start next set" need no scroll. The camera is not in use. */
+  .v3-live:has(.rest-panel) > .v3-cam {
+    order: 1;
+  }
+}
+/* A short phone: smaller numbers so both cards and the bar fit in the first view. */
+@media (max-height: 41rem) {
+  .v3-live-panel {
+    --v3-num: min(3.5rem, 21vw);
+  }
+  .v3-live {
+    gap: var(--v3-s2) var(--v3-s4);
+  }
+}
+
+/* ---------- Run numbers on the Summary and the overview ---------- */
+.v3.run-stats.stats {
+  display: grid; /* three classes: more weight than the two-column rule of the Summary (flowV2.css) */
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: var(--v3-s3);
+  background: transparent;
+}
+.run-stats .v3-num b {
+  font-size: clamp(3rem, 2rem + 6vw, 5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3-live .btn:active:not(:disabled):not([aria-disabled='true']),
+  .v3-actions .btn:active:not(:disabled) {
+    transform: none;
+  }
+  .v3-live .status-word {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .live-metric,
+  .run-stats .v3-metric,
+  .v3-live .lock-box {
+    border: 2px solid CanvasText;
+  }
+}

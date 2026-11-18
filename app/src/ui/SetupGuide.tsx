@@ -13,6 +13,7 @@ import { Notice } from './Notice';
 import { Segmented } from './Segmented';
 import { StepGuide } from './StepGuide';
 import { LEG_TEXT, TIMER_NOTE } from './setupView';
+import { LiveShell } from './v3/LiveShell';
 import './flowV2.css';
 
 const SECOND_CAMERA_BUTTON = 'Add a second camera (optional)';
@@ -194,7 +195,8 @@ export function SetupGuide({
           </div>
         </div>
       )}
-      <div className="action-bar">
+      <LiveShell.Actions label="Setup actions">
+        <div className="setup-bar">
         {usesCamera ? (
           <button
             type="button"
@@ -212,7 +214,8 @@ export function SetupGuide({
             Start exercise
           </button>
         )}
-      </div>
+        </div>
+      </LiveShell.Actions>
     </div>
   );
 }

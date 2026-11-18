@@ -33,7 +33,7 @@ for (const size of [
     test("the unit of the count shows whole, inside every box that clips", async ({ page }) => {
       await toSession(page, "Start Seated knee extension hold");
       const r = await page.evaluate(() => {
-        const unit = document.querySelector(".readout-reps .unit") as HTMLElement;
+        const unit = document.querySelector(".live-reps .v3-num span") as HTMLElement;
         const box = unit.getBoundingClientRect();
         const range = document.createRange();
         range.selectNodeContents(unit);
@@ -64,14 +64,15 @@ test.describe("B3-05: 200 percent text, 390 x 844", () => {
     await page.evaluate(() => document.documentElement.style.setProperty("font-size", "200%", "important"));
     await page.waitForTimeout(600);
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
-    for (const sel of [".readout:not(.readout-reps) .readout-number", ".readout-reps .readout-number"]) {
+    for (const sel of [".live-angle .v3-num b", ".live-reps .v3-num b"]) {
       await page.locator(sel).scrollIntoViewIfNeeded();
       const m = await page.evaluate((s) => {
-        const bar = document.querySelector(".session-bar") as HTMLElement;
+        // v3: the sticky v3-actions section holds the bar, so its box and its position are the ones to read.
+        const bar = document.querySelector(".v3-actions") as HTMLElement;
         const b = bar.getBoundingClientRect();
         return { position: getComputedStyle(bar).position, share: b.height / window.innerHeight, barTop: b.top, numBottom: document.querySelector(s)!.getBoundingClientRect().bottom };
       }, sel);
-      expect(m.position).toBe("fixed");
+      expect(m.position).toBe("sticky");
       expect(m.share).toBeLessThan(0.35);
       expect(m.numBottom).toBeLessThanOrEqual(m.barTop + 0.5);
     }

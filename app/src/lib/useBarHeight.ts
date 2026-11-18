@@ -7,7 +7,7 @@
 // A focused tick row, scale box or segment scrolls in as a whole row, not only its small input.
 import { useEffect } from 'react';
 
-const BARS = '.action-bar, .session-bar, .bottom-nav';
+const BARS = '.action-bar, .session-bar, .v3-actions, .bottom-nav';
 const MAX_SHARE = 0.4;
 
 export function measureBars(root: HTMLElement = document.documentElement): number {

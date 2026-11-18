@@ -15,7 +15,6 @@ import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
 import { appReducer, backStep, initialAppState } from './appState';
 import type { ScreenId } from '../lib/flow';
-import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
 import { focusHeading } from './focusHeading';
 import { Home } from './Home';
@@ -29,7 +28,7 @@ import { createSound, type Sound } from './sound';
 import { runToSessionInput } from './sessionRecord';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
-import { Brand, LoadingScreen } from './Shell';
+import { LoadingScreen } from './Shell';
 import { AppShell, type ShellTab } from './v3/AppShell';
 import { useBackButton } from './useBackButton';
 import { useBarHeight } from '../lib/useBarHeight';
@@ -302,6 +301,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         if (exercise && protocol) {
           return (
             <Setup
+              banners={banners}
               kind={exercise.kind}
               side={protocol.side}
               exerciseName={EXERCISE_NAMES[exercise.kind]}
@@ -332,6 +332,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         if (exercise && protocol && store) {
           return (
             <Session
+              banners={banners}
               exercise={exercise}
               side={state.exerciseLeg ?? protocol.side}
               cameraSide={state.cameraSide ?? undefined}
@@ -517,12 +518,18 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   );
 
   if (LIVE_SCREENS.has(state.screen)) {
+    // Setup and Session draw their own frame (LiveShell, with the notices). The frame below only covers the load and the load error.
+    const frame = (inner: ReactNode) => (
+      <AppShell tab={null} onNavigate={() => undefined} banner={banners}>
+        <AppShell.Main>{inner}</AppShell.Main>
+      </AppShell>
+    );
     return (
-      <div className="app">
-        <Banners texts={banners} />
-        <Brand />
-        <main>{content}</main>
-      </div>
+      <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })} frame={frame}>
+        <Suspense fallback={frame(<LoadingScreen />)}>
+          <FocusHeading key={state.screen}>{screen}</FocusHeading>
+        </Suspense>
+      </LoadError>
     );
   }
   // Tabs show on the main screens, and only when a protocol is stored. Flow screens never show them.

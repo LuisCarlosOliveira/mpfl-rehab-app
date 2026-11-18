@@ -52,14 +52,13 @@ for (const size of [
         const b = el.getBoundingClientRect();
         return { x: b.x, y: b.y, width: b.width, height: b.height };
       };
-      return { chip: r(document.querySelector(".v2-setup .frame > .status-line")), map: r(document.querySelector(".v2-setup .frame > svg.body-map")), frame: r(document.querySelector(".v2-setup .frame")) };
+      return { chip: r(document.querySelector(".v3-live-panel .status-line")), map: r(document.querySelector(".v2-setup .frame > svg.body-map")), frame: r(document.querySelector(".v2-setup .frame")) };
     });
     expect(boxes.chip, "status chip").not.toBeNull();
     expect(boxes.map, "body map").not.toBeNull();
     expect(intersects(boxes.chip!, boxes.map!), "the status chip and the body map share no area").toBe(false);
-    // The chip stays inside the frame.
-    expect(boxes.chip!.y + boxes.chip!.height).toBeLessThanOrEqual(boxes.frame!.y + boxes.frame!.height + 0.5);
-    expect(boxes.chip!.x + boxes.chip!.width).toBeLessThanOrEqual(boxes.frame!.x + boxes.frame!.width + 0.5);
+    // v3: the chip sits in the panel, beside or under the camera, and never on the picture.
+    expect(intersects(boxes.chip!, boxes.frame!), "the status chip and the camera frame share no area").toBe(false);
   });
 }
 

@@ -35,10 +35,14 @@ const alertRegion = () => document.querySelector('.cue-alert')!;
 
 describe('Session screen', () => {
   it('shows the angle label and the unit next to the number', () => {
-    setup();
+    const { source } = setup();
     expect(screen.getByText(/estimated angle, not a medical measurement/)).toBeInTheDocument();
-    expect(screen.getByText('degrees')).toBeInTheDocument();
+    // v3: a number that is not read yet shows "--" and no unit, so a blank is not read as zero. The unit shows with the first angle.
+    expect(screen.queryByText('degrees')).toBeNull();
     expect(screen.getByText(/^reps?$/)).toBeInTheDocument();
+    for (let i = 0; i < 5; i++) act(() => source.emit(legLandmarks('left', 30), i * 33));
+    act(() => void vi.advanceTimersByTime(300));
+    expect(screen.getByText(/^degrees?$/)).toBeInTheDocument();
   });
 
   it('starts the source once with a frame handler', () => {

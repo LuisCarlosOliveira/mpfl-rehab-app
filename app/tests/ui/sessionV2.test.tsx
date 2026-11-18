@@ -26,11 +26,14 @@ function open(exercise: Exercise = HEEL_SLIDE) {
 }
 
 describe('A1: the status slot sits directly under the camera, never on it', () => {
-  it('has a viewfinder with the frame first and the status slot right after it', () => {
+  // v3: the camera slot of LiveShell holds the frame. The status slot is the first part of the panel, so it is right under the camera on a phone.
+  it('has a camera slot with the frame, and the status slot as the first part of the panel', () => {
     open();
-    const viewfinder = document.querySelector('.session-grid > .viewfinder')!;
-    expect(viewfinder).not.toBeNull();
-    expect([...viewfinder.children].map((c) => c.className.split(' ')[0])).toEqual(['frame', 'status-slot']);
+    const camera = document.querySelector('.v3-live > .v3-cam')!;
+    expect([...camera.children].map((c) => c.className.split(' ')[0])).toEqual(['frame']);
+    const panel = document.querySelector('.v3-live > .v3-live-panel')!;
+    expect(panel.firstElementChild).toHaveClass('status-slot');
+    expect(camera.nextElementSibling).toBe(panel);
   });
 
   it('puts the cue, the alert and the start step in the slot, and none of them in the frame or the stack', () => {
@@ -39,7 +42,7 @@ describe('A1: the status slot sits directly under the camera, never on it', () =
     for (const sel of ['.cue', '.cue-alert', '.session-start']) {
       expect(slot.querySelector(sel), sel).not.toBeNull();
       expect(document.querySelector('.frame')!.querySelector(sel), `${sel} must not sit on the picture`).toBeNull();
-      expect(document.querySelector('.stack')!.querySelector(sel), `${sel} must not sit in the stack`).toBeNull();
+      expect(document.querySelector('.counters')!.querySelector(sel), `${sel} must not sit in the numbers`).toBeNull();
     }
     expect(document.querySelector('.cue-area')).toBeNull();
   });
@@ -54,7 +57,7 @@ describe('A1: the status slot sits directly under the camera, never on it', () =
 
   it('puts the camera and the slot before the numbers in the page', () => {
     open();
-    const viewfinder = document.querySelector('.viewfinder')!;
+    const viewfinder = document.querySelector('.v3-cam')!;
     expect(viewfinder.compareDocumentPosition(document.querySelector('.counters')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -63,9 +66,10 @@ describe('A1: the status slot sits directly under the camera, never on it', () =
     expect(document.querySelector('.session-bar')!).toContainElement(screen.getByRole('button', { name: 'Count this rep' }));
   });
 
-  it('puts the bar buttons in one group, so a wide screen can set them in the right column', () => {
+  // v3: one sticky action bar of LiveShell holds the buttons in one group.
+  it('puts the bar buttons in one group inside the action bar', () => {
     open();
-    const group = document.querySelector('.session-bar-inner > .bar-actions')!;
+    const group = document.querySelector('.v3-actions > .session-bar')!;
     expect(group.querySelectorAll('button').length).toBeGreaterThanOrEqual(2);
   });
 });
@@ -132,17 +136,16 @@ describe('A1: the CSS file keeps its own scope', () => {
 describe('A2: the number and its unit share one line and one baseline', () => {
   it('labels the angle "Knee bend", and keeps the estimate text in the same block as the number', () => {
     open();
-    const angle = document.querySelector('.readout')!;
-    expect(angle.querySelector('.readout-label')).toHaveTextContent('Knee bend');
-    expect(angle.querySelector('.readout-line .readout-number')).not.toBeNull();
-    expect(angle.querySelector('.readout-line .unit')).not.toBeNull();
+    const angle = document.querySelector('.live-angle')!;
+    expect(angle.querySelector('.v3-metric-label')).toHaveTextContent('Knee bend');
+    expect(angle.querySelector('.v3-num b')).not.toBeNull();
     expect(document.querySelector('.counters .readout-caption')).toHaveTextContent('estimated angle, not a medical measurement');
   });
 
   it('writes the singular for one rep and the plural for two', () => {
     const source = mockSource();
     render(<Session exercise={{ ...HEEL_SLIDE, sets: 1, reps: 3 }} side="left" baselineDeg={0} source={source} sound={audioHarness().sound} onEnd={vi.fn()} />);
-    const reps = () => document.querySelectorAll('.readout-line')[1]!.textContent;
+    const reps = () => `${document.querySelector('.live-reps .v3-num b')!.textContent} ${document.querySelector('.live-reps .v3-num span')!.textContent}`;
     expect(reps()).toBe('0 reps');
     playRep(source, 'left', 60);
     act(() => void vi.advanceTimersByTime(300));
@@ -152,7 +155,7 @@ describe('A2: the number and its unit share one line and one baseline', () => {
   it('never shows NaN or undefined before the first frame', () => {
     open();
     expect(document.body.textContent).not.toMatch(/NaN|undefined/);
-    expect(document.querySelector('.readout-number')).toHaveTextContent('--');
+    expect(document.querySelector('.live-angle .v3-num b')).toHaveTextContent('--');
   });
 
   it('uses a baseline-aligned line for the number and the unit', () => {

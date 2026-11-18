@@ -36,6 +36,8 @@ function Failed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }
 
 interface Props {
   onBack: () => void;
+  /** Wraps the failed screen in a frame. The live screens bring their own frame, so a failure needs one. */
+  frame?: (inner: ReactNode) => ReactNode;
   children: ReactNode;
 }
 
@@ -48,7 +50,8 @@ export class LoadError extends Component<Props, { failed: boolean }> {
 
   render() {
     if (this.state.failed) {
-      return <Failed onRetry={() => window.location.reload()} onBack={this.props.onBack} />;
+      const failed = <Failed onRetry={() => window.location.reload()} onBack={this.props.onBack} />;
+      return this.props.frame ? this.props.frame(failed) : failed;
     }
     return this.props.children;
   }

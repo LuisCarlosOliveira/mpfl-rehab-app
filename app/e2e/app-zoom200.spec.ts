@@ -66,7 +66,7 @@ async function checkZoom(page: Page) {
       const fs = parseFloat(getComputedStyle(b).fontSize);
       if (b.getBoundingClientRect().height > fs * 1.25 * 3 + 40) out.buttons.push(`${b.textContent?.trim().slice(0, 30)} is ${Math.round(b.getBoundingClientRect().height)} px high`);
     }
-    for (const bar of document.querySelectorAll<HTMLElement>('.action-bar, .session-bar, .bottom-nav')) {
+    for (const bar of document.querySelectorAll<HTMLElement>('.action-bar, .session-bar, .v3-actions, .bottom-nav')) {
       const pos = getComputedStyle(bar).position;
       const h = bar.getBoundingClientRect().height;
       if (['sticky', 'fixed'].includes(pos) && h > window.innerHeight * 0.4 + 1 && !bar.hasAttribute('data-blocked')) out.bars.push(`${bar.className} ${Math.round(h)} px`);
