@@ -58,7 +58,18 @@ export interface ProgressRow {
   state: LimitState | null;
 }
 
+/** One measured number for the screen. The value is a number only: the app shows it next to the others and does not sort it. */
+export interface MeasuredNumber {
+  id: 'peak' | 'limit' | 'margin' | 'heel-peak' | 's1';
+  label: string;
+  value: number;
+  unit: string;
+  note?: string;
+}
+
 export interface ProgressCheck {
+  /** The measured numbers of the last session next to the limit of the plan and the camera error. Empty when no angle is saved. */
+  numbers: MeasuredNumber[];
   /** Safety events since the plan date, oldest first. A screen shows them before everything else. */
   events: SafetyEvent[];
   /** Whole weeks since surgery. null when the date is missing or in the future. */
@@ -158,13 +169,19 @@ const T = {
   e11Title: 'Knee bend against the limit in your plan',
   planLimit: (d: number) => `Limit in your plan: ${d} degrees. The number comes from your plan, not from a guideline.`,
   noLimit: 'Your plan has no knee limit for this exercise.',
+  // The measured numbers of the screen
+  peakLabel: (name: string) => `Last peak knee bend, ${name}`,
+  limitLabel: 'Limit in your plan',
+  limitNote: 'The number comes from your plan, not from a guideline.',
+  marginLabel: 'Camera error, plus or minus',
+  marginNote: (source: string) => `Source: ${source}.`,
+  s1Label: 'S1 lists knee flexion greater than',
+  s1Note: 'Source: S1, audit row V100 (EXACT).',
   // E12
   e12Title: 'End of phase 2',
   e12Weeks: `S1 and P3 start the next stage at week ${LAST_PLAN_WEEK + 1}. Source: audit rows V3 and V4 (EXACT).`,
   e12Cannot: 'The app cannot measure the end of phase 2. Ask your care team.',
 };
-
-const STATE_TEXT: Record<LimitState, string> = { above: STATE.above, below: STATE.below, 'cannot-tell': STATE.cannotTell };
 
 /** Every sentence that checkProgress can write, with sample values for the templates. Tests and the style check read this. */
 export function allProgressTexts(): string[] {
@@ -174,7 +191,7 @@ export function allProgressTexts(): string[] {
     T.notApproved, T.week(8), T.noDate, T.phase1, T.phase2, T.clearance, T.week4, T.noPlan,
     T.gaveWay('2026-11-03'), T.pain('2026-11-04', 8), T.swelling('2026-11-05'), T.redFlag('2026-11-06'),
     ...names.map((n) => T.peak(n, 84)), T.margin(9, MARGIN_SOURCE), T.cannot,
-    ...Object.values(STATE_TEXT), STATE.notEnough,
+    STATE.notEnough,
     T.e1Title, T.e1None, T.e1Criterion, T.e1Passive, T.e1Surgeon(90),
     T.e2Title, T.e2Criterion,
     T.askedHere, ...answers.map(T.answer), T.e3Title, T.e3Criterion, T.e3P2, T.e3Lag, T.e4Title, T.e4Criterion,
@@ -183,6 +200,7 @@ export function allProgressTexts(): string[] {
     T.e9Title, ...names.map((n) => T.repsSets(n, '8, 8')), ...names.map((n) => T.reps(n, 10)), T.planDose(1, 10), T.planDose(2, 10), T.e9P2, T.noNumber(T.minReps),
     T.e10Title, T.noNumber(T.holdWhat), T.e10P2,
     T.e11Title, T.planLimit(90), T.noLimit,
+    ...names.map(T.peakLabel), T.limitLabel, T.limitNote, T.marginLabel, T.marginNote(MARGIN_SOURCE), T.s1Label, T.s1Note,
     T.e12Title, T.e12Weeks, T.e12Cannot,
     ...Object.values(CHECK_SCREEN).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))),
     weekHead(0), weekHead(2), weekHead(11), weekWords(2),
@@ -216,6 +234,8 @@ export const CHECK_SCREEN = {
   back: 'Back to Home',
   again: 'The app checks your plan again from the date of today and your answers. You confirm the change or keep your plan.',
   readError: 'The app cannot read your sessions. Go back and try again.',
+  numbersTitle: 'Your last measured numbers',
+  noAngle: 'No knee angle is saved yet.',
 };
 
 /** The week in plain words with a capital letter, for the top of the screen. */
@@ -288,7 +308,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
   const e1: ProgressRow = lastHeelSlide && e1State
     ? row('E1', 'measured', T.e1Title, [
       T.peak(lowerName('heel-slide'), Math.round(lastHeelSlide.peakFlexion as number)), T.margin(lastHeelSlide.marginDeg, lastHeelSlide.marginSource),
-      STATE_TEXT[e1State], T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : []),
+      T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : []),
     ], e1State)
     : row('E1', 'measured', T.e1Title, [heelSlideDone ? STATE.notEnough : T.e1None, T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : [])]);
 
@@ -317,7 +337,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
       ? row('E11', 'measured', T.e11Title, [T.peak(lowerName(lastAngle.exercise), Math.round(lastAngle.peakFlexion as number)), T.noLimit])
       : row('E11', 'measured', T.e11Title, [
         T.peak(lowerName(lastAngle.exercise), Math.round(lastAngle.peakFlexion as number)), T.planLimit(limit),
-        T.margin(lastAngle.marginDeg, lastAngle.marginSource), STATE_TEXT[e11State],
+        T.margin(lastAngle.marginDeg, lastAngle.marginSource),
       ], e11State);
 
   const rows: ProgressRow[] = [
@@ -335,8 +355,19 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
     row('E12', 'cannot-measure', T.e12Title, [T.e12Weeks, T.e12Cannot]),
   ];
 
+  const numbers: MeasuredNumber[] = [];
+  if (lastAngle) {
+    numbers.push({ id: 'peak', label: T.peakLabel(lowerName(lastAngle.exercise)), value: Math.round(lastAngle.peakFlexion as number), unit: 'degrees', note: ANGLE });
+    if (limit !== undefined) numbers.push({ id: 'limit', label: T.limitLabel, value: limit, unit: 'degrees', note: T.limitNote });
+    numbers.push({ id: 'margin', label: T.marginLabel, value: lastAngle.marginDeg, unit: 'degrees', note: T.marginNote(lastAngle.marginSource) });
+  }
+  if (lastHeelSlide) {
+    if (lastAngle?.exercise !== 'heel-slide') numbers.push({ id: 'heel-peak', label: T.peakLabel(lowerName('heel-slide')), value: Math.round(lastHeelSlide.peakFlexion as number), unit: 'degrees', note: ANGLE });
+    numbers.push({ id: 's1', label: T.s1Label, value: S1_FLEXION, unit: 'degrees', note: T.s1Note });
+  }
+
   return {
-    events, week, weekText: week === null ? null : weekHead(week), phase: phaseName(protocol),
+    numbers, events, week, weekText: week === null ? null : weekHead(week), phase: phaseName(protocol),
     surgeryDate: inputs?.surgeryDate && weeksSince(inputs.surgeryDate, '9999-12-31') !== null ? dateWords(inputs.surgeryDate) : null,
     ...time, recent: [...sorted].reverse().slice(0, SHOWN).map(sessionParts), rows, noSessions, notApproved: T.notApproved,
   };

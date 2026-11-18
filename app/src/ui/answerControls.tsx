@@ -6,6 +6,9 @@ import { surgeryDateWords } from '../lib/planView';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, type RedFlagGroup } from '../lib/redflags';
 import type { SwellingAnswer } from '../lib/safety';
 import { Icon, type IconName } from './Icon';
+import { RadioList } from './v3/RadioList';
+import { SegmentedChoice } from './v3/SegmentedChoice';
+import './formsV3.css';
 
 export interface Choice {
   value: string;
@@ -15,31 +18,18 @@ export interface Choice {
 interface GroupProps {
   /** The radio group name. It must be different for each question on one screen. */
   name: string;
-  /** The question. It is read by a screen reader and hidden when a heading shows it. */
+  /** The question. It is the visible legend, so a screen reader reads it once. */
   legend: string;
-  /** True shows the legend as the visible question. The legend stays the one name of the group, so a screen reader reads it once. */
-  showLegend?: boolean;
-  /** True puts a short list of answers (2 or 3) side by side. The inputs stay radio buttons. */
+  /** True puts a short list of answers (2 or 3) side by side as a segmented choice. Four or more answers, or long answers, stay one under the other. */
   row?: boolean;
   value: string | null;
   choices: readonly Choice[];
   onChange: (value: string) => void;
 }
 
-export function ChoiceGroup({ name, legend, showLegend = false, row = false, value, choices, onChange }: GroupProps) {
-  return (
-    <fieldset className="choices">
-      <legend className={showLegend ? undefined : 'visually-hidden'}>{legend}</legend>
-      <div className={row ? 'options options-row' : 'options options-stack'}>
-        {choices.map((c) => (
-          <label key={c.value} className="option">
-            <input type="radio" name={name} checked={value === c.value} onChange={() => onChange(c.value)} />
-            <span>{c.label}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
+export function ChoiceGroup({ name, legend, row = false, value, choices, onChange }: GroupProps) {
+  const Group = row ? SegmentedChoice : RadioList;
+  return <Group name={name} legend={legend} value={value} options={choices} onChange={onChange} />;
 }
 
 const partsOf = (iso: string) => {
@@ -92,7 +82,7 @@ export function SurgeryDateField({ value, today, onChange }: { value: string; to
     </div>
   );
   return (
-    <fieldset className="choices date-field">
+    <fieldset className="v3-choice date-field">
       <legend>Date of surgery</legend>
       <div className="date-parts">
         {part('day', 'Day', 2)}
@@ -134,80 +124,56 @@ const SWELLING: readonly { value: SwellingAnswer; label: string }[] = [
 ];
 
 export function SwellingChoice({ name, value, onChange }: { name: string; value: SwellingAnswer | null; onChange: (v: SwellingAnswer) => void }) {
-  return (
-    <fieldset className="choices">
-      <legend>
-        <Icon name="stethoscope" size={22} />
-        Is your knee swollen?
-      </legend>
-      <div className="options">
-        {SWELLING.map((s) => (
-          <label key={s.value} className="option">
-            <input type="radio" name={name} checked={value === s.value} onChange={() => onChange(s.value)} />
-            <span>{s.label}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
+  return <SegmentedChoice name={name} legend="Is your knee swollen?" value={value} options={SWELLING} onChange={onChange} />;
 }
+
+type LimitKind = 'degrees' | 'none' | 'unknown';
 
 interface LimitProps {
   name: string;
-  kind: 'degrees' | 'none' | 'unknown' | null;
+  kind: LimitKind | null;
   degrees: string;
-  onKind: (kind: 'degrees' | 'none' | 'unknown') => void;
+  onKind: (kind: LimitKind) => void;
   onDegrees: (text: string) => void;
-  /** The legend for a screen reader. */
+  /** The question. It is the visible legend. */
   legend: string;
-  /** True shows the legend as the visible question. */
-  showLegend?: boolean;
 }
 
-export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend, showLegend = false }: LimitProps) {
+const LIMIT_OPTIONS: readonly { value: LimitKind; label: string }[] = [
+  { value: 'degrees', label: 'Yes, my limit is' },
+  { value: 'none', label: 'No limit' },
+  { value: 'unknown', label: 'I do not know' },
+];
+
+export function LimitChoice({ name, kind, degrees, onKind, onDegrees, legend }: LimitProps) {
   const problem = limitProblem(degrees);
   const problemId = `${name}-degrees-problem`;
   return (
-    <fieldset className="choices">
-      <legend className={showLegend ? undefined : 'visually-hidden'}>{legend}</legend>
-      <div className="options options-stack">
-        <label className="option">
-          <input type="radio" name={name} checked={kind === 'degrees'} onChange={() => onKind('degrees')} />
-          <span>Yes, my limit is</span>
-        </label>
-        {kind === 'degrees' && (
-          <div className="field limit-field">
-            <label htmlFor={`${name}-degrees`}>Limit in degrees</label>
-            <input
-              id={`${name}-degrees`}
-              className="text-input"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={180}
-              step={1}
-              value={degrees}
-              aria-invalid={problem !== null}
-              aria-describedby={problem === null ? undefined : problemId}
-              onChange={(e) => onDegrees(e.target.value)}
-            />
-            {problem !== null && (
-              <p id={problemId} className="detail" role="alert">
-                {problem}
-              </p>
-            )}
-          </div>
-        )}
-        <label className="option">
-          <input type="radio" name={name} checked={kind === 'none'} onChange={() => onKind('none')} />
-          <span>No limit</span>
-        </label>
-        <label className="option">
-          <input type="radio" name={name} checked={kind === 'unknown'} onChange={() => onKind('unknown')} />
-          <span>I do not know</span>
-        </label>
-      </div>
-    </fieldset>
+    <RadioList name={name} legend={legend} value={kind} options={LIMIT_OPTIONS} onChange={onKind}>
+      {kind === 'degrees' && (
+        <div className="field limit-field">
+          <label htmlFor={`${name}-degrees`}>Limit in degrees</label>
+          <input
+            id={`${name}-degrees`}
+            className="text-input"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={180}
+            step={1}
+            value={degrees}
+            aria-invalid={problem !== null}
+            aria-describedby={problem === null ? undefined : problemId}
+            onChange={(e) => onDegrees(e.target.value)}
+          />
+          {problem !== null && (
+            <p id={problemId} className="detail" role="alert">
+              {problem}
+            </p>
+          )}
+        </div>
+      )}
+    </RadioList>
   );
 }
 
@@ -219,20 +185,22 @@ const GROUPS: { id: RedFlagGroup; legend: string; icon: IconName }[] = [
 /** The same tick list as the check before an exercise (RED_FLAGS). A tick is an answer for the generator. It blocks nothing here. */
 export function RedFlagChecklist({ ticked, onToggle }: { ticked: Record<string, boolean>; onToggle: (id: string, on: boolean) => void }) {
   return (
-    <div className="stack">
+    <div className="v3-flags">
       <p className="detail">{GENERAL_GUIDANCE_NOTE}</p>
       {GROUPS.map((group) => (
-        <fieldset key={group.id} className="choices">
+        <fieldset key={group.id} className="v3-choice">
           <legend>
             <Icon name={group.icon} size={22} />
             {group.legend}
           </legend>
-          {RED_FLAGS.filter((f) => f.group === group.id).map((flag) => (
-            <label key={flag.id} className="choice">
-              <input type="checkbox" checked={ticked[flag.id] === true} onChange={(e) => onToggle(flag.id, e.target.checked)} />
-              <span>{flag.text}</span>
-            </label>
-          ))}
+          <div className="v3-flag-list">
+            {RED_FLAGS.filter((f) => f.group === group.id).map((flag) => (
+              <label key={flag.id} className="v3-flag">
+                <input type="checkbox" checked={ticked[flag.id] === true} onChange={(e) => onToggle(flag.id, e.target.checked)} />
+                <span>{flag.text}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
       ))}
     </div>

@@ -119,9 +119,28 @@ describe('rows', () => {
     expect(at(90).state).toBe('cannot-tell');
     expect(at(99).state).toBe('cannot-tell');
     expect(at(100).state).toBe('above'); // 10 > 9
-    expect(at(80).lines).toContain(STATE.below);
-    expect(at(100).lines).toContain(STATE.above);
-    expect(at(90).lines).toContain(STATE.cannotTell);
+  });
+  // Changed on purpose (v3 forms): the screen shows plain numbers against the limit and no sentence that sorts the value. The state field stays for the callers that read it.
+  it('writes no sorting sentence next to the limit lines (E1 and E11)', () => {
+    for (const peak of [80, 90, 100]) {
+      const c = checkProgress(input({ sessions: [session({ peakFlexion: peak })] }));
+      for (const id of ['E1', 'E11']) {
+        const lines = row(c, id).lines.join(' ');
+        expect(lines).not.toMatch(/by more than the margin|Cannot tell/);
+        for (const s of [STATE.above, STATE.below, STATE.cannotTell]) expect(row(c, id).lines).not.toContain(s);
+      }
+    }
+  });
+  it('gives the measured numbers for the screen: last peak, limit of the plan, camera error and the S1 value', () => {
+    const c = checkProgress(input({ sessions: [session({ peakFlexion: 84.4, marginDeg: 9 })] }));
+    const byId = Object.fromEntries(c.numbers.map((n) => [n.id, n]));
+    expect(byId.peak).toMatchObject({ value: 84, unit: 'degrees', label: 'Last peak knee bend, heel slide' });
+    expect(byId.limit).toMatchObject({ value: 90, unit: 'degrees', label: 'Limit in your plan' });
+    expect(byId.margin).toMatchObject({ value: 9, unit: 'degrees' });
+    expect(byId.s1).toMatchObject({ value: 110, unit: 'degrees' });
+    expect(byId.margin?.note).toContain(MARGIN_SOURCE);
+    expect(checkProgress(input({ sessions: [] })).numbers).toEqual([]);
+    expect(checkProgress(input({ protocol: plan(null) })).numbers.map((n) => n.id)).not.toContain('limit');
   });
   it('shows no state where no limit exists (E11 without a plan limit)', () => {
     const r = row(checkProgress(input({ protocol: plan(null) })), 'E11');

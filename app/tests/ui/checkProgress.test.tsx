@@ -102,7 +102,8 @@ describe('Check my progress', () => {
     expect(view.container.textContent).not.toMatch(/\b\d+ of \d+\b/);
     expect(view.container.querySelector('[style]')).toBeNull();
     const classes = [...view.container.querySelectorAll('[class]')].flatMap((e) => [...e.classList]);
-    for (const c of classes) expect(c, c).not.toMatch(/pass|fail|good|bad|success|danger|error|ok|met|goal|score|green|red/i);
+    // Changed on purpose (v3 forms): the check reads each part of a class name. The old substring check matched "met" inside the v3 class "v3-metric".
+    for (const c of classes) for (const part of c.split('-')) expect(part, c).not.toMatch(/^(pass|fail|good|bad|success|danger|error|ok|met|goal|score|green|red)$/i);
   });
 
   it('lists a safety event with its date first, shows HOLD_EVENT and no forward-move prompt', async () => {

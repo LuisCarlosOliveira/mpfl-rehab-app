@@ -9,7 +9,10 @@ import { loadGeneratorInputs, readValidRows, type MpflDb } from '../lib/storage'
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { HOLD_EVENT } from './UpdatePlan';
+import { BigNumber } from './v3/BigNumber';
+import { Actions } from './v3/shellParts';
 import './screensV2.css';
+import './formsV3.css';
 
 interface Props {
   db: MpflDb;
@@ -53,21 +56,28 @@ export function CheckProgress({ db, protocol, today, onUpdate, onBack }: Props) 
   );
 
   if (loaded.state !== 'ready') {
+    // The same tree as the ready screen (section, columns, first column), so the heading keeps its element when the data arrives.
     return (
-      <section aria-labelledby="check-title" className="narrow v2-screens v2-check">
-        {head}
-        {loaded.state === 'loading' ? (
-          <div className="skeleton" aria-hidden="true">
-            <span />
-            <span />
+      <section aria-labelledby="check-title" className="v3 v3-screen v2-screens v2-check">
+        <div className="v3-cols">
+          <div className="v3-fields">
+            {head}
+            {loaded.state === 'loading' ? (
+              <div className="skeleton" aria-hidden="true">
+                <span />
+                <span />
+              </div>
+            ) : (
+              <Notice role="alert" icon="triangle-alert">
+                <p>{CHECK_SCREEN.readError}</p>
+              </Notice>
+            )}
           </div>
-        ) : (
-          <>
-            <Notice role="alert" icon="triangle-alert">
-              <p>{CHECK_SCREEN.readError}</p>
-            </Notice>
-            <div className="actions">{back}</div>
-          </>
+        </div>
+        {loaded.state === 'error' && (
+          <Actions label="Check my progress buttons">
+            <div className="v3-btnrow">{back}</div>
+          </Actions>
         )}
       </section>
     );
@@ -92,101 +102,121 @@ export function CheckProgress({ db, protocol, today, onUpdate, onBack }: Props) 
       </li>
     );
   };
+  const noNumbers = check.numbers.length === 0;
   return (
-    <section aria-labelledby="check-title" className="narrow v2-screens v2-check">
-      {head}
-      <p className="lede">{CHECK_SCREEN.lede}</p>
-      <p className="detail">{check.notApproved}</p>
+    <section aria-labelledby="check-title" className="v3 v3-screen v2-screens v2-check">
+      <div className="v3-cols">
+        <div className="v3-fields">
+          {head}
+          <p className="lede">{CHECK_SCREEN.lede}</p>
+          <p className="detail">{check.notApproved}</p>
 
-      {held && (
-        <section aria-labelledby="check-events" className="check-block">
-          <h2 id="check-events">{CHECK_SCREEN.eventsTitle}</h2>
-          <ul className="check-events">
-            {check.events.map((e, i) => (
-              <li key={`${e.day}-${e.kind}-${i}`}>{e.text}</li>
-            ))}
-          </ul>
-          <Notice tone="strong" icon="heart-pulse">
-            <p>{HOLD_EVENT}</p>
-            {check.events.some((e) => e.kind === 'pain') && <p>{PAUSE_MESSAGE}</p>}
-          </Notice>
-        </section>
-      )}
+          {held && (
+            <section aria-labelledby="check-events" className="check-block">
+              <h2 id="check-events">{CHECK_SCREEN.eventsTitle}</h2>
+              <ul className="check-events">
+                {check.events.map((e, i) => (
+                  <li key={`${e.day}-${e.kind}-${i}`}>{e.text}</li>
+                ))}
+              </ul>
+              <Notice tone="strong" icon="heart-pulse">
+                <p>{HOLD_EVENT}</p>
+                {check.events.some((e) => e.kind === 'pain') && <p>{PAUSE_MESSAGE}</p>}
+              </Notice>
+            </section>
+          )}
 
-      <dl className="check-facts" aria-label="Where you are">
-        {check.weekText !== null && (
-          <div>
-            <dt>{CHECK_SCREEN.weekLabel}</dt>
-            <dd>{check.weekText}</dd>
-          </div>
-        )}
-        <div>
-          <dt>{CHECK_SCREEN.phaseLabel}</dt>
-          <dd>{check.phase}</dd>
+          <dl className="check-facts" aria-label="Where you are">
+            {check.weekText !== null && (
+              <div>
+                <dt>{CHECK_SCREEN.weekLabel}</dt>
+                <dd>{check.weekText}</dd>
+              </div>
+            )}
+            <div>
+              <dt>{CHECK_SCREEN.phaseLabel}</dt>
+              <dd>{check.phase}</dd>
+            </div>
+            {check.surgeryDate !== null && (
+              <div>
+                <dt>{CHECK_SCREEN.dateLabel}</dt>
+                <dd>{check.surgeryDate}</dd>
+              </div>
+            )}
+          </dl>
+          {check.surgeryDate !== null && <p className="detail">{CHECK_SCREEN.dateHelp}</p>}
+          {check.notices.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
         </div>
-        {check.surgeryDate !== null && (
-          <div>
-            <dt>{CHECK_SCREEN.dateLabel}</dt>
-            <dd>{check.surgeryDate}</dd>
-          </div>
-        )}
-      </dl>
-      {check.surgeryDate !== null && <p className="detail">{CHECK_SCREEN.dateHelp}</p>}
-      {check.notices.map((line) => (
-        <p key={line}>{line}</p>
-      ))}
 
-      <section aria-labelledby="check-sessions" className="check-block">
-        <h2 id="check-sessions">{CHECK_SCREEN.sessionsTitle}</h2>
-        {check.recent.length === 0 ? (
-          <p>{CHECK_SCREEN.noSessions}</p>
-        ) : (
-          <ul className="check-sessions">
-            {check.recent.map((r, i) => (
-              <li key={`${r.day}-${r.name}-${i}`}>
-                <span className="num">{r.day}</span>
-                <span className="check-name">{r.name}</span>
-                {r.measure !== null && <span className="check-measure">{r.measure}</span>}
-                {r.angle && <span className="detail check-angle">{ANGLE}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <div className="v3-fields">
+          <section aria-labelledby="check-numbers" className="check-block">
+            <h2 id="check-numbers">{CHECK_SCREEN.numbersTitle}</h2>
+            <div className="v3-numbers">
+              {noNumbers ? (
+                <BigNumber label="Last peak knee bend" value={null} unit="degrees" missingReason={CHECK_SCREEN.noAngle} />
+              ) : (
+                check.numbers.map((n) => <BigNumber key={n.id} label={n.label} value={n.value} unit={n.unit} note={n.note} tone={n.id === 'peak' || n.id === 'heel-peak' ? 'primary' : 'ink'} />)
+              )}
+            </div>
+          </section>
 
-      <section aria-labelledby="check-rows" className="check-block">
-        <h2 id="check-rows">{CHECK_SCREEN.checkTitle}</h2>
-        <ul className="check-rows">{counted.map((row) => rowView(row, false))}</ul>
-      </section>
+          <section aria-labelledby="check-sessions" className="check-block">
+            <h2 id="check-sessions">{CHECK_SCREEN.sessionsTitle}</h2>
+            {check.recent.length === 0 ? (
+              <p>{CHECK_SCREEN.noSessions}</p>
+            ) : (
+              <ul className="check-sessions">
+                {check.recent.map((r, i) => (
+                  <li key={`${r.day}-${r.name}-${i}`}>
+                    <span className="num">{r.day}</span>
+                    <span className="check-name">{r.name}</span>
+                    {r.measure !== null && <span className="check-measure">{r.measure}</span>}
+                    {r.angle && <span className="detail check-angle">{ANGLE}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-      <details className="check-more">
-        <summary>
-          {CHECK_SCREEN.moreTitle}
-          <span className="chev">
-            <Icon name="chevron-down" size={22} />
-          </span>
-        </summary>
-        {check.guidelines.length > 0 && (
-          <div className="check-weeks">
-            <h3>{CHECK_SCREEN.weeksTitle}</h3>
-            {check.guidelines.map((line) => (
-              <p key={line} className="detail">
-                {line}
-              </p>
-            ))}
-          </div>
-        )}
-        <ul className="check-rows">{more.map((row) => rowView(row, true))}</ul>
-      </details>
+          <section aria-labelledby="check-rows" className="check-block">
+            <h2 id="check-rows">{CHECK_SCREEN.checkTitle}</h2>
+            <ul className="check-rows">{counted.map((row) => rowView(row, false))}</ul>
+          </section>
 
-      <div className="actions">
-        <button type="button" className="btn btn-primary" onClick={onUpdate}>
-          <Icon name="refresh-cw" size={18} />
-          {CHECK_SCREEN.update}
-        </button>
-        {back}
+          <details className="check-more">
+            <summary>
+              {CHECK_SCREEN.moreTitle}
+              <span className="chev">
+                <Icon name="chevron-down" size={22} />
+              </span>
+            </summary>
+            {check.guidelines.length > 0 && (
+              <div className="check-weeks">
+                <h3>{CHECK_SCREEN.weeksTitle}</h3>
+                {check.guidelines.map((line) => (
+                  <p key={line} className="detail">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+            <ul className="check-rows">{more.map((row) => rowView(row, true))}</ul>
+          </details>
+          {!held && <p className="detail">{CHECK_SCREEN.again}</p>}
+        </div>
       </div>
-      {!held && <p className="detail">{CHECK_SCREEN.again}</p>}
+
+      <Actions label="Check my progress buttons">
+        <div className="v3-btnrow">
+          <button type="button" className="btn btn-primary btn-lg" onClick={onUpdate}>
+            <Icon name="refresh-cw" size={18} />
+            {CHECK_SCREEN.update}
+          </button>
+          {back}
+        </div>
+      </Actions>
     </section>
   );
 }

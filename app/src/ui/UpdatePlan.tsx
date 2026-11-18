@@ -11,7 +11,9 @@ import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SurgeryDate
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
+import { Actions } from './v3/shellParts';
 import './screensV2.css';
+import './formsV3.css';
 
 interface Props {
   db: MpflDb;
@@ -63,11 +65,15 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
 
   if (loaded.state === 'loading') {
     return (
-      <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
-        {head}
-        <div className="skeleton" aria-hidden="true">
-          <span />
-          <span />
+      <section aria-labelledby="update-title" className="v3 v3-screen v2-screens v3-questions">
+        <div className="v3-cols">
+          <div className="v3-fields">
+            {head}
+            <div className="skeleton" aria-hidden="true">
+              <span />
+              <span />
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -75,20 +81,26 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
 
   if (loaded.state === 'missing') {
     return (
-      <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
-        {head}
-        <Notice role="status" icon="info">
-          <p>This device does not have your answers for the plan. Create the plan again to update it.</p>
-        </Notice>
-        <div className="action-bar">
-          <button type="button" className="btn btn-primary btn-lg" onClick={onCreate}>
-            Create my plan
-          </button>
-          <button type="button" className="btn btn-lg" onClick={onCancel}>
-            <Icon name="arrow-left" size={18} />
-            Back to Home
-          </button>
+      <section aria-labelledby="update-title" className="v3 v3-screen v2-screens v3-questions">
+        <div className="v3-cols">
+          <div className="v3-fields">
+            {head}
+            <Notice role="status" icon="info">
+              <p>This device does not have your answers for the plan. Create the plan again to update it.</p>
+            </Notice>
+          </div>
         </div>
+        <Actions label="Update my plan buttons">
+          <div className="v3-btnrow">
+            <button type="button" className="btn btn-primary btn-lg" onClick={onCreate}>
+              Create my plan
+            </button>
+            <button type="button" className="btn btn-lg" onClick={onCancel}>
+              <Icon name="arrow-left" size={18} />
+              Back to Home
+            </button>
+          </div>
+        </Actions>
       </section>
     );
   }
@@ -129,96 +141,81 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
   }
 
   return (
-    <section aria-labelledby="update-title" className="narrow v2-screens v2-questions">
-      {head}
-      <div className="stack">
-        <p className="lede">The app checks your plan again from today&apos;s date. The app changes nothing until you press Confirm.</p>
+    <section aria-labelledby="update-title" className="v3 v3-screen v2-screens v3-questions">
+      <div className="v3-cols">
+        <div className="v3-fields">
+          {head}
+          <p className="lede">The app checks your plan again from today&apos;s date. The app changes nothing until you press Confirm.</p>
 
-        <section className="stack-s" aria-labelledby="update-date">
-          <h2 id="update-date">Surgery date</h2>
-          <SurgeryDateField value={form.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
-          <p className="detail">Change the date here if it is not right. The weeks and the plan follow this date.</p>
-        </section>
-
-        <section className="stack-s" aria-labelledby="update-flags">
-          <h2 id="update-flags">Do any of these apply today?</h2>
-          <RedFlagChecklist ticked={form.redFlags} onToggle={(id, on) => set({ redFlags: { ...form.redFlags, [id]: on } })} />
-        </section>
-
-        <section className="stack-s" aria-labelledby="update-today">
-          <h2 id="update-today">How is your knee today?</h2>
-          <PainScale name="pain" value={form.pain} onChange={(pain) => set({ pain })} />
-          <SwellingChoice name="swelling" value={form.swelling} onChange={(swelling) => set({ swelling })} />
-        </section>
-
-        <section className="stack-s" aria-labelledby="update-limit">
-          <h2 id="update-limit">Your surgeon limit for the knee bend</h2>
-          <LimitChoice
-            name="limit"
-            legend="Your surgeon limit for the knee bend"
-            kind={form.limitKind}
-            degrees={form.limitDegrees}
-            onKind={(limitKind) => set({ limitKind })}
-            onDegrees={(limitDegrees) => set({ limitDegrees })}
-          />
-          <p className="detail">Check that this is still the limit from your surgeon or physiotherapist, also a brace limit.</p>
-        </section>
-
-        {asked && (
-          <section className="stack-s" aria-labelledby="update-stage">
-            <h2 id="update-stage">The next stage</h2>
-            <p className="lede">Has your surgeon or physiotherapist said that you can start the next stage?</p>
-            <ChoiceGroup
-              name="clearance"
-              legend="Has your surgeon or physiotherapist said that you can start the next stage?"
-              value={form.phaseClearance}
-              choices={YES_NO_UNKNOWN}
-              onChange={(v) => set({ phaseClearance: v as Answers['phaseClearance'] })}
-            />
+          <section className="stack-s" aria-labelledby="update-date">
+            <h2 id="update-date">Surgery date</h2>
+            <SurgeryDateField value={form.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
+            <p className="detail">Change the date here if it is not right. The weeks and the plan follow this date.</p>
           </section>
-        )}
 
-        {gates && (
-          <section className="stack-s" aria-labelledby="update-gates">
-            <h2 id="update-gates">Your answers for the next exercises</h2>
-            <ChoiceGroup
-              name="walking"
-              legend={GATE_QUESTIONS.walking}
-              showLegend
-              value={form.walksWithoutCrutches}
-              choices={YES_NO_UNKNOWN}
-              onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })}
+          <section className="stack-s" aria-labelledby="update-limit">
+            <h2 id="update-limit">Your surgeon limit for the knee bend</h2>
+            <LimitChoice
+              name="limit"
+              legend="Did your surgeon give a limit for how far you can bend your knee, also with a brace?"
+              kind={form.limitKind}
+              degrees={form.limitDegrees}
+              onKind={(limitKind) => set({ limitKind })}
+              onDegrees={(limitDegrees) => set({ limitDegrees })}
             />
-            <ChoiceGroup
-              name="legRaise"
-              legend={GATE_QUESTIONS.legRaise}
-              showLegend
-              value={form.legRaiseStraight}
-              choices={YES_NO_UNKNOWN}
-              onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })}
-            />
-            <ChoiceGroup
-              name="seatedHold"
-              legend={GATE_QUESTIONS.seatedHold}
-              showLegend
-              value={form.seatedHoldCleared}
-              choices={YES_NO_UNKNOWN}
-              onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })}
-            />
-            <p className="detail">The app does not check these answers.</p>
+            <p className="detail">Check that this is still the limit from your surgeon or physiotherapist, also a brace limit.</p>
           </section>
-        )}
+        </div>
+
+        <div className="v3-fields">
+          <section className="stack-s" aria-labelledby="update-flags">
+            <h2 id="update-flags">Do any of these apply today?</h2>
+            <RedFlagChecklist ticked={form.redFlags} onToggle={(id, on) => set({ redFlags: { ...form.redFlags, [id]: on } })} />
+          </section>
+
+          <section className="stack-s" aria-labelledby="update-today">
+            <h2 id="update-today">How is your knee today?</h2>
+            <PainScale name="pain" value={form.pain} onChange={(pain) => set({ pain })} />
+            <SwellingChoice name="swelling" value={form.swelling} onChange={(swelling) => set({ swelling })} />
+          </section>
+
+          {asked && (
+            <section className="stack-s" aria-labelledby="update-stage">
+              <h2 id="update-stage">The next stage</h2>
+              <ChoiceGroup
+                name="clearance"
+                legend="Has your surgeon or physiotherapist said that you can start the next stage?"
+                row
+                value={form.phaseClearance}
+                choices={YES_NO_UNKNOWN}
+                onChange={(v) => set({ phaseClearance: v as Answers['phaseClearance'] })}
+              />
+            </section>
+          )}
+
+          {gates && (
+            <section className="stack-s" aria-labelledby="update-gates">
+              <h2 id="update-gates">Your answers for the next exercises</h2>
+              <ChoiceGroup name="walking" legend={GATE_QUESTIONS.walking} row value={form.walksWithoutCrutches} choices={YES_NO_UNKNOWN} onChange={(v) => set({ walksWithoutCrutches: v as Answers['walksWithoutCrutches'] })} />
+              <ChoiceGroup name="legRaise" legend={GATE_QUESTIONS.legRaise} row value={form.legRaiseStraight} choices={YES_NO_UNKNOWN} onChange={(v) => set({ legRaiseStraight: v as Answers['legRaiseStraight'] })} />
+              <ChoiceGroup name="seatedHold" legend={GATE_QUESTIONS.seatedHold} row value={form.seatedHoldCleared} choices={YES_NO_UNKNOWN} onChange={(v) => set({ seatedHoldCleared: v as Answers['seatedHoldCleared'] })} />
+              <p className="detail">The app does not check these answers.</p>
+            </section>
+          )}
+        </div>
       </div>
 
-      <div className="action-bar">
-        <button type="button" className="btn btn-primary btn-lg" disabled={!ready} onClick={check}>
-          Check my plan
-        </button>
-        <button type="button" className="btn btn-lg" onClick={onCancel}>
-          <Icon name="arrow-left" size={18} />
-          Back to Home
-        </button>
-      </div>
+      <Actions label="Update my plan buttons">
+        <div className="v3-btnrow">
+          <button type="button" className="btn btn-primary btn-lg" disabled={!ready} onClick={check}>
+            Check my plan
+          </button>
+          <button type="button" className="btn btn-lg" onClick={onCancel}>
+            <Icon name="arrow-left" size={18} />
+            Back to Home
+          </button>
+        </div>
+      </Actions>
     </section>
   );
 }

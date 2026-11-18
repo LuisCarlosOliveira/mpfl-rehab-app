@@ -1,0 +1,177 @@
+/* The forms and the progress page on the v3 parts (docs/ui-redesign-v3.md, sections 4 and 7.4).
+   They sit inside the App frame (banner, brand, main), so main gives its width to the screen.
+   Two columns from 900 px (.v3-cols of parts.css). One column below. Grids use minmax(0, 1fr) and text wraps. */
+main:has(.v3-screen) {
+  max-width: none;
+  padding: 0;
+}
+.v3-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+/* Every child except the action bar is as wide as the shell. The action bar spans the window. */
+.v3-screen > :not(.v3-actions) {
+  width: min(100%, var(--v3-width));
+  margin-inline: auto;
+  padding-inline: var(--v3-s4);
+}
+.v3-screen > :first-child {
+  padding-top: var(--v3-s5);
+}
+.v3-screen > .v3-cols {
+  padding-bottom: var(--v3-s6);
+}
+@media (min-width: 75rem) {
+  .v3-screen > :not(.v3-actions) {
+    padding-inline: var(--v3-s5);
+  }
+}
+
+.v3-formhead {
+  display: grid;
+  gap: var(--v3-s3);
+  align-content: start;
+  min-width: 0;
+}
+@media (min-width: 56.25rem) {
+  .v3-formhead {
+    position: sticky;
+    top: var(--v3-s5);
+  }
+}
+.v3-fields {
+  display: grid;
+  gap: var(--v3-s5);
+  align-content: start;
+  min-width: 0;
+}
+.v3-fields > * {
+  min-width: 0;
+}
+.v3-screen .page-head {
+  margin: 0;
+}
+.v3-screen h1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.v3-screen h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.v3-screen .lede {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+.v3-btnrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--v3-s3);
+  min-width: 0;
+}
+.v3-btnrow .btn-primary {
+  flex: 1 1 min(100%, 11rem);
+}
+.v3-btnrow .btn {
+  min-width: min(100%, 8rem);
+  max-width: 100%;
+}
+
+/* Questions */
+.v3-fields .v3-choice > legend {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+}
+.v3-choice > legend svg {
+  margin-right: var(--v3-s2);
+  vertical-align: -0.25em;
+}
+.v3-choice .limit-field {
+  margin-top: var(--v3-s3);
+}
+.v3-choice .date-parts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
+  gap: var(--v3-s3);
+  margin-top: var(--v3-s2);
+}
+.v3-choice .date-part .text-input {
+  max-width: none;
+  min-width: 0;
+  padding-inline: var(--v3-s2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The red-flag list: real checkboxes, one sentence each, with the care colour on the group heading. */
+.v3-flags {
+  display: grid;
+  gap: var(--v3-s4);
+}
+.v3-flags > .detail {
+  max-width: none;
+}
+.v3-flags .v3-choice > legend {
+  color: var(--accent);
+}
+.v3-flag-list {
+  display: grid;
+  gap: var(--v3-s2);
+  margin-top: var(--v3-s3);
+}
+.v3-flag {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--v3-s3);
+  min-height: var(--v3-target);
+  padding: var(--v3-s3) var(--v3-s4);
+  border: 1.5px solid var(--edge);
+  border-radius: var(--v3-r-control);
+  background: var(--raised);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: background-color var(--v3-press) var(--v3-ease);
+}
+.v3-flag input {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  accent-color: var(--primary);
+}
+.v3-flag:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.v3-flag:has(input:focus-visible) {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .v3-flag {
+    border-color: CanvasText;
+  }
+  .v3-flag:has(input:checked) {
+    border-color: Highlight;
+    box-shadow: inset 0 0 0 2px Highlight;
+  }
+}
+
+/* Check my progress: the measured numbers as cards, in two columns where there is room. */
+.v3-numbers {
+  --v3-num: clamp(2.75rem, 1.5rem + 5vw, 4rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--v3-s3);
+}
+.v3-numbers .v3-metric {
+  border: 1px solid var(--line);
+  border-radius: var(--v3-r-card);
+  background: var(--raised);
+}
