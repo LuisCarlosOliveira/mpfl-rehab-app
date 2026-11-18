@@ -32,7 +32,7 @@ async function toSessionOf(page: Page, startName: string, protocol?: string) {
       mimeType: "application/json",
       buffer: Buffer.from(protocol),
     });
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
   await page.getByRole("button", { name: startName }).click();
   await page
     .getByRole("button", { name: "None of these apply. Continue" })

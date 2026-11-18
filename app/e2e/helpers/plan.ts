@@ -128,7 +128,7 @@ export async function toConfirm(page: Page) {
 export async function toHomeWithPlan(page: Page) {
   await toConfirm(page);
   await press(page, 'Confirm');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 export async function toUpdate(page: Page) {

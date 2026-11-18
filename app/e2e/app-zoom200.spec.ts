@@ -30,7 +30,7 @@ async function toUpdatePlan(page: Page) {
   await press(page, 'Make my plan');
   await press(page, 'Use this plan');
   await press(page, 'Confirm');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await press(page, 'Update my plan');
   await expectScreen(page, 'Update my plan');
 }

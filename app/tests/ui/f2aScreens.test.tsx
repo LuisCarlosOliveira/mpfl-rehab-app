@@ -36,7 +36,7 @@ describe('L2-01: the engineering count value is not a target', () => {
   it('Home shows no knee bend chip and no number on the figure for a generated heel slide', () => {
     const { container } = renderHome(generated().protocol);
     expect(screen.getByText('Heel slide')).toBeInTheDocument();
-    expect(screen.getByText('Limit 60 degrees')).toBeInTheDocument();
+    expect(screen.getByText(/Limit 60 degrees/)).toBeInTheDocument(); // v3: the dose is one line in the plan row, so the text is a part of it
     expect(container.textContent).not.toMatch(/target knee bend|knee bend set by your care team/i);
     expect(container.textContent).not.toMatch(new RegExp(`\\b${RULES.ENG_TARGET.values.targetFlexion}( degrees|°)`));
     expect([...container.querySelectorAll('svg text')].map((t) => t.textContent)).not.toContain(`${RULES.ENG_TARGET.values.targetFlexion}°`);
@@ -46,7 +46,7 @@ describe('L2-01: the engineering count value is not a target', () => {
     const r = loadProtocol(protocolText(), 'demo');
     if (!r.ok) throw new Error(r.error.message);
     renderHome(r.protocol);
-    expect(screen.getAllByText('Knee bend set by your care team: 60 degrees').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Knee bend set by your care team: 60 degrees/).length).toBeGreaterThan(0);
   });
 
   const draft = () => {

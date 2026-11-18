@@ -132,7 +132,7 @@ describe('no verdict word on any screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I understand' }));
     await screen.findByRole('heading', { name: 'Load protocol file' });
     fireEvent.change(screen.getByLabelText('Choose a file from your care team'), { target: { files: [new File([exampleText()], 'p.json')] } });
-    await screen.findByRole('heading', { name: 'Home' });
+    await screen.findByRole('heading', { name: 'Today' });
     expectNoVerdict('App home');
   });
 });

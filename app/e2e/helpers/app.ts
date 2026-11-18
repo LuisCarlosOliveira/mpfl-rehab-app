@@ -96,7 +96,7 @@ export async function toLoad(page: Page) {
 export async function toHome(page: Page) {
   await toLoad(page);
   await page.getByLabel('Choose a file from your care team').setInputFiles(EXAMPLE);
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 export async function toRedFlag(page: Page) {
@@ -166,9 +166,12 @@ export const readStore = (page: Page, store: 'sessions' | 'protocol') =>
   );
 
 /** The banners of demo mode. The prototype banner is on every screen. The example banner follows the example protocol. */
+// The v3 frame shows each notice in an aside named Notice. The two live screens still use the old frame with role note.
+export const notice = (page: Page, text: string) => page.getByRole('note').filter({ hasText: text }).or(page.getByRole('complementary', { name: 'Notice' }).filter({ hasText: text }));
+
 export async function expectBanners(page: Page, opts: { example: boolean }) {
-  await expect(page.getByRole('note').filter({ hasText: PROTOTYPE_BANNER })).toBeVisible();
-  const example = page.getByRole('note').filter({ hasText: EXAMPLE_BANNER });
+  await expect(notice(page, PROTOTYPE_BANNER)).toBeVisible();
+  const example = notice(page, EXAMPLE_BANNER);
   if (opts.example) await expect(example).toBeVisible();
   else await expect(example).toHaveCount(0);
 }
@@ -181,7 +184,7 @@ export async function saveOneSession(page: Page, pain = '3', swelling = 'Some sw
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Session saved.')).toBeVisible();
   await page.getByRole('button', { name: 'Done' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 export async function openMyData(page: Page) {

@@ -25,7 +25,7 @@ describe('focus on lazy screens', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} />);
-    await screen.findByRole('heading', { level: 1, name: 'Home' });
+    await screen.findByRole('heading', { level: 1, name: 'Today' });
     fireEvent.click(screen.getByRole('button', { name: 'My data' }));
     await screen.findByRole('heading', { level: 1, name: 'My data' });
     fireEvent.click(screen.getByRole('button', { name: 'Privacy notice' }));

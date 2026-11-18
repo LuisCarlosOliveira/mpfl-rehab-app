@@ -25,7 +25,8 @@ function show(p: Protocol) {
   render(<Home protocol={p} phase={phase} activePhase={p.activePhase} db={freshDb()} now={() => new Date('2026-11-10T10:00:00')} onStart={onStart} onLoadProtocol={vi.fn()} />);
   return onStart;
 }
-const row = (name: string) => screen.getByRole('heading', { level: 3, name }).closest('li') as HTMLElement;
+// v3: the exercises are rows of the plan list. The name is a span in the row.
+const row = (name: string) => screen.getByText(name, { selector: '.v3-plan-name' }).closest('li') as HTMLElement;
 
 const LINES: Record<string, string> = {
   'Leg raise to the back': 'The camera counts your lifts and measures the angle. The app does not judge how you do it.',
@@ -44,7 +45,7 @@ describe('Home, the five exercises', () => {
     expect(screen.queryByText('The app does not check this exercise.')).toBeNull();
   });
 
-  it('shows the dose chip, and for the ankle pump the line that no dose is held', () => {
+  it('shows the dose line, and for the ankle pump the line that no dose is held', () => {
     show(generated());
     expect(within(row('Quadriceps set')).getByText('2 sets of 10 to 15, then 3 sets as tolerated')).toBeInTheDocument();
     expect(within(row('Ankle pump')).getByText('How many: ask your care team')).toBeInTheDocument();

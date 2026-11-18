@@ -13,7 +13,7 @@ async function toSession(page: Page, startName: string) {
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(protocol)),
   });
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
   await page.getByRole("button", { name: startName }).click();
   await page.getByRole("button", { name: "None of these apply. Continue" }).click();
   await page.getByRole("button", { name: "Next: set up the camera" }).click();

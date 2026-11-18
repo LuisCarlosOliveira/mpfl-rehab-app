@@ -14,10 +14,12 @@ import { usePairing } from '../pairing/usePairing';
 import type { LinkDeps } from '../pairing/rtcLink';
 import type { LandmarkSource } from '../pose/source';
 import { appReducer, backStep, initialAppState } from './appState';
+import type { ScreenId } from '../lib/flow';
 import { Banners } from './Banners';
 import { CompanionEntry } from './CompanionEntry';
 import { focusHeading } from './focusHeading';
 import { Home } from './Home';
+import { planItems } from './Home';
 import { EXERCISE_NAMES } from './labels';
 import { LoadError, retryableLazy } from './LoadError';
 import { LoadProtocol } from './LoadProtocol';
@@ -28,7 +30,7 @@ import { runToSessionInput } from './sessionRecord';
 import { Referral } from './Referral';
 import { RedFlag } from './RedFlag';
 import { Brand, LoadingScreen } from './Shell';
-import { BottomNav, isNavScreen, type NavScreen } from './BottomNav';
+import { AppShell, type ShellTab } from './v3/AppShell';
 import { useBackButton } from './useBackButton';
 import { useBarHeight } from '../lib/useBarHeight';
 
@@ -63,6 +65,12 @@ function FocusHeading({ children }: { children: ReactNode }) {
   }, []);
   return children;
 }
+
+// The screens that have a tab, and the screen that each tab opens. Every other screen is a step of a flow and shows no tabs.
+const TAB_OF: Partial<Record<ScreenId, ShellTab>> = { home: 'today', progress: 'progress', dashboard: 'sessions', data: 'data' };
+const SCREEN_OF: Record<ShellTab, ScreenId> = { today: 'home', progress: 'progress', sessions: 'dashboard', data: 'data' };
+// The two live screens keep their own frame until they move to LiveShell. They render the camera and need the full window.
+const LIVE_SCREENS: ReadonlySet<string> = new Set(['setup', 'session']);
 
 type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[]; skipped: number };
 
@@ -152,13 +160,11 @@ export function App({ db, mode, source, now = () => new Date(), sound, pairingDe
 
   if (!boot.ready) {
     return (
-      <div className="app">
-        <Banners texts={bannersFor(mode, false)} />
-        <Brand />
-        <main>
+      <AppShell tab={null} onNavigate={() => undefined} banner={bannersFor(mode, false)}>
+        <AppShell.Main>
           <LoadingScreen />
-        </main>
-      </div>
+        </AppShell.Main>
+      </AppShell>
     );
   }
   return <Shell db={db} mode={mode} source={source} now={now} sound={soundInUse} pairingDeps={pairingDeps} protocol={boot.protocol} bootError={boot.error} />;
@@ -229,14 +235,13 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   }, []);
 
   // Move focus to the heading when the screen changes, so a screen reader announces it.
-  const main = useRef<HTMLElement>(null);
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
       first.current = false;
       return;
     }
-    focusHeading(main.current?.querySelector<HTMLElement>('h1'));
+    focusHeading(document.querySelector<HTMLElement>('main h1'));
   }, [state.screen]);
 
   // Today's session. The place in the plan, and whether the camera of the exercise before is still on.
@@ -254,6 +259,8 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   }, [screenNow, plan, nextUsesCamera, source]);
 
   const banners = bannersFor(mode, protocol?.example === true, protocol?.generated !== undefined && protocol.approvedOn === undefined);
+  // The whole plan as rows, for the progress panels of the Done step and the Next card.
+  const items = plan ? planItems(phase?.exercises ?? [], plan.kinds, protocol?.generated !== undefined) : [];
 
   const screen = (() => {
     switch (state.screen) {
@@ -363,7 +370,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               cameraSide={state.cameraSide ?? undefined}
               db={db}
               now={now}
-              plan={planMark && { ...planMark, keepCamera: plan !== null && keepsCamera(plan.kinds, plan.index) }}
+              plan={planMark && { ...planMark, keepCamera: plan !== null && keepsCamera(plan.kinds, plan.index), items }}
               onDone={() => dispatch(plan ? { type: 'plan-continue' } : { type: 'finish' })}
               onStop={() => dispatch({ type: 'plan-stop' })}
             />
@@ -377,6 +384,7 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               name={EXERCISE_NAMES[state.exercise]}
               index={plan.index}
               total={plan.kinds.length}
+              items={items}
               onStart={() => dispatch({ type: 'open', screen: 'setup' })}
               onSkip={() => dispatch({ type: 'plan-skip' })}
               onStop={() => dispatch({ type: 'plan-stop' })}
@@ -500,21 +508,28 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     );
   })();
 
-  // The bottom bar shows on Home, Your sessions and My data only, and only when a protocol is stored. Flow screens never show it.
-  const showNav = isNavScreen(state.screen) && protocol !== null && store !== null;
+  const content = (
+    <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
+      <Suspense fallback={<LoadingScreen />}>
+        {LAZY_SCREENS.has(state.screen) ? <FocusHeading key={state.screen}>{screen}</FocusHeading> : screen}
+      </Suspense>
+    </LoadError>
+  );
 
+  if (LIVE_SCREENS.has(state.screen)) {
+    return (
+      <div className="app">
+        <Banners texts={banners} />
+        <Brand />
+        <main>{content}</main>
+      </div>
+    );
+  }
+  // Tabs show on the main screens, and only when a protocol is stored. Flow screens never show them.
+  const tab = protocol !== null && store !== null ? (TAB_OF[state.screen] ?? null) : null;
   return (
-    <div className="app">
-      <Banners texts={banners} />
-      <Brand />
-      <main ref={main} className={showNav ? 'has-nav' : undefined}>
-        <LoadError key={state.screen} onBack={() => dispatch({ type: 'open', screen: 'home' })}>
-          <Suspense fallback={<LoadingScreen />}>
-            {LAZY_SCREENS.has(state.screen) ? <FocusHeading key={state.screen}>{screen}</FocusHeading> : screen}
-          </Suspense>
-        </LoadError>
-      </main>
-      {showNav && <BottomNav current={state.screen as NavScreen} onOpen={(next) => dispatch({ type: 'open', screen: next })} />}
-    </div>
+    <AppShell tab={tab} onNavigate={(next) => dispatch({ type: 'open', screen: SCREEN_OF[next] })} banner={banners}>
+      <AppShell.Main>{content}</AppShell.Main>
+    </AppShell>
   );
 }

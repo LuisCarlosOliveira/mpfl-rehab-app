@@ -3,7 +3,7 @@
 // and the screen passes axe, the target size and the word check at two sizes in light and dark.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { expectScreen, installProbes, PROTOTYPE_BANNER, readStore } from './helpers/app';
+import { expectScreen, installProbes, notice, PROTOTYPE_BANNER, readStore } from './helpers/app';
 import { ago, fillDate, h1, press, radio, referralQuestions, toHomeWithPlan, toLoadAny, toSummary } from './helpers/plan';
 import { hasVerdictWord } from '../tests/ui/verdict';
 
@@ -46,7 +46,7 @@ async function seedSession(page: Page, extra: Record<string, unknown> = {}) {
     row,
   );
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 }
 
 /** Answers the clearance question with yes and the three extended questions, then presses Check my plan. */
@@ -72,16 +72,16 @@ test('the phase never changes without Confirm, the flag at its default', async (
   const before = await planRaw(page);
   await page.clock.setFixedTime(new Date(Date.now() + WEEK8_SHIFT_DAYS * 86_400_000));
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await toUpdateFromCheck(page);
   expect(JSON.parse(await planRaw(page)).activePhase).toBe(1); // Check my plan saves nothing
   await press(page, 'Keep my plan');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   expect(await planRaw(page)).toBe(before);
 
   await toUpdateFromCheck(page);
   await press(page, 'Confirm');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   expect(JSON.parse(await planRaw(page)).activePhase).toBe(2);
 });
 
@@ -89,7 +89,7 @@ test('a saved session is still there after a reload: Home, Your sessions and Che
   await toHomeWithPlan(page);
   await seedSession(page);
   await expect(page.getByText(/^Last session: .*peak knee bend 84 degrees/)).toBeVisible();
-  await page.getByRole('button', { name: 'Your sessions' }).click();
+  await page.getByRole('button', { name: 'Sessions' }).click();
   await expectScreen(page, 'Your sessions');
   await expect(page.getByText('0 sessions')).toHaveCount(0);
   await expect(page.getByRole('table').first()).toBeVisible();
@@ -104,7 +104,7 @@ test('a safety event since the plan date shows HOLD_EVENT, and Update my plan sh
   await seedSession(page, { gaveWayPresses: 1 });
   await page.clock.setFixedTime(new Date(Date.now() + WEEK8_SHIFT_DAYS * 86_400_000));
   await page.reload();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await goCheck(page);
   await expect(page.getByRole('heading', { name: 'Safety events since your plan date' })).toBeVisible();
   await expect(page.getByText(HOLD_EVENT)).toBeVisible();
@@ -142,7 +142,7 @@ test('the surgery date shows in words on Check your answers and Check my progres
   await expectScreen(page, 'Your plan');
   await press(page, 'Use this plan');
   await press(page, 'Confirm');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await goCheck(page);
   const facts = page.locator('.check-facts');
   await expect(facts).toContainText('Week 2 (the third week after surgery)');
@@ -170,7 +170,7 @@ for (const size of [{ width: 360, height: 640 }, { width: 1280, height: 800 }]) 
         const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
         expect(violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(' ')) }))).toEqual([]);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-        await expect(page.getByRole('note').filter({ hasText: PROTOTYPE_BANNER })).toBeVisible();
+        await expect(notice(page, PROTOTYPE_BANNER)).toBeVisible();
         const small = await page.evaluate(() =>
           [...document.querySelectorAll('button')]
             .map((el) => ({ name: el.textContent?.trim(), b: el.getBoundingClientRect() }))

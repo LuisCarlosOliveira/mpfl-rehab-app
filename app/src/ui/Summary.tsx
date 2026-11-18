@@ -4,24 +4,26 @@
 // Persistence: App writes the record when the run ends (src/ui/sessionRecord.ts). Save adds pain and swelling to that record. Skip leaves them out.
 // Sets: when Session passes the set data, the record holds it and the screen lists the reps of each set. No total, no verdict.
 // The pause message (FR12) shows under the result cards, above the questions. It comes from the live answers. It does not wait for the save. A failed save or no save hides nothing (finding S-01).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Side } from '../lib/angle';
 import type { PlanExercise, Protocol } from '../lib/protocol';
 import { MESSAGES } from '../lib/redflags';
 import { evaluateSession, type SwellingAnswer } from '../lib/safety';
-import { plural } from '../lib/sets';
 import { saveSession, updateSessionAnswers, type MpflDb } from '../lib/storage';
 import type { RunResult } from './appState';
 import { Icon } from './Icon';
 import { EXERCISE_NAMES } from './labels';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
-import { PlanProgress } from './PlanProgress';
 import { RunStats } from './RunStats';
 import { Segmented } from './Segmented';
+import { AppShell } from './v3/AppShell';
+import { PlanList, type PlanItem } from './v3/PlanList';
+import { SessionProgress } from './v3/SessionProgress';
 import { runToSessionInput } from './sessionRecord';
 import type { SessionRunSummary } from './Session';
 import './flowV2.css';
+import './v3home.css';
 
 const SWELLING: { value: SwellingAnswer; text: string }[] = [
   { value: 'none', text: 'No swelling' },
@@ -40,8 +42,8 @@ interface Props {
   cameraSide?: Side;
   db: MpflDb;
   now: () => Date;
-  /** Today's session: this screen is the short "Done" step. `keepCamera`: the camera stays on for the next exercise. */
-  plan?: { index: number; total: number; keepCamera?: boolean };
+  /** Today's session: this screen is the short "Done" step. `keepCamera`: the camera stays on for the next exercise. `items`: the whole plan, in order. */
+  plan?: { index: number; total: number; keepCamera?: boolean; items?: readonly PlanItem[] };
   onDone: () => void;
   /** Today's session only: the pause rule ended it, so the only way on is to end the session. */
   onStop?: () => void;
@@ -129,7 +131,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
   }
 
   return (
-    <section aria-labelledby="summary-title" className="narrow v2-flow v2-summary">
+    <section aria-labelledby="summary-title" className="v2-flow v2-summary v3h-summary">
       <header className="page-head">
         <div className="stack-s">
           <h1 id="summary-title" tabIndex={-1}>
@@ -138,9 +140,8 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
           <p className="detail">Exercise: {EXERCISE_NAMES[exercise.kind]}</p>
         </div>
       </header>
-      {plan && <PlanProgress index={plan.index} total={plan.total} detail={exercise.sets === undefined ? null : `${exercise.sets} ${plural(exercise.sets, 'set')}`} />}
 
-      <div className="stack">
+      <Layout side={plan && <PlanPanel plan={plan} />}>
         {reason === 'gave-way' && (
           <Notice tone="strong" role="alert" icon="heart-pulse" title={MESSAGES['care-team']}>
             <p>You pressed "Knee gave way or hurts".</p>
@@ -176,9 +177,9 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             </p>
           </>
         )}
-      </div>
+      </Layout>
 
-      <div className="action-bar">
+      <AppShell.Actions label="Actions">
         {/* One button swaps its label: Save, Saving, Saved. The status line above repeats it for a screen reader. */}
         {!discarded && (
           <button type="button" className={saved ? 'btn btn-lg save-btn' : 'btn btn-primary btn-lg save-btn'} disabled={saved || saveBusy || pain === null || swelling === null} onClick={() => void save()}>
@@ -195,8 +196,32 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
             Skip the questions
           </button>
         )}
-      </div>
+      </AppShell.Actions>
     </section>
+  );
+}
+
+/** The result and the questions, and beside them (from 900 px) the plan with the next exercise. A single exercise has no side. */
+function Layout({ side, children }: { side?: ReactNode; children: ReactNode }) {
+  if (!side) return <div className="stack v3h-single">{children}</div>;
+  return (
+    <AppShell.Columns>
+      <div className="stack">{children}</div>
+      {side}
+    </AppShell.Columns>
+  );
+}
+
+/** The place in today's session. The Done exercise is marked, the next one is named. */
+function PlanPanel({ plan }: { plan: NonNullable<Props['plan']> }) {
+  const items = plan.items ?? [];
+  const next = items[plan.index + 1];
+  return (
+    <aside className="v3h-card stack-s" aria-label="Today's session">
+      <SessionProgress total={plan.total} current={plan.index + 1} unit="Exercise" />
+      <p className="v3h-next">{next ? `Next: ${next.name}` : 'This was the last exercise of today.'}</p>
+      {items.length > 0 && <PlanList items={items} currentId={next?.id ?? null} />}
+    </aside>
   );
 }
 

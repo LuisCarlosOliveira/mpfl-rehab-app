@@ -30,25 +30,25 @@ async function openHome(mode: 'demo' | 'patient' = 'demo') {
   await saveSession(db, { ...sessionInput(), date: '2026-03-01T10:00:00.000Z', peakFlexion: 50, pain: 2 });
   await saveSession(db, { ...sessionInput(), date: '2026-03-02T10:00:00.000Z', peakFlexion: 60, pain: 3 });
   const view = render(<App db={db} mode={mode} source={mockSource()} />);
-  await heading('Home');
+  await heading('Today');
   return { db, ...view };
 }
 
 describe('Your sessions', () => {
   it('shows the charts and a table for each chart, and Back returns to Home', async () => {
     await openHome();
-    click('Your sessions');
+    click('Sessions');
     expect(await heading('Your sessions')).toBeInTheDocument();
     expect(document.querySelectorAll('section.dash-chart').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('table').length).toBeGreaterThan(0);
     expect(screen.queryByText('Loading')).toBeNull();
     click('Back');
-    await heading('Home');
+    await heading('Today');
   });
 
   it('moves the focus to the new heading', async () => {
     await openHome();
-    click('Your sessions');
+    click('Sessions');
     const h1 = await heading('Your sessions');
     await waitFor(() => expect(h1).toHaveFocus());
   });
@@ -59,11 +59,11 @@ describe('Your sessions', () => {
     vi.spyOn(db.sessions, 'orderBy').mockImplementation(() => {
       throw new Error('read failed');
     });
-    click('Your sessions');
+    click('Sessions');
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not be read/i);
     expect(document.querySelector('.recharts-wrapper')).toBeNull(); // no chart, only the notice icon
     click('Back');
-    await heading('Home');
+    await heading('Today');
     expect(await count()).toBe(2);
   });
 });
@@ -80,7 +80,7 @@ describe('My data', () => {
     await waitFor(() => expect(getLastExport()).not.toBeNull());
     expect(JSON.parse(await stub.created[0]!.text()).sessions).toHaveLength(2);
     click('Back');
-    await heading('Home');
+    await heading('Today');
     const today = getLastExport()!.slice(0, 10);
     expect(screen.getByText(today)).toBeInTheDocument();
   });
@@ -156,7 +156,7 @@ describe('Erase', () => {
     click('I understand');
     await heading('Load protocol file');
     expect(screen.queryByText('Test clinic')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Your sessions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sessions' })).toBeNull();
     expect(await db.sessions.count()).toBe(0);
   });
 });

@@ -1,9 +1,10 @@
 // The frame of every screen except the live ones: skip link, notice banner, header with navigation,
 // a centered content area (1200 px, two columns from 900 px) and a sticky action bar.
 // Compound parts: AppShell.Main, AppShell.Columns, AppShell.Actions. The banner is always there (design doc 7.4).
-import type { ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '../Icon';
-import { Actions, Banner, SkipLink } from './shellParts';
+import { Actions as ActionsBar, Banner, SkipLink } from './shellParts';
 import './parts.css';
 
 export type ShellTab = 'today' | 'progress' | 'sessions' | 'data';
@@ -16,17 +17,26 @@ const TABS: readonly { tab: ShellTab; label: string }[] = [
 ];
 
 interface Props {
-  tab: ShellTab;
+  /** The open tab. null on a screen that is a step of a flow or that comes before the first plan: the bar shows no tabs. */
+  tab: ShellTab | null;
   onNavigate: (tab: ShellTab) => void;
-  banner: string;
+  /** One notice, or a list of notices. An empty list shows none (patient mode). The prototype notice is the caller's text. */
+  banner: string | readonly string[];
   children: ReactNode;
 }
 
+// The bar of actions sits after main in the page. A screen declares it inside main, and it moves to the slot after main.
+const SlotContext = createContext<HTMLElement | null>(null);
+
 export function AppShell({ tab, onNavigate, banner, children }: Props) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const notices = typeof banner === 'string' ? [banner] : banner;
   return (
     <div className="v3 v3-shell">
       <SkipLink />
-      <Banner>{banner}</Banner>
+      {notices.map((text) => (
+        <Banner key={text}>{text}</Banner>
+      ))}
       <header className="v3-appbar">
         <span className="v3-brand" translate="no">
           <span className="v3-mark">
@@ -34,17 +44,30 @@ export function AppShell({ tab, onNavigate, banner, children }: Props) {
           </span>
           MPFL Rehab
         </span>
-        <nav aria-label="Main" className="v3-tabs">
-          {TABS.map((t) => (
-            <button key={t.tab} type="button" aria-current={t.tab === tab ? 'page' : undefined} onClick={() => t.tab !== tab && onNavigate(t.tab)}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        {tab !== null && (
+          <nav aria-label="Main" className="v3-tabs">
+            {TABS.map((t) => (
+              <button key={t.tab} type="button" aria-current={t.tab === tab ? 'page' : undefined} onClick={() => t.tab !== tab && onNavigate(t.tab)}>
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
-      {children}
+      <SlotContext value={slot}>{children}</SlotContext>
+      <div ref={setSlot} className="v3-slot" />
     </div>
   );
+}
+
+/**
+ * The sticky action bar. Inside an AppShell it moves to the slot after main, so it spans the page and never covers content.
+ * Without a shell (a unit test of one screen) it stays where it is declared.
+ */
+function Actions({ label, children }: { label?: string; children: ReactNode }) {
+  const slot = useContext(SlotContext);
+  const bar = <ActionsBar label={label}>{children}</ActionsBar>;
+  return slot ? createPortal(bar, slot) : bar;
 }
 
 function Main({ children }: { children: ReactNode }) {

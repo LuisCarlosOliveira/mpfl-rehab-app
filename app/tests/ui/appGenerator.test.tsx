@@ -90,7 +90,7 @@ describe('Create my plan, in the whole app', () => {
     expect(await loadStoredProtocol(db, 'demo')).toBeNull();
     expect(await loadGeneratorInputs(db)).toBeNull();
     click('Confirm');
-    await heading('Home');
+    await heading('Today');
     const stored = await loadStoredProtocol(db, 'demo');
     expect(stored?.ok && stored.protocol.generated?.on).toBe('2026-11-08');
     expect(stored?.ok && stored.protocol.approvedOn).toBeUndefined();
@@ -133,10 +133,10 @@ describe('Create my plan, in the whole app', () => {
   it('keeps the plan after a reload, with the banner', async () => {
     const { db, unmount } = await toConfirm();
     click('Confirm');
-    await heading('Home');
+    await heading('Today');
     unmount();
     render(<App db={db} mode="demo" source={mockSource()} now={NOW} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.getByText(GENERATED_BANNER)).toBeInTheDocument();
   });
 
@@ -209,7 +209,7 @@ describe('Update my plan, in the whole app', () => {
   async function openHomeWithPlan() {
     const ctx = await toConfirm();
     click('Confirm');
-    await heading('Home');
+    await heading('Today');
     return ctx;
   }
   const fillToday = () => {
@@ -230,7 +230,7 @@ describe('Update my plan, in the whole app', () => {
     expect(screen.getByText(/Knee-bend limit in your plan/)).toBeInTheDocument();
     expect((await db.protocol.get('current'))!.raw).toBe(before);
     click('Keep my plan');
-    await heading('Home');
+    await heading('Today');
     expect((await db.protocol.get('current'))!.raw).toBe(before);
   });
 
@@ -243,7 +243,7 @@ describe('Update my plan, in the whole app', () => {
     click('Check my plan');
     await heading('Confirm the change');
     click('Confirm');
-    await heading('Home');
+    await heading('Today');
     const r = await loadStoredProtocol(db, 'demo');
     expect(r?.ok && r.protocol.phases[0]!.exercises.find((e) => e.kind === 'heel-slide')?.maxFlexion).toBe(50);
     expect(await loadGeneratorInputs(db)).toMatchObject({ surgeonLimit: { kind: 'degrees', degrees: 50 } });
@@ -254,7 +254,7 @@ describe('Update my plan, in the whole app', () => {
     unmount();
     const later = () => new Date(2026, 11, 20, 10, 0, 0); // week 9 after surgery
     render(<App db={db} mode="demo" source={mockSource()} now={later} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.getByText('1, Protection')).toBeInTheDocument();
     const r = await loadStoredProtocol(db, 'demo');
     expect(r?.ok && r.protocol.activePhase).toBe(1);
@@ -267,7 +267,7 @@ describe('Update my plan, in the whole app', () => {
     unmount();
     const later = () => new Date(2026, 11, 20, 10, 0, 0);
     render(<App db={db} mode="demo" source={mockSource()} now={later} />);
-    await heading('Home');
+    await heading('Today');
     click('Update my plan');
     await screen.findByRole('button', { name: 'Check my plan' });
     fillToday();
@@ -281,7 +281,7 @@ describe('Update my plan, in the whole app', () => {
     expect(screen.getByText('Ask your care team about the next stage.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
     click('Keep my plan');
-    await heading('Home');
+    await heading('Today');
     expect((await db.protocol.get('current'))!.raw).toBe(before);
   });
 
@@ -290,7 +290,7 @@ describe('Update my plan, in the whole app', () => {
     unmount();
     const review = () => new Date(2026, 10, 26, 10, 0, 0); // the surgery date plus 6 weeks
     render(<App db={db} mode="demo" source={mockSource()} now={review} />);
-    await heading('Home');
+    await heading('Today');
     expect(screen.getByText('Review your plan with your care team')).toBeInTheDocument();
     click('Update my plan');
     await heading('Update my plan');
@@ -317,7 +317,7 @@ describe('Pain stop between sets, with the threshold of the protocol (T24a wirin
     await saveProtocol(db, protocolText({ phases: [{ id: 1, name: 'Protection', exercises: [heel] }], ...over }), 'demo');
     const source = mockSource();
     render(<App db={db} mode="demo" source={source} now={NOW} />);
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     await heading('Check before you exercise');
     click(/none of these apply/i);
@@ -416,12 +416,12 @@ describe('Back of the browser inside the questions', () => {
     markPrivacyNoticeSeen();
     await saveProtocol(db, protocolText(), 'demo');
     render(<App db={db} mode="demo" source={mockSource()} now={NOW} />);
-    await heading('Home');
+    await heading('Today');
     click('Load a new protocol file');
     await heading('Load protocol file');
     click('Create my plan');
     await heading('You and your surgery');
     await browserBack();
-    await heading('Home');
+    await heading('Today');
   });
 });

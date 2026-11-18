@@ -67,7 +67,7 @@ test('every track is ended after Cancel (navigating Home) from Setup', async ({ 
   await startCamera(page);
   expect(await trackStates(page)).toContain('video:live');
   await page.getByRole('button', { name: 'Cancel' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   const states = await trackStates(page);
   expect(states.length).toBeGreaterThan(0);
   expect(states.every((s) => s === 'video:ended')).toBe(true);

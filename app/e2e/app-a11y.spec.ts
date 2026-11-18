@@ -30,7 +30,7 @@ export const SCREENS: Screen[] = [
     },
   },
   { name: 'Load protocol', h1: 'Load protocol file', go: toLoad },
-  { name: 'Home', h1: 'Home', go: toHome },
+  { name: 'Home', h1: 'Today', go: toHome },
   { name: 'RedFlag', h1: 'Check before you exercise', go: toRedFlag },
   {
     name: 'RedFlag, blocked',
@@ -70,7 +70,7 @@ export const SCREENS: Screen[] = [
     h1: 'Your sessions',
     go: async (page) => {
       await saveOneSession(page);
-      await page.getByRole('button', { name: 'Your sessions' }).click();
+      await page.getByRole('button', { name: 'Sessions' }).click();
       await expectScreen(page, 'Your sessions');
       await expect(page.locator('.dash-chart-box svg').first()).toBeVisible();
     },

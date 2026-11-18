@@ -212,7 +212,7 @@ test('Cancel in the pairing step closes the connection and the camera', async ({
   const a = await newPage(browser, baseURL!);
   await laptopOffer(a.page);
   await a.page.getByRole('button', { name: 'Cancel' }).click();
-  await expectScreen(a.page, 'Home');
+  await expectScreen(a.page, 'Today');
   const states = await a.page.evaluate(() => window.__pair.pcs.map((p) => p.pc.connectionState));
   expect(states.length).toBeGreaterThan(0);
   expect(states.every((s) => s === 'closed')).toBe(true);
@@ -325,12 +325,12 @@ test('Home has the phone button as a secondary action, and the phone screen open
   await page.goto('/');
   await page.getByRole('button', { name: 'I understand' }).click();
   await page.getByLabel('Choose a file from your care team').setInputFiles('src/lib/protocol/example-protocol.json');
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
   await expect(page.getByRole('button', { name: PHONE_BUTTON })).toBeVisible();
   await page.getByRole('button', { name: PHONE_BUTTON }).click();
   await expectScreen(page, PHONE_BUTTON);
   await expect(page.getByRole('heading', { name: 'Check before you exercise' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^\W*Stop$/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Back' }).click();
-  await expectScreen(page, 'Home');
+  await expectScreen(page, 'Today');
 });

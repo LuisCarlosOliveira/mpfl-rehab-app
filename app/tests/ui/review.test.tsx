@@ -25,7 +25,7 @@ async function homeWithProtocol(mode: 'demo' | 'patient' = 'demo') {
   await saveProtocol(db, protocolText(), mode);
   const source = mockSource();
   render(<App db={db} mode={mode} source={source} />);
-  await heading('Home');
+  await heading('Today');
   return { db, source };
 }
 
@@ -50,7 +50,7 @@ describe('red-flag check before every start', () => {
     click('Start camera');
     await screen.findByRole('button', { name: 'Start exercise' });
     click('Cancel');
-    await heading('Home');
+    await heading('Today');
     expect(source.stop).toHaveBeenCalled();
     click('Start Heel slide');
     await heading('Check before you exercise');
@@ -69,7 +69,7 @@ describe('FR12 through the whole app', () => {
     // The block stays for the visit. Only Back to Home and a new start go on.
     expect(screen.getByRole('button', { name: /none of these apply/i })).toBeDisabled();
     click('Back to Home');
-    await heading('Home');
+    await heading('Today');
     click('Start Heel slide');
     click(/none of these apply/i);
     await heading('Set up the camera');
