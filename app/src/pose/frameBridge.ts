@@ -17,6 +17,8 @@ export interface PosesMessage {
 export type WorkerMessage =
   | { type: 'progress'; bytes: number }
   | { type: 'ready' }
+  // The 2-pose model of the probe is made. The probe frames carry `extra` from now on.
+  | { type: 'probe-ready' }
   | { type: 'failed' }
   // `extra` holds the other poses. It is there only while the probe of two poses runs.
   | { type: 'result'; timestampMs: number; landmarks: Landmark[] | null; extra?: Landmark[][] };
@@ -34,6 +36,8 @@ export interface FrameBridgeOptions {
   onResult: (landmarks: Landmark[] | null, timestampMs: number, extra?: Landmark[][]) => void;
   /** The size of each chunk of the model files that the worker loads. */
   onProgress?: (bytes: number) => void;
+  /** The worker has the 2-pose model of the probe ready (it makes the model at the first probe). */
+  onProbeReady?: () => void;
   /** The worker failed after the start. The bridge is closed then. */
   onFail: () => void;
 }
@@ -43,7 +47,7 @@ export interface FrameBridgeOptions {
  * Gives null when the browser has no Worker or no way to make a picture of a frame (the caller then uses the main thread).
  * Rejects when the worker cannot start or the model does not load in it.
  */
-export function createFrameBridge({ onResult, onProgress, onFail }: FrameBridgeOptions): Promise<FrameBridge | null> {
+export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }: FrameBridgeOptions): Promise<FrameBridge | null> {
   const picture = globalThis.createImageBitmap?.bind(globalThis); // claims-check:allow
   if (typeof Worker === 'undefined' || !picture) return Promise.resolve(null);
   return new Promise((resolve, reject) => {
@@ -91,6 +95,7 @@ export function createFrameBridge({ onResult, onProgress, onFail }: FrameBridgeO
     worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
       if (closed) return;
       if (data.type === 'progress') onProgress?.(data.bytes);
+      else if (data.type === 'probe-ready') onProbeReady?.();
       else if (data.type === 'failed') fail();
       else if (data.type === 'ready') {
         started = true;

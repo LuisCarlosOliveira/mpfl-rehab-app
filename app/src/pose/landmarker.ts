@@ -1,4 +1,5 @@
-// MediaPipe PoseLandmarker: lite model, VIDEO mode, 1 pose. A probe of 2 poses runs for a short time only (setPoses, B5-02).
+// MediaPipe PoseLandmarker: lite model, VIDEO mode, 1 pose. A probe of 2 poses runs for a short time only (B5-02).
+// The worker runs the probe on a second instance of 2 poses, so the tracking instance never rebuilds (skeleton fix A).
 // The WASM files and the model come from the own origin (public/models/).
 // Hashes of these files are in public/models/SHA256SUMS and docs/model.md.
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
@@ -68,8 +69,8 @@ function releaseFetchGuard() {
   original = undefined;
 }
 
-/** `onProgress` is optional. It gets the size of each chunk of the files that load from the own origin. */
-export async function createLandmarker(onProgress?: (bytes: number) => void): Promise<Landmarker> {
+/** `onProgress` is optional. It gets the size of each chunk of the files that load from the own origin. `poses` is 1, or 2 for the probe instance. */
+export async function createLandmarker(onProgress?: (bytes: number) => void, poses: 1 | 2 = 1): Promise<Landmarker> {
   users += 1;
   blockForeignFetch();
   onBytes = onProgress;
@@ -79,7 +80,7 @@ export async function createLandmarker(onProgress?: (bytes: number) => void): Pr
     pose = await PoseLandmarker.createFromOptions(fileset, {
       baseOptions: { modelAssetPath: MODEL_PATH },
       runningMode: 'VIDEO',
-      numPoses: 1,
+      numPoses: poses,
     });
   } catch (err) {
     onBytes = undefined;

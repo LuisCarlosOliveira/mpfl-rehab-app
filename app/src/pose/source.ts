@@ -43,6 +43,9 @@ const MODEL_ERROR: CameraError = {
 };
 const STOPPED: CameraError = { kind: 'other', message: 'The camera was stopped.' };
 const DEFAULT_ASPECT = 16 / 9;
+// ENGINEERING: the worker makes its 2-pose model at the first probe. The probe time of 2000 ms starts when the model is ready, so the
+// probe keeps all its frames. If the model does not come in this time, the probe ends and exercises.ts falls back (B6-01, PROBE_WAIT_MS).
+const PROBE_READY_MAX_MS = 10000;
 const REPORT_EVERY_MS = 200; // the screen gets the byte count at most 5 times each second
 
 // Build flag. VITE_POSE_WORKER=off builds the app with the model on the main thread.
@@ -66,6 +69,7 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
   let loop: ReturnType<typeof startPoseLoop> | null = null;
   let generation = 0;
   let probeTimer: ReturnType<typeof setTimeout> | null = null;
+  let probeMs: number | null = null; // the worker probe waits for its 2-pose model, then runs this long
   let probing = false; // the main-thread model returns two poses
   let extraPoses: Landmark[][] | undefined; // a stop() during an await makes the older start() give up
 
@@ -74,18 +78,26 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
     loop = null;
   };
 
-  const endProbe = () => {
+  const armProbeEnd = (ms: number) => {
+    if (probeTimer !== null) clearTimeout(probeTimer);
+    probeMs = null;
+    probeTimer = setTimeout(endProbe, ms);
+  };
+
+  function endProbe() {
     if (probeTimer !== null) clearTimeout(probeTimer);
     probeTimer = null;
+    probeMs = null;
     probing = false;
     extraPoses = undefined;
     if (bridge) bridge.setPoses(1);
     else void landmarker?.setPoses(1);
-  };
+  }
 
   const release = () => {
     if (probeTimer !== null) clearTimeout(probeTimer);
     probeTimer = null;
+    probeMs = null;
     probing = false;
     generation += 1;
     stopLoop();
@@ -137,6 +149,9 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
             const made = await createFrameBridge({
               onResult: (landmarks, timeMs, extra) => (extra ? handler?.(landmarks, timeMs, extra) : handler?.(landmarks, timeMs)),
               onProgress: report,
+              onProbeReady: () => {
+                if (probeMs !== null) armProbeEnd(probeMs);
+              },
               onFail: release,
             }).catch(() => null); // no worker, or it cannot start: use the main thread
             if (mine !== generation) {
@@ -187,9 +202,14 @@ export function cameraSource({ view = 'side', worker = WORKER_DEFAULT, ...camera
       if (!bridge && !landmarker) return;
       if (probeTimer !== null) clearTimeout(probeTimer);
       probing = !bridge; // the main-thread loop reads this
-      if (bridge) bridge.setPoses(2);
-      else void landmarker?.setPoses(2);
-      probeTimer = setTimeout(endProbe, ms);
+      if (bridge) {
+        probeMs = ms;
+        bridge.setPoses(2);
+        probeTimer = setTimeout(endProbe, PROBE_READY_MAX_MS); // onProbeReady replaces this timer with the one of `ms`
+      } else {
+        void landmarker?.setPoses(2);
+        probeTimer = setTimeout(endProbe, ms);
+      }
     },
     aspect() {
       return element && element.videoWidth > 0 && element.videoHeight > 0

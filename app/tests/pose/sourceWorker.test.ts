@@ -1,5 +1,5 @@
 // The camera source uses the pose worker when it can, and the main-thread landmarker when it cannot.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const camera = vi.hoisted(() => ({ startCamera: vi.fn(), stopCamera: vi.fn() }));
 const landmarker = vi.hoisted(() => ({ createLandmarker: vi.fn() }));
@@ -13,14 +13,14 @@ vi.mock('../../src/pose/loop', () => loop);
 import { cameraSource, type StartProgress } from '../../src/pose/source';
 
 const fakeStream = () => ({ getTracks: () => [{ stop: vi.fn(), readyState: 'live' }] }) as unknown as MediaStream;
-let bridge: { submit: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
-let bridgeOptions: { onResult: (lm: unknown, t: number) => void; onProgress?: (b: number) => void; onFail: () => void };
+let bridge: { submit: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn>; setPoses: ReturnType<typeof vi.fn> };
+let bridgeOptions: { onResult: (lm: unknown, t: number) => void; onProgress?: (b: number) => void; onProbeReady?: () => void; onFail: () => void };
 let model: { detect: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
 let loopStop: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  bridge = { submit: vi.fn(), close: vi.fn() };
+  bridge = { submit: vi.fn(), close: vi.fn(), setPoses: vi.fn() };
   model = { detect: vi.fn(() => null), close: vi.fn() };
   loopStop = vi.fn();
   camera.startCamera.mockResolvedValue({ ok: true, stream: fakeStream() });
@@ -130,5 +130,34 @@ describe('cameraSource falls back to the main thread', () => {
     const result = await cameraSource().start(vi.fn());
     expect(result.ok).toBe(false);
     expect(camera.stopCamera).toHaveBeenCalled();
+  });
+
+  describe('probe with the worker', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('counts the probe time from the moment the 2-pose model is ready, so the probe frames are not lost while it loads', async () => {
+      const source = cameraSource();
+      await source.start(vi.fn(), document.createElement('video'));
+      source.probe!(2000);
+      expect(bridge.setPoses).toHaveBeenCalledExactlyOnceWith(2);
+      vi.advanceTimersByTime(3000); // the model loads for 3 s: the probe goes on
+      expect(bridge.setPoses).toHaveBeenCalledTimes(1);
+      bridgeOptions.onProbeReady!();
+      vi.advanceTimersByTime(1999);
+      expect(bridge.setPoses).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1);
+      expect(bridge.setPoses).toHaveBeenLastCalledWith(1);
+    });
+
+    it('ends the probe after a limit when the 2-pose model never comes', async () => {
+      const source = cameraSource();
+      await source.start(vi.fn(), document.createElement('video'));
+      source.probe!(2000);
+      vi.advanceTimersByTime(9999);
+      expect(bridge.setPoses).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(1);
+      expect(bridge.setPoses).toHaveBeenLastCalledWith(1);
+    });
   });
 });
