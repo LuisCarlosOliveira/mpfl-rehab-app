@@ -695,6 +695,124 @@
 .v2-check .check-row:last-child {
   border-bottom: 0;
 }
+/* Where you are: three facts side by side on a wide screen, one under the other on a small screen. */
+.v2-check .check-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--s-3) var(--s-5);
+  margin: var(--s-5) 0 0;
+  padding: var(--s-3) 0;
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.v2-check .check-facts dt {
+  font-size: var(--step-m1);
+  color: var(--muted);
+}
+.v2-check .check-facts dd {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+/* Your last sessions: one line each. The date has a fixed width, so the exercise names line up. */
+.v2-check .check-sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.v2-check .check-sessions li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  column-gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.v2-check .check-sessions li:last-child {
+  border-bottom: 0;
+}
+.v2-check .check-sessions .num {
+  grid-row: span 2;
+  font-variant-numeric: tabular-nums;
+}
+.v2-check .check-sessions .check-name {
+  font-weight: 700;
+}
+.v2-check .check-sessions .check-name::first-letter {
+  text-transform: uppercase;
+}
+.v2-check .check-sessions .check-angle {
+  grid-column: 2;
+}
+.v2-check .check-sessions .check-measure {
+  grid-column: 2;
+}
+@media (min-width: 40rem) {
+  .v2-check .check-sessions li {
+    grid-template-columns: 7.5rem 12rem 1fr;
+  }
+  .v2-check .check-sessions .num {
+    grid-row: auto;
+  }
+  .v2-check .check-sessions .check-measure,
+  .v2-check .check-sessions .check-angle {
+    grid-column: auto;
+  }
+  .v2-check .check-sessions .check-angle {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .v2-check .check-sessions .check-measure {
+    grid-column: 3;
+  }
+}
+/* Guidelines the app cannot measure: closed until the person opens it. */
+.v2-check .check-more {
+  margin-top: var(--s-5);
+  border-top: 3px solid var(--ink);
+  padding-top: var(--s-2);
+}
+.v2-check .check-more > summary {
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  font-size: var(--step-1);
+  font-weight: 800;
+  cursor: pointer;
+}
+.v2-check .check-more > summary::-webkit-details-marker {
+  display: none;
+}
+.v2-check .check-more > summary .chev {
+  display: inline-flex;
+  color: var(--muted);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.v2-check .check-more[open] > summary .chev {
+  transform: rotate(180deg);
+}
+.v2-check .check-more[open] > summary {
+  margin-bottom: var(--s-3);
+}
+.v2-check .check-weeks {
+  display: grid;
+  gap: var(--s-1);
+  margin-bottom: var(--s-4);
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+.v2-check .check-weeks h3 {
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 750;
+}
+.v2-check .check-weeks p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 /* The three types differ by the edge of the label, so the difference does not depend on colour. */
 .v2-check .check-row[data-type='reported'] .chip {
   background: transparent;
@@ -706,4 +824,10 @@
 }
 .v2-check > .actions {
   margin-top: var(--s-5);
+}
+
+/* The date of surgery in words, under the date field. */
+.v2-screens .date-words {
+  margin: var(--s-1) 0 0;
+  font-weight: 650;
 }

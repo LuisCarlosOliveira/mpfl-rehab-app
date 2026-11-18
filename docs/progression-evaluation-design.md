@@ -113,10 +113,14 @@ The text "You are in week N" shows the real week. After week 11 the card shows `
 - Heading: `Check my progress`
 - Lede: `This page shows your numbers next to published guidelines. The app changes nothing until you press Confirm on a plan.`
 - Line under the lede: `Not approved by a clinician.`
-- Section "Time": `You are in week 8 after your surgery. Phase 1 covers weeks 0 to 6 (S1, P3). Phase 2 starts from week 7. Week 7 is a boundary that the app sets. You must report that your care team said you can start phase 2.`
+- Top block (after the safety events): `Week 2 (the third week after surgery)`, the phase, and `Date of surgery used` in words (for example `29 October 2026`). Week 2 means two whole weeks are complete. The rule of `weeksSince` is unchanged. A line says that the date is changed in Update my plan.
+- Notices: no date, no plan after week 11, and the clearance report from week 7. The guideline lines (`Phase 1 covers weeks 0 to 6 (S1, P3).`, phase 2, the week 4 check of P1) sit in the details below.
+- Section `Your last sessions`: the newest sessions, one line each: date, exercise, measured number. A camera angle carries `estimated angle, not a medical measurement`.
+- Section `What the app can check`: the measured rows E1, E8, E9 and E11. A heel slide row with no heel slide says `No heel slide done yet`.
+- Details `Guidelines the app cannot measure`: closed. It holds the weeks lines and the rows of the type `Reported by you` and `The app cannot measure this` (E2 to E7, E10, E12).
 - Type labels: `Measured by the app`, `Reported by you`, `The app cannot measure this`.
 - Row E1: `Knee bend, heel slide, last session: 84 degrees (estimated angle, not a medical measurement). Camera error: plus or minus 9 degrees. S1 lists knee flexion greater than 110 degrees. Cannot tell, the difference is smaller than the camera error.`
-- Row E5: `Pain after each session since your plan date: 2, 3, 2 (0 to 10). No number in the guideline for pain after a session.`
+- Row E5: one line for each of the last pain answers: `2026-11-05, heel slide: pain 2 out of 10 after the session.` Then: `No number in the guideline for pain after a session.`
 - Row E7: `Swelling since your plan date: none 3 times, some 1 time, more than before 0 times.`
 - Row E9: `Reps, straight leg raise, last session: 2 sets of 8. Your plan: 2 sets of 10. No number in the guideline for a minimum.`
 - Row E2: `Full knee extension (S1): The app cannot measure this. Ask your care team.`

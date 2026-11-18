@@ -60,6 +60,32 @@ const check = async () => {
   fireEvent.click(await ready());
 };
 
+describe('UpdatePlan, the date of surgery', () => {
+  it('asks the date with the stored value, and shows it in words', async () => {
+    await setup({ surgeryDate: '2026-10-29' }, { today: '2026-11-18' });
+    await ready();
+    expect((screen.getByLabelText('Date of surgery') as HTMLInputElement).value).toBe('2026-10-29');
+    expect(screen.getByText('You chose 29 October 2026, week 2 (the third week after surgery).')).toBeInTheDocument();
+  });
+  it('uses the corrected date for the new check, and keeps the other answers', async () => {
+    const { onDone } = await setup({ surgeryDate: '2026-10-15' }, { today: '2026-11-18' });
+    await ready();
+    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '2026-10-29' } });
+    answerToday();
+    await check();
+    expect(onDone.mock.calls[0]![0].inputs).toMatchObject({ surgeryDate: '2026-10-29', side: 'left' });
+  });
+  it('closes Check my plan for an empty date or a date in the future, and does not use today', async () => {
+    await setup({}, { today: '2026-11-18' });
+    await ready();
+    answerToday();
+    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '' } });
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Date of surgery'), { target: { value: '2026-12-01' } });
+    expect(screen.getByRole('button', { name: 'Check my plan' })).toBeDisabled();
+  });
+});
+
 describe('UpdatePlan, the form', () => {
   it('has the heading and the questions, with the stored limit preselected', async () => {
     await setup();

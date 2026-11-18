@@ -7,7 +7,7 @@ import { describeChanges, draftOf, eventsSince, gaveWaySince, holdTextFor, loses
 import type { Protocol } from '../lib/protocol';
 import { generateProtocol, type GeneratorInputs } from '../lib/protocolGen';
 import { loadGeneratorInputs, readValidRows, type MpflDb, type StoredInputs } from '../lib/storage';
-import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SwellingChoice, YES_NO_UNKNOWN } from './answerControls';
+import { ChoiceGroup, GATE_QUESTIONS, LimitChoice, RedFlagChecklist, SurgeryDateField, SwellingChoice, YES_NO_UNKNOWN } from './answerControls';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PainScale } from './PainScale';
@@ -95,7 +95,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
 
   const { stored, events, gaveWay } = loaded;
   const set = (patch: Partial<Answers>) => setForm((f) => ({ ...f, ...patch }));
-  const week = weeksSince(stored.surgeryDate ?? '', today);
+  const week = weeksSince(form.surgeryDate, today);
   const asked = clearanceAsked(form, today);
   const limitReady = form.limitKind === 'degrees' ? limitNumber(form.limitDegrees) !== null : form.limitKind !== null;
   const gates = gatesAsked(form, today);
@@ -106,6 +106,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
     const degrees = limitNumber(form.limitDegrees);
     const inputs: GeneratorInputs = {
       ...stored,
+      surgeryDate: form.surgeryDate,
       surgeonLimit: form.limitKind === 'degrees' && degrees !== null ? { kind: 'degrees', degrees } : { kind: form.limitKind === 'none' ? 'none' : 'unknown' },
       phaseClearance: asked ? (form.phaseClearance ?? 'unknown') : 'no',
       walksWithoutCrutches: gates ? (form.walksWithoutCrutches ?? 'unknown') : 'unknown',
@@ -132,6 +133,12 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
       {head}
       <div className="stack">
         <p className="lede">The app checks your plan again from today&apos;s date. The app changes nothing until you press Confirm.</p>
+
+        <section className="stack-s" aria-labelledby="update-date">
+          <h2 id="update-date">Surgery date</h2>
+          <SurgeryDateField value={form.surgeryDate} today={today} onChange={(surgeryDate) => set({ surgeryDate })} />
+          <p className="detail">Change the date here if it is not right. The weeks and the plan follow this date.</p>
+        </section>
 
         <section className="stack-s" aria-labelledby="update-flags">
           <h2 id="update-flags">Do any of these apply today?</h2>

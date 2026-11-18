@@ -1,6 +1,7 @@
 // The answer controls that the questions share: a radio group of cards, the limit question, the swelling question
 // and the red-flag tick list. Onboarding and "Update my plan" use them, so the two screens ask in the same way.
-import { limitProblem } from '../lib/onboarding';
+import { limitProblem, surgeryDateProblem } from '../lib/onboarding';
+import { surgeryDateWords } from '../lib/planView';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, type RedFlagGroup } from '../lib/redflags';
 import type { SwellingAnswer } from '../lib/safety';
 import { Icon, type IconName } from './Icon';
@@ -35,6 +36,41 @@ export function ChoiceGroup({ name, legend, showLegend = false, value, choices, 
         ))}
       </div>
     </fieldset>
+  );
+}
+
+/**
+ * The date of surgery. The field shows the date in the format of the browser. The line under it says the same date in words,
+ * so a date that the browser set by itself (for example the Today button of the calendar) is visible before the person goes on.
+ * Onboarding and "Update my plan" use it. An empty or invalid date stays as it is. The app never uses today instead.
+ */
+export function SurgeryDateField({ value, today, onChange }: { value: string; today: string; onChange: (value: string) => void }) {
+  const problem = surgeryDateProblem(value, today);
+  const words = problem === null ? surgeryDateWords(value, today) : null;
+  return (
+    <div className="field choices">
+      <label htmlFor="surgery-date">Date of surgery</label>
+      <input
+        id="surgery-date"
+        className="text-input"
+        type="date"
+        max={today}
+        value={value}
+        aria-invalid={problem !== null}
+        aria-describedby={problem !== null ? 'surgery-date-problem' : words !== null ? 'surgery-date-words' : undefined}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {problem !== null && (
+        <p id="surgery-date-problem" className="detail" role="alert">
+          {problem}
+        </p>
+      )}
+      {words !== null && (
+        <p id="surgery-date-words" className="date-words" role="status">
+          {`You chose ${words}.`}
+        </p>
+      )}
+    </div>
   );
 }
 

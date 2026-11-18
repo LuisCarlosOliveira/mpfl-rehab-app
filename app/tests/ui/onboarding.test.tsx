@@ -60,6 +60,49 @@ function walk(date = '2026-10-15', extra: () => void = () => undefined) {
   extra();
 }
 
+describe('Onboarding, the date that the person sees is the date that the app keeps', () => {
+  const toDate = () => {
+    setup();
+    referralQuestions();
+  };
+  it('shows the chosen date in words under the field, with the week', () => {
+    toDate();
+    expect(screen.queryByText(/You chose/)).toBeNull();
+    type('Date of surgery', '2026-10-29');
+    expect(screen.getByText('You chose 29 October 2026, week 1 (the second week after surgery).')).toBeInTheDocument();
+  });
+  it('shows the date in words on Check your answers, so a wrong date is visible', () => {
+    setup({ today: '2026-11-18' });
+    referralQuestions();
+    type('Date of surgery', '2026-10-29'); next();
+    choose('Left'); next();
+    choose(/Yes, my limit is/); type('Limit in degrees', '60'); next();
+    next();
+    choose('2'); choose('No swelling'); next();
+    expect(h1()).toBe('Check your answers');
+    expect(screen.getByText('29 October 2026, week 2 (the third week after surgery)')).toBeInTheDocument();
+  });
+  it('keeps the date of the field in the stored answers, and never today', () => {
+    const { onDone } = setup({ today: '2026-11-18' });
+    referralQuestions();
+    type('Date of surgery', '2026-10-29'); next();
+    choose('Left'); next();
+    choose(/Yes, my limit is/); type('Limit in degrees', '60'); next();
+    next();
+    choose('2'); choose('No swelling'); next();
+    fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
+    expect(onDone.mock.calls[0]![0].inputs.surgeryDate).toBe('2026-10-29');
+  });
+  it('does not replace an empty or invalid date by today: Next stays closed and no words show', () => {
+    toDate();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    type('Date of surgery', '2026-11-30'); // after today
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(screen.queryByText(/You chose/)).toBeNull();
+    expect(screen.getByText('The date of your surgery cannot be in the future. Enter the date of your surgery.')).toBeInTheDocument();
+  });
+});
+
 describe('Onboarding, one question for each screen', () => {
   it('starts with the first referral question and counts the questions', () => {
     setup();
@@ -234,7 +277,7 @@ describe('Onboarding, the summary and the plan', () => {
     walk();
     expect(h1()).toBe('Check your answers');
     expect(screen.getAllByRole('button', { name: /^Change/ }).length).toBeGreaterThanOrEqual(11);
-    expect(screen.getByText('2026-10-15')).toBeInTheDocument();
+    expect(screen.getByText('15 October 2026, week 3 (the fourth week after surgery)')).toBeInTheDocument();
     expect(screen.getByText('60 degrees')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Make my plan' }));
     expect(onDone).toHaveBeenCalledTimes(1);
