@@ -616,6 +616,8 @@ async function runScreen(browser, screen, sink, progress) {
       try {
         await screen.go(page);
         await page.waitForTimeout(400);
+        // Axe must not sample a colour in the middle of a transition.
+        await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
         const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze();
         res.axe[key] = axe.violations.map((v) => ({ id: v.id, impact: v.impact, tags: v.tags.filter((t) => /wcag\d|best/.test(t)), nodes: v.nodes.map((n) => n.target.join(' ')) }));
         res.contrast[key] = await page.evaluate(inPageContrast);
