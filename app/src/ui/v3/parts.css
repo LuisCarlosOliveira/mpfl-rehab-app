@@ -1,0 +1,622 @@
+/* v3 parts. Hand-written CSS on the tokens of tokens.css. No library.
+   Motion (design doc section 8): press feedback 120 ms on transform, hover and choice change on background-color.
+   Never "transition: all". Reduced motion removes the scale and keeps the colour change.
+   Grids use minmax(0, 1fr) and text wraps, so nothing grows wider than its box (break-ui cases in the doc, 7.3). */
+@import './tokens.css';
+
+.v3 {
+  box-sizing: border-box;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+.v3 *,
+.v3 *::before,
+.v3 *::after {
+  box-sizing: inherit;
+}
+.v3 :is(h1, h2, p, fieldset, legend, ol) {
+  margin: 0;
+}
+.v3 :is(h1, h2) {
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.v3 p {
+  text-wrap: pretty;
+}
+.v3 :is(a, button, label, input) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: var(--tap);
+}
+.v3 :focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Shell ---------- */
+.v3-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  scroll-padding-bottom: 9rem;
+}
+.v3-skip {
+  position: absolute;
+  left: var(--v3-s2);
+  top: -6rem;
+  z-index: 5;
+  padding: var(--v3-s2) var(--v3-s4);
+  border-radius: var(--v3-r-control);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 700;
+}
+.v3-skip:focus {
+  top: var(--v3-s2);
+}
+.v3-banner {
+  display: flex;
+  justify-content: center;
+  padding: var(--v3-s2) max(var(--v3-s4), env(safe-area-inset-right)) var(--v3-s2) max(var(--v3-s4), env(safe-area-inset-left));
+  background: var(--banner-bg);
+  color: var(--banner-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.v3-banner p {
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+.v3-appbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--v3-s1) var(--v3-s4);
+  width: 100%;
+  max-width: var(--v3-width);
+  margin-inline: auto;
+  padding: var(--v3-s3) var(--v3-s5);
+}
+.v3-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--v3-s2);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.v3-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.v3-tabs {
+  display: flex;
+  gap: var(--v3-s1);
+}
+.v3-tabs button {
+  min-height: var(--v3-target);
+  padding: 0 var(--v3-s4);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: background-color var(--v3-press) var(--v3-ease);
+}
+.v3-tabs button[aria-current] {
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+.v3-main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--v3-width);
+  margin-inline: auto;
+  padding: var(--v3-s3) var(--v3-s5) var(--v3-s7);
+}
+.v3-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--v3-s5);
+  align-items: start;
+}
+.v3-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: var(--v3-s2);
+  padding-block: var(--v3-s3) max(var(--v3-s3), env(safe-area-inset-bottom));
+  padding-inline: max(var(--v3-s4), env(safe-area-inset-left), calc((100% - var(--v3-width)) / 2 + var(--v3-s5))) max(var(--v3-s4), env(safe-area-inset-right), calc((100% - var(--v3-width)) / 2 + var(--v3-s5)));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* ---------- Live shell ---------- */
+.v3-live {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--v3-s4) var(--v3-s5);
+  align-items: start;
+  align-content: start; /* main grows to the page height: do not spread the extra space over the rows */
+}
+.v3-cam {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - 14rem);
+  margin-inline: auto;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--v3-r-cam);
+  background: var(--cam);
+}
+.v3-cam > :is(svg, video, canvas) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.v3-cam .v3-chip {
+  position: absolute;
+  top: var(--v3-s3);
+  left: var(--v3-s3);
+  max-width: calc(100% - 1.5rem);
+}
+.v3-live-panel {
+  display: grid;
+  gap: var(--v3-s4);
+  min-width: 0;
+}
+
+/* ---------- Header and progress ---------- */
+.v3-exhead {
+  display: grid;
+  gap: var(--v3-s2);
+  min-width: 0;
+}
+.v3-exhead h1 {
+  font-size: clamp(1.75rem, 1.2rem + 1.7vw, 2.25rem);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.v3-eyebrow {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.v3-progress {
+  display: grid;
+  gap: var(--v3-s2);
+}
+.v3-segs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.v3-segs i {
+  height: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--sunken);
+}
+.v3-segs i[data-seg='done'] {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.v3-segs i[data-seg='now'] {
+  border: 2px solid var(--primary);
+  background: var(--primary-soft);
+}
+.v3-progress-text {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Big number ---------- */
+.v3-metric {
+  min-width: 0;
+  padding: var(--v3-s4) var(--v3-s5);
+}
+.v3-metric-label {
+  color: var(--muted);
+  font-weight: 700;
+}
+.v3-num {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--v3-s3);
+  max-width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.v3-num b {
+  max-width: 100%;
+  font-size: var(--v3-num);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+.v3-metric[data-tone='primary'] .v3-num b {
+  color: var(--primary);
+}
+/* No value: a quiet "--", not two heavy bars that read as a gauge. */
+.v3-metric[data-missing] .v3-num b {
+  color: var(--muted);
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+.v3-num span {
+  color: var(--muted);
+  font-size: 1.25rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.v3-metric-note {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- Plan list ---------- */
+.v3-plan {
+  display: grid;
+  padding: 0;
+  list-style: none;
+}
+.v3-plan li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0 var(--v3-s3);
+  align-items: center;
+  min-height: 4rem;
+  padding: var(--v3-s3) var(--v3-s2);
+  border-top: 1px solid var(--line);
+}
+.v3-plan li:first-child {
+  border-top-color: transparent;
+}
+.v3-plan li[data-status='next'] {
+  border-radius: var(--v3-r-control);
+  border-top-color: transparent;
+  background: var(--primary-soft);
+}
+.v3-dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.35em;
+  border: 2px solid var(--edge);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+li[data-status='done'] > .v3-dot {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--ink);
+}
+li[data-status='next'] > .v3-dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.v3-plan-text {
+  display: grid;
+  min-width: 0;
+}
+.v3-plan-name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.v3-plan-dose {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+.v3-tag {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.v3-plan-action {
+  grid-column: 1 / -1;
+  margin-top: var(--v3-s3);
+}
+.v3-empty {
+  color: var(--muted);
+}
+
+/* ---------- Choice controls: real inputs, the whole label is the hit target ---------- */
+.v3-choice {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+.v3-choice > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+.v3-choice > legend + * {
+  clear: both;
+}
+.v3-seg,
+.v3-radios {
+  margin-top: var(--v3-s2);
+}
+.v3-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border: 2px solid var(--edge);
+  border-radius: var(--v3-r-control);
+}
+.v3-seg-cell,
+.v3-opt {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.v3-seg-cell + .v3-seg-cell {
+  border-left: 2px solid var(--edge);
+}
+.v3-seg-cell input,
+.v3-opt input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.v3-seg-cell > span {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 3rem;
+  padding: var(--v3-s3);
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: background-color var(--v3-press) var(--v3-ease);
+}
+.v3-seg-cell input:checked + span {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.v3-seg-cell input:checked + span::before {
+  content: '\2713\00a0';
+}
+.v3-seg-cell small,
+.v3-opt small {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.v3-radios {
+  display: grid;
+  gap: var(--v3-s2);
+}
+.v3-opt > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--v3-s3);
+  min-height: 3rem;
+  padding: var(--v3-s3) var(--v3-s4);
+  border: 2px solid var(--edge);
+  border-radius: var(--v3-r-control);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  transition: background-color var(--v3-press) var(--v3-ease);
+}
+.v3-opt > span::before {
+  content: '';
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--edge);
+  border-radius: 50%;
+}
+.v3-opt small {
+  flex-basis: 100%;
+  padding-left: calc(1.25rem + var(--v3-s3));
+  color: var(--muted);
+}
+.v3-opt input:checked + span {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.v3-opt input:checked + span::before {
+  border-color: var(--primary);
+  background: radial-gradient(var(--primary) 0 45%, transparent 50%);
+}
+.v3-seg-cell input:focus-visible + span {
+  outline: 3px solid var(--ink);
+  outline-offset: -6px;
+}
+.v3-opt input:focus-visible + span {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.v3-seg-cell input:active:not(:checked) + span,
+.v3-opt input:active:not(:checked) + span {
+  background: var(--primary-soft);
+}
+@media (hover: hover) and (pointer: fine) {
+  .v3-tabs button:hover {
+    background: var(--sunken);
+    color: var(--ink);
+  }
+  .v3-seg-cell:hover input:not(:checked) + span,
+  .v3-opt:hover input:not(:checked) + span {
+    background: var(--sunken);
+  }
+}
+
+/* ---------- Chip ---------- */
+.v3-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #000000aa;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Wide windows ---------- */
+@media (min-width: 56.25rem) {
+  .v3-cols {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+  .v3-live {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+  .v3-live-head {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---------- Narrow windows ---------- */
+@media (max-width: 47.5rem) {
+  .v3-main {
+    padding-inline: var(--v3-s4);
+  }
+  .v3-appbar {
+    padding-inline: var(--v3-s4);
+  }
+  .v3-banner {
+    justify-content: flex-start;
+    font-size: 0.75rem;
+  }
+  .v3-tabs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
+    width: 100%;
+  }
+  .v3-tabs button {
+    min-width: 0;
+    padding-inline: var(--v3-s1);
+  }
+  .v3-metric {
+    padding: var(--v3-s3);
+  }
+  .v3-cam {
+    max-height: none;
+  }
+  /* Three or more cells in a row get too narrow for long words: stack them. */
+  .v3-seg[data-count='3'],
+  .v3-seg[data-count='4'] {
+    grid-auto-flow: row;
+  }
+  .v3-seg[data-count='3'] .v3-seg-cell + .v3-seg-cell,
+  .v3-seg[data-count='4'] .v3-seg-cell + .v3-seg-cell {
+    border-top: 2px solid var(--edge);
+    border-left: 0;
+  }
+}
+
+/* ---------- Press feedback ---------- */
+.v3-tabs button:active {
+  transform: scale(0.97);
+}
+.v3-tabs button {
+  transition: transform var(--v3-press) var(--v3-ease), background-color var(--v3-press) var(--v3-ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .v3-tabs button:active {
+    transform: none;
+  }
+}
+
+/* ---------- Forced colours: fills vanish, so name the system colours ---------- */
+@media (forced-colors: active) {
+  .v3-num b {
+    line-height: 1.15;
+  }
+  .v3-banner {
+    border-bottom: 2px solid CanvasText;
+  }
+  .v3-mark,
+  li[data-status='done'] > .v3-dot,
+  li[data-status='next'] > .v3-dot,
+  .v3-seg-cell input:checked + span,
+  .v3-segs i[data-seg='done'] {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+  .v3-segs i {
+    border-color: CanvasText;
+  }
+  .v3-segs i[data-seg='now'] {
+    border: 3px solid Highlight;
+    background: Canvas;
+  }
+  .v3-plan li[data-status='next'] {
+    outline: 3px solid Highlight;
+  }
+  .v3-tabs button[aria-current] {
+    border: 2px solid Highlight;
+  }
+  .v3-seg,
+  .v3-seg-cell + .v3-seg-cell,
+  .v3-seg[data-count] .v3-seg-cell + .v3-seg-cell,
+  .v3-opt > span,
+  .v3-dot {
+    border-color: CanvasText;
+  }
+  .v3-opt input:checked + span {
+    border-color: Highlight;
+    outline: 2px solid Highlight;
+  }
+  .v3-opt input:checked + span::before {
+    forced-color-adjust: none;
+    background: radial-gradient(Highlight 0 45%, transparent 50%);
+    border-color: Highlight;
+  }
+  .v3-cam,
+  .v3-actions {
+    border: 2px solid CanvasText;
+  }
+  .v3-chip {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+  .v3-skip {
+    border: 2px solid CanvasText;
+  }
+}
