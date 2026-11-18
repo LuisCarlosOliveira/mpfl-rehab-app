@@ -18,7 +18,7 @@ async function load(page: Page, protocol?: string) {
   const input = page.getByLabel("Choose a file from your care team");
   if (protocol === undefined) await input.setInputFiles(EXAMPLE);
   else await input.setInputFiles({ name: "p.json", mimeType: "application/json", buffer: Buffer.from(protocol) });
-  await expectScreen(page, "Home");
+  await expectScreen(page, "Today");
 }
 
 async function toCameraSession(page: Page) {

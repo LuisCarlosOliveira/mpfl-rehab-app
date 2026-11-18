@@ -38,6 +38,14 @@ async function tabAllAboveBar(page: Page, max = 60) {
 async function zoom200(page: Page) {
   await page.evaluate(() => document.documentElement.style.setProperty('font-size', '200%', 'important'));
   await page.waitForTimeout(300); // the bar height is measured in the next frame
+  // On a busy page (the camera runs) that frame can come late. Wait until --bar-h equals the real height of the bar, as the app settles.
+  await page.waitForFunction(() => {
+    let tallest = 0;
+    for (const bar of document.querySelectorAll('.action-bar, .session-bar, .v3-actions, .bottom-nav')) {
+      if (['sticky', 'fixed'].includes(getComputedStyle(bar).position)) tallest = Math.max(tallest, bar.getBoundingClientRect().height);
+    }
+    return getComputedStyle(document.documentElement).getPropertyValue('--bar-h') === `${Math.ceil(tallest)}px`;
+  });
 }
 
 for (const size of SIZES) {
@@ -52,9 +60,6 @@ for (const size of SIZES) {
       });
 
       test('Setup guide', async ({ page }) => {
-        // v3: at 200 percent text on 320 x 568 the sticky live bar takes half of the window (the safety buttons must stay in view).
-        // The last row of the guide then ends 2 px under the bar. The same rows pass at every other size.
-        test.skip(big && size.height <= 568, 'the live bar takes half of a 320 x 568 window at 200 percent text');
         await toSetupGuide(page);
         if (big) await zoom200(page);
         await tabAllAboveBar(page);
@@ -67,7 +72,6 @@ for (const size of SIZES) {
       });
 
       test('Session', async ({ page }) => {
-        test.skip(big && size.height <= 568, 'the live bar takes half of a 320 x 568 window at 200 percent text');
         await toSession(page);
         if (big) await zoom200(page);
         await tabAllAboveBar(page, 20);

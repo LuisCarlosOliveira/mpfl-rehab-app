@@ -311,8 +311,18 @@
     order: 1;
   }
 }
-/* A short phone: smaller numbers so both cards and the bar fit in the first view. */
+/* A short phone: smaller numbers so both cards and the bar fit in the first view.
+   The bar puts two buttons in a row, so three buttons take two rows and not three. It then ends above the status slot (360 x 640). */
 @media (max-height: 41rem) {
+  .v3-actions .session-bar {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  }
+  .v3-actions .session-bar .btn-gave-way:last-child {
+    grid-column: 1 / -1;
+  }
+  .v3-actions {
+    padding-block: var(--v3-s2) max(var(--v3-s2), env(safe-area-inset-bottom));
+  }
   .v3-live-panel {
     --v3-num: min(3.5rem, 21vw);
   }
