@@ -4,8 +4,21 @@
 /* The columns of AppShell give each child its own stack. Each column has a gap and can shrink. */
 .v3h-col {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--v3-s4);
   align-content: start;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Every child of the column can shrink to the column, so a long word wraps and does not widen the page. */
+.v3h-col > *,
+.v3h-home .page-head,
+.v3h-home .contact-card,
+.v3h-home .notice {
+  min-width: 0;
+}
+.v3h-home .page-head > *,
+.v3h-home .notice > div {
   min-width: 0;
 }
 .v3h-single {
@@ -95,6 +108,11 @@
   .v3 .v3-main {
     padding-inline: max(var(--v3-s4), var(--gutter));
   }
+}
+
+/* A form screen (.v3-screen) pads its own children (formsV3.css). Main adds no padding there, or the padding is double. */
+.v3 .v3-main:has(.v3-screen) {
+  padding-inline: 0;
 }
 
 /* Targets of 48 px, like the old screens. The tabs and the single Start buttons are the small ones of the frame. */

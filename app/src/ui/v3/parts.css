@@ -63,7 +63,8 @@
 }
 .v3-banner {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: var(--v3-s2) max(var(--v3-s4), env(safe-area-inset-right)) var(--v3-s2) max(var(--v3-s4), env(safe-area-inset-left));
   background: var(--banner-bg);
   color: var(--banner-ink);
@@ -526,7 +527,7 @@ li[data-status='next'] > .v3-dot {
     padding-inline: var(--v3-s4);
   }
   .v3-banner {
-    justify-content: flex-start;
+    align-items: flex-start;
     font-size: 0.75rem;
   }
   .v3-tabs {

@@ -74,10 +74,9 @@ main:has(.v3-screen) {
   gap: var(--v3-s3);
   min-width: 0;
 }
-.v3-btnrow .btn-primary {
-  flex: 1 1 min(100%, 11rem);
-}
 .v3-btnrow .btn {
+  /* Both buttons use the same basis. At large text the basis is more than the row, so each button takes its own full line. */
+  flex: 1 1 min(100%, 11rem);
   min-width: min(100%, 8rem);
   max-width: 100%;
 }
@@ -121,6 +120,7 @@ main:has(.v3-screen) {
 }
 .v3-flag-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--v3-s2);
   margin-top: var(--v3-s3);
 }
@@ -134,8 +134,13 @@ main:has(.v3-screen) {
   border-radius: var(--v3-r-control);
   background: var(--raised);
   cursor: pointer;
-  overflow-wrap: anywhere;
+  /* The row has a fixed width (minmax and min-width 0). break-word wraps between words first and cuts a word only when it is wider than the row. */
+  min-width: 0;
+  overflow-wrap: break-word;
   transition: background-color var(--v3-press) var(--v3-ease);
+}
+.v3-flag > span {
+  min-width: 0;
 }
 .v3-flag input {
   flex: none;
