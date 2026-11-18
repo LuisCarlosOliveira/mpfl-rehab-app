@@ -73,6 +73,18 @@ export const RANGE_REFERENCE =
 /** The plain line for a value that no source gives. */
 export const NO_NUMBER = 'No number in the guideline.';
 
+/** The week-4 check line for the week of the person. The only number is the 4 weeks of P1 (audit row V12). It adds no degree value. */
+export function romCheckText(week: number): string {
+  const first = 'Your care team checks your knee bend at about 4 weeks after surgery (P1).';
+  if (week < 4) return `${first} The check is about ${4 - week} ${4 - week === 1 ? 'week' : 'weeks'} from now. If no check is planned, contact your care team.`;
+  if (week === 4) return `${first} The check is now. If no check is planned, contact your care team.`;
+  return `${first} The check is due now or past. If you did not have it, contact your care team.`;
+}
+
+/** The line for a person who stays in phase 1 from week 7 on, because no report of the clearance was given. */
+export const phaseOneStaysText = (week: number): string =>
+  `Your plan is still phase 1. You are in week ${week}. Phase 2 needs the report that your care team cleared you. Contact your care team.`;
+
 /** The dose as P2 rec 26 gives it. The plan shows the whole range. */
 export const DOSE_SHOWN = '2 sets of 10 to 15, then 3 sets as tolerated';
 
@@ -127,6 +139,7 @@ const defs = {
     title: 'Heel slide',
     kind: 'protective',
     values: {},
+    auditRows: ['V36'], // S1 and P3 start the heel slide in phase 1. Row V37 (P1) is WRONG and holds no quote here: P1 starts it in phase 2.
     sourceIds: ['S1', 'P3', 'P1'],
     grade: 'OPINION',
     population: ADULT_ISO,
@@ -323,13 +336,13 @@ const defs = {
     grade: 'OPINION',
     population: P2_POPULATION,
     conservative:
-      'P2 gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated. The plan shows the whole range. The field in the plan holds the start of the range, 2 sets of 10. P2 is a guideline for ages 8 to 25 and not for adults.',
+      'P2 gives 2 sets of 10 to 15 repetitions, then 3 sets as tolerated. The plan shows the whole range. The field in the plan holds the start of the range, 2 sets of 10. P2 is for ages 8 to 25. No study gives a dose for adults after MPFL reconstruction.',
     display: {
       value: DOSE_SHOWN,
       cite: "Cincinnati Children's Hospital Medical Center, 2015, Evidence-Based Care Guideline 46, rec 26",
       evidence: 'OPINION (level 5)',
     },
-    text: `Every strengthening exercise in your plan starts at ${DOSE_SHOWN} (P2). P2 says this dose applies to all strengthening exercises. P2 is a guideline for ages 8 to 25, not for adults.`,
+    text: `Every strengthening exercise in your plan starts at ${DOSE_SHOWN} (P2). P2 says this dose applies to all strengthening exercises. P2 is for ages 8 to 25. No study gives a dose for adults after MPFL reconstruction.`,
   },
   DOSE_NONE: {
     title: 'Dose of the heel slide and the ankle pump',

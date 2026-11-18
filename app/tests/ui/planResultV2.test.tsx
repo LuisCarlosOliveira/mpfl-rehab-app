@@ -69,8 +69,10 @@ describe('PlanResult, the five exercises and text lines', () => {
   });
 
   it('shows the week-4 line and the physiotherapy line as plain notes in weeks 0 to 6', () => {
-    render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
-    expect(screen.getAllByText(RULES.ROM_CHECK.text).length).toBeGreaterThan(0);
+    const draft = draftFor();
+    render(<PlanResult draft={draft} onUse={vi.fn()} onBack={vi.fn()} />);
+    // The line uses the week of the person (D2), so the text is the one of the entry.
+    expect(screen.getAllByText(draft.why.find((e) => e.ruleId === 'ROM_CHECK')!.text).length).toBeGreaterThan(0);
     expect(screen.getAllByText(RULES.PT_VISITS.text).length).toBeGreaterThan(0);
   });
 
@@ -83,10 +85,11 @@ describe('PlanResult, the five exercises and text lines', () => {
   });
 
   it('opens a Why this plan entry for each new rule with its sources, grade and the population', () => {
-    render(<PlanResult draft={draftFor()} onUse={vi.fn()} onBack={vi.fn()} />);
+    const draft = draftFor();
+    render(<PlanResult draft={draft} onUse={vi.fn()} onBack={vi.fn()} />);
     for (const id of ['HOME', 'ANKLE', 'ROM_CHECK', 'PT_VISITS'] as const) {
       const entry = screen.getByRole('heading', { name: RULES[id].title, level: 3 }).closest('li') as HTMLElement;
-      expect(entry).toHaveTextContent(RULES[id].text);
+      expect(entry).toHaveTextContent(draft.why.find((e) => e.ruleId === id)!.text);
       expect(entry).toHaveTextContent('Expert opinion (OPINION)');
       for (const s of RULES[id].sourceIds) expect(entry).toHaveTextContent(`${s}:`);
     }

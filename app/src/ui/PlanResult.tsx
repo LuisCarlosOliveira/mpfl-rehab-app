@@ -11,6 +11,10 @@ import { PlanLines } from './HomeExercises';
 import { SourceNote, SourceNotes } from './SourceNote';
 import './screensV2.css';
 
+/** Why the heel slide is not in phase 1 without a limit. Sources: S1 and P3 (audit row V36). P1 starts it in phase 2 (V37 note). No number. */
+const HEEL_NOT_ADDED =
+  'Heel slide: not added. S1 and P3 start it in phase 1. P1 starts it later. The app adds it when you give the knee-bend limit of your surgeon (Update my plan).';
+
 type PlanOnly = Extract<PlanDraft, { kind: 'plan' }>;
 
 interface Props {
@@ -103,7 +107,10 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
   const heelNote =
     inputs.surgeonLimit.kind === 'degrees'
       ? `Heel slide: the limit that you entered is below ${minLimit} degrees. The app adds the heel slide only from ${minLimit} degrees. Ask your care team.`
-      : 'Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.';
+      : protocol.activePhase === 1
+        ? HEEL_NOT_ADDED
+        : 'Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.';
+  const phaseOneStays = why.find((e) => e.ruleId === 'PH2' && e.outcome === 'refused');
 
   return (
     <section aria-labelledby="plan-title" className="narrow v2-screens">
@@ -148,7 +155,12 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
               <p>{heelNote}</p>
             </Notice>
           )}
-          <PlanLines protocol={protocol} />
+          {phaseOneStays !== undefined && (
+            <Notice role="note" icon="info">
+              <p>{phaseOneStays.text}</p>
+            </Notice>
+          )}
+          <PlanLines protocol={protocol} why={why} />
           <div className="range-reference">
               <SourceNote rule="RANGE_NONE" />
             </div>
