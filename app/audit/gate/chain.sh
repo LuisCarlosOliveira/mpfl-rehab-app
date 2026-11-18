@@ -22,6 +22,8 @@ say() { echo "$*" >> "$OUT/status.txt"; }
 if want selftest; then
   APP_ROOT="$APP_DIR" node "$AUDIT/honesty/honesty-audit.mjs" --selftest > "$OUT/selftest.log" 2>&1; say "selftest=$?"
   tail -1 "$OUT/selftest.log" >> "$OUT/status.txt"
+  bash "$AUDIT/gate/source-checks.sh" --selftest >> "$OUT/selftest.log" 2>&1; say "source_selftest=$?"
+  tail -1 "$OUT/selftest.log" >> "$OUT/status.txt"
 fi
 if want precheck; then
   npm run precheck > "$OUT/precheck.log" 2>&1; r=$?; say "precheck=$r"

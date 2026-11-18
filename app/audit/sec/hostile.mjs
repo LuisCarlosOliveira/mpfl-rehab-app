@@ -101,7 +101,7 @@ function makeHelpers(page, rec) {
     },
     async load(f, expectOk = true) {
       await page.getByLabel('Choose a file from your care team').setInputFiles(f);
-      if (expectOk) await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor({ timeout: 8000 });
+      if (expectOk) await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor({ timeout: 8000 });
       else await page.getByRole('alert').first().waitFor({ timeout: 8000 });
     },
     async toHome(p) { await h.toLoad(); await h.load(file('p.json', p)); },
@@ -242,7 +242,8 @@ function makeHelpers(page, rec) {
       }));
     },
     async homePhase() { return page.evaluate(() => { const dt = [...document.querySelectorAll('dt')].find((d) => d.textContent === 'Active phase'); return dt?.nextElementSibling?.textContent ?? null; }); },
-    async nav(name) { await page.getByRole('button', { name }).first().click(); },
+    // The tab "Sessions" must match exactly. Other buttons have "sessions" inside a longer name.
+    async nav(name) { await page.getByRole('button', { name, exact: name === 'Sessions' }).first().click(); },
   };
   return h;
 }
@@ -256,7 +257,7 @@ function EX_PATH() { return `${PW_ROOT}/src/lib/protocol/example-protocol.json`;
 await run('c0a-clean-vocab', 'collect verdict-like words of the clean app (allowed list)', async (page, h) => {
   await h.toLoad(); await h.load(EX_PATH());
   const t1 = await page.evaluate(() => document.getElementById('root').innerText);
-  await h.nav('Your sessions'); await page.getByRole('heading', { level: 1, name: 'Your sessions' }).waitFor();
+  await h.nav('Sessions'); await page.getByRole('heading', { level: 1, name: 'Your sessions' }).waitFor();
   const t2 = await page.evaluate(() => document.getElementById('root').innerText);
   for (const t of [t1, t2]) for (const m of t.matchAll(VERDICT)) cleanVerdict.add(m[0].toLowerCase());
   h.note(`allowed words: ${[...cleanVerdict].join(',') || 'none'}`);
@@ -305,7 +306,7 @@ for (const kind of Object.keys(fieldSets)) {
     // care team view with the same plan
     await page.goto('/'); await page.waitForTimeout(300);
     if ((await h.h1()) === 'Privacy') await page.getByRole('button', { name: 'I understand' }).click();
-    await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor();
+    await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor();
     await h.nav('My data'); await h.nav('Open a session file (care team)');
     await page.locator('#clinician-session-file').setInputFiles(file('s.json', { schemaVersion: 1, appVersion: '0.1.0', angleMethod: '2D webcam estimate, not a goniometer measurement', pseudonymId: '123e4567-e89b-42d3-a456-426614174000', protocolId: null, exportedAt: new Date().toISOString(), sessions: [] }));
     await page.locator('#clinician-protocol-file').setInputFiles(file('p.json', p)).catch(() => h.note('clinician protocol input not shown for an empty file'));
@@ -409,10 +410,10 @@ for (const [name, c] of Object.entries(importCases)) {
     if (c.ok && role !== 'status') h.fail(`expected import ok, got ${role}`);
     if (!c.ok && role === 'status') h.fail('hostile file was imported');
     await h.audit('my-data-after-import');
-    await page.getByRole('button', { name: 'Back' }).click(); await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor();
+    await page.getByRole('button', { name: 'Back' }).click(); await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor();
     if (c.ok) {
       const t2 = Date.now();
-      await h.nav('Your sessions'); await page.getByRole('heading', { level: 1, name: 'Your sessions' }).waitFor({ timeout: 15000 }).catch(() => h.fail('Progress screen did not open'));
+      await h.nav('Sessions'); await page.getByRole('heading', { level: 1, name: 'Your sessions' }).waitFor({ timeout: 15000 }).catch(() => h.fail('Progress screen did not open'));
       await page.waitForTimeout(500); await h.audit('progress');
       h.note(`progress ${Date.now() - t2} ms`);
       await page.getByRole('button', { name: 'Back' }).click().catch(() => {});
@@ -429,9 +430,9 @@ await run('c5-idb-hostile-sessions', 'IndexedDB sessions with hostile fields', a
   await h.idbSeed('sessions', Array.from({ length: 25 }, (_, i) => hostileRow(i)));
   await page.reload(); await page.waitForTimeout(500);
   if ((await h.h1()) === 'Privacy') await page.getByRole('button', { name: 'I understand' }).click();
-  await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor();
+  await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor();
   await h.audit('home');
-  for (const [btn, heading] of [['Your sessions', 'Your sessions'], ['My data', 'My data']]) {
+  for (const [btn, heading] of [['Sessions', 'Your sessions'], ['My data', 'My data']]) {
     await h.nav(btn);
     const ok = await page.getByRole('heading', { level: 1, name: heading }).waitFor({ timeout: 6000 }).then(() => true, () => false);
     if (!ok) h.fail(`${btn}: screen did not open (h1=${await h.h1()})`);
@@ -552,9 +553,9 @@ for (const [i, u] of urls.entries()) {
     await page.goto(u); await page.waitForTimeout(500);
     let t = await h.h1();
     if ((await h.h1()) === 'Privacy') { await page.getByRole('button', { name: 'I understand' }).click(); await page.waitForTimeout(200); t = await h.h1(); }
-    if (!['Home', 'Privacy', 'Load protocol file'].includes(t)) h.fail(`URL opened screen "${t}"`);
+    if (!['Today', 'Privacy', 'Load protocol file'].includes(t)) h.fail(`URL opened screen "${t}"`);
     await h.audit('after-url');
-    const hp = await h.homePhase(); if (t === 'Home' && !hp?.startsWith('2,')) h.fail(`phase shown "${hp}" is not the stored phase 2`);
+    const hp = await h.homePhase(); if (t === 'Today' && !hp?.startsWith('2,')) h.fail(`phase shown "${hp}" is not the stored phase 2`);
     if ((await h.storedPhase()) !== 2) h.fail('stored phase changed');
     await h.nav(/^Start /); const g = await h.h1(); if (g !== 'Check before you exercise') h.fail(`gate skipped by URL, screen: ${g}`);
   }, {});
@@ -599,19 +600,31 @@ await run('c7z-history-gate', 'browser history and fake history state cannot pas
     await btn(page, 'I understand').click();
     await page.getByRole('heading', { level: 1, name: 'Load protocol file' }).waitFor();
     await btn(page, 'Create my plan').click();
-    for (const a of ['No', 'MPFL reconstruction only', '18 or older', 'No', 'Yes', 'No']) { await page.getByRole('radio', { name: a, exact: true }).check(); await btn(page, 'Next').click(); }
-    const d = new Date(); d.setDate(d.getDate() - 24);
-    await page.getByLabel('Date of surgery').fill(iso(d)); await btn(page, 'Next').click();
-    await page.getByRole('radio', { name: 'Left', exact: true }).check(); await btn(page, 'Next').click();
-    await page.getByRole('radio', { name: 'Yes, my limit is', exact: true }).check(); await page.getByLabel('Limit in degrees').fill('60'); await btn(page, 'Next').click();
-    await btn(page, 'Next').click();
-    await page.getByRole('radio', { name: '2', exact: true }).check(); await page.getByRole('radio', { name: 'No swelling', exact: true }).check(); await btn(page, 'Next').click();
+    // The questions run in 3 groups. A legend names the radio group of one question, so "No" is found once in its group.
+    const pick = (q, a) => page.getByRole('group', { name: q }).getByRole('radio', { name: a, exact: true }).check();
+    await pick('Did your care team give you a written rehab plan?', 'No');
+    await pick('Which operation did you have?', 'MPFL reconstruction only');
+    await pick('How old are you?', '18 or older');
+    await pick('Did you have surgery on both knees?', 'No');
+    await pick('Is this your first MPFL surgery on this knee?', 'Yes');
+    await pick('Did your surgeon give special rules, for example about the graft, the fixation or the shape of your knee?', 'No');
+    await btn(page, 'Continue to your surgeon').click();
+    const [y, m, d] = iso(new Date(Date.now() - 24 * 86400000)).split('-');
+    await page.getByLabel('Day', { exact: true }).fill(String(Number(d)));
+    await page.getByLabel('Month', { exact: true }).fill(String(Number(m)));
+    await page.getByLabel('Year', { exact: true }).fill(y);
+    await pick('Which knee did you have surgery on?', 'Left');
+    await pick('Did your surgeon give a limit for how far you can bend your knee, also with a brace?', 'Yes, my limit is');
+    await page.getByLabel('Limit in degrees').fill('60');
+    await btn(page, 'Continue to today').click();
+    await page.getByRole('radio', { name: '2', exact: true }).check(); await page.getByRole('radio', { name: 'No swelling', exact: true }).check();
+    await btn(page, 'Check my answers').click();
     await btn(page, 'Make my plan').click(); await btn(page, 'Use this plan').click(); await btn(page, 'Confirm').click();
-    await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor();
+    await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor();
   }
   const protocolId = async (page) => page.evaluate(() => new Promise((res) => { const o = indexedDB.open('mpfl-rehab'); o.onsuccess = () => { const db = o.result; const g = db.transaction('protocol').objectStore('protocol').getAll(); g.onsuccess = () => { db.close(); res(JSON.parse(g.result[0].raw).id); }; }; }));
   const row = (pid, extra = {}) => ({ date: new Date().toISOString(), exercise: 'heel-slide', side: 'left', reps: 8, peakFlexion: 84, holdSeconds: null, topFlexion: null, marginDeg: 9, marginSource: MARGIN_SOURCE, view: 'side', nearLimit: 0, overLimit: 0, tooFast: 0, gaveWayPresses: 0, redFlagBlocks: 0, pain: 2, swelling: 'none', protocolId: pid, phase: 1, schemaVersion: 1, ...extra });
-  const week8 = async (page) => { await page.clock.setFixedTime(new Date(Date.now() + 32 * 86400000)); await page.reload(); await page.getByRole('heading', { level: 1, name: 'Home' }).waitFor(); };
+  const week8 = async (page) => { await page.clock.setFixedTime(new Date(Date.now() + 32 * 86400000)); await page.reload(); await page.getByRole('heading', { level: 1, name: 'Today' }).waitFor(); };
   const openCheck = async (page) => { await page.getByRole('button', { name: 'Check my progress' }).first().click(); await page.getByRole('heading', { level: 1, name: 'Check my progress' }).waitFor(); await page.getByRole('heading', { level: 2 }).first().waitFor(); };
   for (const [id, desc, extra, goCheck] of [
     ['c10a-home-week8', 'generated plan, week 8, phase 1: Home card and last-session line', {}, false],
@@ -654,6 +667,8 @@ if (process.env.CONTROL === '1') await run('c9-control', 'CONTROL: injected mark
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ base: BASE, seconds: Math.round((Date.now() - T0) / 1000), results }, null, 1));
 const failed = results.filter((r) => !r.pass);
-console.log(`\nSUMMARY base=${BASE} cases=${results.length} pass=${results.length - failed.length} fail=${failed.length} audits=${results.reduce((a, r) => a + r.audits, 0)} cspViolations=${results.reduce((a, r) => a + r.csp, 0)} foreignRequests=${results.reduce((a, r) => a + r.foreign.length, 0)} scriptRuns=${results.reduce((a, r) => a + r.fails.filter((f) => f.startsWith('SCRIPT RAN')).length, 0)} result=${OUT}`);
+// A case whose script broke did not run to the end. This is a gap, and the exit code must show it.
+const notRun = results.filter((r) => r.fails.some((f) => f.startsWith('script error') || f.startsWith('final audit error')));
+console.log(`\nSUMMARY base=${BASE} cases=${results.length} pass=${results.length - failed.length} fail=${failed.length} audits=${results.reduce((a, r) => a + r.audits, 0)} cspViolations=${results.reduce((a, r) => a + r.csp, 0)} foreignRequests=${results.reduce((a, r) => a + r.foreign.length, 0)} notRun=${notRun.length} scriptRuns=${results.reduce((a, r) => a + r.fails.filter((f) => f.startsWith('SCRIPT RAN')).length, 0)} result=${OUT}`);
 await browser.close();
-process.exit(failed.length ? 1 : 0);
+process.exit(failed.length || notRun.length ? 1 : 0);
