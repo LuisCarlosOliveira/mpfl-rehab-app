@@ -95,7 +95,7 @@ describe('rules data', () => {
     expect(RULES.DOSE.population).toMatch(/8 to 25/);
     expect(RULES.DOSE.population).toMatch(/Not studied in adults/);
     expect(RULES.DOSE.text).toMatch(/2 sets of 10 to 15, then 3 sets as tolerated/);
-    expect(RULES.DOSE.text).toMatch(/ages 8 to 25, not for adults/);
+    expect(RULES.DOSE.text).toMatch(/P2 is for ages 8 to 25\. No study gives a dose for adults/);
     expect(RULES.DOSE.conservative).toMatch(/start of the range/);
     expect(RULES.DOSE.auditRows).toEqual(['V49']);
   });

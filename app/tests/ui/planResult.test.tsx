@@ -54,21 +54,21 @@ describe('PlanResult', () => {
     const note = screen.getByText(/^Heel slide:/);
     expect(note.closest('[role="note"]')).not.toBeNull();
     expect(note).toHaveTextContent(`below ${RULES.ENG_TARGET.values.minLimit} degrees`);
-    expect(note).not.toHaveTextContent('ask your surgeon for a knee-bend limit');
+    expect(note).not.toHaveTextContent('give the knee-bend limit of your surgeon');
   });
 
   it('shows the heel slide note as a visible note when the person gave no limit', () => {
     setup({ surgeonLimit: { kind: 'unknown' } });
     const note = screen.getByText(/^Heel slide:/);
     expect(note.closest('[role="note"]')).not.toBeNull();
-    expect(note).toHaveTextContent('ask your surgeon for a knee-bend limit');
+    expect(note).toHaveTextContent('give the knee-bend limit of your surgeon');
   });
 
   it('shows no heel slide and says ask your surgeon when the person gave no limit', () => {
     setup({ surgeonLimit: { kind: 'unknown' } });
     const list = screen.getByRole('list', { name: 'Exercises in your plan' });
     expect(within(list).queryByText('Heel slide')).toBeNull();
-    expect(screen.getByText(/Heel slide: ask your surgeon/)).toBeInTheDocument();
+    expect(screen.getByText(/Heel slide: not added/)).toBeInTheDocument();
   });
 
   it('closes Why this plan at first, and opens it to every rule with its source, level and caveat', () => {

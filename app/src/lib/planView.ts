@@ -193,7 +193,7 @@ export function describeChanges(current: Protocol, next: Protocol, inputs?: { se
     ...after.filter((e) => e.sets !== undefined && hadNoDose(before.find((x) => x.kind === e.kind))).map((e) => NAMES[e.kind]),
   ];
   if (newDose.length > 0) {
-    lines.push(`Sets and reps added for ${newDose.join(', ')}. Reason: P2 gives ${DOSE_SHOWN} for strengthening exercises, for ages 8 to 25, not for adults (${RULES.DOSE.id}).`);
+    lines.push(`Sets and reps added for ${newDose.join(', ')}. Reason: P2 gives ${DOSE_SHOWN} for strengthening exercises, for ages 8 to 25. No study gives a dose for adults after MPFL reconstruction (${RULES.DOSE.id}).`);
   }
   return lines;
 }
