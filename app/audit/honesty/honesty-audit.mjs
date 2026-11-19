@@ -575,10 +575,10 @@ async function sessionChecks(page, theme) {
   }
   // angle with no pose must show a placeholder, never a stale or invented number
   const ang = await page.evaluate(() => {
-    const el = document.querySelector('.readout-number');
+    const el = document.querySelector('.live-angle .v3-num b');
     return el ? el.innerText.trim() : null;
   });
-  add('session-nopose', theme, 'no pose shows no angle number', ang === null ? 'REVIEW' : ang === '--' ? 'PASS' : 'FAIL', ang === null ? 'readout element not found by class name' : `live angle text with no pose: "${ang}"`);
+  add('session-nopose', theme, 'no pose shows no angle number', ang === null ? 'REVIEW' : ang === '--' ? 'PASS' : 'FAIL', ang === null ? 'live angle element not found by class name' : `live angle text with no pose: "${ang}"`);
 }
 
 // ---------- summary pain: 11 radios, 48 px, none set, 6 no pause, 7 pause ----------
@@ -787,8 +787,8 @@ async function clipStory(theme) {
     for (let i = 0; i < 40; i++) {
       const row = await page.evaluate(() => {
         const live = [...document.querySelectorAll('[role=alert], [role=status]')].filter((e) => window.__audit.deepVis(e)).map((e) => e.innerText.trim()).filter(Boolean);
-        const reps = document.querySelector('.readout-reps .readout-number');
-        const ang = document.querySelector('.readout-number');
+        const reps = document.querySelector('.live-reps .v3-num b');
+        const ang = document.querySelector('.live-angle .v3-num b');
         return { osc: window.__p.osc, reps: reps ? reps.innerText.trim() : null, angle: ang ? ang.innerText.trim() : null, live };
       });
       log.push({ t: i, ...row });
