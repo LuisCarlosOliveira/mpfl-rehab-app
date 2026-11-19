@@ -213,10 +213,10 @@
 
   const fontSizes = () => {
     const out = [];
-    for (const el of document.querySelectorAll('[class*=readout-number i], [class*=live-number i], [class*=angle i]')) {
+    for (const el of document.querySelectorAll('.live-metric .v3-num b, [class*=readout-number i], [class*=live-number i], [class*=angle i]')) {
       if (!deepVis(el)) continue;
       const t = (el.innerText || '').trim();
-      if (!/^(--|-?\d+)$/.test(t)) continue;
+      if (!/^-?\d+$/.test(t)) continue; // a missing value ("--") is a quiet placeholder of 2.5rem on purpose (parts.css), not a number
       out.push({ sel: sel(el), text: t, px: parseFloat(getComputedStyle(el).fontSize) });
     }
     return out;
