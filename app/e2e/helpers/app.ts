@@ -53,6 +53,9 @@ export async function installProbes(page: Page) {
 const NO_GPU_NOTICE =
   /^E\d{4} [\d:.]+ \d+ gl_graph_runner_internal\.cc:\d+\] StartGraph failed: INTERNAL: Service "kGpuService", required by node mediapipe_tasks_vision_pose_landmarker_[\s\S]*emscripten_webgl_create_context\(\) returned error 0; StartRun failed\n=== Source Location Trace: ===[\s\S]*$/;
 
+// Headless Chromium has no audio device. In a long session it can write this one line about the WebAudio renderer. Only this exact line is skipped.
+const NO_AUDIO_DEVICE = 'The AudioContext encountered an error from the audio device or the WebAudio renderer.';
+
 /** Collects console errors, page errors and every request. Call before the first goto. */
 export function watch(page: Page, ownOrigin: string) {
   const consoleErrors: string[] = [];
@@ -60,7 +63,7 @@ export function watch(page: Page, ownOrigin: string) {
   page.on('console', (m) => {
     // MediaPipe writes its info line "INFO: Created TensorFlow Lite XNNPACK delegate for CPU." to stderr.
     // The browser reports it as type error. It is a notice and not an error, so only this prefix is skipped.
-    if (m.type() === 'error' && !m.text().startsWith('INFO: ') && !NO_GPU_NOTICE.test(m.text())) consoleErrors.push(m.text());
+    if (m.type() === 'error' && !m.text().startsWith('INFO: ') && !NO_GPU_NOTICE.test(m.text()) && m.text() !== NO_AUDIO_DEVICE) consoleErrors.push(m.text());
   });
   page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message}`));
   page.on('request', (r) => requests.push(r.url()));
