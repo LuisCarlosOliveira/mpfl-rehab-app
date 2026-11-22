@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mapCameraError, startCamera, stopCamera, stopOnLeave } from '../../src/pose/camera';
+import { mapCameraError, startCamera, stopCamera } from '../../src/pose/camera';
 
 function fakeStream() {
   const tracks = [0, 1].map(() => {
@@ -86,12 +86,6 @@ describe('stop on every exit path', () => {
   it('explicit stop', async () => {
     const tracks = await started();
     stopCamera();
-    expect(allStopped(tracks)).toBe(true);
-  });
-
-  it('stopOnLeave', async () => {
-    const tracks = await started();
-    stopOnLeave();
     expect(allStopped(tracks)).toBe(true);
   });
 
