@@ -16,6 +16,8 @@ The accuracy record ([docs/accuracy.md](accuracy.md)) exists. It holds no goniom
 
 The frame rate of the pose loop is about 15 detections per second on a laptop with no GPU. It moves with machine load (`docs/live-test/performance.md`, [docs/accuracy.md](accuracy.md)). No phone frame rate exists. The real Redmi A3 is UNPROVEN.
 
+A person who lies and faces the camera can get a wrong pose (live test, 2026-11-22). The model can place the hip and the other leg on the chest or the arm, with a visibility above the gate. The gate cannot catch this. In Setup, the body map draws no body while the chosen hip, knee and ankle are not all seen. The setup check stays the only proof of a good view.
+
 ## No form rating and no verdict
 
 The app does not rate movement form. It shows a measured value against a limit that the care team set. No validated threshold for form exists after MPFL surgery. The reasons are in [research/form-opus.md section 2.2](../research/form-opus.md) and the wording rules are in section 4.4 of the same file. A rep inside the limit shows no message, because a message such as "within range" reads as approval.

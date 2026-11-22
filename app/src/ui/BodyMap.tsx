@@ -216,10 +216,10 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         landmarks = landmarks.slice();
         for (const id of POINT_IDS) landmarks[id] = steady(id, landmarks[id]!);
 
-        for (const [a, b] of SOFT) show(`soft-${a}-${b}`, seen(landmarks[a]) && seen(landmarks[b]));
-        for (const [a, b] of SOFT) if (seen(landmarks[a]) && seen(landmarks[b])) line(`soft-${a}-${b}`, landmarks[a]!, landmarks[b]!);
-
         const chosen = LEG_IDS[leg].map((id) => landmarks[id]!);
+        const body = !labels || chosen.slice(0, 3).every(seen);
+        for (const [a, b] of SOFT) show(`soft-${a}-${b}`, body && seen(landmarks[a]) && seen(landmarks[b]));
+        for (const [a, b] of SOFT) if (body && seen(landmarks[a]) && seen(landmarks[b])) line(`soft-${a}-${b}`, landmarks[a]!, landmarks[b]!);
         const lost = [0, 1, 2].map((j) => {
           if (seen(chosen[j])) {
             lowSince.current[j] = null;
@@ -235,14 +235,14 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           for (let i = 0; i < 3; i++) {
             const a = pts[i]!;
             const b = pts[i + 1]!;
-            const on = mine ? !lost[i] && !lost[i + 1] : seen(a) && seen(b);
+            const on = mine ? !lost[i] && !lost[i + 1] && seen(a) && seen(b) : body && seen(a) && seen(b);
             show(`${side}-${i}`, on);
             if (!on) continue;
             line(`${side}-${i}-h`, a, b);
             line(`${side}-${i}-c`, a, b);
           }
           for (let j = 0; j < 3; j++) {
-            const on = mine ? !lost[j] : seen(pts[j]);
+            const on = mine ? !lost[j] && seen(pts[j]) : body && seen(pts[j]);
             show(`${side}-j${j}`, on);
             if (on) move(`${side}-j${j}`, at(pts[j]!));
           }
