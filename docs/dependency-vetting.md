@@ -218,7 +218,7 @@ jsqr  1.4.0  sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLe
 
 Notices for `public/THIRD_PARTY_NOTICES.txt`:
 
-- `make-notices.mjs` reads the first file named `LICENSE` or `LICENCE` in each package and a `NOTICE` file if it exists. It prints the heading `== <name> <version> (<license>)`. It stops with an error if no license text exists.
+- `make-notices.mjs` reads the first file named `LICENSE` or `LICENCE` in each package and a `NOTICE` file if it exists. It prints the heading `== <name> <version> (<license>)`. It stops with an error if no license text exists. It also adds the other production packages of the lock file (types-only packages excluded), grouped by license text.
 - `uqr`: the file `LICENSE` is in the tarball. It is MIT with two copyright lines: "Copyright (c) Project Nayuki" and "Copyright (c) 2023 Anthony Fu". The script copies both lines. No change to the script is needed.
 - `jsqr`: the file `LICENSE` is in the tarball. It is the Apache License 2.0 text. The tarball has no `NOTICE` file, so Apache section 4(d) needs no NOTICE text. The file holds the unfilled template line `Copyright {yyyy} {name of copyright owner}`. The copyright holder is therefore not named in the file. The `package.json` names the contributors Cosmo Wolfe and Jefff Nelson. Add a line to the notices by hand only if the team wants the names, as a note, not as a legal text. Legal review: UNVERIFIED.
 
