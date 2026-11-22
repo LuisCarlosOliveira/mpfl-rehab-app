@@ -80,4 +80,12 @@ A clinician must still confirm: A-03 (does the week-3 plan stay usable after wee
 
 ## Not tested by anyone
 
-A live full set (rest panel and between-set pain only through import), a real second camera, a real phone, Safari, Firefox, a screen reader, 200 percent zoom in this round, RTL, and accuracy of the angle against a goniometer.
+No live test ran in this round for these items:
+
+- A live full set (rest panel and between-set pain only through import).
+- A real second camera and a real phone.
+- Safari and Firefox.
+- A screen reader.
+- 200 percent zoom.
+- RTL.
+- Accuracy of the angle against a goniometer.
