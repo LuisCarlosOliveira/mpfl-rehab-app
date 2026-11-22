@@ -315,10 +315,10 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     const shin = dist(knee, ankle);
     return thigh >= MIN_SEGMENT && shin >= MIN_SEGMENT && thigh / shin >= ratio[0] && thigh / shin <= ratio[1];
   };
-  const follow = (hip: Landmark) => {
-    const d = dist(hip, anchor as Landmark);
+  const follow = (hip: Landmark, from: Landmark) => {
+    const d = dist(hip, from);
     const k = d > ANCHOR_STEP ? ANCHOR_STEP / d : 1;
-    anchor = { ...(anchor as Landmark), x: (anchor as Landmark).x + (hip.x - (anchor as Landmark).x) * k, y: (anchor as Landmark).y + (hip.y - (anchor as Landmark).y) * k };
+    anchor = { ...from, x: from.x + (hip.x - from.x) * k, y: from.y + (hip.y - from.y) * k };
   };
   /** `far` is true when a confirmed anchor reads this frame as another place. `plausible` is true for a whole, plausible leg. */
   // The anchor is always the HIP (landmark 23 or 24), also when the trio of the exercise has no hip (the ankle pump: knee, ankle, foot index).
@@ -329,7 +329,7 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     if (!confirmed) {
       if (!plausible) return { far: false, plausible };
       if (anchor === null || dist(hip, anchor) > HIP_JUMP_FRACTION) anchor = hip;
-      else follow(hip);
+      else follow(hip, anchor);
       if (candidate === null || dist(hip, candidate.pos) > STEADY_RADIUS) candidate = { pos: hip, since: t };
       else if (t - candidate.since >= CONFIRM_MS) {
         confirmed = true;
@@ -338,8 +338,9 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
       return { far: false, plausible };
     }
     if (!visible(hip)) return { far: false, plausible };
-    if (dist(hip, anchor as Landmark) > HIP_JUMP_FRACTION) return { far: true, plausible };
-    if (plausible) follow(hip);
+    if (anchor === null) return { far: false, plausible };
+    if (dist(hip, anchor) > HIP_JUMP_FRACTION) return { far: true, plausible };
+    if (plausible) follow(hip, anchor);
     return { far: false, plausible };
   };
 
