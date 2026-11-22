@@ -1,8 +1,3 @@
-// Navigation by state, not by URL. This reducer is pure.
-// Rule (FR5): Setup and Session open only after a red-flag check was cleared in this run.
-// A direct request for them goes to the red-flag screen.
-// Rule (FR11): Stop and "knee gave way or hurts" both end the session and go to Summary.
-
 import type { Side } from '../lib/angle';
 import type { BaselineSource } from '../lib/baseline';
 import { initialScreen, type ScreenId } from '../lib/flow';
@@ -14,29 +9,23 @@ import type { Mode, PlanExercise } from '../lib/protocol';
 import type { PlanDraft } from '../lib/planView';
 
 export type { PlanDraft };
-/** Every kind that a plan can start: the four with numbers and the five new ones. */
 export type ExerciseKind = PlanExercise['kind'];
 export type EndReason = 'stop' | 'gave-way';
 
-/** The counter summary with the set data of the run. Session adds `sets`. Summary reads it. */
 export interface RunSummary extends Summary {
   sets?: SetsState;
   /** T12b: the front-view record of the second camera. It goes to the clinician record only. Absent: one camera. */
   front?: FrontRecord;
-  /** F1: where the resting angle came from. Absent when the exercise has no rep counter or no angle was set. */
   baselineSource?: BaselineSource;
-  /** The five new kinds: holdList, timedBy, reportKey, reportValue from pipeline.engineData(). Absent for the four old kinds. */
   engine?: EngineData;
 }
 
 export interface RunResult {
   reason: EndReason;
   summary: RunSummary;
-  /** The write of the record at the end of the run. It gives the id of the record, or rejects when the write fails. Absent: no write was tried. */
   record?: Promise<number>;
 }
 
-/** Today's session. `kinds` is the list in plan order. `entries` holds one entry for each exercise that is past: its run, or null when the person skipped it. */
 export interface PlanEntry {
   kind: ExerciseKind;
   run: RunResult | null;
@@ -50,19 +39,16 @@ export interface PlanRun {
 export interface AppState {
   screen: ScreenId;
   hasProtocol: boolean;
-  mode: Mode; // FR22a: in patient mode the care team view stays closed
+  mode: Mode;
   redFlagCleared: boolean;
-  redFlagBlocks: number; // blocks in this run. They go into the session record.
+  redFlagBlocks: number;
   exercise: ExerciseKind | null;
-  // T17: the answers of Setup. They last for one session. They never change the protocol side or the active phase.
-  exerciseLeg: Side | null; // the leg that the person chose. The pipeline tracks exactly this leg.
-  cameraSide: Side | null; // the side of the person that the camera is on
-  baselineDeg: number | null; // resting flexion measured in Setup. null: none measured.
+  exerciseLeg: Side | null;
+  cameraSide: Side | null;
+  baselineDeg: number | null;
   run: RunResult | null;
-  /** Today's session. null: a single exercise or no session. While it is set, the cleared check stays for the screens of the session. */
   plan: PlanRun | null;
   draft: PlanDraft | null;
-  /** Set when the privacy notice opens from My data. "I understand" then returns there. */
   privacyFrom?: 'data';
 }
 
@@ -72,9 +58,9 @@ export type Action =
   | { type: 'protocol-loaded' }
   | { type: 'choose-exercise'; exercise: ExerciseKind }
   | { type: 'start-session'; kinds: ExerciseKind[] }
-  | { type: 'plan-continue' } // Done step: the run is kept, the next exercise opens
-  | { type: 'plan-skip' } // Next card: the exercise is passed over
-  | { type: 'plan-stop' } // Next card or Done step: the session ends here
+  | { type: 'plan-continue' }
+  | { type: 'plan-skip' }
+  | { type: 'plan-stop' }
   | { type: 'red-flags-clear' }
   | { type: 'red-flags-blocked' }
   | { type: 'setup-done'; exerciseLeg: Side; cameraSide: Side; baselineDeg: number | null }
@@ -102,17 +88,13 @@ export function initialAppState(flags: { seenPrivacy: boolean; hasProtocol: bool
   };
 }
 
-/** The screens where a cleared check stays while today's session runs. */
 const SESSION_SCREENS: readonly ScreenId[] = ['setup', 'session', 'summary', 'next'];
 
 const PLAN_FLOW: readonly ScreenId[] = ['onboarding', 'plan', 'confirm', 'referral'];
 
-/** Where a request for `target` really goes. */
 function resolve(state: AppState, target: ScreenId): ScreenId {
-  // The companion screen needs no protocol and no red-flag check. The phone only sends landmark numbers (T12b).
   if (target === 'privacy' || target === 'load' || target === 'companion') return target;
   const fallback: ScreenId = state.hasProtocol ? 'home' : 'load';
-  // The plan flow needs no stored protocol. Patient mode has no flow: a plan that the app made cannot load there.
   switch (target) {
     case 'onboarding':
       return state.mode === 'patient' ? 'load' : target;
@@ -134,7 +116,6 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
     case 'data':
       return target;
     case 'clinician':
-      // The care team view opens from My data only, and never in patient mode (FR22a).
       if (state.mode === 'patient') return state.screen === 'data' ? 'data' : 'home';
       return state.screen === 'data' || state.screen === 'clinician' ? target : 'home';
     case 'setup':
@@ -149,7 +130,6 @@ function resolve(state: AppState, target: ScreenId): ScreenId {
   }
 }
 
-/** The exercise after `entry` goes in the list. The next card opens, or the summary when none is left or `stop` is set. */
 function advance(state: AppState, entry: PlanEntry | null, stop: boolean): AppState {
   const plan = state.plan;
   if (plan === null) return state;
@@ -164,8 +144,6 @@ export function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'open': {
       const screen = resolve(state, action.screen);
-      // Leaving the flow drops the cleared check. The next start needs a new one (FR5).
-      // Today's session keeps it on its own screens only. Any other screen ends the session.
       const keep = screen === 'setup' || screen === 'session' || (state.plan !== null && SESSION_SCREENS.includes(screen));
       const inSession = state.plan !== null && (SESSION_SCREENS.includes(screen) || screen === 'overview');
       return {
@@ -182,14 +160,12 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'protocol-loaded':
       return { ...state, hasProtocol: true, screen: 'home', draft: null };
     case 'choose-exercise': {
-      // Every start goes through the check, even if an earlier check was cleared.
       const next = { ...state, plan: null, exercise: action.exercise, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null };
       return { ...next, screen: resolve(next, 'redflag') };
     }
     case 'start-session': {
       const first = action.kinds[0];
       if (first === undefined) return state;
-      // One check for the whole session. The plan keeps the leg and the camera side from exercise to exercise.
       const next = { ...state, plan: { kinds: action.kinds, index: 0, entries: [] }, exercise: first, redFlagCleared: false, exerciseLeg: null, cameraSide: null, baselineDeg: null, run: null };
       return { ...next, screen: resolve(next, 'redflag') };
     }
@@ -219,7 +195,7 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         screen: 'summary',
-        redFlagCleared: state.plan !== null, // a single exercise needs a new check. Today's session asks once.
+        redFlagCleared: state.plan !== null,
         run: { reason: action.reason, summary: action.summary, record: action.record },
       };
     case 'draft': {
@@ -232,7 +208,6 @@ export function appReducer(state: AppState, action: Action): AppState {
     case 'plan-kept':
       return { ...state, draft: null, screen: state.hasProtocol ? 'home' : 'load' };
     case 'erased':
-      // Erase clears the privacy flag and the protocol, so the next start is a first start (FR16, FR26).
       return initialAppState({ seenPrivacy: false, hasProtocol: false, mode: state.mode });
     case 'finish':
       return {
@@ -250,7 +225,6 @@ export function appReducer(state: AppState, action: Action): AppState {
   }
 }
 
-/** What the Back button of the browser does. A reducer action, or one of two words: the Session stops, or nothing happens. null: no screen is behind. */
 export type BackStep = Action | 'stop-session' | 'stay' | null;
 
 const HOME: Action = { type: 'open', screen: 'home' };
@@ -285,6 +259,6 @@ export function backStep(state: AppState): BackStep {
     case 'referral':
       return state.hasProtocol ? HOME : { type: 'open', screen: 'load' };
     default:
-      return HOME; // redflag, setup, dashboard, data, companion, update
+      return HOME;
   }
 }

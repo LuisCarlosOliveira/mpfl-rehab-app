@@ -1,13 +1,9 @@
-// Plain helpers for the Setup screen. No React here, so a test can read them directly.
-// The rule order is the priority order of src/lib/setupRules.ts (research/ux-flow.md section 6.2).
 import { plural } from '../lib/sets';
 import { DEFAULT_PROFILE, type SetupProfile, type SetupRuleId } from '../lib/setupRules';
 
 export interface RuleRow {
   label: string;
-  /** Rule ids of the setup check that make this row "not seen". */
   failedBy: SetupRuleId[];
-  /** True for the row that says the joints of the check are seen. The angle text of the body map needs it (U1). */
   joints?: true;
 }
 
@@ -20,7 +16,6 @@ export const RULE_ROWS: RuleRow[] = [
   { label: 'Leg held still', failedBy: ['still'] },
 ];
 
-// Knee to toe: no size, side-on or still rule (setupRules.ts). Front view: no side-on row. The hip line cannot tell a front view from a side view for a person on the side (setupRules.ts).
 const FOOT_ROWS: RuleRow[] = [
   RULE_ROWS[0]!,
   { label: 'Knee, ankle and foot', failedBy: ['turn-leg', 'show-leg'], joints: true },
@@ -28,7 +23,6 @@ const FOOT_ROWS: RuleRow[] = [
 ];
 const FRONT_ROWS: RuleRow[] = RULE_ROWS.filter((row) => !row.failedBy.includes('side-on'));
 
-/** The rows of the check for a profile. */
 export function rowsFor(profile: SetupProfile = DEFAULT_PROFILE): RuleRow[] {
   if (profile.track === 'knee-to-toe') return FOOT_ROWS;
   return profile.view === 'front' ? FRONT_ROWS : RULE_ROWS;
@@ -39,10 +33,6 @@ export interface RuleRowState {
   word: 'seen' | 'not seen';
 }
 
-/**
- * The check shows the first failed rule only. A rule before it was seen.
- * The failed rule and each rule after it are "not seen", because the check did not see them yet.
- */
 export function ruleRows(current: SetupRuleId, profile?: SetupProfile): RuleRowState[] {
   const rows = rowsFor(profile);
   const failedAt = rows.findIndex((row) => row.failedBy.includes(current));
@@ -52,29 +42,24 @@ export function ruleRows(current: SetupRuleId, profile?: SetupProfile): RuleRowS
   }));
 }
 
-/** The same chips as ruleRows. The rules that are not seen come first, so the person reads what to fix at the top (U19). */
 export function orderedRuleRows(current: SetupRuleId, profile?: SetupProfile): RuleRowState[] {
   const rows = ruleRows(current, profile);
   return [...rows.filter((r) => r.word === 'not seen'), ...rows.filter((r) => r.word === 'seen')];
 }
 
-/** The first rule that is not seen, as the words of one chip (A4). When every rule is seen it reads Ready. */
 export function chipFor(current: SetupRuleId, profile?: SetupProfile): { text: string; seen: boolean } {
   const first = ruleRows(current, profile).find((r) => r.word === 'not seen');
   return first ? { text: `${first.label}: not seen`, seen: false } : { text: 'Ready', seen: true };
 }
 
-/** True when the check shows that hip, knee and ankle are seen. The angle text of the body map shows only then (U1). */
 export const jointsSeen = (current: SetupRuleId, profile?: SetupProfile): boolean => {
   const at = rowsFor(profile).findIndex((r) => r.joints);
   return ruleRows(current, profile)[at]?.word === 'seen';
 };
 
-/** The words of the hidden status line while the camera runs. It says Ready only when every rule is seen (U1). */
 export const cameraStatusText = (current: SetupRuleId, profile?: SetupProfile): string =>
   chipFor(current, profile).seen ? startText.ready : profile?.track === 'knee-to-toe' ? startText.waitingFoot : startText.waiting;
 
-/** The note on the camera step. A timer exercise has no leg check, so its note says that the app times the hold. */
 export function beforeYouStart(profile: SetupProfile | null): string {
   if (profile === null) return TIMER_NOTE;
   if (profile.track === 'knee-to-toe') return 'Put the camera at the side that you chose. Step back until your knee to your toes shows. Hold still for 2 seconds.';
@@ -82,26 +67,18 @@ export function beforeYouStart(profile: SetupProfile | null): string {
   return 'Put the camera at the side that you chose. Step back until your whole chosen leg shows. Hold still for 2 seconds.';
 }
 
-/** The line for the two exercises that the camera cannot see. The same words as the plan screen and the guide. */
 export const TIMER_NOTE = 'The camera cannot see this effort. The app times your hold.';
 
-// The camera note on the camera step (B-03). The pose model follows one person, so a second person in the view can take over the leg.
 export const CAMERA_PEOPLE_NOTE = 'Make sure that only you are in the camera view.';
 
-// The step card before the camera starts (A3). The words "Camera is off" and the help line are plain and neutral.
 export const IDLE_TEXT = {
   line: 'Camera is off',
   help: 'Press Start camera. The app asks for the camera.',
 } as const;
 
-/**
- * Bytes that the model load fetches: the WASM file and the model file of public/models.
- * A test reads both files and keeps this number equal to their size.
- */
 export const MODEL_BYTES = 20_381_100;
 const megabytes = (bytes: number) => (bytes / 1e6).toFixed(1);
 
-// Texts of the start steps (U10). Plain and neutral. The model step shows the real bytes when the loader reports them.
 export const startText = {
   camera: 'Asking for the camera',
   model: (loadedBytes: number) =>
@@ -116,7 +93,6 @@ export const startText = {
   progress: 'Pose model download',
 } as const;
 
-/** Whole seconds left, rounded up, or null when no countdown runs. */
 export function countdownSeconds(leftMs: number | null): number | null {
   return leftMs === null ? null : Math.ceil(leftMs / 1000);
 }
@@ -139,26 +115,19 @@ export const LEG_TEXT = {
   noReturnValueDetail: 'The app counts no rep. The angle and the peak still show.',
 } as const;
 
-// Texts of the in-place capture of the starting angle (F1). Plain, neutral, no verdict word.
-// The person can follow every instruction in place. No text asks to stop and start again.
 export const CAPTURE_TEXT = {
   title: 'Find your starting angle',
   hold: 'Hold your leg still for a moment.',
   progress: 'Hold still progress',
   // After the time limit (an engineering value, 15 s, not clinical).
   stuck: 'The app has not found a still moment. Hold your leg still a little longer. Or let the app use your lowest steady angle as the start.',
-  // The knee is as bent as the start of a rep, held still or at its lowest. The person can follow this in place.
   bent: 'Your knee stays bent. Straighten your leg as far as your care team allows, then hold still.',
-  // One line each, for the camera picture (R2-04). The full texts above sit in the card under the numbers.
   bentShort: 'Your knee stays bent. Straighten it, then hold still.',
   chooseShort: 'No still moment yet. Use the button under this picture.',
   lowestButton: 'Use my lowest steady angle as the start',
-  // B3-01, B3-03: the camera reads a hip far from the first one for more than 4 s. The cause is not known, so the text names both.
   lockedOut: 'The camera can follow another person, or you moved. Press Follow me again, or stop and start again from Setup.',
   followAgain: 'Follow me again',
-  // B6-01: the press waits for the answer of the probe of two poses. It decides nothing before.
   looking: 'Looking for the camera view...',
-  // B4-01: the camera follows one person. After a press, a hip far from the start hip is read as someone else, and no numbers show.
   otherPerson: 'The camera is following someone else. Make sure that only you are in the camera view, then stop and start again from Setup.',
   lowestNeedsLeg: 'Show your whole leg first. The app needs more angle readings.',
   startingAngle: (deg: number) => `Starting angle: ${deg} ${plural(deg, 'degree')} (estimated)`,
@@ -166,10 +135,8 @@ export const CAPTURE_TEXT = {
   setupNoRestDetail: 'Hold your leg still. If you start now, the next screen finds your starting angle.',
 } as const;
 
-/** The side that the person did not choose. */
 export const otherLeg = (side: 'left' | 'right') => (side === 'left' ? 'right' : 'left');
 
-/** The first sentence and the rest of a message. A camera message has a title and one sentence with the fix (A6). */
 export function firstSentence(message: string): { title: string; rest: string } {
   const at = message.indexOf('. ');
   return at === -1 ? { title: message, rest: '' } : { title: message.slice(0, at + 1), rest: message.slice(at + 2) };
