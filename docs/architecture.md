@@ -183,6 +183,8 @@ These items never leave the device:
 
 The patient can export a JSON or CSV file. It holds health data, it is unsigned, and the app cannot control where it goes. With the second camera, only landmark numbers cross from the phone to the laptop over a WebRTC data channel with no third-party server. Live test 3 saw no image field in 1,184 messages. A real-phone test does not exist yet. The one place that reads frame pixels is the QR reader of the pairing (`getImageData`). It decodes in memory and drops the frame.
 
+The threats to these items and their controls are in [docs/threat-model.md](threat-model.md).
+
 ## Build, test and checks
 
 | Script | Content |
