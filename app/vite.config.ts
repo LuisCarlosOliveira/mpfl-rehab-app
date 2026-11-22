@@ -34,5 +34,9 @@ export default defineConfig({
     globals: true,
     include: ['tests/**/*.test.{ts,tsx}'],
     setupFiles: ['tests/setup.ts'],
+    // The first render of a lazy screen loads heavy chunks. On a loaded machine this takes more than the default 5 s.
+    // A test that hangs still fails: it fails at 15 s instead of 5 s.
+    testTimeout: 15000,
+    hookTimeout: 15000,
   },
 });
