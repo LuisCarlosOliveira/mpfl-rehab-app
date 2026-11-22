@@ -1,6 +1,6 @@
 // F4a: `repsBy` (M3) and the short fixed list for `marginSource` (A1-3). Same pattern as the leg and baseline fields.
 import { MARGIN_SOURCE } from '../src/lib/margin';
-import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
+import { createDb, exportCsv, exportJson, importSessions, parseExport, readValidRows, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
 
 let n = 0;
 const freshDb = () => createDb(`f4a-${Date.now()}-${n++}`);
@@ -90,8 +90,15 @@ describe('marginSource is a short fixed list (A1-3)', () => {
   it.each([
     'start value, UNVERIFIED for the lite model (Okuno 2026, heavy model, still photos)',
     'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)',
-  ])('accepts the value of an older version: %s', (v) => {
-    expect(sessionSchema.safeParse({ ...ok, marginSource: v }).success).toBe(true);
+  ])('maps the sentence of an older version to its id: %s', (v) => {
+    const r = sessionSchema.safeParse({ ...ok, marginSource: v });
+    expect(r.success && r.data.marginSource).toBe(v.includes('heavy model') ? 'lite-start-v0' : 'lite-start-v1');
+  });
+  it('keeps a new id as it is and reads an old-sentence row and a new-id row from the db', () => {
+    const oldRow = { ...ok, id: 1, marginSource: 'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)' };
+    const { rows, skipped } = readValidRows([oldRow, { ...ok, id: 2, marginSource: 'lite-start-v1' }]);
+    expect(skipped).toBe(0);
+    expect(rows.map((r) => r.marginSource)).toEqual(['lite-start-v1', 'lite-start-v1']);
   });
   it.each([['free text', 'my knee felt fine today'], ['empty', ''], ['a changed old value', `${MARGIN_SOURCE} plus a note`]])('refuses %s and names the field', (_n, v) => {
     const r = parseExport(fileWith({ marginSource: v }));

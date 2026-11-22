@@ -2,7 +2,7 @@
 // minimum rep time and the limit at the top of the straight leg raise.
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol, surgeonField } from '../src/lib/protocol';
-import { MARGIN_DEG, MARGIN_SOURCE } from '../src/lib/margin';
+import { MARGIN_DEG, MARGIN_SOURCE, MARGIN_SOURCE_TEXT } from '../src/lib/margin';
 
 const base = {
   schemaVersion: 1,
@@ -31,8 +31,8 @@ const check = { kind: 'clinicianCheck', key: 'quadStrength', evidence: 'borrowed
 describe('margin constant', () => {
   it('is 9 degrees and names its source and status', () => {
     expect(MARGIN_DEG).toBe(9);
-    expect(MARGIN_SOURCE).toMatch(/UNVERIFIED/);
-    expect(MARGIN_SOURCE).toMatch(/lite/);
+    expect(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]).toMatch(/UNVERIFIED/);
+    expect(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]).toMatch(/lite/);
   });
 });
 

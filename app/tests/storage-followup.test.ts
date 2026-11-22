@@ -155,7 +155,7 @@ describe('new session fields', () => {
       gaveWayPresses: 1,
       redFlagBlocks: 0,
     });
-    expect(row?.marginSource).toMatch(/UNVERIFIED/);
+    expect(row?.marginSource).toBe(MARGIN_SOURCE);
   });
 
   it('puts them in the CSV, with no column or key that uses the word lag', async () => {

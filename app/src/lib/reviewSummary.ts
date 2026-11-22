@@ -4,7 +4,7 @@
 // no total, no count of criteria, no percentage, no score and no colour. It never says
 // that a limit was met. The app never changes the phase (FR4).
 
-import { classifyAgainstLimit, MARGIN_DEG, MARGIN_SOURCE } from './margin';
+import { classifyAgainstLimit, MARGIN_DEG, MARGIN_SOURCE_TEXT, MARGIN_SOURCE } from './margin';
 import { exerciseLabel, sortByDate } from './progress';
 import { CLINICIAN_CHECKS, type Protocol, type ReviewCriterion } from './protocol/schema';
 import { PAIN_FLOOR } from './safety';
@@ -219,7 +219,7 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
   }
   // Use the widest margin of the window. The margin and its source come from the session records.
   const widest = window.reduce((a, b) => (b.marginDeg > a.marginDeg ? b : a));
-  const marginInfo = { marginDeg: widest.marginDeg, marginText: `plus or minus ${widest.marginDeg} degrees`, marginSource: widest.marginSource };
+  const marginInfo = { marginDeg: widest.marginDeg, marginText: `plus or minus ${widest.marginDeg} degrees`, marginSource: MARGIN_SOURCE_TEXT[widest.marginSource] };
   const values = window.map((s) => s[field]);
   // A hidden leg gives a null value. One null value in the window makes the answer "Cannot tell".
   if (values.some((v) => v === null)) {
@@ -306,7 +306,7 @@ export function allSummaryTexts(): string[] {
   return [
     BANNER,
     ANGLE_LABEL,
-    MARGIN_SOURCE,
+    MARGIN_SOURCE_TEXT[MARGIN_SOURCE],
     'plus or minus 9 degrees',
     'No value',
     swellingText,

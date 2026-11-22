@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';
-import { MARGIN_DEG } from '../../src/lib/margin';
+import { MARGIN_DEG, MARGIN_SOURCE } from '../../src/lib/margin';
 import { MESSAGES } from '../../src/lib/redflags';
 import { PAUSE_MESSAGE } from '../../src/lib/safety';
 import { contactReason } from '../../src/lib/contactCard';
@@ -256,7 +256,7 @@ describe('Summary screen', () => {
       phase: 1,
       schemaVersion: 1,
     });
-    expect(rows[0]!.marginSource).toMatch(/UNVERIFIED/);
+    expect(rows[0]!.marginSource).toBe(MARGIN_SOURCE);
   });
 
   it('shows the care-team message after "knee gave way or hurts" and saves the press', async () => {

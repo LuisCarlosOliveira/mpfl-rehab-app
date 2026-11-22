@@ -1,4 +1,4 @@
-import { MARGIN_SOURCE } from '../src/lib/margin';
+import { MARGIN_SOURCE, MARGIN_SOURCE_TEXT } from '../src/lib/margin';
 import { readFileSync } from 'node:fs';
 import { classifyAgainstLimit } from '../src/lib/margin';
 import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
@@ -65,12 +65,12 @@ describe('limit 110, margin 9 (progression.md section 5.2)', () => {
   });
 
   it('shows the limit, the evidence label and the margin from the sessions', () => {
-    const row = firstRow([squat(1, 100, { marginDeg: 6, marginSource: 'A' as SessionRecord['marginSource'] }), squat(2, 100, { marginDeg: 12, marginSource: 'B' as SessionRecord['marginSource'] }), squat(3, 100)]);
+    const row = firstRow([squat(1, 100, { marginDeg: 6, marginSource: 'lite-start-v0' }), squat(2, 100, { marginDeg: 12, marginSource: 'lite-start-v1' }), squat(3, 100)]);
     expect(row.limitText).toBe('110 degrees');
     expect(row.evidenceLabel).toBe('Evidence: borrowed from another condition');
     expect(row.marginDeg).toBe(12);
     expect(row.marginText).toBe('plus or minus 12 degrees');
-    expect(row.marginSource).toBe('B');
+    expect(row.marginSource).toBe(MARGIN_SOURCE_TEXT['lite-start-v1']);
     expect(row.measuredText).toContain('estimated angle, not a medical measurement');
   });
 });
