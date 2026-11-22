@@ -522,9 +522,17 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
     cameraKept.current = keepCamera && reason === 'stop';
     if (!cameraKept.current) source.stop();
     secondSource?.stop();
-    const done = finish(setsRef.current);
-    const base = getPipeline()?.summary() ?? EMPTY_SUMMARY;
-    const engineData = getPipeline()?.engineData?.();
+    let done = setsRef.current;
+    let base = EMPTY_SUMMARY;
+    let engineData: ReturnType<NonNullable<Pipeline['engineData']>> | undefined;
+    try {
+      done = finish(setsRef.current);
+      base = getPipeline()?.summary() ?? EMPTY_SUMMARY;
+      engineData = getPipeline()?.engineData?.();
+    } catch {
+      base = EMPTY_SUMMARY;
+      engineData = undefined;
+    }
     const counted = total(done);
     const front = recorder.current?.finish() ?? null;
     const isHold = setup.ok && setup.kind === 'hold';

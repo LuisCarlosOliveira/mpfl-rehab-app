@@ -63,6 +63,9 @@ export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmatio
     if (stored && !stored.ok && !selfProgressionOn()) {
       return refuse('stored-plan-unreadable', 'The app cannot read your stored plan. Ask your care team. The plan did not change.');
     }
+    if (stored === null && next.activePhase > 1 && !selfProgressionOn()) {
+      return refuse('progression-off', 'Ask your care team about the next stage. The plan did not change.');
+    }
     if (stored?.ok && movesForward(stored.protocol, next)) {
       if (!selfProgressionOn()) return refuse('progression-off', 'Ask your care team about the next stage. The plan did not change.');
       if (losesPainLimit(stored.protocol, next)) return refuse('pain-limit', HOLD_PAIN_LIMIT);
