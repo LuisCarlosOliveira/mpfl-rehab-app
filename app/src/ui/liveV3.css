@@ -1,10 +1,7 @@
 /* ---------- The app chrome that LiveShell replaces ----------
-   App.tsx still draws its own brand bar and banner strip above a live screen, and it wraps the screen in its own main.
-   LiveShell has the banner, so the old brand bar goes, and so does the old prototype line (always the first one).
+   App.tsx still draws its own banner strip above a live screen, and it wraps the screen in its own main.
+   LiveShell has the banner, so the old prototype line goes (always the first one).
    Other notices of the app (example, not approved) stay in the old strip until the shell passes them as `banners`. */
-.app:has(.v3-live) > .topbar {
-  display: none;
-}
 .app:has(.v3-live) > .banners .banner:first-child {
   display: none;
 }

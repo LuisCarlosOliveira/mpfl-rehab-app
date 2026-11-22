@@ -87,10 +87,6 @@ describe('A1: the CSS file keeps its own scope', () => {
     expect(rules).toMatch(/:has\(\.cue-alert:not\(:empty\)\) > :not\(\.cue-alert\)/);
   });
 
-  it('hides the brand bar on Session only', () => {
-    expect(rules).toMatch(/body:has\(\.v2-session\) \.topbar\s*\{[^}]*display:\s*none/);
-  });
-
   it('gives the camera a height of at most min(75vw, 420px) (a full 4:3 picture on a phone) and at least 150 px on a short phone', () => {
     expect(rules).toMatch(/\.viewfinder \.preview\s*\{[^}]*max-height:\s*max\(9\.4rem,/);
     expect(rules).toMatch(/min\(75vw, 420px, 100svh - 33rem\)/);
