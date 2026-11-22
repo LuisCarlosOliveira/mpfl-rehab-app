@@ -11,9 +11,11 @@ export function reps(pose: PoseId, spec: Omit<SeriesSpec, 'pose' | 'aspect'>): S
   return makeSeries({ pose, aspect: ASPECT, ...spec }).frames.map((f) => ({ tMs: f.tMs, landmarks: f.landmarks }));
 }
 
-/** The leg stays at one value for `ms`. */
+/** The leg stays at one value for `ms`. The ankle pump has no rest and peak value: one cycle with both angles at `value` lasts `ms`. */
 export const still = (pose: PoseId, value: number, ms: number, spec: Omit<SeriesSpec, 'pose' | 'aspect'> = {}): SimFrame[] =>
-  reps(pose, { ...spec, reps: 1, restValue: value, peakValue: value, leadMs: ms, upMs: 1, holdMs: 1, downMs: 1, gapMs: 0 });
+  pose === 'ankle-pump'
+    ? reps(pose, { ...spec, cycles: 1, lowDeg: value, highDeg: value, periodS: ms / 1000 })
+    : reps(pose, { ...spec, reps: 1, restValue: value, peakValue: value, leadMs: ms, upMs: 1, holdMs: 1, downMs: 1, gapMs: 0 });
 
 /** No person for `ms`. */
 export const gone = (ms: number): SimFrame[] =>

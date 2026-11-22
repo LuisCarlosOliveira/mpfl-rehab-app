@@ -84,6 +84,14 @@ describe('createLandmarker', () => {
       expect(createFromOptions).toHaveBeenCalledTimes(2);
     });
 
+    it('makes one CPU model when frames keep failing on the GPU model while the rebuild runs', async () => {
+      const l = await createLandmarker();
+      for (let i = 0; i < 5; i++) expect(l.detect(video, (t += 10))).toBeNull();
+      await vi.waitFor(() => expect(l.detect(video, (t += 10))).toHaveLength(1));
+      expect(createFromOptions).toHaveBeenCalledTimes(2);
+      expect(gpuPose.detectForVideo).toHaveBeenCalledTimes(1);
+    });
+
     it('does not retry when the CPU model itself throws while running', async () => {
       cpuPose.detectForVideo.mockImplementationOnce(() => { throw new Error('cpu run failed'); });
       const l = await createLandmarker();
