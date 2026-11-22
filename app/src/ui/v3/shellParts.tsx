@@ -1,4 +1,3 @@
-// Parts that AppShell and LiveShell share: the skip link, the notice banner and the action bar.
 import type { ReactNode } from 'react';
 import './parts.css';
 
@@ -10,10 +9,6 @@ export function SkipLink() {
   );
 }
 
-/**
- * The notices of the app. One aside named Notice holds every notice as a paragraph, so the page has one such landmark.
- * The shells always render it. A screen cannot switch it off. An empty list shows none (patient mode).
- */
 export function Banners({ notices }: { notices: readonly string[] }) {
   if (notices.length === 0) return null;
   return (
