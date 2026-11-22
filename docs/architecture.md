@@ -167,6 +167,8 @@ The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (wi
 
 Live test 3 ran two Chromium browsers (the pairing record, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
 
+Hosting. The host must serve the headers of `app/public/_headers` (see section 5 of [threat-model.md](threat-model.md)). The pose worker takes its CSP from its own response headers. `src/lib/frameGuard.ts` hides the app inside a frame, as a fallback only.
+
 ## Saving a session
 
 App writes the record of a run when Session ends it. The ends are Stop, Back of the browser, "Knee gave way or hurts" and the last set. `ui/sessionRecord.ts` builds the record from the run. The record holds numbers only. A run with 0 reps is saved too.
