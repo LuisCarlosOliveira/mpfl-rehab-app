@@ -30,6 +30,8 @@ Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
 
 Decision 2026-11-22, supersedes 2026-11-13: the flag `VITE_SELF_PROGRESSION` is off by default. Only the exact text `true` or `1` turns it on. With the flag off, a move forward (phase 2, a higher or removed limit, a new mini squat or seated hold) is refused with "Ask your care team about the next stage." The person can still read the plan. The Confirm step and the pain limit hold stay.
 
+With the flag off, a stored plan that the app cannot read blocks every save (code `stored-plan-unreadable`). The app cannot compare the two plans. With an empty store and the flag off, the app refuses a plan of phase 2 or higher. The text is "Ask your care team about the next stage." A phase 1 plan still saves. This closes the open case on 2026-11-22.
+
 ## The safety floor
 
 The app pauses the session and shows "pause and contact your care team" when the pain or swelling entry reaches a set level. A protocol can set a lower pain threshold. The floor is an app rule. It is not a clinical default. Its value is a PROPOSAL. A clinician must review it. The value is stated once, in [plan FR12](../MPFL_APP_PLAN.md).

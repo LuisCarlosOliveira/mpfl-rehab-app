@@ -176,6 +176,7 @@ describe('acceptProposal: what is saved', () => {
   });
 
   it('saves what the loader accepts, with the same content as the proposal', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     const protocol = plan(8, { phaseClearance: 'yes' });
     await acceptProposal(db, proposalOf(protocol), confirmed(), 'demo');
     const raw = (await storedRaw()) as string;
@@ -228,6 +229,7 @@ describe('acceptProposal: the active phase', () => {
   it('gives the active phase from the saved field only', async () => {
     const protocol = plan(8, { phaseClearance: 'yes' });
     expect(protocol.activePhase).toBe(2);
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     await acceptProposal(db, proposalOf(protocol), confirmed(), 'demo');
     const stored = await loadStoredProtocol(db, 'demo');
     if (!stored?.ok) throw new Error('expected a stored protocol');
@@ -251,6 +253,43 @@ describe('acceptProposal: the active phase', () => {
     const before = await storedRaw();
     expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
+  });
+
+  describe('nothing stored', () => {
+    it('flag off, a phase 2 plan is refused and nothing is saved', async () => {
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
+      expect(await storedRaw()).toBeUndefined();
+    });
+    it('flag off, a phase 1 plan is saved', async () => {
+      expect(await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo')).toMatchObject({ ok: true });
+    });
+    it('flag on, a phase 2 plan is saved after a click', async () => {
+      vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+    });
+  });
+
+  describe('a stored plan that is not readable, flag off', () => {
+    const putRaw = (raw: string) => db.protocol.put({ key: 'current', raw, savedAt: new Date().toISOString() } as never);
+    const unreadable: Array<[string, () => string]> = [
+      ['corrupt bytes', () => '{not json'],
+      ['a wrong schema', () => JSON.stringify({ schemaVersion: 999, hostile: true })],
+    ];
+    it.each(unreadable)('refuses a forward move for %s and the bytes stay', async (_n, raw) => {
+      await putRaw(raw());
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
+      expect(await storedRaw()).toBe(raw());
+    });
+    it('refuses a first-phase plan too, because the app cannot compare it with the stored plan', async () => {
+      await putRaw('{not json');
+      expect(await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
+      expect(await storedRaw()).toBe('{not json');
+    });
+    it('saves over an unreadable plan when the flag is on', async () => {
+      vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+      await putRaw('{not json');
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+    });
   });
 
   it.each(['false', '0', 'yes', 'TRUE', ''])('with the flag text "%s", a forward move is refused with progression-off and the bytes stay', async (value) => {
@@ -321,6 +360,7 @@ describe('acceptProposal: the active phase', () => {
 
   it('accepts the removal of a mini squat with the flag off, because it loads the knee less', async () => {
     const gates = { phaseClearance: 'yes', walksWithoutCrutches: 'yes', legRaiseStraight: 'yes' } as const;
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     await acceptProposal(db, proposalOf(plan(8, gates)), confirmed(), 'demo');
     vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     const without = plan(8, { ...gates, kneeGaveWay: true });
@@ -349,10 +389,6 @@ describe('acceptProposal: the active phase', () => {
     const lower = plan(4, { surgeonLimit: { kind: 'degrees', degrees: 60 } });
     vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(lower), confirmed(), 'demo')).toMatchObject({ ok: true });
-  });
-
-  it('accepts a new plan when nothing is stored, even in phase 2, because nothing moves forward', async () => {
-    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 
   it('accepts the same plan again with the flag off', async () => {

@@ -288,6 +288,21 @@ describe('frame bridge: a worker that cannot take or answer a frame', () => {
     expect(createImageBitmapMock).toHaveBeenCalledTimes(1);
   });
 
+  it('fails once and closes the bridge when onResult throws, and the next submit is dropped', async () => {
+    const onResult = vi.fn(() => {
+      throw new Error('caller broke');
+    });
+    const { bridge, worker, onFail } = await ready({ onResult });
+    bridge.submit(video, 1);
+    pending[0]!.resolve(bitmap());
+    await new Promise((r) => setTimeout(r));
+    expect(() => worker.emit({ type: 'result', timestampMs: 1, landmarks: null })).not.toThrow();
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(worker.terminated).toBe(true);
+    bridge.submit(video, 2);
+    expect(createImageBitmapMock).toHaveBeenCalledTimes(1);
+  });
+
   it('gives the first frame the long limit: no fail at 59999 ms, fail at 60000 ms', async () => {
     vi.useFakeTimers();
     try {
