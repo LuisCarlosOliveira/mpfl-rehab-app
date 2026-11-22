@@ -1,4 +1,3 @@
-// The banners of src/lib/mode.ts. The shell shows them above every screen.
 import { Icon } from './Icon';
 
 export function Banners({ texts }: { texts: string[] }) {

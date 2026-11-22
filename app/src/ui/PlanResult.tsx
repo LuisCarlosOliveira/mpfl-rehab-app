@@ -132,7 +132,6 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
             <ul className="plan-exercises dose-list" aria-label="Exercises in your plan">
               {exercises.map((e) => {
                 const lines = prescription(e, true);
-                // The first line is the dose (sets and reps, or sets, or the hold). The other lines stay under the name as plain text.
                 const [dose, ...rest] = lines;
                 return (
                   <li key={e.kind} className="dose-row">

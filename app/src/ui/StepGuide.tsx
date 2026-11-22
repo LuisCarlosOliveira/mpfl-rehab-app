@@ -1,6 +1,3 @@
-// The position guide as one drawing and six steps (B3). The person reads one step at a time.
-// Next, Back and the six number buttons change the step and move focus to the step title, so a screen reader reads the new step.
-// "Show all steps" lists the six texts. The texts come from the guide and this file never changes them. No autoplay.
 import { useRef, useState, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import './flowV2.css';
@@ -27,7 +24,6 @@ export function StepGuide({ steps, figure }: Props) {
 
   const go = (to: number) => {
     setIndex(Math.min(Math.max(to, 0), last));
-    // The title is part of this render, so focus can move at once.
     title.current?.focus();
   };
 

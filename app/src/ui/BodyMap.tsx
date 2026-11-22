@@ -19,28 +19,18 @@
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { MIN_VISIBILITY, flexion, kneeAngle, type Landmark, type Side } from '../lib/angle';
 
-/** The preview is not mirrored. The picture and the map take their mirror from this one value. */
 export const PREVIEW_MIRRORED = false;
 export const mirrorClass = (mirrored: boolean): string => (mirrored ? 'mirrored' : '');
 
 export interface BodyMapHandle {
-  /** Draw the newest landmarks. Give null when no pose is found. `aspect` is video width divided by height.
-   *  `shownAngle` is the number that the screen shows for the knee (the filtered angle). With a number, the angle text shows this number.
-   *  With null, the angle text is empty. Without it (Setup), the text shows the angle of these landmarks. */
   update(landmarks: Landmark[] | null, timeMs: number, aspect?: number, shownAngle?: number | null): void;
-  /** The readout changed between two frames (B2-01). Sets only the number of the angle text, so map and readout agree at once.
-   *  It draws nothing when the arc is off. With null the angle text is empty. */
   setShownAngle(shownAngle: number | null): void;
-  /** Hide the label and the arc of the chosen leg. The screen does this while the camera follows someone who may not be the patient (B5-03). */
   setChosenHidden(hidden: boolean): void;
 }
 
 interface Props {
-  /** The leg that the person chose. */
   leg: Side;
-  /** Give the same value as the picture. */
   mirrored?: boolean;
-  /** Setup only: name chips with leader lines for hip, knee and ankle (A3). */
   labels?: boolean;
 }
 
@@ -49,8 +39,8 @@ const LEG_IDS: Record<Side, readonly [number, number, number, number]> = { left:
 const SOFT: readonly (readonly [number, number])[] = [[11, 12], [11, 23], [12, 24], [23, 24], [11, 13], [13, 15], [12, 14], [14, 16]];
 const SIDES: readonly Side[] = ['left', 'right'];
 const JOINT_NAMES = ['Hip', 'Knee', 'Ankle'] as const;
-const LOST_HOLD_MS = 500; // a joint must stay below the gate this long before the map shows it as not seen: no blink
-const H = 1000; // view box height. The width is the aspect times H.
+const LOST_HOLD_MS = 500;
+const H = 1000;
 const DEFAULT_ASPECT = 16 / 9;
 // ENGINEERING, not clinical. Measured on 7 real clips in the real app (docs/live-test/skeleton-validation.md): a point leaves its place for one
 // update and comes back (11 times in 200 s at 6 updates each second, 22 times at 17 updates each second, 3 to 15 percent of the picture width). A point that is further than this fraction of
@@ -61,7 +51,6 @@ const SPIKE_FRACTION = 0.02;
 const HOLD_MS = 100;
 // ENGINEERING. A text sits on the inner side of the picture. It changes side only when the point is this far past the middle, so it does not hop.
 const SIDE_BAND = 0.06;
-// The width of a text is estimated: a letter is about 0.6 of the font size wide. The estimate is on the wide side, so a text stays inside.
 const LETTER = 0.6;
 const textWidth = (chars: number, size: number) => chars * LETTER * size;
 const finite = (n: number) => Number.isFinite(n);
@@ -70,7 +59,6 @@ const POINT_IDS: readonly number[] = [...new Set([...SOFT.flat(), ...LEG_IDS.lef
 const seen = (p: Landmark | undefined): p is Landmark => p !== undefined && (p.visibility ?? 1) >= MIN_VISIBILITY;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
-// The hide choice lasts for this page session only. It is not stored.
 let hidden = false;
 const listeners = new Set<() => void>();
 const subscribe = (fn: () => void) => {
@@ -81,11 +69,9 @@ const setHidden = (value: boolean) => {
   hidden = value;
   listeners.forEach((fn) => fn());
 };
-/** For tests: show the map again. */
 export const resetBodyMapHidden = () => setHidden(false);
 const useHidden = () => useSyncExternalStore(subscribe, () => hidden);
 
-/** The switch "Hide body map". A real checkbox in a 48 px row. */
 export function BodyMapSwitch() {
   const isHidden = useHidden();
   return (
@@ -100,15 +86,15 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const isHidden = useHidden();
   const svg = useRef<SVGSVGElement>(null);
   const els = useRef<Record<string, SVGElement>>({});
-  const unit = useRef(1 / 0.4); // view box units for one screen pixel. The observer sets the real value.
+  const unit = useRef(1 / 0.4);
   const aspect = useRef(DEFAULT_ASPECT);
   const lowSince = useRef<(number | null)[]>([null, null, null]);
   const track = useRef(new Map<number, { last: Landmark; prev: Landmark; since: number | null }>());
   const sides = useRef({ arc: 1, chosen: 1 });
   const chosenHidden = useRef(false);
-  const arcDrawn = useRef(false); // the arc of the chosen knee is on, so the angle text can show
-  const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 }); // the box of the angle text in view box units, for the leg label
-  const lastAt = useRef<({ x: number; y: number } | null)[]>([null, null, null]); // the last place where each joint of the chosen leg was seen
+  const arcDrawn = useRef(false);
+  const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 });
+  const lastAt = useRef<({ x: number; y: number } | null)[]>([null, null, null]);
 
   const layout = () => {
     const root = svg.current;
@@ -116,13 +102,12 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
     root.setAttribute('viewBox', `0 0 ${r1(aspect.current * H)} ${H}`);
     const box = root.getBoundingClientRect();
     if (box.width > 0 && box.height > 0) unit.current = 1 / Math.min(box.width / (aspect.current * H), box.height / H);
-    // Sizes that must stay the same on the screen, whatever the size of the picture: the joint circles and the outline of the labels.
     const px = unit.current;
     for (const side of SIDES) [0, 1, 2].forEach((j) => els.current[`${side}-j${j}`]?.setAttribute('r', String(r1((j === 1 ? 7 : 4.5) * px))));
     root.querySelectorAll('.bm-label').forEach((t) => t.setAttribute('stroke-width', String(r1(3.5 * px))));
     for (const j of [0, 1, 2]) {
       els.current[`ghost-${j}`]?.setAttribute('r', String(r1(9 * px)));
-      els.current[`jl-${j}-t`]?.setAttribute('stroke-width', '0'); // the dark chip replaces the outline of this text
+      els.current[`jl-${j}-t`]?.setAttribute('stroke-width', '0');
     }
   };
 
@@ -198,7 +183,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           el.setAttribute('font-size', String(r1(size * px)));
         };
 
-        // One spike filter for every point. It writes the steady place and leaves the visibility as it is.
         const steady = (id: number, p: Landmark): Landmark => {
           const t = track.current.get(id);
           if (!seen(p)) {
@@ -223,7 +207,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         };
 
         if (!landmarks || landmarks.length < 33) {
-          // Hide the groups only. The lines inside a bone group keep no display value of their own.
           Object.keys(e).forEach((k) => !/-[hc]$/.test(k) && !/^jl-\d-[ltr]$/.test(k) && e[k]!.setAttribute('display', 'none'));
           lowSince.current = [null, null, null];
           lastAt.current = [null, null, null];
@@ -236,7 +219,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
         for (const [a, b] of SOFT) show(`soft-${a}-${b}`, seen(landmarks[a]) && seen(landmarks[b]));
         for (const [a, b] of SOFT) if (seen(landmarks[a]) && seen(landmarks[b])) line(`soft-${a}-${b}`, landmarks[a]!, landmarks[b]!);
 
-        // How long each joint of the chosen leg has been below the gate.
         const chosen = LEG_IDS[leg].map((id) => landmarks[id]!);
         const lost = [0, 1, 2].map((j) => {
           if (seen(chosen[j])) {
@@ -266,7 +248,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           }
         }
 
-        // The label of a joint that the camera does not see. The labels stack in the top corner. Only the chosen leg has them.
         let row = 0;
         for (let j = 0; j < 3; j++) {
           show(`lost-${j}`, lost[j]! && !labels);
@@ -274,12 +255,10 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           text(`lost-${j}`, 14 * px, (26 + 22 * row++) * px, 'start');
         }
 
-        // The label of the chosen leg, at the middle of the thigh. It is drawn after the angle text, so that it can move out of its way.
         const [hip, knee, ankle] = chosen as [Landmark, Landmark, Landmark];
         const thighOn = !lost[0] && !lost[1];
-        show('chosen-label', thighOn && !labels && !chosenHidden.current); // the joint chips name the leg on Setup
+        show('chosen-label', thighOn && !labels && !chosenHidden.current);
 
-        // The arc at the chosen knee and its number. Same gate as the angle: three joints seen.
         const angle = kneeAngle(hip, knee, ankle, aspect.current);
         const bend = angle === null ? null : flexion(angle);
         const arcOn = bend !== null && bend >= 1 && !chosenHidden.current;
@@ -298,7 +277,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           e['arc-core']!.setAttribute('d', d);
           e['arc-halo']!.setAttribute('d', d);
           const inward = innerSide('arc', k.x);
-          // A8: two lines, the number and then the words. The text is clamped to the picture, so the right edge never cuts it.
           const first = textValue === null ? '' : `${Math.round(textValue)}° `;
           const second = 'estimated angle';
           const sizeA = 20 * px;
@@ -321,9 +299,8 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           }
           lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
           arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
-        } else arcBox.current = { left: 0, right: 0, top: 0, bottom: 0 }; // no angle text: nothing to keep off
+        } else arcBox.current = { left: 0, right: 0, top: 0, bottom: 0 };
 
-        // A3: name chips with elbow leader lines (Setup only). A lost joint reads "<name> not seen" at its last place, with a dashed ring.
         if (labels) {
           type Chip = { j: number; pos: { x: number; y: number } | null; name: string; dir: -1 | 1; y: number; w: number };
           const chips: Chip[] = [];
@@ -345,8 +322,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           }
           const pad = 12 * px;
           const gap = 8 * px;
-          // Two chips on the same side keep a gap, so they never lie on each other. A chip also keeps off the angle text (B-04):
-          // it moves under the text, or above it when there is no room under it.
           const arc = arcBox.current;
           const onText = (c: Chip) => {
             const left = (c.dir === -1 ? pad : W - pad - c.w) - gap;
@@ -384,7 +359,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
               leader.setAttribute('points', '');
               continue;
             }
-            const endX = c.dir === -1 ? x0 + c.w + gap : x0 - gap; // the chip edge that faces the leg
+            const endX = c.dir === -1 ? x0 + c.w + gap : x0 - gap;
             const rise = Math.max(c.pos.y - c.y, 0);
             const kneeX = c.dir === -1 ? Math.max(c.pos.x - rise, endX) : Math.min(c.pos.x + rise, endX);
             leader.setAttribute('points', `${r1(c.pos.x)},${r1(c.pos.y)} ${r1(kneeX)},${r1(c.y)} ${r1(endX)},${r1(c.y)}`);
@@ -396,7 +371,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           const inward = innerSide('chosen', m.x);
           const size = 14 * px;
           const box = (el: SVGElement) => {
-            const w = (el.textContent ?? '').length * 0.6 * size; // a letter is about 0.6 of the font size wide
+            const w = (el.textContent ?? '').length * 0.6 * size;
             const x = Number(el.getAttribute('x'));
             const left = el.getAttribute('text-anchor') === 'end' ? x - w : x;
             return { left, right: left + w, top: Number(el.getAttribute('y')) - size, bottom: Number(el.getAttribute('y')) };
@@ -405,7 +380,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           if (arcOn) {
             const a = box(e['chosen-label']!);
             const b = arcBox.current;
-            // The two texts must not lie on each other. The leg label moves above the angle text.
             if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) e['chosen-label']!.setAttribute('y', String(r1(b.top - 4 * px)));
           }
         }
@@ -416,7 +390,6 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
 
   if (isHidden) return null;
   const cls = (side: Side) => (side === leg ? 'bm-chosen' : 'bm-other');
-  // The other leg comes first, so the chosen leg lies on top.
   const order = [...SIDES].sort((a) => (a === leg ? 1 : -1));
   return (
     <svg

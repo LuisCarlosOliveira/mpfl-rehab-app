@@ -1,6 +1,3 @@
-// Data screen (FR14, FR16, FR17). Export as a JSON or CSV text file, import check, erase with a confirmation.
-// The export is a text file. The app builds a Blob from the text and a download link. It never makes a Blob from a camera frame.
-// The confirmation is a native dialog: showModal gives the focus trap and Escape (research/ui-decisions.md section 2).
 import { useEffect, useRef, useState } from 'react';
 import { MAX_IMPORT_BYTES, eraseAll, exportCsv, exportJson, getLastExport, importSessions, markExported, readValidRows, type MpflDb } from '../lib/storage';
 import { Icon } from './Icon';
@@ -9,18 +6,16 @@ import './dashboard.css';
 import './screensV2.css';
 
 const REVOKE_DELAY_MS = 1000;
-const DONE_LABEL_MS = 2500; // how long an export button shows "Done" before it shows its first label again
+const DONE_LABEL_MS = 2500;
 
 interface Props {
   db: MpflDb;
   onBack: () => void;
   onOpenPrivacy?: () => void;
   onErased: () => void;
-  /** Shows the button that opens the care team view. */
   onOpenClinician?: () => void;
 }
 
-/** Start a download of a text file, then free the Blob URL. */
 function download(text: string, filename: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement('a');
@@ -34,7 +29,6 @@ function download(text: string, filename: string, type: string) {
 
 type Notice = { kind: 'status' | 'alert'; text: string } | null;
 
-/** The steps of the import drop area (U12). The text of a refusal and the name of the file come as plain text. */
 type Drop =
   | { kind: 'idle' }
   | { kind: 'reading'; file: string }
@@ -47,7 +41,6 @@ const isJsonFile = (file: File) => /\.json$/i.test(file.name) || file.type === '
 const DROP_TEXT = { idle: 'Drop the session file here, or choose a file', over: 'Drop to open' } as const;
 
 export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivacy }: Props) {
-  // The count is the number of rows that the export holds. A stored row that fails the schema is left out of the file, so it is left out here and named in a line.
   const [count, setCount] = useState<number | null>(null);
   const [skipped, setSkipped] = useState(0);
   const [lastExport, setLastExport] = useState(getLastExport());
@@ -90,7 +83,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
   }, [db]);
 
   async function exportAs(kind: 'json' | 'csv') {
-    if (exporting !== null || exported !== null) return; // the buttons use aria-disabled, so they keep the focus. A press in this time does nothing.
+    if (exporting !== null || exported !== null) return;
     const day = new Date().toISOString().slice(0, 10);
     const filename = `mpfl-sessions-${day}.${kind}`;
     setExporting(kind);
@@ -136,7 +129,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
 
   function importChosen(input: HTMLInputElement) {
     const file = input.files?.[0];
-    input.value = ''; // the same file can be picked again
+    input.value = '';
     if (file) void importFrom(file);
   }
 
@@ -146,7 +139,7 @@ export function DataScreen({ db, onBack, onErased, onOpenClinician, onOpenPrivac
   function openDialog() {
     setEraseError(false);
     dialog.current?.showModal();
-    keepButton.current?.focus(); // the button that keeps the data is the first choice
+    keepButton.current?.focus();
   }
 
   async function erase() {

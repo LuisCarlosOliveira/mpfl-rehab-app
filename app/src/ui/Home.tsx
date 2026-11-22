@@ -26,7 +26,6 @@ import { PlanList, type PlanItem } from './v3/PlanList';
 import './flowV2.css';
 import './v3home.css';
 
-// The words of the phone card, now one row of the facts list. They stay as they were.
 const COMPANION_TEXT = 'This phone can be the second camera of the app on your laptop. It sends body points only. It records nothing and counts nothing.';
 
 const SURGEON_LABELS: Record<SurgeonField, string> = {
@@ -46,7 +45,6 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
  */
 export function prescription(e: PlanExercise, madeByApp = false): { text: string; icon: IconName }[] {
   const lines: { text: string; icon: IconName }[] = [];
-  // The generator sets no dose and no depth. A plan that it made says so, in the place of the number.
   if (madeByApp && e.sets === undefined && e.holdSeconds === undefined && e.kind !== 'seated-extension-hold') lines.push({ text: ASK_HOW_MANY, icon: 'list-checks' });
   // The generator holds the start of the range of P2 in the field. The plan shows the whole range (DOSE_SHOWN).
   if (madeByApp && e.sets !== undefined && e.reps !== undefined) lines.push({ text: DOSE_SHOWN, icon: 'list-checks' });
@@ -63,7 +61,6 @@ export function prescription(e: PlanExercise, madeByApp = false): { text: string
   return lines;
 }
 
-/** The rows of today's plan for the v3 list: one row for each kind, in the order given. The dose is the prescription as one line. */
 export function planItems(exercises: readonly PlanExercise[], kinds: readonly ExerciseKind[], madeByApp: boolean): PlanItem[] {
   return kinds.map((kind) => {
     const e = exercises.find((x) => x.kind === kind);
@@ -73,25 +70,17 @@ export function planItems(exercises: readonly PlanExercise[], kinds: readonly Ex
 
 interface Props {
   protocol: Protocol;
-  /** The active phase, looked up once by the app shell. Undefined if the protocol has no such phase. */
   phase: Protocol['phases'][number] | undefined;
   activePhase: number;
   db: MpflDb;
   now: () => Date;
   onStart: (kind: ExerciseKind) => void;
-  /** Starts today's session with these exercises, in plan order. The button shows only when the handler is given and one exercise can start. */
   onStartSession?: (kinds: ExerciseKind[]) => void;
-  /** Goes to the Load screen. It erases nothing. Old sessions stay (ux-flow U6). */
   onLoadProtocol: () => void;
-  /** The two buttons show only when the handler is given, as in the data screen. */
   onOpenData?: () => void;
-  /** T12b: opens the phone screen. It shows only when the handler is given. */
   onOpenCompanion?: () => void;
-  /** Opens the privacy notice. The link shows only when the handler is given. */
   onOpenPrivacy?: () => void;
-  /** Opens "Update my plan". It shows only for a plan that the app made, and only when the handler is given. */
   onUpdatePlan?: () => void;
-  /** Opens "Check my progress". It shows only for a plan that the app made, and only when the handler is given. */
   onCheckProgress?: () => void;
 }
 
@@ -107,18 +96,14 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
   const [doneToday, setDoneToday] = useState<readonly string[]>([]);
   useEffect(() => {
     let alive = true;
-    // A failed read shows no reminder and no contact card. It must not become an unhandled rejection.
     void db.sessions.count().then((n) => alive && setHasSessions(n > 0), () => undefined);
     void lastSession(db).then((s) => alive && setLast(s), () => undefined);
-    // The weeks come from the stored answers. Without them the app cannot tell, and the update stays open.
     void loadGeneratorInputs(db).then((i) => alive && setSurgery(i?.surgeryDate ?? null), () => undefined);
-    // The exercises that a saved session of today covers. Today's plan marks them Done and starts with the rest.
     void db.sessions.toArray().then((all) => alive && setDoneToday(all.filter((x) => localIsoDate(new Date(x.date)) === localIsoDate(now())).map((x) => x.exercise)), () => undefined);
     return () => {
       alive = false;
     };
   }, [db]);
-  // B1: the card reads the last saved session. Dismiss hides it until the next session has its own id.
   const contact = last && last.id !== dismissed ? contactReason(last, protocol.painPauseThreshold) : null;
   function dismiss() {
     if (!last) return;
@@ -128,28 +113,23 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
   const weeks = surgery ? weeksSince(surgery, localIsoDate(now())) : null;
   const reminder = exportReminderDue(lastExport, now(), hasSessions);
 
-  // B3: on the review date of the active phase and after it, a neutral card. The app decides nothing. The person or the care team does.
   const reviewDate = phase?.reviewDate;
   const review = reviewDue(reviewDate, localIsoDate(now()));
   const madeByApp = protocol.generated !== undefined;
   const pastPlanWeeks = weeks !== null && weeks > LAST_PLAN_WEEK;
   const canUpdate = madeByApp && !pastPlanWeeks && onUpdatePlan !== undefined;
-  // The progress row shows in weeks 0 to 11. It becomes a card when phase 2 can start (week 7 with phase 1 active) or the review date has passed.
   const checkOpen = madeByApp && weeks !== null && weeks <= LAST_PLAN_WEEK && onCheckProgress !== undefined;
   const checkCard = checkOpen && ((weeks >= 7 && activePhase === PHASE_FIRST) || review);
-  // After week 11 the review card says it. Without a review card the plan end shows here, with no button.
   const planEnd = madeByApp && pastPlanWeeks && !review;
 
   const exercises = phase?.exercises ?? [];
   const toRun = sessionKinds(exercises);
   const surgeonCount = SURGEON_FIELDS.length + ASK_SURGEON_ITEMS.length;
-  // Today's plan. An exercise that a saved session of today covers is Done and sits first. The rest keep the plan order.
   const done = toRun.filter((k) => doneToday.includes(k));
   const left = toRun.filter((k) => !doneToday.includes(k));
   const next = left[0] ?? null;
   const nextExercise = exercises.find((e) => e.kind === next);
-  const startKinds = next === null ? toRun : left; // all done: the button runs the plan again
-  // The second path: one exercise alone, with the quiet button style. It also runs an exercise again. Today's session is the big button.
+  const startKinds = next === null ? toRun : left;
   const singleStarts = Object.fromEntries(
     toRun.map((kind) => [
       kind,
@@ -160,7 +140,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
     ]),
   );
   const surgeryWords = surgery ? surgeryDateWords(surgery, localIsoDate(now())) : null;
-  // A kind that cannot start now: no definition, or a value of the protocol is missing. It shows its reason and has no Start.
   const others = exercises.filter((e) => !toRun.includes(e.kind));
 
   const notices = (
@@ -369,7 +348,6 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
             </div>
           </section>
 
-          {/* One disclosure instead of a wall of text. The words stay the same. */}
           <details className="card disclosure">
             <summary>
               <h2>Decisions for your surgeon</h2>

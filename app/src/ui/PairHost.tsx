@@ -1,7 +1,3 @@
-// The laptop side of the second view (T12b, FR25). It is an optional step of the Setup screen.
-// It shows the laptop code, reads the phone code with the laptop webcam (or from pasted text), and shows the state.
-// Skip keeps one camera. The screen never records or sends a frame. The scan reads one frame at a time in memory.
-// Use this step before the pose camera starts: the scan uses the same camera layer as the pose camera.
 import { useEffect, useRef, useState } from 'react';
 import type { Pairing, PairingView } from '../pairing/pairing';
 import '../pairing/pair.css';
@@ -43,12 +39,9 @@ const STATUS_TEXT: Record<PairingView['status'], string> = {
 interface Props {
   pairing: Pairing;
   view: PairingView;
-  /** The phone is connected and the patient chose to go on. */
   onDone: () => void;
-  /** The patient chose one camera, or pairing failed and the patient goes on. */
   onSkip: () => void;
   deps?: Partial<HostDeps>;
-  /** Setup shows its own list of steps, so it asks for no second track. The headings "Step 1" and "Step 2" still name the pairing steps. */
   hideTrack?: boolean;
 }
 
@@ -57,7 +50,6 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTr
   depsRef.current = { ...defaultDeps, ...override };
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [pasted, setPasted] = useState('');
-  // One step at a time: the code of this laptop first, then the scan of the phone code.
   const [hostStep, setHostStep] = useState<'code' | 'scan'>('code');
   const h1 = useRef<HTMLHeadingElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -78,7 +70,6 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTr
   };
   useEffect(() => release, []);
 
-  // The camera is not needed after the phone is connected, or after a failure.
   useEffect(() => {
     if (status === 'connected' || status === 'failed' || status === 'skipped' || status === 'closed') release();
   }, [status]);
@@ -94,11 +85,9 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTr
     } else {
       setCameraError(camera.error.message);
     }
-    await pairing.begin(); // the status changes, the camera view of step 2 appears, and the effect below attaches the stream
+    await pairing.begin();
   }
 
-  // The view of the phone code exists only after pairing began. Attach the stream to it and start the scan there,
-  // so that the person sees what the camera sees and can aim the phone screen.
   useEffect(() => {
     const element = video.current;
     if (!active || hostStep !== 'scan' || !stream.current || !element || stopScan.current) return;
@@ -114,7 +103,6 @@ export function PairHost({ pairing, view, onDone, onSkip, deps: override, hideTr
   }
 
   function toStep(next: 'code' | 'scan') {
-    // The scan stops when the person goes back. It starts again on the scan step. The camera stays on.
     if (next === 'code') {
       stopScan.current?.();
       stopScan.current = null;

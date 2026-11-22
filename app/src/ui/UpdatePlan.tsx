@@ -1,6 +1,3 @@
-// "Update my plan". The person opens it. The app checks the plan again from today's date and the stored answers.
-// It proposes a change with the reason, and the person confirms or keeps the plan on the next screen (ConfirmPlan).
-// This screen saves nothing. A change that moves forward is held unless VITE_SELF_PROGRESSION is on, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
 import { describeChanges, draftOf, eventsSince, gaveWaySince, holdTextFor, losesPainLimit, movesForward, weeksSince, type PlanDraft } from '../lib/planView';
@@ -18,13 +15,10 @@ import './formsV3.css';
 interface Props {
   db: MpflDb;
   protocol: Protocol;
-  /** The calendar date of today, as year-month-day. The app gives it from the clock. */
   today: string;
-  /** True when VITE_SELF_PROGRESSION is on. It is off by default. Only "true" or "1" turns it on. */
   selfProgression: boolean;
   onDone: (draft: PlanDraft) => void;
   onCancel: () => void;
-  /** Opens the questions, when the stored answers are missing. */
   onCreate: () => void;
 }
 
@@ -41,7 +35,7 @@ export function UpdatePlan({ db, protocol, today, selfProgression, onDone, onCan
     Promise.all([loadGeneratorInputs(db), db.sessions.toArray()]).then(
       ([stored, rows]) => {
         if (!alive) return;
-        const sessions = readValidRows(rows).rows; // a stored row that fails the schema cannot crash this screen
+        const sessions = readValidRows(rows).rows;
         if (stored === null) return setLoaded({ state: 'missing' });
         const since = protocol.generated?.on ?? '0000-00-00';
         setLoaded({ state: 'ready', stored, events: eventsSince(sessions, since, protocol.painPauseThreshold), gaveWay: gaveWaySince(sessions, since) });

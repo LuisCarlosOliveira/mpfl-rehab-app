@@ -48,73 +48,59 @@ interface Live {
   text: string;
   ready: boolean;
   seconds: number | null;
-  /** The last text for the live region. It changes only when the setup check announces. */
   announced: string;
-  /** The resting angle in whole degrees once the leg held still, or null. */
   resting: number | null;
-  /** The hold still progress in whole percent while the check waits for a still leg, or null. */
   progress: number | null;
 }
 
-/** What Setup hands to the next screen. */
 export interface SetupDone {
   exerciseLeg: Side;
   cameraSide: Side;
   baselineDeg: number | null;
 }
 
-/** The camera views that the guide drawing shows. The front view joins the side view when a phone is connected. */
 const SIDE_ONLY: CameraView[] = ['side'];
 const SIDE_AND_FRONT: CameraView[] = ['side', 'front'];
 const FRONT_ONLY: CameraView[] = ['front'];
-// The leg raise to the side needs the camera at hip height. The drawing of that exercise shows it (figure.ts).
 const cameraCaption = (view: CameraView, kind: AnyGuideKind): string =>
   view === 'side'
     ? `Camera at the side of your chosen leg, at knee height, ${distanceText()} away.`
     : `Camera in front of you, at ${kind === 'leg-raise-side' ? 'hip' : 'knee'} height, ${distanceText()} away.`;
 const SLOW_START_MS = 8000;
 const SIDE_WORD: Record<Side, string> = { left: 'Left', right: 'Right' };
-// The number 6 in the camera drawing matches the sixth note of the guide (see SetupGuide.tsx).
 const CAMERA_MARKS: Mark[] = [{ n: 6, at: 'lens', dx: -2.4, dy: 2.4 }];
 
 interface Props {
   kind: AnyGuideKind;
   side: Side;
   exerciseName: string;
-  /** The knee angle that the protocol sets as the target for this exercise, in degrees. It sets the end drawing. */
   targetFlexion?: number;
   /** The depth limit that the protocol sets for this exercise, in degrees. Absent means ask the surgeon. */
   limit?: number;
   /** The protocol value for the return of the knee, in degrees from the resting angle. Absent means ask the surgeon. */
   returnWithinDeg?: number;
   source: LandmarkSource;
-  /** The pairing of the second camera. Missing means that this app run offers one camera only. */
   pair?: { pairing: Pairing; view: PairingView };
   sound: Sound;
-  /** The guide was seen before: one compact "Get ready" card replaces the guide. "Show the steps" opens it. */
   compact?: boolean;
-  /** The leg and the camera side that the person chose before. They are the first answers, not a new choice. */
   initialLeg?: Side;
   initialCameraSide?: Side;
-  /** Today's session: the place of this exercise. The progress mark shows above the steps. */
   plan?: { index: number; total: number; detail?: string | null };
   /** Today's session: the camera of the exercise before is still on. Setup starts the same source again with no new press. */
   cameraKept?: boolean;
-  /** The notices of the app. The shell passes them. Missing means the notices of the build mode. */
   banners?: readonly string[];
   onReady: (done: SetupDone) => void;
   onCancel: () => void;
 }
 
 export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWithinDeg, source, pair, sound, compact = false, initialLeg, initialCameraSide, plan, cameraKept = false, banners = liveBanners(), onReady, onCancel }: Props) {
-  // The definition of the exercise sets the rules of the check, the views and the questions (lib/monitor/registry.ts).
   const spec = specFor(kind);
-  const usesCamera = kindUsesCamera(kind); // false: the two timers. The app times the hold and never starts the camera.
-  const [changing, setChanging] = useState(false); // "Change leg or camera side" opens the full guide again
+  const usesCamera = kindUsesCamera(kind);
+  const [changing, setChanging] = useState(false);
   const compactNow = compact && !changing;
   const [step, setStep] = useState<'guide' | 'pair' | 'camera'>(compactNow && usesCamera ? 'camera' : 'guide');
   const [showSteps, setShowSteps] = useState(false);
-  const profile = setupProfileFor(kind) ?? DEFAULT_PROFILE; // a timer never reaches the camera step, so its profile is not read
+  const profile = setupProfileFor(kind) ?? DEFAULT_PROFILE;
   const askLeg = usesCamera && (spec === undefined || spec.view.legs === 'chosen');
   const askCameraSide = usesCamera && (spec === undefined || spec.view.cameraSide === 'operated-leg-near');
   const primaryView: CameraView = spec?.view.angle === 'front' ? 'front' : 'side';
@@ -124,15 +110,13 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const statusRef = useRef<HTMLDivElement>(null);
   const runningStatusRef = useRef<HTMLParagraphElement>(null);
   const pressedStart = useRef(false);
-  const [pairUsed, setPairUsed] = useState(false); // the optional step was opened. The step list keeps it.
+  const [pairUsed, setPairUsed] = useState(false);
   const [camera, setCamera] = useState<Camera>({ kind: 'idle' });
   const [live, setLive] = useState<Live | null>(null);
   const [stabilizer] = useState(() => createSetupStabilizer());
-  // `side` is the leg of the protocol. `leg` is the leg that the person chose. Only `leg` reaches the next screen.
   const [leg, setLeg] = useState<Side>(initialLeg ?? side);
   const [cameraSide, setCameraSide] = useState<Side>(initialCameraSide ?? initialLeg ?? side);
   const cameraChosen = useRef(initialCameraSide !== undefined);
-  // A leg that differs from the plan and was stored was confirmed when the person chose it.
   const [confirmedOther, setConfirmedOther] = useState(initialLeg !== undefined && initialLeg !== side);
   const baseline = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -142,7 +126,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
   const lastKey = useRef('');
   const announced = useRef('');
 
-  // Every exit stops the camera, except the step to Session. Session keeps the stream.
   useEffect(
     () => () => {
       if (!handedOff.current) source.stop();
@@ -164,15 +147,12 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     onReady({ exerciseLeg: leg, cameraSide, baselineDeg: baseline.current });
   }
 
-  // The countdown ended: start the exercise.
   useEffect(() => {
     if (live?.ready) begin();
   }, [live?.ready]);
 
-  // Runs at frame rate. State changes only when the text, the list or the whole seconds change.
   const onFrame: FrameHandler = (landmarks, timeMs) => {
     const out = stabilizer({ landmarks, side: leg, cameraSide, aspect: source.aspect(), posture: lying ? 'lying' : 'upright', profile }, timeMs);
-    // svg attributes only, no React state. U1: the angle text shows only when the check shows the needed joints as seen. Otherwise it is empty.
     map.current?.update(landmarks, timeMs, source.aspect(), jointsSeen(out.rule, profile) ? undefined : null);
     if (out.announce !== null) announced.current = out.announce;
     baseline.current = out.baselineDeg;
@@ -201,7 +181,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     setCamera(result.ok ? { kind: 'running' } : { kind: 'error', message: result.error.message });
   }
 
-  // U5: the Start camera button goes when the camera starts. The focus moves to the status of the camera, and then to the line that says what the camera sees.
   useEffect(() => {
     if (!pressedStart.current) return;
     if (camera.kind === 'starting') statusRef.current?.focus({ preventScroll: true });
@@ -211,12 +190,10 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     }
   }, [camera.kind]);
 
-  // AC6-01: a new step opens at the top of the page, with the focus on the heading. The pair step has its own heading (PairHost).
   useEffect(() => {
     if (step !== 'pair') focusHeading(titleRef.current);
   }, [step]);
 
-  // After 8 seconds on one start step, one plain sentence tells the person to wait.
   const startStep = camera.kind === 'starting' ? camera.progress.step : null;
   useEffect(() => {
     if (!startStep) return;
@@ -224,13 +201,12 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     return () => clearTimeout(timer);
   }, [startStep]);
 
-  // The pairing is stopped on every way out of this step. A connected phone stays on for the camera step and the Session.
   const stopPairing = () => {
     if (pair && pair.view.status !== 'idle') pair.pairing.close();
   };
   function openPair() {
     if (!pair) return;
-    if (pair.view.status !== 'idle') pair.pairing.reset(); // an old closed or skipped link starts again
+    if (pair.view.status !== 'idle') pair.pairing.reset();
     setPairUsed(true);
     setStep('pair');
   }
@@ -264,7 +240,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     </figure>
   ));
 
-  // A timer exercise has one step: the guide and the start button. No camera runs.
   const order: readonly (typeof step)[] = !usesCamera ? ['guide'] : pairUsed ? ['guide', 'pair', 'camera'] : ['guide', 'camera'];
   const labels = { guide: 'Position guide', pair: 'Second camera', camera: 'Camera' } as const;
   const guideProps = {
@@ -291,7 +266,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     onNext: () => setStep('camera'),
     onStart: begin,
   };
-  // The leg and the camera side were stored. "Change" stops the camera and opens the full guide with the two questions.
   function changeAnswers() {
     source.stop();
     setCamera({ kind: 'idle' });
@@ -410,7 +384,6 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
     <div className="v2-setup">
       <LiveShell banner={banners}>
         {header}
-        {/* The live region carries only the text that the setup check announces. It changes at most every 3 seconds. It comes first in the page. */}
         <p role="status" aria-live="polite" className="visually-hidden">
           {live?.announced}
         </p>

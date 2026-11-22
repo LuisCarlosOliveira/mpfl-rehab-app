@@ -1,4 +1,3 @@
-// The refusal. The app made no plan and saved nothing. The text is the text of the generator for the case.
 import type { PlanDraft } from '../lib/planView';
 import { GENERAL_GUIDANCE_NOTE, MESSAGES } from '../lib/redflags';
 import { Icon } from './Icon';
@@ -11,10 +10,8 @@ interface Props {
 }
 
 export function Referral({ draft, onLoadFile, onBack }: Props) {
-  // A red flag or the pain rule is a safety message. The other cases are a plain refusal.
   const safety = draft.reason === 'R8' || draft.reason === 'R9';
   const redFlag = draft.reason === 'R8';
-  // An emergency flag means: call emergency services. The screen offers no file load as the main action.
   const emergency = redFlag && draft.text.includes(MESSAGES.emergency);
   return (
     <section aria-labelledby="referral-title" className="narrow">

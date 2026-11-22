@@ -1,6 +1,3 @@
-// The phone as the second camera (T12b, FR25). Text first, then the camera, then the codes, then landmarks only.
-// The phone shows no picture of the person and sends none. The scan of the laptop code shows the camera view of the code only.
-// Steps: intro, scan the laptop code, show the phone code, run, stopped or failed.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FALLBACK_TEXT } from '../lib/pairing';
 import { createThrottle, landmarksMessage, SEND_HZ } from '../pairing/frameMessage';
@@ -42,13 +39,12 @@ const defaultDeps: CompanionDeps = {
     try {
       return (await navigator.wakeLock?.request('screen')) ?? null;
     } catch {
-      return null; // the screen can turn off. The page tells the person and works the same.
+      return null;
     }
   },
   now: () => performance.now(),
 };
 
-/** `pending`: not asked yet or waiting for the answer. `on`: the browser granted the lock. `off`: missing, refused or released. */
 type Lock = 'pending' | 'on' | 'off';
 
 const LOCK_ON_TEXT = 'The screen stays on while the phone works.';
@@ -80,11 +76,10 @@ export function PairCompanion({ onExit, deps: override }: Props) {
   const source = useRef<LandmarkSource | null>(null);
   const stopScan = useRef<(() => void) | null>(null);
   const wake = useRef<ScreenLock | null>(null);
-  const lockTurn = useRef(0); // each request and each release gets a new number, so that a late answer is dropped
+  const lockTurn = useRef(0);
   const cameraOn = useRef(false);
   const unsubscribe = useRef<(() => void) | null>(null);
 
-  // The heading takes the focus on each step, so that a screen reader reads the new step.
   useEffect(() => focusHeading(h1.current), [step]);
 
   const releaseAll = useCallback(() => {
@@ -103,13 +98,11 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     wake.current = null;
   }, []);
 
-  // The lock starts with the link, at the button press, so that the screen does not turn off during the scan.
-  // A lock that is missing or refused sets `off`. The browser releases a lock when the page is hidden.
   const requestLock = useCallback(async () => {
     const turn = ++lockTurn.current;
     const granted = await depsRef.current.wakeLock();
     if (turn !== lockTurn.current) {
-      void granted?.release().catch(() => undefined); // the screen was left while the browser answered
+      void granted?.release().catch(() => undefined);
       return;
     }
     wake.current = granted;
@@ -121,7 +114,6 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     });
   }, []);
 
-  // The page is visible again: ask again when no lock is held, while the link is in use.
   useEffect(() => {
     if (step !== 'scan' && step !== 'answer' && step !== 'run') return;
     const again = () => {
@@ -143,7 +135,6 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     [releaseAll],
   );
 
-  // The run step starts when the video element of the step exists.
   useEffect(() => {
     if (step !== 'run' || source.current) return;
     const mine = depsRef.current.createSource();
@@ -153,7 +144,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
       const result = await mine.start((landmarks, timeMs) => {
         if (!landmarks || !allow(timeMs) || !link.current) return;
         const message = landmarksMessage(landmarks, mine.view, timeMs, mine.aspect());
-        if (link.current.send(message)) setSending(true); // the same value after the first call: no render
+        if (link.current.send(message)) setSending(true);
       }, hiddenVideo.current);
       if (!result.ok && source.current === mine) giveUp(result.error.message);
     })();
@@ -169,7 +160,7 @@ export function PairCompanion({ onExit, deps: override }: Props) {
     stopScan.current = null;
     const next = depsRef.current.createLink();
     link.current = next;
-    const result = await next.acceptOffer(text); // the scan camera stays on until now, so that the browser can show the real address
+    const result = await next.acceptOffer(text);
     if (!result.ok) {
       next.close();
       link.current = null;

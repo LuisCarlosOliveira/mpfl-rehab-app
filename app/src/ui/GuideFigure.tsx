@@ -1,7 +1,3 @@
-// The position guide drawing (FR28) and the camera guide drawing. Plain svg made from src/lib/figure.ts.
-// No photo and no video of a person. The svg is an image (role="img") with a text alternative from the guide.
-// Style comes from classes (.fg-*) in figures.css and from svg attributes. No inline style attribute.
-// Meaning does not rely on colour: the operated leg is the thicker limb, it has a ring on the knee and a legend.
 import type { Side } from '../lib/angle';
 import {
   cameraPlan,
@@ -24,7 +20,6 @@ const rad = (deg: number) => (deg * Math.PI) / 180;
 const points = (pts: Point[]) => pts.map((p) => `${num(p.x)},${num(p.y)}`).join(' ');
 const viewBox = (b: Box) => `${b.x} ${b.y} ${b.w} ${b.h}`;
 
-/** The path of the arc at the knee, from the line beyond the thigh to the shank. Null when the knee is straight. */
 function arcPath(arc: Figure['kneeArc']): string | null {
   if (arc.flexionDeg <= 0) return null;
   const at = (deg: number): Point => ({
@@ -33,11 +28,10 @@ function arcPath(arc: Figure['kneeArc']): string | null {
   });
   const from = at(arc.fromDeg);
   const to = at(arc.toDeg);
-  const delta = ((arc.toDeg - arc.fromDeg + 540) % 360) - 180; // the short way round, with a sign
+  const delta = ((arc.toDeg - arc.fromDeg + 540) % 360) - 180;
   return `M ${num(from.x)} ${num(from.y)} A ${arc.radius} ${arc.radius} 0 0 ${delta > 0 ? 1 : 0} ${num(to.x)} ${num(to.y)}`;
 }
 
-/** The filled wedge between the line beyond the thigh and the shank. It makes a small angle easy to see. */
 function wedgePath(arc: Figure['kneeArc']): string {
   const c = arc.center;
   return `M ${num(c.x)} ${num(c.y)} L ${arcPath(arc)!.slice(2)} Z`;
@@ -50,7 +44,6 @@ function Limbs({ limbs, pts, halo = true }: { limbs: Limb[]; pts: Record<Joint, 
         const line = { x1: num(pts[l.from].x), y1: num(pts[l.from].y), x2: num(pts[l.to].x), y2: num(pts[l.to].y) };
         return (
           <g key={`${l.from}-${l.to}`}>
-            {/* A thin halo in the card colour keeps a limb apart from the limb behind it. */}
             {halo && l.leg !== 'far' && <line className="fg-limb fg-halo" {...line} strokeWidth={l.width + 3} />}
             <line className={`fg-limb fg-${l.leg}`} {...line} strokeWidth={l.width} />
           </g>
@@ -68,16 +61,13 @@ function Label({ label, size, className = 'fg-text' }: { label: Pick<FigureLabel
   );
 }
 
-/** A numbered label of a guide step. It sits on a thin leader line next to the part of the drawing that the step names. */
 export interface Mark {
   n: number;
   at: Joint | 'arrow' | 'lens';
-  /** Where the circle sits from the point, in label sizes. The default is straight up. */
   dx?: number;
   dy?: number;
 }
 
-/** The number in a circle, with a leader line to the point. The circle stays inside the box. */
 function Marks({ marks, where, box, size }: { marks: Mark[]; where: (at: Mark['at']) => Point; box: Box; size: number }) {
   const r = size * 0.75;
   return (
@@ -106,13 +96,9 @@ interface Props {
   kind: AnyGuideKind;
   frame: FigureFrame;
   side: Side;
-  /** The text alternative. It comes from the guide text. */
   description: string;
-  /** The knee angle of the exercise data in degrees. It sets the drawn end position and the number on the arc. */
   kneeDeg?: number;
-  /** "chosen" when the drawn leg is not the operated leg. The legend then says "Your chosen leg". */
   legend?: LegLegend;
-  /** Numbered labels of the guide steps. Without marks the drawing has no number. */
   marks?: Mark[];
 }
 
@@ -157,15 +143,11 @@ export function GuideFigure({ kind, frame, side, description, kneeDeg, legend, m
 interface CameraProps {
   view: CameraView;
   kind: AnyGuideKind;
-  /** The text alternative. */
   description: string;
-  /** "chosen" when the drawn leg is not the operated leg. */
   legend?: LegLegend;
-  /** Numbered labels of the guide steps. */
   marks?: Mark[];
 }
 
-/** The camera placement drawing: the person in profile, the phone on a stand at knee height, the view cone and the distance. */
 export function CameraFigure({ view, kind, description, legend, marks }: CameraProps) {
   const plan = cameraPlan(view, kind, legend);
   const { figure: f, phone, distance } = plan;

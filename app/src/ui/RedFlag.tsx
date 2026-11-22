@@ -19,11 +19,9 @@ interface Props {
 
 export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
-  // The block lasts for the visit. A tick stays here even when the patient clears it (FR5).
   const [everTicked, setEverTicked] = useState<Record<string, boolean>>({});
   const result = evaluateRedFlags(everTicked);
 
-  // Count one block for each visit, not one for each tick.
   const counted = useRef(false);
   useEffect(() => {
     if (result.blocked && !counted.current) {
@@ -70,7 +68,6 @@ export function RedFlag({ onClear, onBlocked, onCancel }: Props) {
 
       </div>
 
-      {/* The block lives in the sticky bar, so a person sees it at any scroll position. The disabled continue button stays in the page. */}
       {result.blocked && (
         <div className="redflag-after">
           <button type="button" className="btn btn-primary btn-lg" disabled>

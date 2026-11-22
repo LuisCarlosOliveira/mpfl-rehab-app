@@ -1,10 +1,8 @@
-// A notice block. A strong neutral accent, an icon and words. Never a green or red verdict colour.
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 
 interface Props {
   icon?: IconName;
-  /** "strong" is the dark accent block. It carries the pause and emergency messages. */
   tone?: 'soft' | 'strong';
   role?: 'alert' | 'status' | 'note';
   title?: string;

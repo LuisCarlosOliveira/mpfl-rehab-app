@@ -1,5 +1,3 @@
-// A screen for one state that blocks the person: an error, or an empty list. One column, an icon, a title that says what
-// happened, one sentence that says the fix, and one or two buttons. No notice box and no colour that carries a verdict.
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Icon, type IconName } from './Icon';
 import { focusHeading } from './focusHeading';
@@ -14,7 +12,6 @@ export interface StateAction {
 interface Props {
   icon: IconName;
   title: string;
-  /** The one sentence. */
   children: ReactNode;
   primary: StateAction;
   secondary?: StateAction;

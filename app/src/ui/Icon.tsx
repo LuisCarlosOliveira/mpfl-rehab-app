@@ -55,11 +55,9 @@ export type IconName = 'play' | 'square' | 'chevron-down' | 'chevron-left' | 'ch
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
   name: IconName;
-  /** Size in CSS pixels. The default is 20. */
   size?: number;
 }
 
-/** Decorative icon. A text label always stands next to it, so the icon is hidden from assistive technology. */
 export function Icon({ name, size = 20, ...rest }: IconProps) {
   return (
     <svg

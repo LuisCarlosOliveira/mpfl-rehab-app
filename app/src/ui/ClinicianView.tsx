@@ -1,8 +1,3 @@
-// Care team view (FR15, FR22a). The care team opens an exported session file and, if wanted, a protocol file.
-// The files stay in memory. This component has no database prop and writes to no store.
-// Text from a file shows as plain text. There is no link and no HTML from file data (NFR10).
-// Every fixed text of the review summary comes from src/lib/reviewSummary.ts. The screen adds no total,
-// rating, no percentage and no colour (research/progression.md section 5.2).
 import { useMemo, useState, type ReactNode } from 'react';
 import { PEAK_UNREADABLE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import { loadProtocol, MAX_FILE_BYTES, type Mode, type Protocol } from '../lib/protocol';
@@ -21,15 +16,13 @@ const NO_VALUE = 'No value';
 const FRONT_HEADER = 'Front-view change, estimated, not a medical measurement';
 const FRONT_NOTE = 'Median of N reps, inward positive, a logged number for your care team, not a diagnosis. N is the number of reps in the cell. It comes from the second camera.';
 const FRONT_NOT_ENOUGH = 'Not enough front-view data';
-const COUNTED_BY_HAND = 'counted by hand'; // M3: the reps came from the "Count this rep" button, not from the camera
+const COUNTED_BY_HAND = 'counted by hand';
 
-/** An ISO time as "YYYY-MM-DD HH:MM", in UTC like the table heads. */
 const utcMinute = (iso: string) => iso.slice(0, 16).replace('T', ' ');
 
 const NOT_ANSWERED = 'Not answered';
 const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More than before' } as const;
 
-/** The text of a file, or the reason that it was not read. The size check runs before the read. */
 async function readText(file: File, maxBytes: number): Promise<{ ok: true; text: string } | { ok: false; message: string }> {
   if (file.size > maxBytes) return { ok: false, message: 'The file is larger than 5 MB.' };
   try {
@@ -39,21 +32,17 @@ async function readText(file: File, maxBytes: number): Promise<{ ok: true; text:
   }
 }
 
-/** The front-view cell: the median in degrees with the number of reps, or the reason that there is no value. */
 function frontCell(s: SessionRecord): string {
   if (s.frontChangeDeg !== undefined) return s.frontReps === undefined ? wholeDegrees(s.frontChangeDeg) : `${wholeDegrees(s.frontChangeDeg)} (${s.frontReps} reps)`;
   return s.secondView === undefined ? NOT_APPLICABLE : FRONT_NOT_ENOUGH;
 }
 
-/** Whole degrees for display, like the Summary. The stored value and the export keep every digit. A value that is not a finite number shows the no-value text. */
 const wholeDegrees = (value: number) => (Number.isFinite(value) ? String(Math.round(value)) : NO_VALUE);
 const orNone = (value: number | null) => (value === null ? NO_VALUE : String(value));
 const orNoneRounded = (value: number | null) => (value === null ? NO_VALUE : wholeDegrees(value));
 
-/** The reps, with the note when the person counted them by hand. */
 const repsCell = (s: SessionRecord) => (s.repsBy === 'hand' && s.reps !== null ? `${s.reps} (${COUNTED_BY_HAND})` : orNone(s.reps));
 
-/** The peak knee bend. A leg raise peak above the plausibility value shows a sentence. The file keeps the number (M8). */
 const peakCell = (s: SessionRecord) => (isEngineKind(s.exercise) && peakUnreadable(s.exercise, s.peakFlexion) ? PEAK_UNREADABLE_TEXT : orNoneRounded(s.peakFlexion));
 
 function Table({ label, head, natural, children }: { label: string; head: ReactNode[]; natural?: boolean; children: ReactNode }) {
@@ -92,7 +81,6 @@ function CriterionRow({ row }: { row: ReviewRow }) {
   );
 }
 
-/** A file name for display: no control or direction characters, at most 80 characters. React shows it as text. */
 const NAME_LIMIT = 80;
 const shownName = (name: string) => {
   const clean = stripHidden(name);
@@ -102,7 +90,6 @@ const shownName = (name: string) => {
 interface Props {
   onBack: () => void;
   mode: Mode;
-  /** The clock. Tests replace it. */
   now?: () => Date;
 }
 
@@ -115,7 +102,6 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [protocolName, setProtocolName] = useState<string | null>(null);
 
-  // The file has no row ids. They exist in memory only, for the summary module.
   const sessions = useMemo<SessionRecord[]>(() => (file ? file.sessions.map((s, i) => ({ ...s, id: i + 1 })) : []), [file]);
 
   const summary = useMemo(
@@ -126,14 +112,13 @@ export function ClinicianView({ onBack, mode, now = () => new Date() }: Props) {
     [file, protocol, phaseId, sessions, now],
   );
 
-  // T12b (FR24): the column and the note show only when a file holds a front-view value.
   const showFront = sessions.some((s) => s.secondView !== undefined || s.frontChangeDeg !== undefined);
 
   async function onSessionFile(input: HTMLInputElement) {
     const picked = input.files?.[0];
-    input.value = ''; // the same file can be picked again
+    input.value = '';
     if (!picked) return;
-    setFile(null); // an old file never stays under a new error
+    setFile(null);
     setFileName(null);
     const read = await readText(picked, MAX_IMPORT_BYTES);
     if (!read.ok) return setFileError(read.message);
