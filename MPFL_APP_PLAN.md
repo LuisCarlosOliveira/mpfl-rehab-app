@@ -798,6 +798,15 @@ Format: Agent. Skills. Tech. Depends on. Steps. Tests. Acceptance. Result is fil
 - Flag (after the audit `docs/audit-generator-v2.md`): the mini squat, the seated hold and the phase 2 heel slide for an unknown limit are off by default. The build flag `VITE_GENERATOR_EXTENDED` with the text "true" turns them on. See `docs/generator-v2-design.md` section 10.
 - Result: DONE with limits, 2026-11-09. No clinician reviewed any value. The audit rows were written by the agent that built the change. A person must check them. The skill eval ran 4 new prompts with a small model and hand grading (`skill-workspaces/mpfl-clinical-guardrails-workspace/iteration-5/benchmark.md`). The full e2e suite and the pairing suite did not run. The hold counter with a hold time set by a clinician has no live test.
 
+### T44. Review round of 2026-11-22 (Opus review, audit, fixes)
+- Agent: Sonnet agents in worktrees, one Haiku agent, one Opus verdict. Skills used: model-routing, simple-english:simple-english, pstack-expert, anti-slop-code:anti-slop-code, owasp-security, web-design-guidelines, modern-web-guidance. Flow: the work flow of the Spectral-T setup, adapted to this stack (gate `app/audit/gate/chain.sh` in place of precheck and dod-check). Source: the Opus review of this day.
+- Decisions of the user: self-progression is off by default (only `true` or `1` turns it on, `docs/clinical-limits.md`). All findings are fixed in code where code can fix them.
+- Fixed: the frame bridge stall (watchdog after the first result, 60 s first-frame limit), `eraseAll` order and blocked delete, a margin source id in stored sessions, the Phase type, fewer casts, the safety buttons at large text, the e2e harness leftover, the audit scripts that read the margin id.
+- Added: simulated-pose e2e tests for each exercise, a privacy traffic test (`app/e2e/app-privacy-traffic.spec.ts`), the register of values for clinician review (`docs/clinical-limits.md`, CV-01 to CV-57), a threat model (`docs/threat-model.md`), a manual-tests section for the 7 clip tests (`app/audit/README.md`).
+- Trade-off: text in the live bar now scales to 200%. The camera shows about 100 to 140 px first at 360 x 740 and 200% text, and the page scrolls to it. Both safety buttons stay fixed and in view.
+- Proof: gate run of 2026-11-22 on the merged code: precheck 4485 of 4485 tests, e2e 319 passed, 0 failed, 11 skipped (7 need the webcam clip, 4 write screenshots). The a11y, hostile and honesty steps ran again after a fix of the audit scripts: result in the next line when it is known.
+- Result: IN PROGRESS, 2026-11-22. No clinician reviewed any value. The real camera, the skeleton and the GPU path have not run on a real person. The regulatory class is open. Slop removal branches and `types-2` are not merged.
+
 ## 7. Completion criteria
 
 Done means every command below passes. Evidence goes in section 8.
