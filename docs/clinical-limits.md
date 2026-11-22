@@ -133,3 +133,109 @@ Source: [docs/audit-3.md](audit-3.md) and the fixes of commit 903d2c9. No clinic
 - A hand-added `approvedOn` date (L2-05): patient mode cannot check a claim in an unsigned file.
 - The clip licences: 8 Creative Commons clips ran in private tests. The attribution is in `docs/accuracy.md`. The clips never enter the repo. YouTube terms forbid a download with a tool. The user accepted this after the vetting in `docs/dependency-vetting-ytdlp.md`.
 - Moving the pose loop to a Worker (L4-04): the user decided yes ("6. ok"). The work is T42 and `docs/pose-worker.md`. The speed on a real phone is NOT RUN.
+
+## Register of values for clinician review
+
+Each row is one value or one group of values. The source of each row is a note in `app/src`. The code does not change for this register. A clinician fills the last two columns. "Source named in code" lists only the sources that the note names. If the note names none, the cell says "no source named".
+
+### Protocol generator
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-01 | 58 degrees (40 plus 2 times the margin of 9), seated hold target | `protocolGen/rules.ts` line 321, grade line 323 | Target angle of the generated seated hold | grade ENGINEERING, note "Camera error from healthy adults" | F1, F3 | | |
+
+### Margin and angle
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-02 | 9 degrees, camera margin | `lib/margin.ts` lines 6 and 8, `lib/monitor/registry.ts` line 16 | Base tolerance for the generated targets and cue limits | "start value, UNVERIFIED for the" | Okuno 2026, F1 | | |
+| CV-03 | 0.5, landmark visibility | `lib/angle.ts` line 11 | Minimum visibility before an angle is read | "The value 0.5 is a start value." | research/tech.md section 2.3 | | |
+
+### Setup and capture
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-04 | 0.05 of frame edge | `lib/setupRules.ts` line 28 | A leg landmark this close to the edge fails the setup | "PROPOSAL, to be tuned in T13" | ux-flow 6.2 rule 4 | | |
+| CV-05 | 0.25 of leg length, maximum hip gap | `lib/setupRules.ts` line 32 | Side-on gap check | "PROPOSAL, to be tuned in T13" | setup rule 6, no clinical source named | | |
+| CV-06 | 2000 ms, still window | `lib/setupRules.ts` line 40 | Time window of the stillness check | "PROPOSAL (engineering, not clinical)" | rule 7, F1 check on 7 clips | | |
+| CV-07 | 1000 ms, failure hold | `lib/setupRules.ts` line 42 | A failure must last this long before the text changes | "PROPOSAL, to be tuned in T13" | FR27 | | |
+| CV-08 | 3000 ms, spoken text interval | `lib/setupRules.ts` line 44 | Spoken setup text changes at most this often | "PROPOSAL, to be tuned in T13" | FR27, WCAG 4.1.3 | | |
+| CV-09 | 5000 ms, start countdown | `lib/setupRules.ts` line 46 | Countdown before a capture starts | "PROPOSAL, to be tuned in T13" | FR27 | | |
+| CV-10 | 30000 ms, More time extension | `lib/setupRules.ts` line 48 | Time added by the More time button | "PROPOSAL, to be tuned in T13" | WCAG 2.2.1, ux-flow 6.2 | | |
+| CV-11 | 20 samples, minimum for a median | `lib/baseline.ts` lines 10 and 11 | Fewer samples are not steady enough to use | "PROPOSAL, no source: a median" | no source named | | |
+| CV-12 | 20 samples, minimum for the lowest steady angle | `lib/baseline.ts` lines 57 to 63 (`CAPTURE_CONFIG`) | Samples needed before the lowest steady angle counts | "ENGINEERING values, not clinical." | no source named | | |
+| CV-13 | 0.8 of the protocol target, rep start | `lib/baseline.ts` line 113, `lib/exercises.ts` line 44 | Angle where a rep starts | "PROPOSAL, no source: a rep starts" | no source named | | |
+
+### Exercise counting
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-14 | 10 degrees, minimum target | `lib/exercises.ts` line 45 | Below this value, noise decides the count | "PROPOSAL, no source. Below this" | no source named | | |
+| CV-15 | 0.05 of image height, raised ankle | `lib/exercises.ts` line 46 | Ankle above the hip by this much counts as raised | "PROPOSAL, no source. Image fraction" | no source named | | |
+| CV-16 | 300 ms, minimum lift end | `lib/exercises.ts` line 47 | Shortest return to rest that ends a lift | "ENGINEERING, not clinical. In clip" | no source named | | |
+| CV-17 | 500 ms, raise settle | `lib/exercises.ts` line 75 | Filter settle time before the top angle is read | "PROPOSAL, no source. The filter" | no source named | | |
+| CV-18 | 0.4 to 2.5, thigh to shin ratio | `lib/exercises.ts` line 62 | Check for a plausible whole leg | "ENGINEERING, not clinical. No source" | no source named | | |
+| CV-19 | 1 to 6, foot ratio | `lib/exercises.ts` line 65 | Check for the ankle pump foot | "ENGINEERING, not tuned on real" | no source named | | |
+| CV-20 | Group: 0.1 jump fraction, 0.005 anchor step, 4000 ms lockout, 0.02 edge margin, 0.03 minimum segment, 2000 ms confirm, 0.05 steady radius, 5 probe frames, 3000 ms probe wait, 10000 ms reprobe, 0.2 probe share | `lib/exercises.ts` lines 48 to 72 | Tracking of the person and the probes for the camera count | "ENGINEERING, not clinical. No source sets" | no source named | | |
+
+### Cues and screen timing
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-21 | 500 ms, paused cue | `lib/cues.ts` line 63 | Leg out of view for this long before the pause cue shows | "ENGINEERING: the leg must stay" | no source named | | |
+| CV-22 | 500 ms, limit gap reset | `lib/counters.ts` line 62 | Gap that lets the over-limit alert repeat | "ENGINEERING, not clinical. No source" | no source named | | |
+| CV-23 | 2000 ms, pose probe | `ui/Session.tsx` line 69 | Two-pose probe when the lockout starts | "ENGINEERING: how long the source" | internal item B5-02 | | |
+| CV-24 | 500 ms, lock box hold | `ui/Session.tsx` line 70 | Lock box stays after the lock ends | "ENGINEERING: the lock box stays" | no source named | | |
+| CV-25 | 4000 ms, cue text on screen | `ui/Session.tsx` line 71 | How long a cue text stays | "PROPOSAL, no source: how long" | no source named | | |
+| CV-26 | 2000 ms, stale frame | `ui/Session.tsx` line 72 | No frame for this long shows the camera notice | "PROPOSAL, no source: no frame" | no source named | | |
+| CV-27 | 5000 ms, Next card wait | `ui/PlanSession.tsx` line 17 | How long the Next card waits | "ENGINEERING value, no clinical source" | no source named | | |
+| CV-28 | 10000 ms, confirmation age | `lib/protocol/accept.ts` line 12 | An older confirmation is stale | "ENGINEERING value." | no source named | | |
+| CV-29 | 20000 values, placeholder scan limit | `lib/protocol/loader.ts` line 75 | Stop of the scan for "SET BY CLINICIAN" | "ENGINEERING value, no source" | no source named | | |
+
+### Views and front camera
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-30 | 500 ms, view sync | `lib/views.ts` line 19 | Offset allowed when reps are paired across views | "PROPOSAL, 500 ms. Each view" | research/dual-camera-opus.md section 3 | | |
+| CV-31 | 60000 ms, front buffer | `lib/views.ts` line 143 | How long the front buffer holds frames | "PROPOSAL: how long the buffer" | no source named | | |
+| CV-32 | Start frame plus 4 usable frames | `lib/views.ts` line 68 | Frames needed for a front view | "PROPOSAL: the start frame plus" | no source named | | |
+
+### Review summary, export and pairing
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-33 | 5 counted reps | `lib/reviewSummary.ts` line 15 | Minimum reps for an angle measure | "PROPOSAL, no source (progression.md" | progression.md section 5.2 | | |
+| CV-34 | Highest pain of the window | `lib/reviewSummary.ts` line 199 | A pain limit reads the highest value | "The highest value of the window" | no source named | | |
+| CV-35 | 1 set when sets are missing | `lib/sets.ts` line 47 | Reps without sets count as one set | "PROPOSAL: reps without sets count" | no source named | | |
+| CV-36 | One space | `lib/storage/export.ts` line 127 | Separator of the per-set count cell | "PROPOSAL: the per-set counts are" | no source named | | |
+| CV-37 | 5 to 1, maximum width to height of the phone image | `lib/pairing/messages.ts` line 30 | Range of the phone image aspect | "PROPOSAL range, a camera is not" | no source named | | |
+| CV-38 | Visit check wording | `lib/reviewSummary.ts` line 47 | Visit check texts | "The wording is a PROPOSAL." | progression.md section 5.2, strength item only | | |
+| CV-39 | Group: 3000 ms gather, 16384 bytes buffer, 15 frames each second, 4096 bytes message, 15000 ms hello, 120000 ms secret, 4 open secrets, 600 characters scan | `lib/pairing/rtcLink.ts` lines 14 and 15, `frameMessage.ts` line 9, `messages.ts` line 8, `session.ts` line 11, `security.ts` lines 4 and 5, `payload.ts` line 19 | Connection and transfer limits of the phone pairing | "PROPOSAL: qr-pairing.md section 5" | qr-pairing.md section 5 | | |
+| CV-40 | Pairing identity config group: 6000 ms window, 30 frames, 8 degrees range, 0.6 ratio, 2 windows | `lib/legIdentity.ts` line 21 | Decides which leg moves | "Every value in IDENTITY_CONFIG is a PROPOSAL" | T13, internal | | |
+
+### Monitor and body map
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-41 | 30 degrees, minimum ankle pump amplitude | `lib/monitor/modes.ts` line 154 | Smallest rise and fall that counts as a pump | "ENGINEERING, not clinical. No source" | no source named | | |
+| CV-42 | 4000 ms, longest pump rise | `lib/monitor/modes.ts` line 161 | Longest rise that counts as a pump | "ENGINEERING, not clinical. No source" | R-10, internal | | |
+| CV-43 | 3 degrees for the side view, 20 degrees for the back view, lift angle | `lib/monitor/modes.ts` lines 385 and 386 | Angle at which a leg counts as lifted | "ENGINEERING, not clinical. No source" | no source named | | |
+| CV-44 | 0.02 of picture, minimum foot move | `lib/monitor/modes.ts` line 260 | The foot must point this far to vote for facing | "ENGINEERING. The foot of" | no source named | | |
+| CV-45 | Filter cut-offs 1.2 and 1.5 | `lib/monitor/modes.ts` lines 144 and 257 | Smoothing of the angles for cycles and lifts | "Every number here is ENGINEERING." | no source named | | |
+| CV-46 | Group: 500 ms lost hold, 0.02 spike, 100 ms hold, 0.06 side band | `ui/BodyMap.tsx` lines 52, 58, 61 and 63 | Drawing of the joints on the body map | "ENGINEERING, not clinical. Measured on" | docs/live-test/skeleton-validation.md | | |
+
+### Drawings, examples and texts
+
+| ID | Value and unit | File and line | What it controls | Status in code note | Source named in code | Reviewed by | Date |
+|---|---|---|---|---|---|---|---|
+| CV-47 | 60 degrees, heel slide drawing | `lib/figure.ts` line 121 | Illustrative angle in the drawing | "PROPOSAL, same as the example target" | example-protocol.json | | |
+| CV-48 | 30 degrees, mini squat drawing | `lib/figure.ts` line 123 | Illustrative angle in the drawing, not a limit | "PROPOSAL, inside the borrowed range" | clinical.md section 4, S16 | | |
+| CV-49 | 30 degrees, hip flexion in the straight leg raise drawing | `lib/figure.ts` line 221 | Hip angle in the drawing | "PROPOSAL: a hip flexion of 30" | clinical.md section 4 | | |
+| CV-50 | 0.62 of label size | `lib/figure.ts` line 102 | Width of one bold character in labels | "PROPOSAL, width of one bold" | browser check, no clinical source | | |
+| CV-51 | 50 degrees, example maximum flexion | `lib/protocol/example-protocol.json` line 41 | Example ceiling in the example plan | "maxFlexion 50: S16, BORROWED (healthy" | S16, healthy people | | |
+| CV-52 | 2 sets of 10 repetitions, example dose | `lib/protocol/example-protocol.json` line 41 | Example dose | "sets, reps: example values, P2" | P2 rec 26, OPINION, ages 8 to 25 | | |
+| CV-53 | 40 and 60 degrees, example seated hold | `lib/protocol/example-protocol.json` line 51 | Example hold range | "minFlexion 40: P1 phase 2" | P1, OPINION | | |
+| CV-54 | Five new exercise guide texts | `lib/guides.ts` line 3, `lib/monitor/registry.ts` line 160 | Patient guide texts for five exercises | "The five new exercises (PROPOSAL)" | research/technique-sources.md covers four exercises | | |
+| CV-55 | Technique note text | `lib/technique.ts` line 45 | Note above the guide lines | "These lines are a proposal" | no source named | | |
+| CV-56 | Beep pitch and length | `ui/sound.ts` line 27 | Sound of the cues | "PROPOSAL, no source: the pitches" | no source named | | |
+| CV-57 | Camera question starts on the side of the chosen leg | `ui/setupView.ts` line 130 | Order of the camera questions | "PROPOSAL: the camera question starts" | no source named | | |
