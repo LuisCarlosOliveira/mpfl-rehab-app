@@ -3,7 +3,7 @@
 // 2. The camera. Text first, then the "Start camera" button. The browser prompt follows a press only (NFR9).
 //    After the camera starts, the setup check (FR27, src/lib/setupRules.ts) reads each frame.
 //    One large line shows the instruction. A list shows each rule with a word. The countdown starts the exercise.
-// Source of the copy: research/ux-flow.md sections 6.2, 7 and 8.3.
+// Source of the copy: the project knowledge base.
 // T12b: the optional step "Add a second camera (optional)" shows PairHost between the position guide and the camera.
 // The shell passes `pair` only when it can pair. Without it, Setup is the single camera flow and shows nothing of a second camera.
 // Skip, Back and Cancel stop the pairing. A connected phone stays connected for the camera step and the Session.

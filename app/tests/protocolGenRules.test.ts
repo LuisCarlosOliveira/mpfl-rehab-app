@@ -87,7 +87,7 @@ describe('rules data', () => {
     }
   });
 
-  // User decision 2026-11-11: the app proposes the plan from the guidelines. A number needs a real source and an EXACT audit row.
+  // Owner decision 2026-11-11: the app proposes the plan from the guidelines. A number needs a real source and an EXACT audit row.
   it('gives the dose rule the whole range of P2, its population and the audit row V49', () => {
     expect(RULES.DOSE.values).toEqual({ sets: 2, reps: 10 });
     expect(RULES.DOSE.grade).toBe('OPINION');

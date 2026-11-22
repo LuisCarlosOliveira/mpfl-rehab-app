@@ -3,14 +3,14 @@
 // Each row: time in ms, then x and y of left hip, knee, ankle, then of right hip, knee, ankle, then the smallest visibility
 // of the left leg and of the right leg. A row of null means that no person was found. The angle is estimated, not measured.
 // There is NO trusted ground truth for the leg or the posture in these clips. A test pins what the rules give today.
-// Clips, all licensed Creative Commons Attribution (CC BY), re-encoded, video only:
+// Clips, all licensed Creative Commons Attribution (CC BY), re-encoded, video only (the same attribution is in docs/accuracy.md):
 // 01 "Heel Slides | PhysiqueDevelopment.com" by Physique Development, https://www.youtube.com/watch?v=AKk2fNwwDYA
 // 02 "Heel Slides" by Motion, https://www.youtube.com/watch?v=JTSkGqetpcM
 // 03 "Straight leg Raise exercise stage 1 knee pain" by Spire Injury Clinic, https://www.youtube.com/watch?v=vJ5JIlV1zxk
 // 04 "Straight Leg Raises" by Motion, https://www.youtube.com/watch?v=pXvEadIwMgw
-// 05 mini squat, side view, see docs/clip-analysis.md for the source
+// 05 "Mini Squats" by Motion, https://www.youtube.com/watch?v=wqCvuhfRXRU (side view)
 // 06 "Seated Knee Flexion" by Motion, https://www.youtube.com/watch?v=G0EdB5vwmJY
-// 07 mini squat, front view, see docs/clip-analysis.md for the source
+// 07 "Mini Squats - Stage 1 PFPS" by Spire Injury Clinic, https://www.youtube.com/watch?v=NRcuNnO988g (front view)
 
 export type ClipRow = number[] | null;
 export interface ClipSeries {

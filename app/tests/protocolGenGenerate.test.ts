@@ -122,7 +122,7 @@ describe('week 0 to 6, phase 1', () => {
     expect(kinds(protocol, 1)).toEqual(['straight-leg-raise']);
   });
 
-  // User decision 2026-11-11: the app proposes the plan from the guidelines. The dose is P2 rec 26 (V49), shown as a whole range.
+  // Owner decision 2026-11-11: the app proposes the plan from the guidelines. The dose is P2 rec 26 (V49), shown as a whole range.
   it.each([0, 3, 6])('gives the straight leg raise the start of the dose range of P2 at week %i, with the whole range in the source line', (w) => {
     const { protocol, why } = plan(at(w));
     const slr = exercise(protocol, 1, 'straight-leg-raise');

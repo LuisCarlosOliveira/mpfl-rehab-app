@@ -1,5 +1,5 @@
 // Clinician review summary (FR22a, FR15). Pure functions, no clock, no storage.
-// Source of the layout: research/progression.md section 5.2 (PROPOSAL, no clinical source).
+// Source of the layout: the project knowledge base (PROPOSAL, no clinical source).
 // The summary shows measured values against limits that the clinician wrote. It gives
 // no total, no count of criteria, no percentage, no score and no colour. It never says
 // that a limit was met. The app never changes the phase (FR4).

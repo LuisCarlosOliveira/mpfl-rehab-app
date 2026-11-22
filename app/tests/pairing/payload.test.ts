@@ -322,7 +322,7 @@ describe('candidate hosts (audit A1-1)', () => {
 
   it.each([
     '10.0.0.1', '10.255.255.254', '172.16.0.1', '172.31.255.255', '192.168.1.1', '192.168.255.255',
-    '100.64.0.1', '100.84.170.33', '100.127.255.254', '169.254.10.20',
+    '100.64.0.1', '100.64.0.2', '100.127.255.254', '169.254.10.20',
   ])('accepts the private or tailnet address %s', (host) => {
     expect(ok(decodeOffer(encodeOffer(cand(host)))).candidates[0]?.host).toBe(host);
     expect(ok(extractFields(sdpWith(host))).candidates[0]?.host).toBe(host);

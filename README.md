@@ -1,12 +1,12 @@
 # MPFL rehabilitation app (prototype)
 
-This app helps a person after MPFL reconstruction to do their knee exercises at home. It counts reps and estimates the knee angle from a webcam. All of this runs in the browser, on the device.
+This app is a research and evaluation prototype that counts reps and estimates the knee angle from a webcam during knee exercises. All of this runs in the browser, on the device.
 
 **This is a prototype. It is not a medical device. It is not for patient use.** No video leaves the device, and the app stores no video. No clinician has reviewed any clinical value in it.
 
 ## Who is this for
 
-- A person after MPFL reconstruction who wants a guided home exercise tool with a webcam. Use it only with your care team and only as a test.
+- A person after MPFL reconstruction. Use it only as a test, together with your care team. It does not replace your care team or your physiotherapy plan.
 - A clinician who wants to review the app and give a plan file to a person. Start with [docs/clinician-first-review.md](docs/clinician-first-review.md) and [docs/clinician-template.md](docs/clinician-template.md).
 - A developer who wants to build on the app, run the tests or check the claims.
 
@@ -22,8 +22,8 @@ This app helps a person after MPFL reconstruction to do their knee exercises at 
 
 ## Safety and limits
 
-- The app shows an estimate of the knee angle. The estimate can be off by 9 degrees or more. Follow the limit of your surgeon or physiotherapist, not the cues of the app.
-- The app gives no verdict and no score. It shows a measured number against a limit that the care team set.
+- The app shows an estimate of the knee angle. The error of the estimate is not measured. The app uses a start value of 9 degrees. It is UNVERIFIED. Follow the limit of your surgeon or physiotherapist, not the cues of the app.
+- The app gives no score and no praise. It shows a measured number against a limit that the care team set.
 - At a pain of 7 or more, or with swelling "more than before", the app stops the session. The button "Knee gave way or hurts" ends the session at any time.
 - A clinician must review every clinical value before a patient uses the app. The register is in [docs/clinical-limits.md](docs/clinical-limits.md). The first values to review are in [docs/clinician-first-review.md](docs/clinician-first-review.md).
 - A supervised session needs a clinician in the room. Read [docs/live-session-checklist.md](docs/live-session-checklist.md) first.
@@ -58,7 +58,7 @@ During an exercise, the app shows the measured number and the rep count. It show
 
 | Rule | How it is held |
 |---|---|
-| No video leaves the device or is stored | The model runs in a Web Worker. The page sends numbers only. A test records all network traffic of a full session. `scripts/claims-check.sh` bans the video APIs |
+| No video leaves the device or is stored, when the app is served with the headers of `app/public/_headers` | The page sends each camera frame to a Web Worker in the same browser. Only the worker returns numbers. The frame stays in the browser and the app never sends it over the network. The second camera sends numbers only (see Second camera). The MediaPipe library tries one metrics request. The fetch guard of the app blocks it ([docs/threat-model.md](docs/threat-model.md), T9). A test records all network traffic of a full session. `scripts/claims-check.sh` bans the video APIs |
 | The active phase never changes without a person | `src/lib/protocol/accept.ts` is the only save path of a generated plan. The flag `VITE_SELF_PROGRESSION` is off by default. With the flag off, a generated plan of phase 2 or more is refused |
 | No verdict, score or praise | A test of the words and a check of the colours. The screens show numbers against a limit |
 | The prototype banner is on every screen | The banner text comes from `src/lib/mode.ts` |
@@ -66,11 +66,11 @@ During an exercise, the app shows the measured number and the rep count. It show
 
 ## Status
 
-Last full check: 2026-11-22, on the commit after the fixes of the first live test. The one change after it is the wording of the setup notice, which the honesty audit and the setup accessibility specs ran again.
+The table shows the results of one full check, on the date and commit stated. These are not live results. Date: 2026-11-22. Commit: 408b99b. The one change after it is the wording of the setup notice (commit 4af120c), which the honesty audit and the setup accessibility specs ran again.
 
 | Check | Result |
 |---|---|
-| Unit tests (`npm test`) | 4,515 tests in 254 files, passed |
+| Unit tests (`npm test`) | 4,515 tests in 254 files, passed, as `npm test` counts them |
 | Browser tests (`npm run e2e`) | 319 passed, 11 skipped, 0 failed (the webkit project ran again alone after one load timeout). 7 skips need a webcam clip that is not in the repository (see [app/audit/README.md](app/audit/README.md)). 4 skips only write screenshots |
 | Accessibility audit | 0 run errors on 28 screens, no sideways scroll at 200% text |
 | Hostile input audit | 72 of 72 cases passed, 0 foreign requests |
@@ -82,7 +82,7 @@ The first live test used a real webcam in Edge, with the GPU delegate. Six exerc
 ## What is not done
 
 - No clinician has reviewed any value, cue text, red flag, pain floor or generated plan.
-- The camera error is not measured. The margin of 9 degrees is a start value, UNVERIFIED for the `lite` model. No goniometer data exists.
+- The error of the estimate is not measured. The app uses a start value of 9 degrees. It is UNVERIFIED for the `lite` model. No goniometer data exists.
 - No real phone has run the app, and the second camera has no real-phone test.
 - The regulatory class is open. An expert must decide it.
 - Patient mode is off. Nobody can turn it on before a clinician review and a decision on the class.
@@ -130,7 +130,7 @@ The pattern checks cannot prove that no other banned text exists. `tests/importG
 | `VITE_SELF_PROGRESSION` | Only `true` or `1` lets a person confirm a move to a later phase. The Confirm click stays | off |
 | `VITE_GENERATOR_EXTENDED` | `false` or `0` removes the mini squat and the seated hold from generated plans | on in demo mode |
 
-Nobody can turn on patient mode as part of this work. The field `approvedOn` is a claim in an unsigned file. The app cannot check it.
+Do not turn on patient mode. It needs a clinician review and a decision on the regulatory class. The field `approvedOn` is a claim in an unsigned file. The app cannot check it.
 
 ## Tests with real clips
 
@@ -139,11 +139,15 @@ Two tools run a video clip through the real app code. Both need `ffmpeg`. The de
 - `node scripts/analyze-clip.mjs <video> --leg right --exercise heel-slide` reads a clip frame by frame and writes numbers only. The output goes to `app/.clip-out/`, which Git ignores.
 - `bash scripts/clip-to-webcam.sh <clip>` converts a clip to a file that Chromium plays as the fake webcam.
 
-A clip never enters the repository. One clip is a smoke test and not a validation.
+A clip never enters the repository. One clip is a smoke test and not a validation. The test fixtures hold landmark numbers derived from public CC BY clips, with attribution in [docs/accuracy.md](docs/accuracy.md), and no video.
 
 ## Second camera
 
 A phone can send body points of the front view to the laptop. The phone runs the pose model and sends numbers only, over a WebRTC data channel with no server. The steps are in [docs/pairing-wiring.md](docs/pairing-wiring.md). The real-phone test is UNPROVEN.
+
+## Hosting
+
+Serve the built app only from a host that sends the headers of `app/public/_headers`, for example Netlify or Cloudflare Pages. GitHub Pages ignores this file. The CSP tag in `index.html` covers the page but not the pose worker, and it cannot set `frame-ancestors`. Without the headers, another site can frame the app, and the pose worker runs with no CSP. See [docs/threat-model.md](docs/threat-model.md), T9 and T10.
 
 ## Dependencies
 
@@ -175,6 +179,10 @@ Runtime: `react`, `react-dom`, `zod`, `dexie`, `recharts`, `@mediapipe/tasks-vis
 - [Citation audit](docs/citation-audit.md) and [rehab rules with sources](docs/rehab-rules.md): the sources behind the plan generator.
 - [Clip analysis](docs/clip-analysis.md) and [second camera wiring](docs/pairing-wiring.md).
 - [Dependency vetting](docs/dependency-vetting.md), [UI package vetting](docs/dependency-vetting-ui.md) and [yt-dlp vetting](docs/dependency-vetting-ytdlp.md).
+
+## Security
+
+Report a security problem: see [SECURITY.md](SECURITY.md).
 
 ## Contributing
 

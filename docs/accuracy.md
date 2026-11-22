@@ -95,17 +95,17 @@ The target is a median of at least 15 frames per second. Measure it over 60 seco
 
 | Device | Browser | Median fps | Date |
 |---|---|---|---|
-| Development laptop (i5, 8 threads, no GPU, software rendering, shared with agents) | Chromium (live tests) | About 15 detections per second. 12.6 to 15.3 depending on machine load | 2026-11-09 |
+| Development laptop (i5, 8 threads, no GPU, software rendering, shared with other processes) | Chromium (live tests) | About 15 detections per second. 12.6 to 15.3 depending on machine load | 2026-11-09 |
 | The same laptop, three clips as the fake camera | Chromium | 14.99 (clip 05), 20 (clip 01) and 29.9 (clip 06) | 2026-11-08 and 2026-11-09 |
 | The same laptop, 4x CPU throttle | Chromium | About 3.5 | 2026-11-09 |
 | Phone | Chrome | not measured | not measured |
 | Phone | Safari | not measured | not measured |
 
-Sources and caveats. The first row is the figure of the test results record (from the performance record and the W4 measurements of the main session). The second row is from the exercise flows record. The 4x throttle figure of the performance record reads 3.0 in the plan (NFR4), and this record gives about 3.5 as the main session reported. The two figures differ and the cause is not recorded (UNPROVEN). The medians depend on the clip and on the load of the machine. The loop runs on the main thread. Live test round 2 measured 29.94 in 7 of 8 runs and 20.04 in 1 run on clip 01 in Setup, from `requestVideoFrameCallback` (the retest record). The reports do not agree and the cause is not recorded. No measurement exists on a phone, so the target of 15 on a phone is UNPROVEN.
+Sources and caveats. The first row is the figure of the test results record (from the performance record and the W4 measurements). The second row is from the exercise flows record. The 4x throttle figure of the performance record reads 3.0 in the plan (NFR4), and this record gives about 3.5 as reported. The two figures differ and the cause is not recorded (UNPROVEN). The medians depend on the clip and on the load of the machine. The loop runs on the main thread. Live test round 2 measured 29.94 in 7 of 8 runs and 20.04 in 1 run on clip 01 in Setup, from `requestVideoFrameCallback` (the retest record). The reports do not agree and the cause is not recorded. No measurement exists on a phone, so the target of 15 on a phone is UNPROVEN.
 
 ## Baseline spread of the lowest-angle button
 
-Round 2 found that the starting angle of the lowest-angle button depended on the press moment. It gave 46, 41 and 20 degrees in three runs on clip 01 (the retest record, R2-06). Round 3 changed the rule to the lowest 0.5 s plateau of the whole capture (`lib/baseline.ts`, commit ab171d3). The test `tests/baselineStable.test.ts` presses at 24 moments between 15 s and 61 s on clips 01, 02 and 05. It requires a spread of at most 2 degrees. The main session reported a spread of 50.8 degrees before the change and 0.4 degrees after it on clip 01. No document in the repository holds these two numbers (UNPROVEN, not re-run). A clip is a smoke test and not a validation. The plateau value of 0.5 s is ENGINEERING and needs a clinician review.
+Round 2 found that the starting angle of the lowest-angle button depended on the press moment. It gave 46, 41 and 20 degrees in three runs on clip 01 (the retest record, R2-06). Round 3 changed the rule to the lowest 0.5 s plateau of the whole capture (`lib/baseline.ts`, commit ab171d3). The test `tests/baselineStable.test.ts` presses at 24 moments between 15 s and 61 s on clips 01, 02 and 05. It requires a spread of at most 2 degrees. A report states a spread of 50.8 degrees before the change and 0.4 degrees after it on clip 01. No document in the repository holds these two numbers (UNPROVEN, not re-run). A clip is a smoke test and not a validation. The plateau value of 0.5 s is ENGINEERING and needs a clinician review.
 
 ## Not done
 
@@ -204,6 +204,15 @@ The 8 clips are public videos under Creative Commons Attribution (CC BY). The fi
 - Clip 06: "Seated Knee Flexion" by Motion, https://www.youtube.com/watch?v=G0EdB5vwmJY, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 - Clip 07: "Mini Squats - Stage 1 PFPS" by Spire Injury Clinic, https://www.youtube.com/watch?v=NRcuNnO988g, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 - Clip 08: "Quads   03 Straight Leg Raise" by MyMichiganHealth, https://www.youtube.com/watch?v=gH-CJTv7TyQ, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
+
+The fixture file `app/tests/fixtures/clipLifts.ts` also holds landmark numbers of six more public clips. The uploader, title and link come from its header. The licence in that header is CC BY. The version of the licence is not recorded there. The owner must check the version on each source page:
+
+- Window S1: "Side Lying Leg Raise" by Hybrid Fitness, https://www.youtube.com/watch?v=mr_r9dFK-Hs, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window S2: "Side Lying Hip Abduction 2" by Spire Injury Clinic, https://www.youtube.com/watch?v=SlDwEyHVzLw, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window S3: "Side Lying Hip Abduction 1" by Spire Injury Clinic, https://www.youtube.com/watch?v=9J0UcDcZr5Q, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B1: "Standing Hip" by Motion, https://www.youtube.com/watch?v=Gp1-EfY5X-g, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B2: "Hip Exercises - Rear Leg Lift" by Fitnessyard, https://www.youtube.com/watch?v=pY8PWoA-A-g, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B3: "Standing Bodyweight Hip Extension" by OMNIFUNCTION, https://www.youtube.com/watch?v=t_PDPTMIPIA, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
 
 ## Re-run after the baseline rule, 2026-11-08
 

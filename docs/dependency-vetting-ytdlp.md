@@ -1,9 +1,9 @@
 # Dependency vetting: yt-dlp (private test use)
 
-Date: 2026-11-08. Task: real-person clips for local tests of the pose pipeline. The user decided on option 3: use `yt-dlp` for private tests. The user accepts that YouTube terms forbid downloads with a tool.
-Skills loaded with the Skill tool: `owasp-security`, `simple-english:simple-english`, `anti-slop-code:anti-slop-code`. Method: `docs/dependency-vetting.md`, adapted for PyPI.
+Date: 2026-11-08. Task: real-person clips for local tests of the pose pipeline. Downloading a video from YouTube with a tool is against the YouTube terms. Use a tool like this only where the terms allow it. The repository holds no clip. This file holds the vetting of `yt-dlp` for private tests.
+Method: `docs/dependency-vetting.md`, adapted for PyPI.
 
-I only downloaded files. I ran no code from the packages before this vetting ended. All data is from 2026-11-08. The work folder is the scratchpad folder `ytvet/`.
+I only downloaded files. I ran no code from the packages before this vetting ended. All data is from 2026-11-08. The work folder is a local folder `ytvet/`.
 
 ## 1. Summary
 | Item | Value |
@@ -88,7 +88,7 @@ The advisory list for `yt-dlp-ejs` is empty. Two classes of risk remain: a new b
 | C2 | Use `pip install --no-deps --require-hashes` with the three SHA-256 values above. |
 | C3 | Run with `python -I -m yt_dlp --no-update --ignore-config --no-plugin-dirs`. No cookies, no proxy, no login. |
 | C4 | Do not use `--exec`, `--write-link`, `--netrc-cmd`, `--downloader` or `-U`. |
-| C5 | Write output only into the scratchpad folder `clips-real/`. Clips stay out of git, are not shared, and serve local tests only. |
+| C5 | Write output only into a local folder `clips-real/`. Clips stay out of git, are not shared, and serve local tests only. |
 | C6 | If YouTube asks for sign-in or a bot check, stop. Do not work around it. |
 | C7 | Re-vet before any version change. |
 

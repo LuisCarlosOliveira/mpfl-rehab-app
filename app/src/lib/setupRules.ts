@@ -1,5 +1,5 @@
 // Camera setup check (FR27). Pure functions from landmarks to one instruction or "ready".
-// Rules and texts: research/ux-flow.md section 6.2. Wording: mpfl-clinical-guardrails (no verdict words).
+// Rules and texts: the project knowledge base. Wording: mpfl-clinical-guardrails (no verdict words).
 // The visibility gate is MIN_VISIBILITY of angle.ts (FR7, UNVERIFIED value).
 
 import { MIN_VISIBILITY, selectLeg, type Landmark, type Side } from './angle';

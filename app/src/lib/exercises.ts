@@ -40,7 +40,7 @@ import {
 } from './monitor/modes';
 import type { Exercise, PlanExercise } from './protocol';
 
-const MIN_STATE_MS = 300; // start value. research/tech.md 3.3 says "for example 300 ms", not from a source
+const MIN_STATE_MS = 300; // start value. the project knowledge base says "for example 300 ms", not from a source
 const ENTER_FRACTION = 0.8; // PROPOSAL, no source: a rep starts at 80 percent of the target
 const MIN_TARGET = 10; // degrees. PROPOSAL, no source. Below this, noise decides the count.
 const RAISE_MIN_HEIGHT = 0.05; // PROPOSAL, no source. Image fraction: ankle above hip by this much counts as raised
@@ -121,7 +121,7 @@ export function counterSetup(exercise: Exercise): SetupResult {
         kind: 'hold',
         config: {
           direction: 'at-most',
-          threshold: exercise.targetFlexion + MARGIN_DEG, // the band is the target plus the margin (research/form-opus.md, C5)
+          threshold: exercise.targetFlexion + MARGIN_DEG, // the band is the target plus the margin (the project knowledge base)
           minHoldMs: exercise.holdSeconds * 1000,
           arcEnd: exercise.minFlexion > 0 ? { limit: exercise.minFlexion, margin: MARGIN_DEG } : undefined,
         },

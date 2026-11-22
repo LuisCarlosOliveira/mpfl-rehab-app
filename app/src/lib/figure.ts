@@ -1,5 +1,5 @@
 // Figure geometry for the position guide (FR28) and the camera guide. Pure data. The UI renders it as SVG.
-// Design: research/ux-flow.md section 7.5. No photo and no video of a person.
+// Design: the project knowledge base. No photo and no video of a person.
 // The picture is a side view of a person: head, torso, thigh, shank and foot with real thickness.
 // The view box is cropped to the content. The label size follows the width of the view box,
 // so a label is about 15 pixels high at a rendered width of 300 pixels (see MIN_LABEL_PX).

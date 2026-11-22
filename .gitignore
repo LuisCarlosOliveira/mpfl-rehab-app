@@ -26,11 +26,6 @@ npm-debug.log*
 *.key
 .npmrc.local
 
-# Claude Code files stay local.
-.claude/settings.local.json
-.claude/worktrees/
-.claude/scheduled_tasks.lock
-
 # Git worktrees that sit inside this folder
 /mpfl-rehab-app-*/
 

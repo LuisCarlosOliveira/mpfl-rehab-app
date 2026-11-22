@@ -1,5 +1,5 @@
 // FR5. A tick list from RED_FLAGS (src/lib/redflags.ts). Any tick blocks the session and
-// shows the message of its group. The block stays until the patient goes back to Home. Source of the copy: research/ux-flow.md section 8.3.
+// shows the message of its group. The block stays until the patient goes back to Home. Source of the copy: the project knowledge base.
 import { useEffect, useRef, useState } from 'react';
 import { GENERAL_GUIDANCE_NOTE, RED_FLAGS, evaluateRedFlags, type RedFlagGroup } from '../lib/redflags';
 import { Icon, type IconName } from './Icon';

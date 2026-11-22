@@ -68,7 +68,7 @@ When the clip exists, run each file in the `app` folder. Use the clip `t1-heel-s
 
 ## Recovery note
 
-These files were recovered from agent transcripts after the original folder was lost. The recovered files replay the logged writes and edits in time order.
+These files were rebuilt from logs of earlier work after the original folder was lost. The rebuild replays the logged writes and edits in time order.
 The paths, the temp output folders, the build folder and the preview PID handling of `gate/chain.sh` are new.
 TODO: the real clip option `--clip` of the honesty audit needs a webcam MJPEG file. That file is not in the repo.
 TODO: the first run of `gate/source-checks.sh` with a second folder (compare with a main tree) is not tested here.

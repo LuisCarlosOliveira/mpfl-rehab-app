@@ -173,7 +173,7 @@ describe('registry equals the code of the four existing exercises', () => {
 });
 
 // Rule 7. A guide exists for each exercise. The five new ones are a PROPOSAL.
-// research/technique-sources.md covers the four camera exercises only. The new guides name only the sources that the sources table holds.
+// the project knowledge base covers the four camera exercises only. The new guides name only the sources that the sources table holds.
 describe('guides', () => {
   const FIELDS = ['startPosition', 'legFacingCamera', 'handsAndSupport', 'range', 'speed', 'cameraMustSee'] as const;
   it('every exercise has a guide with all six texts', () => {

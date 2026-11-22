@@ -1,8 +1,8 @@
 # Security review (T14)
 
-Date: 2026-11-08. Scope: `app/src`, `public/_headers`, `index.html`, `vite.config.ts`, `scripts`, `e2e`, `package.json` and the lock file. The review was read-only. No repo file was changed. The main session applies the fixes.
+Date: 2026-11-08. Scope: `app/src`, `public/_headers`, `index.html`, `vite.config.ts`, `scripts`, `e2e`, `package.json` and the lock file. The review was read-only. No repo file was changed. The fixes follow in separate changes.
 
-Skills loaded: `owasp-security` and `simple-english:simple-english`. The skill `security-review` did not load. It failed because the repo has no `origin/HEAD`. The OWASP Top 10:2025 list and the three-question test of `owasp-security` were applied by hand.
+The OWASP Top 10:2025 list and the three-question test of the OWASP guide were applied by hand.
 
 Severity scale: HIGH is data exposure, a bypass of a safety rule, remote code execution or a camera left on. MEDIUM, LOW and INFO follow.
 
@@ -139,7 +139,7 @@ Stored data:
 
 No video, image, Blob or data URL is stored. `eraseAll` deletes the database, recreates it, clears `localStorage`, deletes all Cache storage entries and unregisters service workers. The app registers none. No UI calls it yet, so FR16 cannot be tested in a browser. After an erase a new id is made on the next export. See S-09 for the over-wide `clear()`.
 
-`crypto.randomUUID` exists only in secure contexts (`https`, `localhost`, `127.0.0.1`). On an `http` LAN address it is `undefined` and `getPseudonymId` throws. Export is not wired to a screen yet, so there is no effect today (S-07).
+`crypto.randomUUID` exists only in secure contexts (`https`, `localhost`, `127.0.0.1`). On an `http` LAN address it is `undefined`. `getPseudonymId` then falls back to `crypto.getRandomValues` (`src/lib/storage/meta.ts`). The Data screen (`src/ui/DataScreen.tsx`) calls `exportJson` and `exportCsv` from `src/lib/storage/export.ts`, so the export reaches this code (S-07).
 
 ## Check 5: Safety rule bypasses
 
@@ -174,7 +174,7 @@ Finding S-01 in detail. In `save()` the lines `await saveSession(db, input); set
 
 ## Check 8: Browser test
 
-Tool: my own script in the scratchpad. It used Playwright Chromium from the app `node_modules`. The built app ran under `vite preview` on `127.0.0.1:4199`, with the headers of `public/_headers`. Fake camera flags were on.
+Tool: a local script outside the repository. It used Playwright Chromium from the app `node_modules`. The built app ran under `vite preview` on `127.0.0.1:4199`, with the headers of `public/_headers`. Fake camera flags were on.
 
 - Privacy, Load and Home screens: requests were `/`, the JavaScript file and the CSS file only. 0 foreign requests. 0 failed requests. 0 console errors or warnings. 0 dialogs.
 - `securitypolicyviolation`: 2 events at each screen (S-02). With the fix of S-02: 0 events.

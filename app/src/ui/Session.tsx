@@ -1,7 +1,7 @@
 // Session (S5, S6). Live estimated angle, rep count, a cue line, Stop, and "knee gave way or hurts".
 // Plan 3.1: the frame loop writes to a ref. React state updates at most 4 times each second.
 // Cue text comes only from src/lib/cues.ts. An in-range rep shows no message (FR23).
-// Layout rules: research/ux-flow.md section 8.2. Large numbers, large Stop button, units next to numbers.
+// Layout rules: the project knowledge base. Large numbers, large Stop button, units next to numbers.
 // The rep count is a polite live region. It changes only when a rep counts.
 // Every exit stops the camera: the Stop buttons and the unmount cleanup both call source.stop() (NFR9).
 // Sound (FR10): a near-limit rep and an over-limit rep make a beep. Nothing else does. The over-limit beep repeats every 5 s while the knee stays past the limit (M5). The mute button is here.

@@ -3,7 +3,7 @@ import { generatorExtendedOn } from '../src/lib/mode';
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { emptyAnswers, gatesAsked } from '../src/lib/onboarding';
 
-// User decision 2026-11-11: the app proposes the full plan from the guidelines. The extended items are on by default.
+// Owner decision 2026-11-11: the app proposes the full plan from the guidelines. The extended items are on by default.
 afterEach(() => vi.unstubAllEnvs());
 
 const TODAY = '2026-11-08';

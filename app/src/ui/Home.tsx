@@ -1,4 +1,4 @@
-// Home. Source: research/ux-flow.md sections 3.1 (F2, F3) and 8.1, plan FR2, FR4, FR17, FR29.
+// Home. Source: the project knowledge base. Requirements FR2, FR4, FR17, FR29.
 // Text from the protocol file shows as plain text. The app never sets the phase (FR4):
 // the active phase comes in as a prop from the read-only store.
 import { useEffect, useState } from 'react';
