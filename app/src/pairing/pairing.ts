@@ -1,5 +1,3 @@
-// The laptop side of the pairing, as one small object (T12b, FR25). The Setup screen calls createPairing().
-// The second view reaches the Session screen as a LandmarkSource (src/pose/source.ts), tagged `front`.
 import type { Landmark } from '../lib/angle';
 import { FALLBACK_TEXT } from '../lib/pairing';
 import type { PairingState } from '../lib/pairing';

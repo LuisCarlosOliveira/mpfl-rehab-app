@@ -1,7 +1,3 @@
-// MediaPipe PoseLandmarker: lite model, VIDEO mode, 1 pose. A probe of 2 poses runs for a short time only (B5-02).
-// The worker runs the probe on a second instance of 2 poses, so the tracking instance never rebuilds (skeleton fix A).
-// The WASM files and the model come from the own origin (public/models/).
-// Hashes of these files are in public/models/SHA256SUMS and docs/model.md.
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
 import type { Landmark } from '../lib/angle';
 
@@ -118,7 +114,6 @@ export async function createLandmarker(onProgress?: (bytes: number) => void, sta
     try {
       pose.close();
     } catch {
-      // the GPU model is lost already
     }
     rebuilding = make(fileset, poses, 'CPU')
       .then(

@@ -1,4 +1,3 @@
-// Draws a QR code as one svg with one path. The text never goes into HTML.
 // The QR code holds a one-time secret, so it is only drawn and never saved as an image.
 import { encode } from 'uqr';
 import './qr.css';

@@ -1,6 +1,4 @@
-// What the phone sends: the three joints of each leg (hip, knee, ankle) with visibility, and nothing else.
 // The schema needs 33 entries, so the other 27 landmarks are sent as zero with visibility 0.
-// No pixel, no face landmark and no frame leaves the phone (FR6, FR25, NFR1).
 import type { Landmark } from '../lib/angle';
 import { LANDMARK_COUNT } from '../lib/pairing';
 import type { LandmarksMessage } from '../lib/pairing';

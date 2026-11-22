@@ -1,7 +1,3 @@
-// Camera access. Rules: NFR9 and the guardrails skill.
-// Video only (audio:false). The UI calls startCamera only after a button press.
-// All tracks stop on: explicit stop, visibilitychange to hidden, pagehide, and error.
-// The UI calls stopCamera (or stopOnLeave) on route change.
 
 export type CameraErrorKind = 'permission-denied' | 'no-device' | 'other';
 
@@ -31,7 +27,6 @@ export function mapCameraError(err: unknown): CameraError {
 }
 
 let active: MediaStream | null = null;
-// Each stop and each start makes older pending starts stale. A stale start stops its own stream.
 let generation = 0;
 
 function onHidden() {

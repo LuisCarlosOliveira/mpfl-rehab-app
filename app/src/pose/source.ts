@@ -1,8 +1,3 @@
-// A source of landmarks. The Session screen reads from one source only.
-// The app uses cameraSource(). Tests use a mock with the same shape.
-// This file keeps no frame and no image. It passes landmark numbers and a time.
-// The pose model loads on demand with import(), so the first screen stays small.
-// The model runs in a Web Worker (frameBridge.ts, poseWorker.ts). If the browser cannot run it there, the model runs on the main thread.
 import type { Landmark } from '../lib/angle';
 import { startCamera, stopCamera, type CameraError, type CameraOptions } from './camera';
 import type { View } from '../lib/views';
@@ -11,7 +6,7 @@ import type { FrameBridge } from './frameBridge';
 
 export type SourceView = View;
 
-/** `extra` holds the other poses of the frame. It is there only during a probe (B5-02). */
+/** `extra` holds the other poses of the frame. It is there only during a probe. */
 export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number, extra?: Landmark[][]) => void;
 
 /** The step of the start that runs now. The model step carries the bytes that came in so far. */
@@ -31,7 +26,7 @@ export interface LandmarkSource {
   start(onFrame: FrameHandler, preview?: HTMLVideoElement | null, onProgress?: ProgressHandler): Promise<StartResult>;
   /** Stop the loop and every camera track. It is safe to call at any time. */
   stop(): void;
-  /** Return two poses for `ms` milliseconds, then one pose again (B5-02). Frames carry `extra` during that time. A source may omit it. */
+  /** Return two poses for `ms` milliseconds, then one pose again. Frames carry `extra` during that time. A source may omit it. */
   probe?(ms: number): void;
   /** Width divided by height of the video. The angle function needs it. */
   aspect(): number;

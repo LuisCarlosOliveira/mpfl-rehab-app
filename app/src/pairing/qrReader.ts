@@ -1,5 +1,4 @@
 // The only file that reads camera pixels (docs/dependency-vetting.md section 5).
-// The frame stays in memory. It is never saved, sent or returned. The result is text or null.
 import jsQR from 'jsqr';
 
 export type QrFrame = { data: Uint8ClampedArray; width: number; height: number };
