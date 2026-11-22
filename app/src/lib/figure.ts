@@ -643,9 +643,7 @@ interface CameraPlan {
   legendLevel: { from: Point; to: Point };
 }
 
-const fmtMetres = (n: number) => String(n);
-
-export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)} to ${fmtMetres(SETUP_CONFIG.distanceAdviceM.max)} m`;
+export const distanceText = () => `${SETUP_CONFIG.distanceAdviceM.min} to ${SETUP_CONFIG.distanceAdviceM.max} m`;
 
 /**
  * The picture of the camera and the person. The operated leg is the leg that the camera sees.
