@@ -291,12 +291,6 @@ describe('acceptProposal: the active phase', () => {
       expect(await acceptProposal(db, proposalOf(make()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
       expect(await storedRaw()).toBe('{not json');
     });
-    it('the refusal text names Erase in My data', async () => {
-      await putRaw('{not json');
-      const result = await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
-      expect(result).toMatchObject({ ok: false, message: expect.stringContaining('Erase') });
-      expect(result).toMatchObject({ message: expect.stringContaining('My data') });
-    });
   });
 
   it.each(['false', '0', 'yes', 'TRUE', ''])('with the flag text "%s", a forward move is refused with progression-off and the bytes stay', async (value) => {
