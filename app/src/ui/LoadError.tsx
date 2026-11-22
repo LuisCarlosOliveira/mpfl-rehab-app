@@ -1,4 +1,4 @@
-import { Component, lazy, type ComponentProps, type ComponentType, type ReactNode } from 'react';
+import { Component, lazy, type ReactNode } from 'react';
 import { StateScreen } from './StateScreen';
 
 export const LOAD_ERROR_TEXT =
@@ -6,13 +6,7 @@ export const LOAD_ERROR_TEXT =
 
 export const OFFLINE_ERROR_TEXT = 'You are offline. Reconnect, then press Try again. Saved sessions stay on this device. Unsaved answers are lost.';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the props type comes from the screen that the caller loads
-export function retryableLazy<C extends ComponentType<any>>(load: () => Promise<{ default: C }>) {
-  const Inner = lazy(load);
-  return function Screen(props: ComponentProps<C>) {
-    return <Inner {...props} />;
-  };
-}
+export const retryableLazy = lazy;
 
 function Failed({ onRetry, onBack }: { onRetry: () => void; onBack: () => void }) {
   return (

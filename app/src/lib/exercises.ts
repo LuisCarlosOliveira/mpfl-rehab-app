@@ -298,9 +298,9 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
       return { far: false, plausible };
     }
     if (!visible(hip)) return { far: false, plausible };
-    if (anchor === null) return { far: false, plausible };
-    if (dist(hip, anchor) > HIP_JUMP_FRACTION) return { far: true, plausible };
-    if (plausible) follow(hip, anchor);
+    const held = anchor!;
+    if (dist(hip, held) > HIP_JUMP_FRACTION) return { far: true, plausible };
+    if (plausible) follow(hip, held);
     return { far: false, plausible };
   };
 

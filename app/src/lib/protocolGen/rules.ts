@@ -606,4 +606,4 @@ type Typed = { [K in RuleId]: Omit<Rule, 'id' | 'values'> & { id: K; values: (ty
 
 export const RULES = Object.fromEntries(
   RULE_IDS.map((id) => [id, Object.defineProperties({ id }, Object.getOwnPropertyDescriptors(defs[id]))]),
-) as unknown as Typed;
+) as Typed;
