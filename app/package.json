@@ -21,7 +21,7 @@
     "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/model-hash-check.sh && bash scripts/deps-check.sh && bash scripts/claims-check.sh src && bash scripts/phase-check.sh src && bash scripts/secrets-check.sh"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "1.2.2",
+    "@mediapipe/tasks-vision": "1.2.3",
     "dexie": "4.4.7",
     "jsqr": "1.4.0",
     "react": "19.3.1",
