@@ -35,7 +35,7 @@ rules=(
   'generic-secret~i~(key|secret|token|password|passwd|bearer)[A-Za-z0-9_]*["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9+/=_-]{16,}["'"'"']~(example|placeholder|changeme|your[-_]|x{6,}|dummy|fake)'
   'email~-~[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b~^noreply@|@(example\.com|example\.org|evil\.example)$'
   'private-ip~-~(^|[^0-9.])(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3})([^0-9]|$)~'
-  'local-path~-~(^|[^A-Za-z0-9._%/-])(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[c]/)|[A-Za-z]:\\\\Users\\\\[A-Za-z0-9._-]+~'
+  'local-path~-~(^|[^A-Za-z0-9._%/-])(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[c]/)|[A-Za-z]:\\+Users\\+[A-Za-z0-9._-]+~'
 )
 
 mask() {

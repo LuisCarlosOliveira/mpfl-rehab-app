@@ -86,9 +86,11 @@ describe('secrets-check.sh', () => {
   it('exits 1 on a person e-mail and a local path, and passes the allowed ones', () => {
     track('docs/e.md', 'Write to pw@evil.example or noreply@example.org.');
     expect(check().status).toBe(0);
-    track('docs/f.md', 'Mail jane.doe@corp.test now.');
+    track('docs/f.md', ['Mail jane.doe', '@corp.test now.'].join(''));
     expect(check().status).toBe(1);
     track('docs/f.md', ['See /ho', 'me/jane/notes.txt'].join(''));
+    expect(check().stdout).toContain('local-path');
+    track('docs/f.md', ['see C:\\', 'Users\\jane\\x'].join(''));
     expect(check().stdout).toContain('local-path');
   });
 
