@@ -11,6 +11,9 @@ updates:
       # typescript-eslint does not support TypeScript 7 yet, and one test uses the TypeScript 6 compiler API.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # recharts 3.11.0 adds empty keyboard stops to the charts and fails the keyboard test e2e/app-a11y.spec.ts.
+      - dependency-name: "recharts"
+        versions: ["3.11.0"]
     groups:
       dev-dependencies:
         dependency-type: "development"
