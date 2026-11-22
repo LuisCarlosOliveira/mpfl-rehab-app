@@ -4,8 +4,8 @@ import { expectScreen, installProbes, notice, PROTOTYPE_BANNER, readStore } from
 import { ago, fillDate, h1, press, radio, referralQuestions, toHomeWithPlan, toLoadAny, toSummary } from './helpers/plan';
 import { hasVerdictWord } from '../tests/ui/verdict';
 
-// The fixed text of the app for the margin source. The schema accepts only the listed values.
-const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)';
+// The id of the margin source. The schema accepts only the listed values.
+const MARGIN_SOURCE = 'lite-start-v1';
 const HOLD_EVENT = 'Contact your care team before the next stage. The app recorded a safety event after the date of your plan.';
 const WEEK8_SHIFT_DAYS = 32; // the plan starts in week 3 (24 days), so 24 + 32 = 56 days is week 8
 
@@ -64,7 +64,9 @@ async function toUpdateFromCheck(page: Page) {
   await answerNextStage(page);
 }
 
-test('the phase never changes without Confirm, the flag at its default', async ({ page }) => {
+test.describe('with the flag on, the phase and Confirm', () => {
+test.use({ baseURL: `http://127.0.0.1:${process.env.E2E_FLAG_ON_PORT ?? 4175}` }); // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
+test('the phase never changes without Confirm', async ({ page }) => {
   await toHomeWithPlan(page);
   const before = await planRaw(page);
   await page.clock.setFixedTime(new Date(Date.now() + WEEK8_SHIFT_DAYS * 86_400_000));
@@ -80,6 +82,7 @@ test('the phase never changes without Confirm, the flag at its default', async (
   await press(page, 'Confirm');
   await expectScreen(page, 'Today');
   expect(JSON.parse(await planRaw(page)).activePhase).toBe(2);
+});
 });
 
 test('a saved session is still there after a reload: Home, Your sessions and Check my progress show it', async ({ page }) => {

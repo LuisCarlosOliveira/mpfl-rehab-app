@@ -63,7 +63,7 @@ const T = {
   navNames: ['Today', 'Progress', 'Sessions', 'My data'],
 };
 const EXAMPLE_FILE = path.join(APP_ROOT, 'src/lib/protocol/example-protocol.json');
-const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)';
+const MARGIN_SOURCE = 'lite-start-v1';
 const FLOW_SCREENS = ['redflag', 'redflag-blocked', 'setup-guide', 'setup-camera-before', 'setup-camera-nopose', 'session-nopose', 'summary', 'summary-pain6', 'summary-pain7', 'offline-setup-camera'];
 const MEASURED_SCREENS = ['new-home-360', 'new-home-1280', 'new-check-none-360', 'new-check-none-1280', 'new-check-event-360', 'new-check-event-1280', 'session-nopose', 'session-clip', 'summary', 'summary-pain6', 'summary-pain7', 'dashboard-1', 'dashboard-100', 'dashboard-missing', 'clinician', 'setup-camera-nopose'];
 
@@ -878,7 +878,7 @@ async function selftest() {
 }
 
 async function newScreensStory(theme) {
-  const MS = (readFileSync(path.join(APP_ROOT, 'src/lib/margin.ts'), 'utf8').match(/MARGIN_SOURCE\s*=\s*'([^']+)'/) || [])[1];
+  const MS = (readFileSync(path.join(APP_ROOT, 'src/lib/margin.ts'), 'utf8').match(/MARGIN_SOURCE(?::\s*\w+)?\s*=\s*'([^']+)'/) || [])[1];
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const press = (page, name) => page.getByRole('button', { name, exact: true }).click();
   const radio = (page, name) => page.getByRole('radio', { name, exact: true }).check();
