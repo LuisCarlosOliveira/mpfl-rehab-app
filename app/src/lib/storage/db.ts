@@ -190,10 +190,18 @@ export async function clearProtocol(db: MpflDb): Promise<void> {
 
 /** Erase everything this app keeps: IndexedDB, the mpfl. keys of localStorage, Cache storage and service workers. */
 export async function eraseAll(db: MpflDb): Promise<void> {
-  await db.delete();
-  await db.open();
+  // The keys go first: a blocked localStorage must not leave a half erase after the database is gone.
   // Other apps can share this origin, so only the keys of this app go.
-  for (const key of Object.keys(localStorage)) if (key.startsWith('mpfl.')) localStorage.removeItem(key);
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith('mpfl.')) localStorage.removeItem(key);
+  } catch {
+    // localStorage is blocked, so there is nothing to clear
+  }
+  const blocked = new Promise<never>((_, reject) => {
+    db.on('blocked', () => reject(new Error('The erase is blocked: close the other tabs of this app and try again.')));
+  });
+  await Promise.race([db.delete(), blocked]);
+  await db.open();
   if (typeof caches !== 'undefined') {
     for (const key of await caches.keys()) await caches.delete(key);
   }

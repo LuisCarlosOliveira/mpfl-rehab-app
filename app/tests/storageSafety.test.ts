@@ -74,6 +74,42 @@ describe('eraseAll keeps keys of other apps (S-09)', () => {
     await eraseAll(createDb(`erase-${Math.random()}`));
     expect(Object.keys(localStorage).sort()).toEqual(['mpflx', 'other.app']);
   });
+
+  it('clears the keys before the database goes, and keeps going when localStorage is blocked', async () => {
+    const db = createDb(`erase-${Math.random()}`);
+    await db.open();
+    const order: string[] = [];
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => order.push('keys'));
+    const del = db.delete.bind(db);
+    vi.spyOn(db, 'delete').mockImplementation(() => (order.push('db'), del()));
+    localStorage.setItem('mpfl.pseudoId', 'x');
+    await eraseAll(db);
+    expect(order).toEqual(['keys', 'db']);
+  });
+
+  it('still erases the database when localStorage throws', async () => {
+    const db = createDb(`erase-${Math.random()}`);
+    await db.open();
+    vi.spyOn(Object, 'keys').mockImplementationOnce(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    const del = vi.spyOn(db, 'delete');
+    await expect(eraseAll(db)).resolves.toBeUndefined();
+    expect(del).toHaveBeenCalledOnce();
+  });
+
+  it('rejects with a clear error when another connection blocks the delete', async () => {
+    const name = `erase-${Math.random()}`;
+    const db = createDb(name);
+    await db.open();
+    const other = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(name);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await expect(eraseAll(db)).rejects.toThrow(/blocked/i);
+    other.close();
+  });
 });
 
 describe('limits (S-08)', () => {
