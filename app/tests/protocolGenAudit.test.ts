@@ -5,8 +5,8 @@ import { RULE_IDS, RULES } from '../src/lib/protocolGen';
 
 afterEach(() => vi.unstubAllEnvs());
 
-// The audit file is the only place that says whether a quote is EXACT. The test reads it from the repo root.
-const audit = readFileSync(resolve(__dirname, '../../research/citation-audit.md'), 'utf8');
+// The audit file is the only place that says whether a quote is EXACT. The test reads it from the docs folder.
+const audit = readFileSync(resolve(__dirname, '../../docs/citation-audit.md'), 'utf8');
 const rowOf = (id: string) => audit.split('\n').find((l) => l.startsWith(`| ${id} |`));
 
 // User decision 2026-11-11: the app proposes the plan from the guidelines. Every number needs a real source and an EXACT audit row.

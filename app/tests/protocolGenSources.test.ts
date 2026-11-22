@@ -3,8 +3,8 @@ import { resolve } from 'node:path';
 import { RULES } from '../src/lib/protocolGen/rules';
 import { AUDIT_DATE, GRADES, isPublished, SOURCES, type Source } from '../src/lib/protocolGen/sources';
 
-// The two research files are the only place where a quote can come from.
-const research = (name: string) => readFileSync(resolve(__dirname, '../../research', name), 'utf8');
+// The two files in docs/ are the only place where a quote can come from.
+const research = (name: string) => readFileSync(resolve(__dirname, '../../docs', name), 'utf8');
 const KNOWLEDGE = [research('citation-audit.md'), research('rehab-rules.md')];
 
 const entries = Object.entries(SOURCES) as [string, Source][];
