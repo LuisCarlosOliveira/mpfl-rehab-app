@@ -148,7 +148,7 @@ Marks: SRC is the field or function in the code. OK means the number exists in c
 | Hold count | `sets.repsInSet`, unit "holds" | OK |
 | Set label and "N of M reps" | `setLabel(sets)`, `repsLabel()` | OK. Only with a protocol `sets` and `reps` |
 | Ruler gauge fill and thumb | `view.angle`, `at(deg)` in `Session.tsx` | OK |
-| Limit tick and caption | `exercise.maxFlexion` | OK. Hidden when the protocol has no limit. No default may enter |
+| Limit tick and caption | `exercise.maxFlexion` | OK. Hidden when the protocol has no limit. A default must not enter |
 | Ruler scale end | `max(120, ceil((limit+30)/10)*10)` | DERIVED. The brief says limit plus 30. The code uses 120 as the least value |
 | Ruler tick labels every 10 degrees | None in code. The gauge has no labels now | DERIVED. REVIEW: many numbers on a scale |
 | Short tick every 5 degrees | None | DERIVED. Decoration only |
