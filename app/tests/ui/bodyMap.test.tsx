@@ -291,6 +291,7 @@ describe('Setup with the body map', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next: set up the camera' }));
     fireEvent.click(screen.getByRole('button', { name: 'Start camera' }));
     await screen.findByRole('button', { name: 'Start exercise' });
+    await act(async () => {});
     return source;
   }
 
