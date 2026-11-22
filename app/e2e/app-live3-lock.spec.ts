@@ -6,7 +6,7 @@ import { expectScreen } from "./helpers/app";
 import { EXAMPLE } from "./helpers/app";
 
 const CLIP = process.env.LIVE_TRAP_CLIP;
-test.skip(CLIP === undefined, "set LIVE_TRAP_CLIP to run this spec");
+test.skip(CLIP === undefined, "manual: needs the webcam clip, see app/audit/README.md");
 test.use({
   launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", `--use-file-for-fake-video-capture=${CLIP ?? ""}`] },
   permissions: ["camera"],
