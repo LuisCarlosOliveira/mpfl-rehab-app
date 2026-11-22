@@ -49,7 +49,7 @@ async function checkPress(page: Page) {
   expect(after.bannerTop, "the banner stays in view").toBeGreaterThanOrEqual(0);
 }
 
-test.skip(CLIP === undefined || CASE === undefined, "set LIVE_CLIP and LIVE_CASE");
+test.skip(CLIP === undefined || CASE === undefined, "manual: needs the webcam clip, see app/audit/README.md");
 test.use({ permissions: ["camera"], launchOptions: { args: args(CLIP) } });
 
 test("B5-04 at 320 x 568, heel slide: the box is above the bar and the press does not scroll", async ({ page }) => {

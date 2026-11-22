@@ -38,6 +38,23 @@ To leave steps out, set `SKIP`, for example `SKIP="precheck e2e" npm run gate`. 
 - `QUICK=1` shortens the a11y run. `LABEL` names the a11y result files.
 - Default port for the gate is 4660. Change it with `PORT`.
 
+## Manual tests
+
+Seven e2e tests need a webcam clip of 33 MB. The clip is not in the repo. The tests skip with the reason `manual: needs the webcam clip, see app/audit/README.md`. The gate does not run them.
+
+| Test | File | Variables |
+|---|---|---|
+| B4-03 at 320 x 568, 360 x 640, 390 x 844 and 1280 x 800 (four tests) | `e2e/app-live3-lock.spec.ts` | `LIVE_TRAP_CLIP` |
+| B4-06 | `e2e/app-live3-lock.spec.ts` | `LIVE_TRAP_CLIP` |
+| B5-04 at 320 x 568, heel slide | `e2e/app-live4-lock.spec.ts` | `LIVE_CLIP`, `LIVE_CASE=heel320` |
+| B5-04 at 1280 x 800, straight leg raise | `e2e/app-live4-lock.spec.ts` | `LIVE_CLIP`, `LIVE_CASE=slr1280` |
+
+When the clip exists, run each file in the `app` folder. Use the clip `t1-heel-shift-left.mjpeg` for the heel cases. Use `08-straight-leg-raise-oblique.mjpeg` for `slr1280`.
+
+1. `LIVE_TRAP_CLIP=/path/t1-heel-shift-left.mjpeg npx playwright test e2e/app-live3-lock.spec.ts`
+2. `LIVE_CASE=heel320 LIVE_CLIP=/path/t1-heel-shift-left.mjpeg npx playwright test e2e/app-live4-lock.spec.ts`
+3. `LIVE_CASE=slr1280 LIVE_CLIP=/path/08-straight-leg-raise-oblique.mjpeg npx playwright test e2e/app-live4-lock.spec.ts`
+
 ## Output files
 
 - a11y: `<OUT>/audit-<LABEL>.json` and `<OUT>/audit-<LABEL>.md`.
