@@ -1,4 +1,3 @@
-// What the pairing screens and the connection code (T12b) can use.
 export { encodeOffer, decodeOffer, encodeAnswer, decodeAnswer, buildSdp, extractFields } from './payload';
 export type { PairingFields, SdpFields, Candidate, Role, DecodeError, SdpError } from './payload';
 export { toBase64Url, fromBase64Url, MAX_SCANNED_CHARS } from './payload';

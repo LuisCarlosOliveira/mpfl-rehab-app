@@ -73,15 +73,9 @@ const PROBE_WAIT_MS = 3000;
 const REPROBE_MS = 10000;
 const PROBE_MANY_SHARE = 0.2;
 const RAISE_SETTLE_MS = 500; // PROPOSAL, no source. The filter needs time to settle before the top angle is read
-// The camera count of the straight leg raise reuses both values above. A lift counts when it holds RAISE_SETTLE_MS, so a one-frame
-// spike counts none. A lift ends when the leg stays below the start height for LIFT_END_MS, so a short dip in a hold counts no
-// second rep. No resting height is used: Setup measures none, and a first try with the lowest height seen was thrown off by a
-// close-up cut of clip 04 (-0.24 at the start). The end rule has no new number.
 
-/** The exercises that count reps. Only these need a return value and a resting angle. */
 export const countsReps = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'mini-squat';
 
-/** The exercises that the person does lying down. The setup texts then ask to move the camera and not to turn (F1). Same as the posture of figure.ts. */
 export const doneLying = (kind: Exercise['kind']) => kind === 'heel-slide' || kind === 'straight-leg-raise';
 
 export type SetupResult =
@@ -113,8 +107,6 @@ export function counterSetup(exercise: Exercise): SetupResult {
       };
     }
     case 'seated-extension-hold': {
-      // The hold runs between minFlexion (the straightest angle allowed) and targetFlexion (the hold angle).
-      // Both come from the clinician. The app sets no default (T28, P1, P2 rec 29). A missing value runs no hold.
       if (exercise.holdSeconds === undefined) {
         return { ok: false, reason: 'ask-your-surgeon', missing: 'holdSeconds' };
       }
@@ -131,7 +123,6 @@ export function counterSetup(exercise: Exercise): SetupResult {
           direction: 'at-most',
           threshold: exercise.targetFlexion + MARGIN_DEG, // the band is the target plus the margin (research/form-opus.md, C5)
           minHoldMs: exercise.holdSeconds * 1000,
-          // minFlexion 0: the clinician allows full extension, so the arc end cue is off.
           arcEnd: exercise.minFlexion > 0 ? { limit: exercise.minFlexion, margin: MARGIN_DEG } : undefined,
         },
       };
@@ -143,12 +134,10 @@ export function counterSetup(exercise: Exercise): SetupResult {
 
 const visible = (p: Landmark) => (p.visibility ?? 1) >= MIN_VISIBILITY;
 
-/** The leg is raised when the ankle is clearly above the hip in the image. */
 export function isLegRaised(hip: Landmark, ankle: Landmark): boolean {
   return visible(hip) && visible(ankle) && hip.y - ankle.y > RAISE_MIN_HEIGHT;
 }
 
-/** The leg that the person exercises, seen from the camera: on the camera side (near) or on the other side (far). */
 export type LegRole = 'near' | 'far';
 
 export const legRoleOf = (leg: Side, cameraSide: Side): LegRole => (leg === cameraSide ? 'near' : 'far');
@@ -163,17 +152,11 @@ export interface Summary {
   reps: number | null;
   holds: number | null;
   peakFlexion: number | null;
-  // Estimated angle at the top of the straight leg raise. The highest value over the lifts.
   topFlexion: number | null;
-  // The same for the present set only. `newSet()` clears it (U3). The live screen shows this one.
   setTopFlexion?: number | null;
-  // The top angle against maxTopFlexion: above, below or cannot-tell. 'no-limit' when the
-  // protocol sets none. null for any other exercise.
   topState: LimitState | 'no-limit' | null;
   eventCounts: EventCounts;
-  // Why no rep can count (T17): no protocol return value, or no resting angle. null when reps can count.
   countBlock?: CountBlock | null;
-  // Near or far from the camera. null when the camera side is not known.
   legRole?: LegRole | null;
 }
 
@@ -181,46 +164,31 @@ export interface StepOutput {
   flexion: number | null; // filtered, degrees
   event: string | null;
   repMs: number | null; // rep time when a rep was counted on this sample
-  // True when the hip was far from the anchor for more than 4 s with hip, knee and ankle visible. The person moved, or the camera follows another person (B3-01).
   lockedOut?: boolean;
-  // True once, on the frame where the lockout starts. The source then returns two poses for a short probe (B5-02).
   probe?: boolean;
-  // True while a press waits for the answer of the probe (B6-01). The screen shows that it looks for the camera view.
   looking?: boolean;
-  // True after a press when the hip is far from the start hip. The camera follows someone else, or the person moved far. No numbers show (B4-01).
   otherPerson?: boolean;
 }
 
 export interface Pipeline {
-  /** `extra` holds the other poses of the frame. It is given during a probe only (B5-02). */
   step(landmarks: Landmark[] | null, tMs: number, extra?: Landmark[][]): StepOutput;
-  /** Gives the resting flexion after the start (the in-place capture of Session). Reps count from the next sample. */
   setBaseline(deg: number): void;
-  /** A new set starts. The top angle of the present set clears. The top angle of the session stays for the Summary (U3). */
   newSet(): void;
-  /** The person pressed "Follow me again". The anchor moves to the newest hip. It never runs by itself (B3-01). */
   followAgain(): void;
   summary(): Summary;
-  /** Mode person-timer only (quad set, gluteal set). The screen calls these from its buttons. The camera never decides the effort. */
   startHold?(tMs: number): void;
-  /** Says whether the hold was saved, and why not when it was not (the screen shows a polite line). */
   endHold?(tMs: number): EndHoldResult;
-  /** The five new kinds only. The data for the stored record: holdList, timedBy, reportKey, reportValue. */
   engineData?(): EngineData;
 }
 
 export type PipelineResult = { ok: true; pipeline: Pipeline } | Extract<SetupResult, { ok: false }>;
 
 export interface PipelineOptions {
-  /** Resting flexion measured in Setup. null or missing: no rep counts. */
   baselineDeg?: number | null;
-  /** The side of the person that the camera is on. It sets `legRole`. */
   cameraSide?: Side;
 }
 
-/** `side` is the leg that the person chose. `aspect` is video width divided by video height. */
 export function createPipeline(planned: PlanExercise, side: Side, aspect: number, options: PipelineOptions = {}): PipelineResult {
-  // The five new kinds run through the definitions of lib/monitor/registry.ts. The four old kinds keep the code below.
   const engine = engineSpecFor(planned.kind);
   if (engine?.mode === 'person-timer') return { ok: true, pipeline: createTimerPipeline(side, options) };
   const exercise = planned as Exercise;
@@ -228,7 +196,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
   if (!made.ok) return made;
   let setup =
     made.kind === 'reps' ? { ...made, config: { ...made.config, baseline: options.baselineDeg ?? undefined } } : made;
-  // The new modes of the engine. `driver` counts. The person check below is the same for every kind, with the landmarks of `needs`.
   const driver: CycleDriver | LiftDriver | null =
     engine === undefined
       ? null
@@ -238,14 +205,12 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
             liftAngle: thresholdOf(engine, 'lift-angle'),
             settleMs: thresholdOf(engine, 'raise-settle-ms'),
             endMs: thresholdOf(engine, 'lift-end-ms'),
-            // R-02: a lift against the vertical (the leg raise to the back) counts the backward direction only.
             directional: engine.measure.kind === 'segment-angle' && engine.measure.against === 'vertical' ? { cameraFacing: facingFromCameraSide(options.cameraSide), maxWidth: thresholdOf(engine, 'side-on-width') } : undefined,
           });
   const trio = (pose: Landmark[]): [Landmark, Landmark, Landmark] =>
     engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? selectFoot(pose, side) : selectLeg(pose, side);
   const ratio = engine !== undefined && trackFor(engine.needs) === 'knee-to-toe' ? FOOT_RATIO : SEGMENT_RATIO;
 
-  // Start values. tech.md 3.2 advises minCutoff near 1 Hz, then a higher beta. Not tuned on real video.
   const filter = new OneEuroFilter({ minCutoff: 1.5, beta: 0.02 });
   let peak: number | null = null;
 
@@ -258,10 +223,9 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     else if (event === 'too-fast') counts.tooFast += 1;
   };
 
-  // Straight leg raise state. `top` is the angle at the top of the current lift.
   let top = lagInitial();
   let highestTop: number | null = null;
-  let setHighest: number | null = null; // the highest top angle of the present set (U3)
+  let setHighest: number | null = null; // the highest top angle of the present set
   let lift: LiftState | null = null;
   let lifts = 0;
 
@@ -273,28 +237,25 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     top = lagInitial();
     lift = null;
   };
-  // The leg left the view: a lift that is not settled starts its settle time again. A counted lift stays counted.
   const pauseLift = () => {
     if (lift !== null) lift = { ...lift, settleSince: null };
   };
 
-  // B-03, B2-02, B3-01, B5-01: the pose model follows one person. A second person can take the place of the first, or the person can move.
+  // The pose model follows one person. A second person can take the place of the first, or the person can move.
   // The anchor is the hip of the person. It is PROVISIONAL until a whole, plausible leg has been steady for CONFIRM_MS. A provisional anchor
   // moves by itself to any whole-leg hip, so a close-up at the start cannot block the wide frames. Only a CONFIRMED anchor reads a far hip as
-  // not seen, and only a plausible whole leg can start the lockout (B5-05). A confirmed anchor follows the accepted frames slowly.
+  // not seen, and only a plausible whole leg can start the lockout. A confirmed anchor follows the accepted frames slowly.
   let anchor: Landmark | null = null;
   let confirmed = false;
   let candidate: { pos: Landmark; since: number } | null = null; // the place where the whole leg has been steady, and since when
-  // B4-01: the first confirmed anchor is where the patient was at the start. Without a pose count (no probe), a press never anchors
+  // The first confirmed anchor is where the patient was at the start. Without a pose count (no probe), a press never anchors
   // farther than HIP_JUMP_FRACTION from there. Then every frame reads as not seen until the person starts again from Setup.
   let startHip: Landmark | null = null;
   let otherPerson = false;
   let latestHip: Landmark | null = null; // the newest hip of a plausible whole leg, also when it was refused. `followAgain()` uses it.
   let farSince: number | null = null; // the time of the first refused frame of the present run
-  // B5-02: when the lockout starts, the source returns two poses for a short probe (frames carry `extra`). One pose: the patient moved alone.
-  // Two or more: another person is in view. The decision comes at the first frame after the probe.
   let probeAsked = false;
-  let probeAt = 0; // the time when the last probe was asked (B6-01)
+  let probeAt = 0; // the time when the last probe was asked
   let pendingPress = false; // the person pressed before the probe had an answer
   let probeFrames = 0;
   let probeMany = 0;
@@ -320,7 +281,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     const k = d > ANCHOR_STEP ? ANCHOR_STEP / d : 1;
     anchor = { ...from, x: from.x + (hip.x - from.x) * k, y: from.y + (hip.y - from.y) * k };
   };
-  /** `far` is true when a confirmed anchor reads this frame as another place. `plausible` is true for a whole, plausible leg. */
   // The anchor is always the HIP (landmark 23 or 24), also when the trio of the exercise has no hip (the ankle pump: knee, ankle, foot index).
   // A knee as anchor made a knee that moved by 0.1 of the width start the lockout and the probe. The trio only checks that the leg is whole.
   const checkHip = (hip: Landmark, trioA: Landmark, trioB: Landmark, trioC: Landmark, t: number): { far: boolean; plausible: boolean } => {
@@ -344,7 +304,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
     return { far: false, plausible };
   };
 
-  // The leg is not in view. The counters get a null sample, so a running timer restarts (header of counters.ts).
   const unseen = (t: number, lockedOut = false, probe = false): StepOutput => {
     if (probe) probeAt = t;
     filter.reset();
@@ -369,11 +328,10 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
       followAgain() {
         if (otherPerson || latestHip === null) return;
         if (poseCount === 'one') {
-          // One pose was in view during the probe: the patient moved alone. The press anchors with no distance limit.
           anchor = latestHip;
           startHip = latestHip;
         } else if (probeAsked) {
-          pendingPress = true; // B6-01: the probe has no answer yet. Do not decide.
+          pendingPress = true; // The probe has no answer yet. Do not decide.
           return;
         } else if (startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) {
           otherPerson = true;
@@ -386,14 +344,12 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           probeFrames += 1;
           if (extra.length > 0) probeMany += 1;
         } else if (probeFrames > 0) {
-          // The probe ended. Many poses: another person is in view. Few frames: ask again at the next lockout.
           if (probeFrames >= PROBE_MIN_FRAMES) {
             poseCount = probeMany / probeFrames >= PROBE_MANY_SHARE ? 'many' : 'one';
             if (poseCount === 'many') {
               otherPerson = true;
               pendingPress = false;
             } else if (otherPerson) {
-              // One pose again: the person is alone. Clear the state (B6-01).
               otherPerson = false;
               resetProbe();
             } else if (pendingPress && latestHip !== null) {
@@ -405,7 +361,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           probeFrames = 0;
           probeMany = 0;
         } else if (pendingPress && probeFrames === 0 && t - probeAt > PROBE_WAIT_MS) {
-          // The source gave no answer (it cannot probe). The distance rule of B4-01 decides.
           pendingPress = false;
           if (latestHip !== null && startHip !== null && dist(latestHip, startHip) > HIP_JUMP_FRACTION) otherPerson = true;
           else {
@@ -414,7 +369,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           }
         }
         if (landmarks === null) return unseen(t);
-        // During a probe the pose whose hip is nearest the confirmed anchor is the patient (the continuity rule).
         let chosen = landmarks;
         if (confirmed && anchor !== null && extra !== undefined && extra.length > 0) {
           let best = Infinity;
@@ -430,7 +384,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
         }
         const [hip, knee, ankle] = trio(chosen);
         if (otherPerson) {
-          // B6-01: ask again while "someone else" shows, so a person who is alone is not stuck.
           const again = probeFrames === 0 && t - probeAt >= REPROBE_MS;
           return unseen(t, false, again);
         }
@@ -448,8 +401,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           probeAsked = false;
         }
         if (driver !== null && engine !== undefined) {
-          // A new mode. The value is the measure of the definition (an angle in degrees), filtered inside the driver.
-          // The leg of `needs` must be whole in view, also when the measure uses two of its points (the leg raise to the side).
           const value = [hip, knee, ankle].every(visible) ? readMeasure(engine.measure, chosen, side, aspect) : null;
           if (value === null) return unseen(t);
           const out = 'newSet' in driver ? driver.sample(value, t, directionAux(chosen, side, aspect) ?? undefined) : driver.sample(value, t);
@@ -474,8 +425,6 @@ export function createPipeline(planned: PlanExercise, side: Side, aspect: number
           tally(out.event);
           return { flexion: f, event: out.event, repMs: null };
         }
-        // Straight leg raise: a rep counts once when the leg holds the settle time. The top angle is read only while settled.
-        // The logic is liftStep of monitor/modes.ts, shared with the new lifts. A hidden hip or ankle is "not seen".
         const o = liftStep(lift, !visible(hip) || !visible(ankle) ? null : isLegRaised(hip, ankle), t, { settleMs: RAISE_SETTLE_MS, endMs: LIFT_END_MS });
         lift = o.lift;
         if (o.settled) top = lagStep(top, sample).state;
@@ -520,10 +469,6 @@ const thresholdOf = (spec: ExerciseSpec, name: string): number => {
   return v;
 };
 
-/**
- * The pipeline of the mode person-timer. It reads no landmark: the timer has no anchor, no lockout and no angle (R-08).
- * A timer must work with no person in view.
- */
 function createTimerPipeline(side: Side, options: PipelineOptions): Pipeline {
   const timer: PersonTimer = createPersonTimer();
   return {

@@ -15,11 +15,6 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/**
- * The only source of the active phase. The store has no setter and the
- * protocol is frozen. The app cannot change the phase. A user can still edit
- * the file, and the plan states this limit.
- */
 export function createProtocolStore(protocol: Protocol): ProtocolStore {
   const frozen = deepFreeze(structuredClone(protocol));
   return Object.freeze({

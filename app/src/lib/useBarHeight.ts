@@ -1,10 +1,3 @@
-// The bars that stick to the bottom of the screen (the action bar, the session bar, the bottom nav) cover what is under them.
-// This hook measures them and sets --bar-h on the root element. styles.css uses it for scroll-padding-bottom,
-// so a control that gets keyboard focus scrolls fully above the bar, at any size and at any text size.
-// An action bar that would take more than 40 percent of the screen height (big text) becomes part of the page (data-static).
-// The Stop bar of a session with no camera (the timers) follows the same rule. The Stop bar of a camera session stays fixed.
-// A bar that holds a block message (data-blocked) always stays in view.
-// A focused tick row, scale box or segment scrolls in as a whole row, not only its small input.
 import { useEffect } from 'react';
 
 const BARS = '.action-bar, .session-bar, .v3-actions, .bottom-nav';
@@ -34,7 +27,6 @@ export function useBarHeight(): void {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => measureBars());
     };
-    // An old browser or a test DOM may lack the observers. The bar height then stays at its fallback in CSS.
     if (typeof ResizeObserver === 'undefined' || typeof MutationObserver === 'undefined') return;
     const resize = new ResizeObserver(schedule);
     const watch = () => {
@@ -42,12 +34,10 @@ export function useBarHeight(): void {
       for (const bar of document.querySelectorAll(BARS)) resize.observe(bar);
       schedule();
     };
-    // A screen change adds or removes bars. The page body also changes the height of a bar (a message appears in it).
     const mutation = new MutationObserver(watch);
     mutation.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-blocked', 'class'] });
     const focusRow = (e: FocusEvent) => {
       const row = e.target instanceof Element ? e.target.closest('label') : null;
-      // block nearest does nothing when the row is in view. It uses scroll-padding-bottom, so the row ends above the bar.
       row?.scrollIntoView({ block: 'nearest' });
     };
     document.addEventListener('focusin', focusRow);

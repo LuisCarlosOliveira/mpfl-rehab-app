@@ -1,23 +1,15 @@
 import { z } from 'zod';
 import { MARGIN_DEG } from '../margin';
 
-// Strict schema for a protocol file. The file comes from outside, so every
-// string, array and number has a limit and unknown keys are rejected.
-
 const text = (max: number) => z.string().max(max);
 const flexion = z.number().min(0).max(180);
 
-// The id goes into every export. Letters, digits, dot, dash and underscore only,
-// so it cannot hold a name with spaces, a control character or a formula start.
 export const protocolIdSchema = z
   .string()
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'The id can hold letters, digits, dot, dash and underscore only, 64 characters at most.');
 
-// The four exercises that the engine runs today. Step B and D add the five new kinds here, when the engine can run them.
 export const EXERCISE_KINDS = ['heel-slide', 'straight-leg-raise', 'mini-squat', 'seated-extension-hold'] as const;
 
-// The exercises that a plan can hold (exercise monitoring, step A). The five new kinds are camera exercises in the plan.
-// Only the two timers can hold a hold time. No other field applies to them (the spec of lib/monitor/registry.ts lists none).
 export const NEW_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const;
 export const PLAN_EXERCISE_KINDS = [...EXERCISE_KINDS, ...NEW_EXERCISE_KINDS] as const;
 const NEW_KIND_FIELDS = ['targetFlexion', 'minFlexion', 'maxFlexion', 'minRepSeconds', 'maxTopFlexion', 'returnWithinDeg'] as const;
@@ -29,8 +21,6 @@ export const planExerciseSchema = z
     reps: z.number().int().min(1).max(100).optional(),
     holdSeconds: z.number().min(1).max(120).optional(),
     targetFlexion: flexion.optional(),
-    // Seated extension hold only. The straightest knee angle that the clinician allows (the end of the arc).
-    // The hold runs between minFlexion and targetFlexion. 0 allows full extension. No default (T28, P1, P2 rec 29).
     minFlexion: flexion.optional(),
     maxFlexion: flexion.optional(), // ceiling set by the surgeon. Above it plus the margin: alert, no count.
     minRepSeconds: z.number().min(0.5).max(30).optional(), // a faster rep gets the cue "rep was fast"
@@ -52,7 +42,6 @@ export const planExerciseSchema = z
     message: 'maxFlexion must not be smaller than targetFlexion',
     path: ['maxFlexion'],
   })
-  // Only the rep counters use both values. The hold counter ignores maxFlexion.
   .superRefine((e, ctx) => {
     if (e.kind !== 'heel-slide' && e.kind !== 'mini-squat') return;
     if (e.maxFlexion === undefined || e.targetFlexion === undefined || e.maxFlexion < e.targetFlexion) return;
@@ -96,7 +85,6 @@ export const homeExerciseSchema = z.strictObject({
   source: text(200),
 });
 
-// Review criteria: what the clinician reads in the clinician view. No free text, no default.
 const evidence = z.enum(['mpflr', 'borrowed', 'unvalidated']);
 const lastSessions = z.number().int().min(3).max(10);
 
@@ -156,7 +144,6 @@ export const phaseSchema = z.strictObject({
   path: ['homeExercises'],
 });
 
-// Every surgeon field is optional and has no default.
 export const SURGEON_FIELDS = ['brace', 'weightBearing', 'depthLimit', 'phaseClearance', 'concurrentProcedures'] as const;
 
 export const surgeonSchema = z.strictObject({
@@ -167,9 +154,6 @@ export const surgeonSchema = z.strictObject({
   concurrentProcedures: text(200).optional(),
 });
 
-// The mark of a plan that the app made. `on` is the date of the plan. `rules` lists the ids of the generator rules
-// that made the plan, so a clinician can audit it. An id is short and strict, never free text.
-// It is optional and has no default. The app never removes it from a loaded file.
 export const ruleIdSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,23}$/, 'A rule id is capital letters, digits and underscore, 24 characters at most.');
 export const generatedSchema = z.strictObject({
   on: z.iso.date(),
@@ -204,7 +188,6 @@ export const protocolSchema = z.strictObject({
 
 export type Protocol = z.infer<typeof protocolSchema>;
 export type PlanExercise = z.infer<typeof planExerciseSchema>;
-/** An exercise that the engine can run today: the four old kinds. A plan can also hold the five new kinds (PlanExercise). */
 export type Exercise = PlanExercise & { kind: (typeof EXERCISE_KINDS)[number] };
 export type HomeExercise = z.infer<typeof homeExerciseSchema>;
 export type ReviewCriterion = z.infer<typeof reviewCriterionSchema>;

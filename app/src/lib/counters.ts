@@ -10,7 +10,6 @@ export interface Sample {
   t: number; // milliseconds
 }
 
-// ---- Reps by peak (heel slide, mini squat) ---------------------------------
 // Margin rule (FR8). `margin` is the camera error in degrees (see margin.ts).
 // - A rep counts if the peak reaches the target minus the margin.
 // - From the ceiling minus the margin the event is near-limit. The rep still counts.
@@ -40,15 +39,14 @@ export interface RepsState {
   peak: number;
   nearLimit: boolean;
   overLimit: boolean; // the knee went above the limit plus the margin in this rep. The rep does not count.
-  overAlerted: boolean; // the alert fired for the present time above the limit. A gap of no leg clears it (B4-02).
+  overAlerted: boolean; // the alert fired for the present time above the limit. A gap of no leg clears it.
   reps: number;
   lastRepMs: number | null;
   blocked: CountBlock | null; // why no rep can count, or null
-  lostSince: number | null; // the time of the first sample with no leg in the present gap (B4-02)
-  repAfterGap: boolean; // the present rep began right after a gap of no leg. Its start time is unknown, so it gives no too-fast event (B5-06).
+  lostSince: number | null; // the time of the first sample with no leg in the present gap
+  repAfterGap: boolean; // the present rep began right after a gap of no leg. Its start time is unknown, so it gives no too-fast event.
 }
 
-/** Why no rep can count: the protocol sets no return value, or Setup measured no resting angle. */
 export type CountBlock = 'no-return-value' | 'no-baseline';
 
 export function countBlock(cfg: Pick<RepsConfig, 'baseline' | 'returnWithin'>): CountBlock | null {
@@ -60,7 +58,7 @@ export function countBlock(cfg: Pick<RepsConfig, 'baseline' | 'returnWithin'>): 
 export type RepsEvent = 'rep' | 'too-fast' | 'shallow' | 'near-limit' | 'over-limit' | 'paused' | null;
 
 // ENGINEERING, not clinical. No source sets this value. A gap of no leg of this length ends the present time above the limit,
-// so the alert fires again when the knee comes back above it (B4-02, FR8). A shorter gap, for example one lost frame, does not repeat it.
+// so the alert fires again when the knee comes back above it (FR8). A shorter gap, for example one lost frame, does not repeat it.
 export const LIMIT_GAP_RESET_MS = 500;
 
 export const repsInitial = (): RepsState => ({
@@ -110,7 +108,6 @@ export function repsStep(
   }
 
   if (exit === null) {
-    // No rep can count. A lift ends for the ceiling alerts when the knee goes below the enter value.
     if (flexion < cfg.enter) {
       s.nearLimit = false;
       s.overLimit = false;
@@ -172,19 +169,10 @@ export function repsStep(
   return { state: s, event };
 }
 
-// ---- Hold timer (seated knee extension hold) -------------------------------
-// The hold runs between the straightest angle that the clinician allows (`arcEnd.limit`, the field minFlexion)
-// and the hold angle (`threshold`, the field targetFlexion plus the margin). Margin rule (FR8, T28):
-// - Flexion below the limit minus the margin: over-limit. The knee is straighter than allowed. No count, the timer restarts.
-// - Flexion from there up to the limit plus the margin: near-limit once. The hold still counts.
-// - Flexion above the threshold while the timer runs: hold-restart. The knee left the hold angle.
-// A hold that is already counted gives no restart cue when the foot goes down.
-
 export interface HoldConfig {
   direction: 'at-least' | 'at-most'; // in position when flexion is at least or at most the threshold
   threshold: number;
   minHoldMs: number;
-  /** The straightest allowed angle. Missing means no arc end check (minFlexion 0 allows full extension). */
   arcEnd?: { limit: number; margin: number };
 }
 
@@ -238,11 +226,6 @@ export function holdStep(
   }
   return { state: s, event };
 }
-
-// ---- Extension lag (straight leg raise) ------------------------------------
-// The caller feeds samples while the leg is raised. The value is the smallest
-// flexion seen: the closest the knee came to full extension. The pipeline reports it
-// as the estimated angle at the top. The word "lag" is only an internal name.
 
 export interface LagState {
   lag: number | null;

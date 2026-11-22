@@ -1,10 +1,8 @@
-// The hold-still rule of the setup check. Setup, the resting angle (baseline.ts) and the in-place capture all use it.
 import { selectLeg, type Side } from './angle';
 import type { SetupConfig, SetupSample } from './setupRules';
 
 export type StillConfig = Pick<SetupConfig, 'stillMaxMove' | 'stillWindowMs'>;
 
-/** The largest move of hip, knee or ankle of the leg over the history, as a fraction of the frame height. */
 export function legMove(history: SetupSample[], side: Side, aspect: number): number {
   return Math.max(
     ...([0, 1, 2] as const).map((i) => {
@@ -16,7 +14,6 @@ export function legMove(history: SetupSample[], side: Side, aspect: number): num
   );
 }
 
-/** True when hip, knee and ankle of the leg moved by at most `stillMaxMove` over a window of at least `stillWindowMs`. */
 export function isStill(history: SetupSample[], side: Side, aspect: number, config: StillConfig): boolean {
   const first = history[0];
   const last = history[history.length - 1];
@@ -24,7 +21,6 @@ export function isStill(history: SetupSample[], side: Side, aspect: number, conf
   return legMove(history, side, aspect) <= config.stillMaxMove;
 }
 
-/** The newest samples of the history in which the leg moved by at most `maxMove`. It shows how long the leg held still. */
 export function calmRun(history: SetupSample[], side: Side, aspect: number, maxMove: number): SetupSample[] {
   const lo = [Infinity, Infinity, Infinity].map(() => [Infinity, Infinity]);
   const hi = [-Infinity, -Infinity, -Infinity].map(() => [-Infinity, -Infinity]);

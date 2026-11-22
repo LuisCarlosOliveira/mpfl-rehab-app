@@ -8,7 +8,6 @@ import { adoptPseudonymId, getPseudonymId, storedPseudonymId } from './meta';
 export const ANGLE_METHOD = '2D webcam estimate, not a goniometer measurement';
 export const MAX_IMPORT_BYTES = MAX_FILE_BYTES;
 
-// The export holds fixed fields only. It has no name, birth date or free text.
 export const exportSchema = z.strictObject({
   schemaVersion: z.literal(1),
   appVersion: z.string().max(20),
@@ -17,8 +16,6 @@ export const exportSchema = z.strictObject({
   protocolId: protocolIdSchema.nullable(),
   exportedAt: z.iso.datetime().max(40),
   sessions: z.array(sessionSchema).max(5000),
-  // The answers for the plan generator (I1 to I9), with the surgery date. Optional, so an old file still reads.
-  // The import reads the sessions only. It never writes these answers to the device.
   generatorInputs: storedInputsSchema.optional(),
 });
 
@@ -45,10 +42,8 @@ async function storedPlanIsGenerated(db: MpflDb): Promise<boolean> {
 }
 
 async function buildExport(db: MpflDb): Promise<ExportFile> {
-  // A stored row that fails the schema is not written to the file. It stays in the database.
   const rows = readValidRows(await db.sessions.orderBy('date').toArray()).rows;
   const sessions = rows.map((row) => Object.fromEntries(SESSION_KEYS.map((k) => [k, row[k]])) as SessionData);
-  // The plan answers belong to a plan that the app made. After a care team file replaces the plan, they are not exported.
   const generatorInputs = (await storedPlanIsGenerated(db)) ? await loadGeneratorInputs(db) : null;
   return {
     schemaVersion: 1,
@@ -66,7 +61,6 @@ export async function exportJson(db: MpflDb): Promise<string> {
   return JSON.stringify(await buildExport(db), null, 2);
 }
 
-/** Read an export file into memory. This never writes to the database. */
 export function parseExport(raw: string): ParseResult {
   if (overByteCap(raw)) return fail('too-large', 'The file is larger than 5 MB.');
   let data: unknown;
@@ -85,7 +79,6 @@ export function parseExport(raw: string): ParseResult {
   return { ok: true, file: parsed.data };
 }
 
-/** Import into the database. No merge: if any session is already stored, nothing is imported. */
 export async function importSessions(
   db: MpflDb,
   raw: string,
@@ -105,13 +98,9 @@ export async function importSessions(
     return fail('duplicate', 'Some of these sessions are already stored. Nothing was imported.');
   }
   await db.sessions.bulkAdd(parsed.file.sessions);
-  // A device with no sessions takes the id of the file, even when it already holds an id of its own
-  // (for example from an export of an empty record). The file is then the record of this device.
   if (!hadSessions && parsed.file.sessions.length > 0) adoptPseudonymId(parsed.file.pseudonymId);
   return { ok: true, imported: parsed.file.sessions.length };
 }
-
-// ---- CSV ---------------------------------------------------------------------
 
 const CSV_COLUMNS = [
   'pseudonymId', 'schemaVersion', 'appVersion', 'protocolId', 'date', 'exercise', 'side', 'view', 'phase',
@@ -125,12 +114,8 @@ const CSV_COLUMNS = [
 // PROPOSAL: the per-set counts are numbers joined by a space. A number cannot start a formula,
 // and a space keeps a spreadsheet from reading "10/10" as a date. The cell is quoted like any text.
 const REPS_PER_SET_SEPARATOR = ' ';
-// A skipped pain question is written as this word. A bare minus sign would be a formula sign.
 const NO_ANSWER = 'no-answer';
 
-// Text cells are always quoted. A cell that starts with = + - @ tab or carriage
-// return, or with the wide form of one of the four signs, gets a leading single
-// quote, so a spreadsheet does not run it as a formula.
 export function textCell(value: string): string {
   const safe = /^[=+\-@\t\r\uff1d\uff0b\uff0d\uff20]/.test(value) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
@@ -165,7 +150,6 @@ function valueOf(c: CsvColumn, s: SessionData, file: ExportFile): string | numbe
   }
 }
 
-/** CSV is export only. The first row holds the angle method. */
 export async function exportCsv(db: MpflDb): Promise<string> {
   const file = await buildExport(db);
   const lines = [textCell(ANGLE_METHOD), CSV_COLUMNS.join(',')];

@@ -24,10 +24,6 @@ export interface SessionVerdict {
 
 const validPain = (pain: number) => Number.isInteger(pain) && pain >= 0 && pain <= 10;
 
-/**
- * Pain at or above the threshold, or swelling "more than before", means pause.
- * An invalid pain value also means pause. The app pauses when the input is not clear.
- */
 export function evaluateSession(answers: SessionAnswers): SessionVerdict {
   const reasons: PauseReason[] = [];
   if (!validPain(answers.pain)) {

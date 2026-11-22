@@ -50,7 +50,6 @@ export interface RedFlagResult {
   message: string;
 }
 
-/** Any "yes" blocks the session. The emergency group wins over the care-team group. */
 export function evaluateRedFlags(answers: Record<string, boolean>): RedFlagResult {
   const yes = RED_FLAGS.filter((f) => answers[f.id] === true);
   const group: RedFlagGroup | null = yes.some((f) => f.group === 'emergency')

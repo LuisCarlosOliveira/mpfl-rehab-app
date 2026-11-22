@@ -1,16 +1,3 @@
-// The compact text in a QR code (T12b, research/qr-pairing.md sections 4 and 5).
-//
-// Layout: the text `MPFL1.` and then base64url of these bytes. The prefix holds the format version.
-//   1 byte   flags: bit 0 = role (0 offer, 1 answer), bits 1 and 2 = number of candidates (1 to 3)
-//   1 + n    ufrag: length byte, then ASCII
-//   1 + n    pwd: length byte, then ASCII
-//   32       DTLS fingerprint, sha-256
-//   16       one-time secret
-//   per candidate: 1 kind byte (0 = IPv4, 1 = mDNS uuid), 4 or 16 address bytes, 2 port bytes
-//
-// Measured size for a typical offer (ufrag 4, pwd 24, one mDNS candidate): 98 bytes, 131 characters
-// of base64url, 137 characters with the prefix. The QR design target is about 128 and the cap is 600.
-// Binary was chosen because it stays short and the reader is about 40 lines. JSON is about 300.
 import { z } from 'zod';
 import { fail, type Result } from './result';
 import { SECRET_BYTES } from './security';
@@ -27,8 +14,6 @@ const iceChars = /^[A-Za-z0-9+/]+$/;
 const ipv4 = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
 const mdns = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.local$/;
 
-// A pairing code can only name a host on a private network or on the tailnet (audit A1-1, FR25, NFR1):
-// 10/8, 172.16/12, 192.168/16, 100.64/10 (the tailnet range) and 169.254/16. Loopback and public hosts are refused.
 function isPrivateIpv4(host: string): boolean {
   if (!ipv4.test(host)) return false;
   const [a = 0, b = 0] = host.split('.').map(Number);
@@ -55,21 +40,16 @@ export type Candidate = z.infer<typeof candidateSchema>;
 export type SdpFields = z.infer<typeof sdpFieldsSchema>;
 export type PairingFields = z.infer<typeof pairingFieldsSchema>;
 
-// ---------- base64url ----------
-
 export function toBase64Url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Returns null for any text that is not canonical base64url. */
 export function fromBase64Url(text: string): Uint8Array | null {
   if (!/^[A-Za-z0-9_-]*$/.test(text) || text.length % 4 === 1) return null;
   const padded = text.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(text.length / 4) * 4, '=');
   const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
   return toBase64Url(bytes) === text ? bytes : null; // refuses extra bits at the end
 }
-
-// ---------- binary layout ----------
 
 const KIND_IPV4 = 0;
 const KIND_MDNS = 1;
@@ -153,8 +133,6 @@ export const encodeAnswer = (fields: PairingFields): string => encode('answer', 
 export const decodeOffer = (text: string): Result<PairingFields, DecodeError> => decode(text, 'offer');
 export const decodeAnswer = (text: string): Result<PairingFields, DecodeError> => decode(text, 'answer');
 
-// ---------- SDP ----------
-
 const fingerprintText = (fp: Uint8Array) => Array.from(fp, (b) => b.toString(16).padStart(2, '0').toUpperCase()).join(':');
 
 /**
@@ -193,11 +171,6 @@ export function buildSdp(fields: SdpFields, role: Role): string {
 
 export type SdpError = 'too-long' | 'missing-field' | 'bad-field' | 'no-candidate';
 
-/**
- * Reads the pairing fields from a local description. It keeps only UDP host candidates of component 1
- * that have a private or tailnet IPv4 address or an mDNS name, and at most 3 of them. The setup role is not read:
- * the message type gives the role.
- */
 export function extractFields(sdp: string): Result<SdpFields, SdpError> {
   if (sdp.length > MAX_SDP_CHARS) return fail('too-long');
   const lines = sdp.split(/\r\n|\n/);

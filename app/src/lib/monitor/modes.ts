@@ -5,35 +5,22 @@
 import { OneEuroFilter } from '../oneEuro';
 import type { DirectionAux } from './measure';
 
-/** The data that a session of a new exercise gives to the stored record (the fields of storage/db.ts). */
 export interface EngineData {
-  /** Whole seconds of each hold that the person timed. 1 to 3600, at most 50 entries. */
   holdList?: number[];
   timedBy?: 'person';
   reportKey?: 'ankle-range' | 'lift-angle';
-  /** Degrees, every digit. A screen shows whole degrees. */
   reportValue?: number;
 }
-
-// ---- person-timer (quad set, gluteal set) -----------------------------------
-// The camera has no signal for the effort. The person presses a button to start a hold and a button to end it.
-// The screen (Step D) calls startHold and endHold. The timer never reads the camera.
-// It gives no angle either (R-08): a knee angle next to a hold list reads as proof of effort, and the design forbids that.
 
 export const HOLD_MIN_MS = 1000; // a shorter hold is dropped (a double press)
 export const HOLD_MAX_S = 3600; // the limit of the stored field
 export const HOLD_LIST_MAX = 50; // the limit of the stored field
 
-/** The answer of endHold. The screen can show a polite line for a hold that is not saved. */
 export interface EndHoldResult {
   saved: boolean;
   reason: 'ok' | 'too-short' | 'too-long' | 'list-full' | 'not-holding';
 }
 
-/**
- * The whole seconds of a hold: the time in milliseconds, rounded, at least 1. This is the value that the record stores.
- * The screen must use this function for the number that it shows, so the screen and the record agree (R-05).
- */
 export const holdSeconds = (ms: number): number => Math.max(1, Math.round(ms / 1000));
 
 export interface PersonTimer {
@@ -56,7 +43,6 @@ export function createPersonTimer(): PersonTimer {
       const ms = tMs - startedAt;
       startedAt = null;
       if (ms < HOLD_MIN_MS) return { saved: false, reason: 'too-short' };
-      // A hold over the limit is dropped. A clamped value would not be the true time.
       if (holdSeconds(ms) > HOLD_MAX_S) return { saved: false, reason: 'too-long' };
       if (holdList.length >= HOLD_LIST_MAX) return { saved: false, reason: 'list-full' };
       holdList.push(holdSeconds(ms));
@@ -68,29 +54,19 @@ export function createPersonTimer(): PersonTimer {
   };
 }
 
-// ---- reps-cycle (ankle pump) -------------------------------------------------
-// One rep is one rise and one fall of the angle, each of at least `minAmplitude` degrees, each held for `minStateMs`.
-// The first angle that the person shows is the baseline: a rise is measured from the lowest angle seen since the last rep.
-// A null sample (the foot is not seen) restarts the time of a rise or a fall. The count stays.
-
 export interface CycleConfig {
   minAmplitude: number; // degrees
   minStateMs: number;
-  /** A rise that took longer than this, from the bottom to the amplitude, is a drift. It counts nothing. */
   maxRiseMs: number;
 }
 
 export interface CycleState {
   phase: 'low' | 'high';
-  /** The lowest angle since the last rep (phase low), or the highest angle of this rise (phase high). */
   ref: number | null;
-  /** The lowest angle before the present rise. */
   base: number | null;
   since: number | null;
-  /** The last time the angle was near the bottom (within a quarter of the amplitude of the lowest angle). It starts the rise. */
   nearAt: number | null;
   reps: number;
-  /** The largest rise seen, in degrees. */
   range: number;
 }
 
@@ -106,7 +82,6 @@ export function cycleStep(state: CycleState, angle: number | null, t: number, cf
     if (angle >= s.ref + cfg.minAmplitude) {
       s.since ??= t;
       if (s.nearAt !== null && t - s.nearAt > cfg.maxRiseMs) {
-        // R-10: the rise is too slow. It is a drift, not a pump. The reference moves to the present angle.
         s.ref = angle;
         s.nearAt = t;
         s.since = null;
@@ -161,10 +136,8 @@ export const ANKLE_MIN_AMPLITUDE = 30;
 export const ANKLE_MAX_RISE_MS = 4000;
 
 export interface CycleDriver {
-  /** `raw` is the angle at the ankle in degrees, or null when the foot is not seen. Returns the filtered angle. */
   sample(raw: number | null, t: number): { value: number | null; event: 'rep' | null };
   reps(): number;
-  /** The largest rise seen, in degrees, or null before the first rise. */
   range(): number | null;
   data(): EngineData;
 }
@@ -190,11 +163,6 @@ export function createCycleDriver(cfg: CycleConfig): CycleDriver {
   };
 }
 
-// ---- lift (leg raise to the side and to the back, and the straight leg raise) ------------------------------
-// A lift counts once when the leg holds the raised state for `settleMs`. A lift ends when the leg stays down for `endMs`.
-// A short dip in a hold counts no second rep. The state time of a lift that is not counted yet starts again after a dip.
-// This is the logic of the straight leg raise (exercises.ts). The straight leg raise and the new lifts both use it (DRY).
-
 export interface LiftConfig {
   settleMs: number;
   endMs: number;
@@ -208,18 +176,11 @@ export interface LiftState {
 
 export interface LiftOutput {
   lift: LiftState | null;
-  /** The lift has held the settle time: the caller reads the top value now. */
   settled: boolean;
-  /** The lift is counted on this sample. */
   counted: boolean;
-  /** The lift ended on this sample. The caller closes it and the state is null. */
   closed: boolean;
 }
 
-/**
- * `raised` is true or false for a seen leg, and null when the leg is not seen. A leg that is not seen restarts the settle time
- * of a lift. A lift that is counted stays counted.
- */
 export function liftStep(lift: LiftState | null, raised: boolean | null, t: number, cfg: LiftConfig): LiftOutput {
   const out: LiftOutput = { lift, settled: false, counted: false, closed: false };
   if (raised === null) {
@@ -258,20 +219,13 @@ export const LIFT_FILTER = { minCutoff: 1.5, beta: 0.02 };
 
 /** The foot must point at least this far from the ankle (square pixels) to give a vote for the facing direction. ENGINEERING. The foot of the series is 0.08. */
 export const FOOT_MIN_DX = 0.02;
-/** The votes of the foot that make the facing direction sure. */
 const FACING_VOTES = 3;
 const FACING_VOTES_MAX = 20;
 
 export interface LiftDriver {
-  /**
-   * `raw` is the segment angle in degrees, or null when a landmark is not seen. Returns the filtered angle.
-   * `aux` is needed for a directional lift only (the lift to the back).
-   */
   sample(raw: number | null, t: number, aux?: DirectionAux): { value: number | null; event: 'rep' | null; notSideOn?: boolean };
-  /** A new set starts. The peak of the present lift is closed. The peak of the session stays. */
   newSet(): void;
   reps(): number;
-  /** The largest peak of the session or of the present set. null before a lift. */
   peak(): number | null;
   setPeak(): number | null;
   data(): EngineData;
@@ -279,21 +233,11 @@ export interface LiftDriver {
 
 export interface LiftDriverConfig extends LiftConfig {
   liftAngle: number;
-  /**
-   * R-02: the lift counts only when the knee is BEHIND the hip along the facing direction (a forward swing counts nothing).
-   * The facing direction comes from the foot index at rest: the foot points forward. Without a sure foot, `cameraFacing` is used
-   * (+1 the person looks to the right of the picture, -1 to the left). Without both the driver does not guess: no count and no value.
-   */
   directional?: { cameraFacing: 1 | -1 | null; maxWidth?: number };
 }
 
-/** The frames of the median of the width (the side-on check). At about 10 frames each second this is 0.5 s. A single bad frame does not decide. */
 export const WIDTH_FRAMES = 5;
 
-/**
- * The facing direction that follows from the camera side. A camera on the left of the person sees the left side of the person,
- * so the person looks to the left of the picture. The picture is the raw image of the pose model.
- */
 export const facingFromCameraSide = (cameraSide: 'left' | 'right' | undefined): 1 | -1 | null =>
   cameraSide === undefined ? null : cameraSide === 'left' ? -1 : 1;
 
@@ -304,7 +248,6 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
   let best: number | null = null;
   let setBest: number | null = null;
   let reps = 0;
-  // R-01: no lift counts until the angle was seen below the gate. A person who is upright, or a leg that starts raised, is not a lift.
   let armed = false;
   let votes = 0;
   const widths: number[] = []; // the last WIDTH_FRAMES known widths
@@ -328,7 +271,6 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
       if (value < cfg.liftAngle) armed = true;
       let backward = true;
       if (cfg.directional !== undefined) {
-        // The foot votes at rest, when the leg is down and the foot lies flat.
         if (value < cfg.liftAngle && aux?.footDx != null && Math.abs(aux.footDx) >= FOOT_MIN_DX) {
           votes = Math.max(-FACING_VOTES_MAX, Math.min(FACING_VOTES_MAX, votes + Math.sign(aux.footDx)));
         }
@@ -338,8 +280,6 @@ export function createLiftDriver(cfg: LiftDriverConfig): LiftDriver {
           return { value: null, event: null };
         }
         backward = Math.sign(aux.kneeDx) === -facing;
-        // R-02b: a person who faces the camera who lifts the leg to the side has the knee "behind" the hip in the picture too.
-        // The lift to the back is valid for a side-on person only. A wide hip line in the picture counts nothing and gives no value.
         if (aux.width !== null) {
           widths.push(aux.width);
           if (widths.length > WIDTH_FRAMES) widths.shift();
