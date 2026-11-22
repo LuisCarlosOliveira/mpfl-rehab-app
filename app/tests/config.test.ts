@@ -91,6 +91,7 @@ describe('package.json', () => {
   it('keeps the precheck steps in place', () => {
     expect(pkg.scripts.precheck).toContain('scripts/deps-check.sh');
     expect(pkg.scripts.precheck).toContain('scripts/claims-check.sh');
+    expect(pkg.scripts.precheck).toContain('scripts/secrets-check.sh');
   });
 });
 
