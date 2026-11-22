@@ -42,7 +42,7 @@ export interface FigureLabel {
   at: Point;
 }
 
-type Shape = { k: 'circle'; c: Point; r: number } | { k: 'seg'; a: Point; b: Point; r: number } | { k: 'rect'; box: Box };
+export type Shape = { k: 'circle'; c: Point; r: number } | { k: 'seg'; a: Point; b: Point; r: number } | { k: 'rect'; box: Box };
 
 interface Body {
   points: Record<Joint, Point>;
@@ -417,6 +417,17 @@ export function boxShapeGap(box: Box, s: Shape): number {
   const dx = Math.max(s.box.x - (box.x + box.w), box.x - (s.box.x + s.box.w), 0);
   const dy = Math.max(s.box.y - (box.y + box.h), box.y - (s.box.y + s.box.h), 0);
   return Math.hypot(dx, dy);
+}
+
+export function pickLabelSpot(candidates: Box[], shapes: Shape[], bounds: Box, gap: number, must: Shape[] = []): number {
+  const room = (b: Box, list: Shape[]) => (b.x < bounds.x || b.y < bounds.y || b.x + b.w > bounds.x + bounds.w || b.y + b.h > bounds.y + bounds.h ? -Infinity : Math.min(...list.map((s) => boxShapeGap(b, s))));
+  const all = candidates.map((c) => room(c, [...shapes, ...must]));
+  const first = all.findIndex((r) => r >= gap);
+  if (first >= 0) return first;
+  const hard = candidates.map((c) => room(c, must));
+  const ok = all.map((r, i) => (hard[i]! >= gap ? r : -Infinity));
+  const best = Math.max(...ok) > -Infinity ? ok : hard;
+  return Math.max(0, best.indexOf(Math.max(...best)));
 }
 
 const hits = (box: Box, shapes: Shape[], gap = GAP) => shapes.some((s) => boxShapeGap(box, s) < gap);

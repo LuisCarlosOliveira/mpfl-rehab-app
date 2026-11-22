@@ -18,6 +18,7 @@
 //   in the frame callback:                  map.current?.update(landmarks, timeMs, source.aspect());
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { MIN_VISIBILITY, flexion, kneeAngle, type Landmark, type Side } from '../lib/angle';
+import { pickLabelSpot, type Box, type Shape } from '../lib/figure';
 
 export const PREVIEW_MIRRORED = false;
 export const mirrorClass = (mirrored: boolean): string => (mirrored ? 'mirrored' : '');
@@ -52,6 +53,7 @@ const HOLD_MS = 100;
 // ENGINEERING. A text sits on the inner side of the picture. It changes side only when the point is this far past the middle, so it does not hop.
 const SIDE_BAND = 0.06;
 const LETTER = 0.6;
+const DIRECTIONS = [[1, 0], [1, -1], [1, 1], [-1, 0], [-1, -1], [-1, 1], [0, -1], [0, 1]] as const;
 const textWidth = (chars: number, size: number) => chars * LETTER * size;
 const finite = (n: number) => Number.isFinite(n);
 const POINT_IDS: readonly number[] = [...new Set([...SOFT.flat(), ...LEG_IDS.left, ...LEG_IDS.right])];
@@ -91,6 +93,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
   const lowSince = useRef<(number | null)[]>([null, null, null]);
   const track = useRef(new Map<number, { last: Landmark; prev: Landmark; since: number | null }>());
   const sides = useRef({ arc: 1, chosen: 1 });
+  const slots = useRef({ arc: 0, chosen: 0 });
   const chosenHidden = useRef(false);
   const arcDrawn = useRef(false);
   const arcBox = useRef({ left: 0, right: 0, top: 0, bottom: 0 });
@@ -229,6 +232,21 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           return timeMs - (lowSince.current[j] as number) >= LOST_HOLD_MS;
         });
 
+        const obstacles: Shape[] = [];
+        const bounds: Box = { x: 0, y: 0, w: W, h: H };
+        const gap = 4 * px;
+        const edge = 8 * px;
+        const nudge = (b: Box): Box => ({ ...b, x: Math.min(Math.max(b.x, edge), W - edge - b.w), y: Math.min(Math.max(b.y, edge), H - edge - b.h) });
+        const place = (key: 'arc' | 'chosen', preferred: Box, cx: number, cy: number, inward: number, d: number, must: Shape[] = []) => {
+          const around = [d, 2.2 * d, 3.6 * d].flatMap((far) => DIRECTIONS.map(([dx, dy]) => nudge({ ...preferred, x: dx === 0 ? cx - preferred.w / 2 : dx * inward > 0 ? cx + far : cx - far - preferred.w, y: dy === 0 ? cy - preferred.h / 2 : dy > 0 ? cy + far : cy - far - preferred.h })));
+          const corners = [0, W].flatMap((x) => [0, H].map((y) => nudge({ ...preferred, x: x === 0 ? 0 : x - preferred.w, y: y === 0 ? 0 : y - preferred.h })));
+          const all = [preferred, ...around, ...corners];
+          const order = [slots.current[key], ...all.keys()].filter((n, at, list) => list.indexOf(n) === at);
+          const pick = order[pickLabelSpot(order.map((n) => all[n]!), obstacles, bounds, gap, must)]!;
+          slots.current[key] = pick;
+          return { box: all[pick]!, first: pick === 0 };
+        };
+
         for (const side of SIDES) {
           const pts = LEG_IDS[side].map((id) => landmarks[id]!);
           const mine = side === leg;
@@ -240,6 +258,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
             if (!on) continue;
             line(`${side}-${i}-h`, a, b);
             line(`${side}-${i}-c`, a, b);
+            obstacles.push({ k: 'seg', a: at(a), b: at(b), r: 6 * px });
           }
           for (let j = 0; j < 3; j++) {
             const on = mine ? !lost[j] && seen(pts[j]) : body && seen(pts[j]);
@@ -283,11 +302,18 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           const sizeB = 14 * px;
           const w = Math.max(textWidth(first.length, sizeA), textWidth(second.length, sizeB));
           const pad = 8 * px;
-          const anchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
-          let x = k.x + inward * (r + 12 * px);
-          if (anchor === 'start' && x + w > W - pad) x = Math.max(W - pad - w, pad);
-          if (anchor === 'end' && x - w < pad) x = Math.min(pad + w, W - pad);
-          const y = Math.min(Math.max(k.y + 4 * px, 24 * px), H - 24 * px);
+          const preferredAnchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
+          let x0 = k.x + inward * (r + 12 * px);
+          if (preferredAnchor === 'start' && x0 + w > W - pad) x0 = Math.max(W - pad - w, pad);
+          if (preferredAnchor === 'end' && x0 - w < pad) x0 = Math.min(pad + w, W - pad);
+          const y0 = Math.min(Math.max(k.y + 4 * px, 24 * px), H - 24 * px);
+          const h = sizeA + 1.15 * sizeB;
+          obstacles.push({ k: 'circle', c: k, r });
+          const preferred: Box = { x: preferredAnchor === 'end' ? x0 - w : x0, y: y0 - sizeA, w, h };
+          const { box: placed, first: atPreferred } = place('arc', preferred, k.x, k.y, inward, r + 12 * px);
+          const anchor = atPreferred ? preferredAnchor : 'start';
+          const x = atPreferred ? x0 : placed.x;
+          const y = placed.y + sizeA;
           text('arc-text', x, y, anchor, 14);
           const lines = e['arc-text']!.children;
           for (const [i, str, size] of [[0, first, sizeA], [1, second, sizeB]] as const) {
@@ -298,7 +324,7 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
             el.setAttribute('font-size', String(r1(size)));
           }
           lines[1]?.setAttribute('dy', String(r1(1.15 * sizeB)));
-          arcBox.current = { left: anchor === 'end' ? x - w : x, right: anchor === 'end' ? x : x + w, top: y - sizeA, bottom: y + 1.15 * sizeB };
+          arcBox.current = { left: placed.x, right: placed.x + w, top: placed.y, bottom: placed.y + h };
         } else arcBox.current = { left: 0, right: 0, top: 0, bottom: 0 };
 
         if (labels) {
@@ -370,18 +396,16 @@ export const BodyMap = forwardRef<BodyMapHandle, Props>(function BodyMap({ leg, 
           const m = at({ x: (hip.x + knee.x) / 2, y: (hip.y + knee.y) / 2 });
           const inward = innerSide('chosen', m.x);
           const size = 14 * px;
-          const box = (el: SVGElement) => {
-            const w = (el.textContent ?? '').length * 0.6 * size;
-            const x = Number(el.getAttribute('x'));
-            const left = el.getAttribute('text-anchor') === 'end' ? x - w : x;
-            return { left, right: left + w, top: Number(el.getAttribute('y')) - size, bottom: Number(el.getAttribute('y')) };
-          };
-          text('chosen-label', m.x + inward * 16 * px, m.y - 20 * px, inward === 1 ? 'start' : 'end');
-          if (arcOn) {
-            const a = box(e['chosen-label']!);
-            const b = arcBox.current;
-            if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) e['chosen-label']!.setAttribute('y', String(r1(b.top - 4 * px)));
-          }
+          const w = 'Chosen leg'.length * LETTER * size;
+          const h = 1.15 * size;
+          const preferredAnchor: 'start' | 'end' = inward === 1 ? 'start' : 'end';
+          const x0 = m.x + inward * 16 * px;
+          const y0 = m.y - 20 * px;
+          const preferred: Box = { x: preferredAnchor === 'end' ? x0 - w : x0, y: y0 - size, w, h };
+          const b = arcBox.current;
+          const other: Shape[] = arcOn ? [{ k: 'rect', box: { x: b.left, y: b.top, w: b.right - b.left, h: b.bottom - b.top } }] : [];
+          const { box: placed, first } = place('chosen', preferred, m.x, m.y, inward, 16 * px, other);
+          text('chosen-label', first ? x0 : placed.x, placed.y + size, first ? preferredAnchor : 'start');
         }
       },
     }),
