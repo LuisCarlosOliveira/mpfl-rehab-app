@@ -5,7 +5,7 @@
 import { evaluateRedFlags } from '../redflags';
 import { generatorExtendedOn } from '../mode';
 import { evaluateSession } from '../safety';
-import { protocolSchema, type PlanExercise, type Protocol } from '../protocol/schema';
+import { PHASE_FIRST, PHASE_SECOND, protocolSchema, type Phase, type PlanExercise, type Protocol } from '../protocol/schema';
 import { inputsSchema, type GeneratorInputs } from './inputs';
 import { DOSE_SHOWN, NOT_APPROVED, phaseOneStaysText, romCheckText, RULES, type RuleId } from './rules';
 import type { Grade, SourceId } from './sources';
@@ -118,7 +118,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   };
   const doseSource = `${DOSE_SHOWN}: P2 rec 26 (DOSE), OPINION (level 5), ages 8 to 25. ${NOT_APPROVED}.`;
 
-  const straightLegRaise = (phaseId: number): PlanExercise => ({
+  const straightLegRaise = (phaseId: Phase): PlanExercise => ({
     kind: 'straight-leg-raise',
     ...dosed(`phase${phaseId}.straight-leg-raise`),
     source: `Name: S1 (SLR). ${doseSource}`,
@@ -126,12 +126,12 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
 
   // The five exercises that were home exercises before exercise monitoring. They are normal exercises now.
   // Ankle pumps are in phase 1 only (P1, P3). The source note stays the same.
-  const addedExercises = (phaseId: number): PlanExercise[] => {
+  const addedExercises = (phaseId: Phase): PlanExercise[] => {
     const named = (kind: PlanExercise['kind'], names: string): PlanExercise => ({ kind, ...dosed(`phase${phaseId}.${kind}`), source: `${names} (HOME). ${doseSource}` });
     return [
       named('quad-set', 'Quadriceps set: S1 P1 P2 P3 N3'),
       named('gluteal-set', 'Gluteal set: P1 P2 N3'),
-      ...(phaseId === 1
+      ...(phaseId === PHASE_FIRST
         ? [{ kind: 'ankle-pump' as const, source: `Ankle pump: P1 P3 (ANKLE). No dose (DOSE_NONE). ${NOT_APPROVED}.` }]
         : []),
       named('leg-raise-side', 'Leg raise to the side: P3 P2'),
@@ -140,9 +140,9 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   };
 
   // The heel slide needs a number from the surgeon in phase 1. In phase 2 "no limit" and "unknown" also add it.
-  const heelSlide = (phaseId: number): PlanExercise | null => {
-    if (limit.kind === 'unknown' && (phaseId === 1 || !extended)) return null;
-    if (limit.kind === 'none' && phaseId === 1) return null;
+  const heelSlide = (phaseId: Phase): PlanExercise | null => {
+    if (limit.kind === 'unknown' && (phaseId === PHASE_FIRST || !extended)) return null;
+    if (limit.kind === 'none' && phaseId === PHASE_FIRST) return null;
     if (limit.kind === 'degrees' && limit.degrees < lowestLimit) return null;
     const path = `phase${phaseId}.heel-slide`;
     targetApplied.push({ path: `${path}.targetFlexion`, value: target, origin: 'rule' });
@@ -199,12 +199,12 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     };
   };
 
-  const exercisesOf = (phaseId: number): PlanExercise[] => {
+  const exercisesOf = (phaseId: Phase): PlanExercise[] => {
     const list = [straightLegRaise(phaseId)];
     const heel = heelSlide(phaseId);
     if (heel !== null) list.push(heel);
-    if (phaseId === 2 && squatBuilt) list.push(miniSquat());
-    if (phaseId === 2 && holdBuilt) list.push(seatedHold());
+    if (phaseId === PHASE_SECOND && squatBuilt) list.push(miniSquat());
+    if (phaseId === PHASE_SECOND && holdBuilt) list.push(seatedHold());
     list.push(...addedExercises(phaseId));
     return list;
   };
@@ -215,9 +215,9 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
 
   const phases: Protocol['phases'] = [
     {
-      id: 1,
+      id: PHASE_FIRST,
       name: 'Protection',
-      exercises: exercisesOf(1),
+      exercises: exercisesOf(PHASE_FIRST),
       reviewCriteria: [
         { kind: 'clinicianCheck', key: 'extensionFull', evidence: 'mpflr' },
         { kind: 'clinicianCheck', key: 'slrNoLag', evidence: 'mpflr' },
@@ -228,7 +228,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
   ];
   if (phase2) {
     reviewApplied.push({ path: 'phase2.reviewDate', value: phase2Date, origin: 'rule' });
-    phases.push({ id: 2, name: 'Strengthening', exercises: exercisesOf(2), reviewDate: phase2Date });
+    phases.push({ id: PHASE_SECOND, name: 'Strengthening', exercises: exercisesOf(PHASE_SECOND), reviewDate: phase2Date });
   }
 
   const hasHeel = phases.some((p) => p.exercises.some((e) => e.kind === 'heel-slide'));
@@ -267,7 +267,7 @@ function build(raw: GeneratorInputs, today: string): GenerateResult {
     side: i.side,
     authoredBy: GENERATED_BY,
     generated: { on: today, rules: [...new Set(entries.filter((e) => e.outcome === 'generated').map((e) => e.ruleId))] },
-    activePhase: phase2 ? 2 : 1,
+    activePhase: phase2 ? PHASE_SECOND : PHASE_FIRST,
     phases,
     surgeon: {
       concurrentProcedures: 'None, as entered by you',

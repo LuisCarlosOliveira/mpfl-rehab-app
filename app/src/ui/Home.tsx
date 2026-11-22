@@ -3,7 +3,7 @@
 // the active phase comes in as a prop from the read-only store.
 import { useEffect, useState } from 'react';
 import { counterSetup } from '../lib/exercises';
-import { surgeonField, SURGEON_FIELDS, type Exercise, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
+import { surgeonField, PHASE_FIRST, SURGEON_FIELDS, type Exercise, type PlanExercise, type Protocol, type SurgeonField } from '../lib/protocol';
 import { isMonitored, isNumericKind } from '../lib/monitor/monitored';
 import { sessionKinds } from '../lib/sessionPlan';
 import { CONTACT_TITLE, contactReason } from '../lib/contactCard';
@@ -136,7 +136,7 @@ export function Home({ protocol, phase, activePhase, db, now, onStart, onStartSe
   const canUpdate = madeByApp && !pastPlanWeeks && onUpdatePlan !== undefined;
   // The progress row shows in weeks 0 to 11. It becomes a card when phase 2 can start (week 7 with phase 1 active) or the review date has passed.
   const checkOpen = madeByApp && weeks !== null && weeks <= LAST_PLAN_WEEK && onCheckProgress !== undefined;
-  const checkCard = checkOpen && ((weeks >= 7 && activePhase === 1) || review);
+  const checkCard = checkOpen && ((weeks >= 7 && activePhase === PHASE_FIRST) || review);
   // After week 11 the review card says it. Without a review card the plan end shows here, with no button.
   const planEnd = madeByApp && pastPlanWeeks && !review;
 
