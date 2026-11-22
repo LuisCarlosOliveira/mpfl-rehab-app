@@ -70,12 +70,12 @@ This is the screen during a real straight leg raise on a laptop webcam, with the
 
 ## Status
 
-The table shows the results of one full check, on the date and commit stated. These are not live results. Date: 2026-11-22. Commit: 25342bd. The next commit changes only this table.
+The table shows the results of one full check, on the date and commit stated. These are not live results. Date: 2026-11-22. Commit: 25342bd. Later commits changed only the README, the images, the Dependabot config and the secrets check. The secrets check has its own tests.
 
 | Check | Result |
 |---|---|
 | Unit tests (`npm test`) | 4,532 tests in 257 files, passed, as `npm test` counts them |
-| Browser tests (`npm run e2e`) | 319 passed, 11 skipped, 0 failed (the webkit project ran again alone after one load timeout). 7 skips need a webcam clip that is not in the repository (see [app/audit/README.md](app/audit/README.md)). 4 skips only write screenshots |
+| Browser tests (`npm run e2e`) | 319 passed, 11 skipped, 0 failed. 7 skips need a webcam clip that is not in the repository (see [app/audit/README.md](app/audit/README.md)). 4 skips only write screenshots |
 | Accessibility audit | 0 run errors on 28 screens, no sideways scroll at 200% text |
 | Hostile input audit | 72 of 72 cases passed, 0 foreign requests |
 | Honesty audit | 0 failures, 470 checks passed. Two items need a person to read them |
