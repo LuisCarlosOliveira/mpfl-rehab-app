@@ -30,7 +30,7 @@ import { Icon } from './Icon';
 import { Notice } from './Notice';
 import { PairHost } from './PairHost';
 import { SetupGuide } from './SetupGuide';
-import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
+import { CAMERA_PEOPLE_NOTE, CAPTURE_TEXT, IDLE_TEXT, LEG_TEXT, LIMIT_NOTICE, MODEL_BYTES, TIMER_NOTE, beforeYouStart, cameraStatusText, chipFor, countdownSeconds, jointsSeen, firstSentence, orderedRuleRows, startText } from './setupView';
 import { SetupStateCard } from './SetupStateCard';
 import { StatusLine } from './StatusLine';
 import { ExerciseHeader } from './v3/ExerciseHeader';
@@ -416,6 +416,9 @@ export function Setup({ kind, side, exerciseName, targetFlexion, limit, returnWi
         </LiveShell.Camera>
         <LiveShell.Panel>
           {stepList}
+          <Notice icon="ruler">
+            <p>{LIMIT_NOTICE}</p>
+          </Notice>
           {running && <StatusLine icon={chip.seen ? 'check' : 'minus'} text={chip.text} />}
           {running && <BodyMapSwitch />}
 
