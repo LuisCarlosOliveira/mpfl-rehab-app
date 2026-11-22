@@ -1,3 +1,4 @@
+import { MARGIN_DEG } from '../lib/margin';
 import { plural } from '../lib/sets';
 import { DEFAULT_PROFILE, type SetupProfile, type SetupRuleId } from '../lib/setupRules';
 
@@ -68,6 +69,8 @@ export function beforeYouStart(profile: SetupProfile | null): string {
 }
 
 export const TIMER_NOTE = 'The camera cannot see this effort. The app times your hold.';
+
+export const LIMIT_NOTICE = `The angle is an estimate that can be off by ${MARGIN_DEG} degrees or more. Follow the limit of your surgeon or physiotherapist, not the cues of the app.`;
 
 export const CAMERA_PEOPLE_NOTE = 'Make sure that only you are in the camera view.';
 
