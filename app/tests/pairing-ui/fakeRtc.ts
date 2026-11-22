@@ -30,7 +30,7 @@ export class FakeChannel {
 }
 
 let counter = 0;
-export const CANDIDATE_HOST = '192.168.1.20';
+export const CANDIDATE_HOST = '192.168.1.20'; // secrets-check:allow private-range test value
 
 export class FakePeer extends EventTarget {
   static all: FakePeer[] = [];
@@ -66,7 +66,7 @@ export class FakePeer extends EventTarget {
         ufrag: `uf${this.n}ab`,
         pwd: 'p'.repeat(22) + String(this.n % 10) + 'x',
         fingerprint: Uint8Array.from({ length: 32 }, (_, i) => (i * 5 + this.n) % 256),
-        candidates: candidates.length ? candidates : [{ host: '10.0.0.1', port: 1, protocol: 'udp' }],
+        candidates: candidates.length ? candidates : [{ host: '10.0.0.1', port: 1, protocol: 'udp' }], // secrets-check:allow private-range test value
       },
       role,
     );

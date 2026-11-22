@@ -20,7 +20,7 @@ const FIXTURE = [
   'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
   'c=IN IP4 0.0.0.0',
   `a=candidate:1 1 udp 2113937151 ${MDNS} 53988 typ host generation 0 network-cost 999`,
-  'a=candidate:2 1 tcp 1518280447 192.168.1.5 9 typ host tcptype active',
+  'a=candidate:2 1 tcp 1518280447 192.168.1.5 9 typ host tcptype active', // secrets-check:allow private-range test value
   'a=ice-ufrag:aB3x',
   'a=ice-pwd:abcdefghijklmnopqrstuvwx',
   'a=ice-options:trickle',
@@ -61,7 +61,7 @@ describe('encode and decode', () => {
       ufrag: 'u'.repeat(32),
       candidates: [
         { host: MDNS, port: 1, protocol: 'udp' },
-        { host: '192.168.100.200', port: 65535, protocol: 'udp' },
+        { host: '192.168.100.200', port: 65535, protocol: 'udp' }, // secrets-check:allow private-range test value
         { host: MDNS, port: 2, protocol: 'udp' },
       ],
     });
@@ -71,7 +71,7 @@ describe('encode and decode', () => {
   });
 
   it('keeps an IPv4 candidate', () => {
-    const f = fields({ candidates: [{ host: '10.0.0.7', port: 40000, protocol: 'udp' }] });
+    const f = fields({ candidates: [{ host: '10.0.0.7', port: 40000, protocol: 'udp' }] }); // secrets-check:allow private-range test value
     expect(ok(decodeOffer(encodeOffer(f)))).toEqual(f);
   });
 
@@ -143,7 +143,7 @@ describe('encode and decode', () => {
     });
 
     it('refuses a port of 0 and a multicast address', () => {
-      const f = fields({ candidates: [{ host: '10.0.0.7', port: 40000, protocol: 'udp' }] });
+      const f = fields({ candidates: [{ host: '10.0.0.7', port: 40000, protocol: 'udp' }] }); // secrets-check:allow private-range test value
       const bytes = fromBase64Url(encodeOffer(f).slice(6))!.slice();
       bytes[bytes.length - 2] = 0;
       bytes[bytes.length - 1] = 0;
@@ -176,15 +176,15 @@ describe('encode and decode', () => {
       ['a fingerprint of 31 bytes', { fingerprint: new Uint8Array(31) }],
       ['a secret of 15 bytes', { secret: new Uint8Array(15) }],
       ['no candidate', { candidates: [] }],
-      ['4 candidates', { candidates: Array(4).fill({ host: '10.0.0.1', port: 1, protocol: 'udp' }) }],
-      ['a tcp candidate', { candidates: [{ host: '10.0.0.1', port: 1, protocol: 'tcp' }] }],
-      ['a host with a line break', { candidates: [{ host: '10.0.0.1\r\na=x', port: 1, protocol: 'udp' }] }],
+      ['4 candidates', { candidates: Array(4).fill({ host: '10.0.0.1', port: 1, protocol: 'udp' }) }], // secrets-check:allow private-range test value
+      ['a tcp candidate', { candidates: [{ host: '10.0.0.1', port: 1, protocol: 'tcp' }] }], // secrets-check:allow private-range test value
+      ['a host with a line break', { candidates: [{ host: '10.0.0.1\r\na=x', port: 1, protocol: 'udp' }] }], // secrets-check:allow private-range test value
       ['an mDNS name in upper case', { candidates: [{ host: MDNS.toUpperCase(), port: 1, protocol: 'udp' }] }],
-      ['an IPv4 number with a leading zero', { candidates: [{ host: '10.00.0.1', port: 1, protocol: 'udp' }] }],
-      ['an IPv4 octet of 256', { candidates: [{ host: '10.0.0.256', port: 1, protocol: 'udp' }] }],
-      ['port 0', { candidates: [{ host: '10.0.0.1', port: 0, protocol: 'udp' }] }],
-      ['port 65536', { candidates: [{ host: '10.0.0.1', port: 65536, protocol: 'udp' }] }],
-      ['a port with decimals', { candidates: [{ host: '10.0.0.1', port: 1.5, protocol: 'udp' }] }],
+      ['an IPv4 number with a leading zero', { candidates: [{ host: '10.00.0.1', port: 1, protocol: 'udp' }] }], // secrets-check:allow private-range test value
+      ['an IPv4 octet of 256', { candidates: [{ host: '10.0.0.256', port: 1, protocol: 'udp' }] }], // secrets-check:allow private-range test value
+      ['port 0', { candidates: [{ host: '10.0.0.1', port: 0, protocol: 'udp' }] }], // secrets-check:allow private-range test value
+      ['port 65536', { candidates: [{ host: '10.0.0.1', port: 65536, protocol: 'udp' }] }], // secrets-check:allow private-range test value
+      ['a port with decimals', { candidates: [{ host: '10.0.0.1', port: 1.5, protocol: 'udp' }] }], // secrets-check:allow private-range test value
     ])('refuses %s', (_name, over) => {
       expect(() => encodeOffer(fields(over as never))).toThrow();
     });
@@ -193,7 +193,7 @@ describe('encode and decode', () => {
       const f = fields({
         ufrag: 'a'.repeat(4),
         pwd: 'b'.repeat(22),
-        candidates: [{ host: '10.0.0.1', port: 65535, protocol: 'udp' }, { host: '10.0.0.1', port: 1, protocol: 'udp' }],
+        candidates: [{ host: '10.0.0.1', port: 65535, protocol: 'udp' }, { host: '10.0.0.1', port: 1, protocol: 'udp' }], // secrets-check:allow private-range test value
       });
       expect(ok(decodeOffer(encodeOffer(f)))).toEqual(f);
     });
@@ -217,8 +217,8 @@ describe('extractFields', () => {
   it('skips an IPv6 candidate, a relay candidate and a component 2 candidate', () => {
     const extra = [
       'a=candidate:3 1 udp 1 fe80::1 5000 typ host',
-      'a=candidate:4 1 udp 1 10.0.0.9 5000 typ relay raddr 0.0.0.0 rport 0',
-      'a=candidate:5 2 udp 1 10.0.0.9 5000 typ host',
+      'a=candidate:4 1 udp 1 10.0.0.9 5000 typ relay raddr 0.0.0.0 rport 0', // secrets-check:allow private-range test value
+      'a=candidate:5 2 udp 1 10.0.0.9 5000 typ host', // secrets-check:allow private-range test value
     ];
     expect(ok(extractFields(withLines(extra))).candidates).toHaveLength(1);
   });
@@ -321,8 +321,8 @@ describe('candidate hosts (audit A1-1)', () => {
       .replace('a=ice-ufrag', `a=candidate:1 1 udp 2113937151 ${host} 40000 typ host\r\na=ice-ufrag`);
 
   it.each([
-    '10.0.0.1', '10.255.255.254', '172.16.0.1', '172.31.255.255', '192.168.1.1', '192.168.255.255',
-    '100.64.0.1', '100.84.170.33', '100.127.255.254', '169.254.10.20',
+    '10.0.0.1', '10.255.255.254', '172.16.0.1', '172.31.255.255', '192.168.1.1', '192.168.255.255', // secrets-check:allow range edge values
+    '100.64.0.1', '100.84.170.33', '100.127.255.254', '169.254.10.20', // secrets-check:allow range edge values
   ])('accepts the private or tailnet address %s', (host) => {
     expect(ok(decodeOffer(encodeOffer(cand(host)))).candidates[0]?.host).toBe(host);
     expect(ok(extractFields(sdpWith(host))).candidates[0]?.host).toBe(host);
