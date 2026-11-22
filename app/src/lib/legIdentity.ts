@@ -10,7 +10,7 @@ import { flexion, kneeAngle, selectLeg, type Landmark, type Side } from './angle
 
 export type MovingLeg = Side | 'ambiguous' | 'none';
 
-export interface IdentityConfig {
+interface IdentityConfig {
   windowMs: number; // length of one window
   minFrames: number; // frames with the whole leg visible that a leg needs in a window
   minRangeDeg: number; // below this range for both legs the answer is none

@@ -14,9 +14,9 @@ const NO_PLAN_DATE = '0000-00-00';
 
 export { ANGLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard };
 
-export type RowType = 'measured' | 'reported' | 'cannot-measure';
-export type RowId = 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'E10' | 'E11' | 'E12';
-export type EventKind = 'gave-way' | 'pain' | 'swelling' | 'red-flag';
+type RowType = 'measured' | 'reported' | 'cannot-measure';
+type RowId = 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8' | 'E9' | 'E10' | 'E11' | 'E12';
+type EventKind = 'gave-way' | 'pain' | 'swelling' | 'red-flag';
 export type Answer = 'yes' | 'no' | 'unknown';
 
 export interface ProgressInput {
@@ -27,13 +27,13 @@ export interface ProgressInput {
   answers?: { walksWithoutCrutches?: Answer; legRaiseStraight?: Answer };
 }
 
-export interface SafetyEvent {
+interface SafetyEvent {
   kind: EventKind;
   day: string;
   text: string;
 }
 
-export interface ProgressRow {
+interface ProgressRow {
   id: RowId;
   type: RowType;
   title: string;
@@ -41,7 +41,7 @@ export interface ProgressRow {
   state: LimitState | null;
 }
 
-export interface MeasuredNumber {
+interface MeasuredNumber {
   id: 'peak' | 'limit' | 'margin' | 'heel-peak' | 's1';
   label: string;
   value: number;
@@ -190,7 +190,7 @@ export const CHECK_SCREEN = {
   noAngle: 'No knee angle is saved yet.',
 };
 
-export const weekHead = (week: number): string => {
+const weekHead = (week: number): string => {
   const w = weekWords(week);
   return `${w.charAt(0).toUpperCase()}${w.slice(1)}`;
 };

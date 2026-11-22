@@ -2,7 +2,7 @@ import { generateProtocol, RULES, type GenerateResult, type GeneratorInputs } fr
 import { weeksSince } from './planView';
 import { generatorExtendedOn } from './mode';
 
-export type YesNoUnknown = 'yes' | 'no' | 'unknown';
+type YesNoUnknown = 'yes' | 'no' | 'unknown';
 export type StepId =
   | 'writtenPlan' | 'procedure' | 'ageBand' | 'bothKnees' | 'firstSurgery' | 'specialRules'
   | 'surgeryDate' | 'side' | 'limit' | 'redFlags' | 'today' | 'clearance' | 'walking' | 'legRaise' | 'seatedHold' | 'summary';
@@ -61,7 +61,7 @@ const GROUP_OF: Record<Exclude<StepId, 'summary'>, GroupId> = {
   redFlags: 'today', today: 'today', clearance: 'today', walking: 'today', legRaise: 'today', seatedHold: 'today',
 };
 export const groupOf = (step: Exclude<StepId, 'summary'>): GroupId => GROUP_OF[step];
-export const groupSteps = (group: GroupId, a: Answers, today: string): Exclude<StepId, 'summary'>[] =>
+const groupSteps = (group: GroupId, a: Answers, today: string): Exclude<StepId, 'summary'>[] =>
   stepsFor(a, today).filter((s): s is Exclude<StepId, 'summary'> => s !== 'summary' && GROUP_OF[s] === group);
 
 export function limitNumber(text: string): number | null {

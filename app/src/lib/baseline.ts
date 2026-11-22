@@ -5,7 +5,7 @@ import { calmRun, isStill, type StillConfig } from './still';
 // PROPOSAL, no source: a median of fewer samples is not steady enough to use. T13 must tune it on real video.
 export const BASELINE_MIN_SAMPLES = 20;
 
-export type BaselineResult =
+type BaselineResult =
   | { ok: true; baselineDeg: number }
   | { ok: false; reason: 'too-few-samples' | 'not-steady' };
 
@@ -33,7 +33,7 @@ export function restingBaseline(
 
 export type BaselineSource = 'still' | 'lowest';
 
-export interface CaptureConfig {
+interface CaptureConfig {
   limitMs: number; // time with no still window after which the choice shows
   plateauMs: number; // the knee must stay at or below one angle for this long to make a plateau
   minLowestSamples: number; // fewer angles than this give no lowest steady angle

@@ -1,4 +1,4 @@
-export interface OneEuroOptions {
+interface OneEuroOptions {
   minCutoff: number; // Hz. Lower removes more jitter.
   beta: number; // Higher reduces lag in fast moves.
   dCutoff?: number; // Hz. Cutoff for the speed estimate.

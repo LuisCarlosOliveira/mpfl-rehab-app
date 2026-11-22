@@ -16,27 +16,27 @@ export function exerciseLabel(kind: string): string {
   return text.length > 60 ? `${text.slice(0, 60)}…` : text;
 }
 
-export const SERIES_TITLE = {
+const SERIES_TITLE = {
   peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
   repsPerDay: 'Reps for each day, in reps',
   pain: 'Pain after each session, from 0 to 10',
 } as const;
 
-export interface PeakPoint {
+interface PeakPoint {
   sessionId: number;
   date: string;
   degrees: number | null;
 }
-export interface PeakSeries {
+interface PeakSeries {
   exercise: ExerciseKind;
   title: string;
   points: PeakPoint[];
 }
-export interface RepsDay {
+interface RepsDay {
   day: string; // YYYY-MM-DD of the session timestamp (UTC, as stored)
   reps: number | null; // null when no session of that day has a rep count
 }
-export interface PainPoint {
+interface PainPoint {
   sessionId: number;
   date: string;
   pain: number;

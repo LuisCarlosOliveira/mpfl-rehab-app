@@ -29,7 +29,7 @@ export const SOURCE_NAMES: Record<string, string> = {
 };
 const MPFLR = new Set(['P1', 'P2', 'P3', 'N3', 'T4', 'T5', 'S1']);
 
-export interface TechniqueLine {
+interface TechniqueLine {
   text: string;
   sources: string[];
   borrowed: boolean;
