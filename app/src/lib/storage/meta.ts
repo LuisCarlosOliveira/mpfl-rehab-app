@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import type { Side } from '../angle';
+import { PLAN_EXERCISE_KINDS, type PlanExercise } from '../protocol/schema';
 
 const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
@@ -134,16 +135,16 @@ export function setLegPrefs(leg: Side, cameraSide: Side): void {
 }
 
 /** The exercises whose guide the person has seen in full. The next start shows the compact card. */
-export function getGuideSeen(): string[] {
+export function getGuideSeen(): PlanExercise['kind'][] {
   try {
     const list: unknown = JSON.parse(read(GUIDE_SEEN_KEY) ?? '[]');
-    return Array.isArray(list) ? list.filter((k): k is string => typeof k === 'string') : [];
+    return Array.isArray(list) ? list.filter((k): k is PlanExercise['kind'] => (PLAN_EXERCISE_KINDS as readonly unknown[]).includes(k)) : [];
   } catch {
     return [];
   }
 }
 
-export function markGuideSeen(kind: string): void {
+export function markGuideSeen(kind: PlanExercise['kind']): void {
   const seen = getGuideSeen();
   if (!seen.includes(kind)) write(GUIDE_SEEN_KEY, JSON.stringify([...seen, kind]));
 }
