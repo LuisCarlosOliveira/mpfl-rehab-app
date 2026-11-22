@@ -6,7 +6,7 @@
 export const MARGIN_DEG = 9;
 
 export const MARGIN_SOURCE_IDS = ['lite-start-v0', 'lite-start-v1'] as const;
-export type MarginSourceId = (typeof MARGIN_SOURCE_IDS)[number];
+type MarginSourceId = (typeof MARGIN_SOURCE_IDS)[number];
 
 export const MARGIN_SOURCE: MarginSourceId = 'lite-start-v1';
 

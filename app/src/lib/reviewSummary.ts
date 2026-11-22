@@ -24,7 +24,7 @@ export const STATE = {
   notEnough: 'Not enough data',
   equal: 'Equal to the limit',
 } as const;
-export type SummaryState = (typeof STATE)[keyof typeof STATE];
+type SummaryState = (typeof STATE)[keyof typeof STATE];
 
 const EVIDENCE_LABEL = {
   mpflr: 'Evidence: MPFL patients',
@@ -126,7 +126,7 @@ export interface ReviewSummary {
   painSwellingTable: { sessionId: number; date: string; exercise: string; exerciseKind: SessionRecord['exercise']; painText: string; swelling: SessionRecord['swelling'] }[];
 }
 
-export interface ReviewInput {
+interface ReviewInput {
   protocol: Protocol;
   phaseId: number;
   sessions: readonly SessionRecord[];

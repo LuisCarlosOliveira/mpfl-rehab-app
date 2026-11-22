@@ -44,7 +44,7 @@ export const MESSAGES: Record<RedFlagGroup, string> = {
   'care-team': 'Stop. Do not exercise. Contact your care team.',
 };
 
-export interface RedFlagResult {
+interface RedFlagResult {
   blocked: boolean;
   group: RedFlagGroup | null;
   message: string;

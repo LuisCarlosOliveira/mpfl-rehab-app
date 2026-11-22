@@ -4,7 +4,7 @@ import type { View } from '../lib/views';
 import { startPoseLoop } from './loop';
 import type { FrameBridge } from './frameBridge';
 
-export type SourceView = View;
+type SourceView = View;
 
 /** `extra` holds the other poses of the frame. It is there only during a probe. */
 export type FrameHandler = (landmarks: Landmark[] | null, timeMs: number, extra?: Landmark[][]) => void;
@@ -46,7 +46,7 @@ const REPORT_EVERY_MS = 200; // the screen gets the byte count at most 5 times e
 // Build flag. VITE_POSE_WORKER=off builds the app with the model on the main thread.
 const WORKER_DEFAULT = import.meta.env.VITE_POSE_WORKER !== 'off';
 
-export interface CameraSourceOptions extends CameraOptions {
+interface CameraSourceOptions extends CameraOptions {
   /** The view tag of this camera. The default is the side view. */
   view?: SourceView;
   /** Run the model in a Web Worker. The default is the build flag. The source falls back to the main thread when the worker cannot run. */

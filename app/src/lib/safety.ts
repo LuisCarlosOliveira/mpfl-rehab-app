@@ -8,15 +8,15 @@ export const PAIN_FLOOR = 7;
 export const PAUSE_MESSAGE = 'Pause and contact your care team.';
 
 export type SwellingAnswer = 'none' | 'some' | 'more';
-export type PauseReason = 'pain' | 'swelling' | 'invalid-input';
+type PauseReason = 'pain' | 'swelling' | 'invalid-input';
 
-export interface SessionAnswers {
+interface SessionAnswers {
   pain: number; // 0 to 10, from the patient
   swelling: SwellingAnswer;
   painPauseThreshold?: number; // from the protocol, optional
 }
 
-export interface SessionVerdict {
+interface SessionVerdict {
   pause: boolean;
   reasons: PauseReason[];
   message: string | null;

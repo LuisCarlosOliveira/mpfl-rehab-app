@@ -1,5 +1,5 @@
 
-export type CameraErrorKind = 'permission-denied' | 'no-device' | 'other';
+type CameraErrorKind = 'permission-denied' | 'no-device' | 'other';
 
 export interface CameraError {
   kind: CameraErrorKind;

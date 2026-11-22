@@ -7,7 +7,7 @@ import type { SessionData } from './storage';
 
 export const CONTACT_TITLE = 'Contact your care team';
 
-export interface ContactReason {
+interface ContactReason {
   kind: 'gave-way' | 'pain' | 'swelling';
   text: string;
 }

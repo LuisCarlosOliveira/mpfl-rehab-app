@@ -32,7 +32,7 @@ export interface FrameBridge {
   close(): void;
 }
 
-export interface FrameBridgeOptions {
+interface FrameBridgeOptions {
   onResult: (landmarks: Landmark[] | null, timestampMs: number, extra?: Landmark[][]) => void;
   /** The size of each chunk of the model files that the worker loads. */
   onProgress?: (bytes: number) => void;

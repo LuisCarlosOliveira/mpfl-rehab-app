@@ -47,7 +47,7 @@ export interface DirectionAux {
   width: number | null;
 }
 
-export function hipWidth(pose: Landmark[], aspect: number): number | null {
+function hipWidth(pose: Landmark[], aspect: number): number | null {
   const [ls, rs, lh, rh] = [pose[11], pose[12], pose[23], pose[24]];
   if (!ls || !rs || !lh || !rh || ![ls, rs, lh, rh].every(visible)) return null;
   const torso = Math.hypot(((ls.x + rs.x - lh.x - rh.x) / 2) * aspect, (ls.y + rs.y - lh.y - rh.y) / 2);

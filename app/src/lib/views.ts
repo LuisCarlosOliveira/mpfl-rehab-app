@@ -16,7 +16,7 @@ export interface RepStamp {
 // No published sync tolerance exists for slow rehab movements.
 export const PAIR_TOLERANCE_MS = 500;
 
-export interface PairedReps {
+interface PairedReps {
   pairs: { side: RepStamp; front: RepStamp }[];
   sideOnly: RepStamp[];
   frontOnly: RepStamp[];
@@ -56,9 +56,9 @@ export type FrontFrame = Landmark[];
 // A change value from fewer frames is too thin. No source sets this number.
 export const MIN_FRONT_FRAMES = 5;
 
-export type FrontState = LimitState | 'no-limit';
+type FrontState = LimitState | 'no-limit';
 
-export interface FrontKneeResult {
+interface FrontKneeResult {
   changeDeg: number;
   /**
    * Start value 9 degrees. The front-view margin can differ and is UNVERIFIED.

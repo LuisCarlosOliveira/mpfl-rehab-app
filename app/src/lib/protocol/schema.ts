@@ -14,7 +14,7 @@ export const NEW_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg
 export const PLAN_EXERCISE_KINDS = [...EXERCISE_KINDS, ...NEW_EXERCISE_KINDS] as const;
 const NEW_KIND_FIELDS = ['targetFlexion', 'minFlexion', 'maxFlexion', 'minRepSeconds', 'maxTopFlexion', 'returnWithinDeg'] as const;
 
-export const planExerciseSchema = z
+const planExerciseSchema = z
   .strictObject({
     kind: z.enum(PLAN_EXERCISE_KINDS),
     sets: z.number().int().min(1).max(20).optional(),
@@ -78,7 +78,7 @@ export const planExerciseSchema = z
 // The dose is optional.
 export const HOME_EXERCISE_KINDS = ['quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back'] as const;
 
-export const homeExerciseSchema = z.strictObject({
+const homeExerciseSchema = z.strictObject({
   kind: z.enum(HOME_EXERCISE_KINDS),
   sets: z.number().int().min(1).max(20).optional(),
   reps: z.number().int().min(1).max(100).optional(),
@@ -122,14 +122,14 @@ const clinicianCheck = z.strictObject({
   evidence,
 });
 
-export const reviewCriterionSchema = z.discriminatedUnion('kind', [numericCriterion, swellingCriterion, clinicianCheck]);
+const reviewCriterionSchema = z.discriminatedUnion('kind', [numericCriterion, swellingCriterion, clinicianCheck]);
 
 export const phaseNumber = z.number().int().min(1).max(10).brand<'Phase'>();
 export type Phase = z.infer<typeof phaseNumber>;
 export const PHASE_FIRST = phaseNumber.parse(1);
 export const PHASE_SECOND = phaseNumber.parse(2);
 
-export const phaseSchema = z.strictObject({
+const phaseSchema = z.strictObject({
   id: phaseNumber,
   name: text(60),
   exercises: z.array(planExerciseSchema).max(10),
@@ -146,7 +146,7 @@ export const phaseSchema = z.strictObject({
 
 export const SURGEON_FIELDS = ['brace', 'weightBearing', 'depthLimit', 'phaseClearance', 'concurrentProcedures'] as const;
 
-export const surgeonSchema = z.strictObject({
+const surgeonSchema = z.strictObject({
   brace: text(200).optional(),
   weightBearing: text(200).optional(),
   depthLimit: text(200).optional(),
@@ -154,8 +154,8 @@ export const surgeonSchema = z.strictObject({
   concurrentProcedures: text(200).optional(),
 });
 
-export const ruleIdSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,23}$/, 'A rule id is capital letters, digits and underscore, 24 characters at most.');
-export const generatedSchema = z.strictObject({
+const ruleIdSchema = z.string().regex(/^[A-Z][A-Z0-9_]{0,23}$/, 'A rule id is capital letters, digits and underscore, 24 characters at most.');
+const generatedSchema = z.strictObject({
   on: z.iso.date(),
   rules: z.array(ruleIdSchema).max(40),
 });

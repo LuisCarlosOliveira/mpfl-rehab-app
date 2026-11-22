@@ -22,7 +22,7 @@ export function isFresh(createdAtMs: number, nowMs: number, ttlMs: number = DEFA
   return Number.isFinite(age) && age >= 0 && age < ttlMs;
 }
 
-export type ConsumeResult = 'ok' | 'bad-secret' | 'expired';
+type ConsumeResult = 'ok' | 'bad-secret' | 'expired';
 
 export class OneTimeSecrets {
   private open: { secret: Uint8Array; issuedAt: number }[] = [];

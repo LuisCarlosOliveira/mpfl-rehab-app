@@ -164,7 +164,7 @@ export function evaluateSetup(
   return out('ready');
 }
 
-export interface SetupSampleInput {
+interface SetupSampleInput {
   landmarks: Landmark[] | null;
   side: Side;
   cameraSide?: Side;
@@ -173,7 +173,7 @@ export interface SetupSampleInput {
   aspect: number;
 }
 
-export interface StabilizedSetup {
+interface StabilizedSetup {
   rule: SetupRuleId;
   text: string;
   ready: boolean;

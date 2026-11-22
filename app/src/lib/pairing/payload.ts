@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { fail, type Result } from './result';
 import { SECRET_BYTES } from './security';
 
-export const PREFIX = 'MPFL1.';
+const PREFIX = 'MPFL1.';
 export const MAX_SCANNED_CHARS = 600; // PROPOSAL, qr-pairing.md section 5 rule 5. Checked before any parse.
-export const MAX_SDP_CHARS = 8192;
-export const MAX_CANDIDATES = 3;
+const MAX_SDP_CHARS = 8192;
+const MAX_CANDIDATES = 3;
 
 export type Role = 'offer' | 'answer';
 

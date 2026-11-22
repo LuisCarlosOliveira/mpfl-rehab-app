@@ -24,7 +24,7 @@ export function selectLeg(landmarks: Landmark[], side: Side): [Landmark, Landmar
   return [hip, knee, ankle];
 }
 
-export type LegPoint = 'hip' | 'knee' | 'ankle' | 'heel' | 'footIndex';
+type LegPoint = 'hip' | 'knee' | 'ankle' | 'heel' | 'footIndex';
 
 const POINT_IDS: Record<Side, Record<LegPoint, number>> = {
   left: { hip: 23, knee: 25, ankle: 27, heel: 29, footIndex: 31 },

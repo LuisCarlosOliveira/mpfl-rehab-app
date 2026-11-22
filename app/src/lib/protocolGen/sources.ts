@@ -3,7 +3,7 @@ export const AUDIT_DATE = '2026-11-08';
 export const GRADES = ['CONSENSUS', 'REVIEW', 'STUDY', 'OPINION', 'NONE', 'ENGINEERING'] as const;
 export type Grade = (typeof GRADES)[number];
 
-export type AuditVerdict = 'EXACT' | 'PARAPHRASED' | 'NOT AUDITED';
+type AuditVerdict = 'EXACT' | 'PARAPHRASED' | 'NOT AUDITED';
 
 export interface Source {
   id: string;

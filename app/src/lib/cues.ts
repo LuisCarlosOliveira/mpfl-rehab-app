@@ -4,7 +4,7 @@ import { plural } from './sets';
 
 export type CueEvent = 'rep' | 'shallow' | 'near-limit' | 'over-limit' | 'too-fast' | 'paused' | 'not-side-on' | 'hold-restart' | 'hold-complete' | null;
 
-export interface CueContext {
+interface CueContext {
   repMs?: number | null;
   minRepMs?: number | null;
 }
@@ -62,7 +62,7 @@ export const cuePriority = (event: CueEvent): number => {
 
 const isSafety = (event: CueEvent) => event === 'over-limit' || event === 'near-limit';
 
-export interface CueGate {
+interface CueGate {
   note(event: CueEvent | null, nowMs: number): void;
   pausedVisible(nowMs: number): boolean;
   allow(event: CueEvent, text: string, nowMs: number, safetyActive: boolean): boolean;
@@ -112,7 +112,7 @@ export function stillOverLimit(exercise: Pick<Exercise, 'kind' | 'maxFlexion' | 
 // many degrees is a camera misread (live test: 165 and 85 degrees for a leg that stayed straight). No source sets it.
 // CLINICIAN BLOCKER: no source sets 30. Open questions: is any limit valid, and is a chart of the top angle useful at all?
 // Your sessions draws no straight leg raise angle chart for this reason. The stored numbers stay in the export and the care team view.
-export const SLR_PEAK_PLAUSIBLE_MAX_DEG = 30;
+const SLR_PEAK_PLAUSIBLE_MAX_DEG = 30;
 export const PEAK_UNREADABLE_TEXT = 'The camera could not read this leg raise.';
 export const PEAK_NO_VALUE_TEXT = 'No value to show.';
 

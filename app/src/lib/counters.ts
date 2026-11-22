@@ -32,7 +32,7 @@ export interface RepsConfig {
   minRepMs?: number; // from the protocol. Missing means no too-fast event.
 }
 
-export interface RepsState {
+interface RepsState {
   phase: 'EXTENDED' | 'FLEXED';
   candidateSince: number | null;
   repStart: number | null;
@@ -55,7 +55,7 @@ export function countBlock(cfg: Pick<RepsConfig, 'baseline' | 'returnWithin'>): 
   return null;
 }
 
-export type RepsEvent = 'rep' | 'too-fast' | 'shallow' | 'near-limit' | 'over-limit' | 'paused' | null;
+type RepsEvent = 'rep' | 'too-fast' | 'shallow' | 'near-limit' | 'over-limit' | 'paused' | null;
 
 // ENGINEERING, not clinical. No source sets this value. A gap of no leg of this length ends the present time above the limit,
 // so the alert fires again when the knee comes back above it (FR8). A shorter gap, for example one lost frame, does not repeat it.
@@ -176,7 +176,7 @@ export interface HoldConfig {
   arcEnd?: { limit: number; margin: number };
 }
 
-export interface HoldState {
+interface HoldState {
   since: number | null;
   counted: boolean;
   holds: number;
@@ -184,7 +184,7 @@ export interface HoldState {
   overLimit: boolean;
 }
 
-export type HoldEvent = 'hold-complete' | 'hold-restart' | 'near-limit' | 'over-limit' | 'paused' | null;
+type HoldEvent = 'hold-complete' | 'hold-restart' | 'near-limit' | 'over-limit' | 'paused' | null;
 
 export const holdInitial = (): HoldState => ({ since: null, counted: false, holds: 0, nearLimit: false, overLimit: false });
 
@@ -227,11 +227,11 @@ export function holdStep(
   return { state: s, event };
 }
 
-export interface LagState {
+interface LagState {
   lag: number | null;
 }
 
-export type LagEvent = 'paused' | null;
+type LagEvent = 'paused' | null;
 
 export const lagInitial = (): LagState => ({ lag: null });
 

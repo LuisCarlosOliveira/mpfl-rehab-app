@@ -12,7 +12,7 @@ import { SETUP_CONFIG } from './setupRules';
 export type FigureFrame = 'start' | 'end';
 
 export type LegLegend = 'operated' | 'chosen';
-export const LEG_LEGEND_TEXT: Record<LegLegend, string> = { operated: 'Operated leg', chosen: 'Your chosen leg' };
+const LEG_LEGEND_TEXT: Record<LegLegend, string> = { operated: 'Operated leg', chosen: 'Your chosen leg' };
 export const legLegend = (chosen: Side, operated: Side): LegLegend => (chosen === operated ? 'operated' : 'chosen');
 export interface Point {
   x: number;
@@ -25,7 +25,7 @@ export interface Box {
   h: number;
 }
 export type Joint = 'head' | 'shoulder' | 'elbow' | 'hand' | 'hip' | 'knee' | 'ankle' | 'toe' | 'farHip' | 'farKnee' | 'farAnkle' | 'farToe';
-export type Part = 'torso' | 'thigh' | 'shank' | 'foot' | 'arm' | 'forearm';
+type Part = 'torso' | 'thigh' | 'shank' | 'foot' | 'arm' | 'forearm';
 
 export interface Limb {
   from: Joint;
@@ -42,9 +42,9 @@ export interface FigureLabel {
   at: Point;
 }
 
-export type Shape = { k: 'circle'; c: Point; r: number } | { k: 'seg'; a: Point; b: Point; r: number } | { k: 'rect'; box: Box };
+type Shape = { k: 'circle'; c: Point; r: number } | { k: 'seg'; a: Point; b: Point; r: number } | { k: 'rect'; box: Box };
 
-export interface Body {
+interface Body {
   points: Record<Joint, Point>;
   head: { center: Point; r: number };
   limbs: Limb[];
@@ -627,7 +627,7 @@ export function figureFor(kind: AnyGuideKind, frame: FigureFrame, side: Side, kn
 export type CameraView = 'side' | 'front';
 export type Posture = 'lying' | 'upright';
 
-export interface CameraPlan {
+interface CameraPlan {
   view: CameraView;
   posture: Posture;
   facing: 1 | -1;
@@ -643,9 +643,7 @@ export interface CameraPlan {
   legendLevel: { from: Point; to: Point };
 }
 
-const fmtMetres = (n: number) => String(n);
-
-export const distanceText = () => `${fmtMetres(SETUP_CONFIG.distanceAdviceM.min)} to ${fmtMetres(SETUP_CONFIG.distanceAdviceM.max)} m`;
+export const distanceText = () => `${SETUP_CONFIG.distanceAdviceM.min} to ${SETUP_CONFIG.distanceAdviceM.max} m`;
 
 /**
  * The picture of the camera and the person. The operated leg is the leg that the camera sees.

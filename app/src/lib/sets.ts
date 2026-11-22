@@ -1,9 +1,9 @@
-export interface Prescription {
+interface Prescription {
   sets?: number;
   reps?: number;
 }
 
-export type SetsPhase = 'active' | 'set-complete' | 'all-sets-complete' | 'no-prescription';
+type SetsPhase = 'active' | 'set-complete' | 'all-sets-complete' | 'no-prescription';
 
 export interface SetsState {
   prescription: Prescription;

@@ -238,7 +238,7 @@ export function raisesKneeLimit(current: Protocol, next: Protocol): boolean {
   return false;
 }
 
-export function addsLoad(current: Protocol, next: Protocol): boolean {
+function addsLoad(current: Protocol, next: Protocol): boolean {
   return next.phases.some((phase) => {
     const before = current.phases.find((p) => p.id === phase.id);
     return phase.exercises.some((e) => (e.kind === 'mini-squat' || e.kind === 'seated-extension-hold') && !before?.exercises.some((o) => o.kind === e.kind));
@@ -286,7 +286,7 @@ export function sourceLine(id: SourceId): string {
   return s.notPublished === undefined ? `${id}: ${s.authors}, ${s.year}` : `${id}: ${s.notPublished}`;
 }
 
-export const APP_VALUE = '(set by the app, not by a clinician)';
+const APP_VALUE = '(set by the app, not by a clinician)';
 export const countStartText = (deg: number): string => `The app starts counting a rep at ${deg} degrees ${APP_VALUE}`;
 
 const FIELD_LABELS: Record<string, { label: string; unit?: string }> = {
@@ -311,7 +311,7 @@ function appliedLine(a: WhyEntry['applied'][number]): string {
   return `${where}, ${info.label}: ${a.value}${info.unit ?? ''}${who}`;
 }
 
-export interface WhyView {
+interface WhyView {
   id: string;
   title: string;
   text: string;
@@ -327,7 +327,7 @@ export interface WhyView {
 
 const ASKS = ['Ask your surgeon', 'Ask your care team'] as const;
 
-export const askOf = (text: string): string | null =>
+const askOf = (text: string): string | null =>
   ASKS.map((a) => ({ a, at: text.indexOf(a) })).filter((x) => x.at >= 0).sort((x, y) => x.at - y.at)[0]?.a ?? null;
 
 export function whyView(e: WhyEntry): WhyView {
