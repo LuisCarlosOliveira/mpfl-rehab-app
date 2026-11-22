@@ -1,7 +1,3 @@
-/* Home, the Done step, the Next card and the session list on the v3 frame (docs/ui-redesign-v3.md).
-   New file. screensV2.css is not changed. Colours come from the .v3 tokens: no green and no red. */
-
-/* The columns of AppShell give each child its own stack. Each column has a gap and can shrink. */
 .v3h-col {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -10,7 +6,6 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
-/* Every child of the column can shrink to the column, so a long word wraps and does not widen the page. */
 .v3h-col > *,
 .v3h-home .page-head,
 .v3h-home .contact-card,
@@ -52,7 +47,6 @@
   list-style: none;
 }
 
-/* The big Start button: one wide block in the sticky bar, as high as a touch target needs. */
 .v3-actions .btn {
   min-height: 3.5rem;
   overflow-wrap: anywhere;
@@ -67,7 +61,6 @@
   flex: none;
 }
 
-/* The overview at the end: the exercises as cards in a grid, so a wide window is used. */
 .v3h-overview .overview-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
@@ -83,13 +76,11 @@
   background: var(--raised);
 }
 
-/* The summary used a 40 rem column. Its pieces now fill the column that AppShell gives them. */
 .v3h-summary .narrow,
 .v3h-summary .stack > * {
   max-width: none;
 }
 
-/* A quiet control in a plan row: the single Start. It sits under the text, at the end of the row. */
 .v3-plan-row-action {
   grid-column: 2 / -1;
   justify-self: end;
@@ -99,8 +90,6 @@
   min-height: var(--v3-target);
 }
 
-/* The old screens use .action-bar, which reaches out by --gutter on each side. The padding of main must be at least as wide,
-   or the page scrolls sideways. These rules are one class deeper than parts.css, so the order of the files does not matter. */
 .v3 .v3-main {
   padding-inline: max(var(--v3-s5), var(--gutter));
 }
@@ -110,18 +99,15 @@
   }
 }
 
-/* A form screen (.v3-screen) pads its own children (formsV3.css). Main adds no padding there, or the padding is double. */
 .v3 .v3-main:has(.v3-screen) {
   padding-inline: 0;
 }
 
-/* Targets of 48 px, like the old screens. The tabs and the single Start buttons are the small ones of the frame. */
 .v3 .v3-tabs button,
 .v3 .v3-plan-row-action .btn {
   min-height: 3rem;
 }
 
-/* The slot that holds the action bar adds no box. The bar then sticks inside the shell, as it did when it was a child of it. */
 .v3-slot {
   display: contents;
 }

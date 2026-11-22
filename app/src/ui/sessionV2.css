@@ -1,14 +1,8 @@
-/* UI redesign v2, package A: Session and the Setup camera (docs/ui-redesign-v2-spec.md, items A1 to A8).
-   Every rule sits under .v2-session or .v2-setup, so it wins over styles.css without !important.
-   The body :has() rule hides the brand bar on Session only (spec section 5, rule 1).
-   Limits: no verdict word, no green or red, an in-range rep shows nothing, 48 px targets, the word swap is opacity (and a 2 px blur). */
-
 .v2-session,
 .v2-setup {
-  --t-swap: 180ms; /* the swap of a status word. No bounce. */
+  --t-swap: 180ms;
 }
 
-/* Session: the brand bar goes. The title row and the mute button share one 48 px row. */
 body:has(.v2-session) .topbar {
   display: none;
 }
@@ -17,16 +11,14 @@ body:has(.v2-session) main {
 }
 .v2-session .session-head {
   margin-block: var(--s-1) var(--s-2);
-  flex-wrap: wrap; /* with big text the mute button goes under the title */
+  flex-wrap: wrap;
 }
-/* The title breaks only between words. A word breaks inside only when it is wider than the line. */
 .v2-session .session-head h1 {
   min-width: auto;
   overflow-wrap: break-word;
   word-break: normal;
 }
 
-/* ---------- A4: the status chip. One shape and one word. ---------- */
 .v2-session .status-line,
 .v2-setup .status-line {
   display: inline-flex;
@@ -75,31 +67,26 @@ body:has(.v2-session) main {
   }
 }
 
-/* ---------- A1: the viewfinder. The camera, then the status slot. Nothing sits on the picture. ---------- */
 .v2-session .session-grid {
   gap: var(--s-3);
 }
 .v2-session .session-grid > .viewfinder {
   order: -1;
-  /* Full width: the picture runs to the screen edge. */
   margin-inline: calc(-1 * var(--gutter));
   min-width: 0;
 }
 .v2-session .session-paused > .viewfinder {
-  order: 1; /* during a rest the panel comes first (R3-03) */
+  order: 1;
 }
 .v2-session .viewfinder .frame {
   margin-inline: 0;
   width: 100%;
   border-radius: 0;
 }
-/* The camera is at most 420 px and at most 75 percent of the width (a full 4:3 picture on a phone). On a short phone it takes what is left above the bar:
-   the page without the camera is about 33 rem tall at 360 x 640, so the camera never goes under 9.4 rem (150 px). */
 .v2-session .viewfinder .preview {
   max-height: max(9.4rem, min(75vw, 420px, 100svh - 33rem));
 }
 
-/* The slot holds its height, so nothing moves when it fills. It shows the first one of: the alert, the capture line, the start step, the cue. */
 .v2-session .status-slot {
   display: grid;
   align-content: center;
@@ -107,7 +94,6 @@ body:has(.v2-session) main {
   min-height: 5rem;
   padding: var(--s-2) var(--gutter);
 }
-/* B-02: the alert comes first and shows. The lowest-angle button is the next step of the person, so it stays. */
 .v2-session .status-slot:has(.cue-alert:not(:empty)) > :not(.cue-alert):not(button),
 .v2-session .status-slot:has(.capture-status) > .cue:not(.cue-alert) {
   display: none;
@@ -142,13 +128,12 @@ body:has(.v2-session) main {
 }
 .v2-session .capture-status .capture-progress {
   max-width: none;
-  height: 0.375rem; /* thin: the text carries the meaning (spec section 8, condition 5) */
+  height: 0.375rem;
 }
 .v2-session .status-slot > .btn {
   justify-self: stretch;
 }
 
-/* ---------- A2: the numbers row. The unit sits on the baseline of the number. ---------- */
 .v2-session .counters {
   border-top: 1px solid var(--line);
 }
@@ -157,18 +142,17 @@ body:has(.v2-session) main {
   padding: 0 0 var(--s-1);
 }
 .v2-session .readout-line {
-  flex-wrap: wrap; /* a long number puts its unit on the next line, never over the next cell */
+  flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--s-2);
 }
-/* The count has one or two digits. The angle has up to three. Each keeps its own width, so the digits and the unit do not move. */
 .v2-session .readout-reps .readout-number {
   min-width: 2ch;
 }
 .v2-session .readout-number {
   font-weight: 800;
   line-height: 1;
-  text-align: end; /* the digits sit next to the unit, and the box keeps its width so nothing jumps */
+  text-align: end;
 }
 .v2-session .readout .unit {
   font-size: var(--step-m1);
@@ -176,7 +160,6 @@ body:has(.v2-session) main {
   color: var(--muted);
   white-space: nowrap;
 }
-/* The caption of the angle sits under both numbers. */
 .v2-session .readout-caption {
   grid-column: 1 / -1;
   max-width: none;
@@ -194,7 +177,6 @@ body:has(.v2-session) main {
   max-width: none;
   font-size: var(--step-m1);
 }
-/* The ruler is a thin strip: 2 rem of ticks and one caption line. */
 .v2-session .gauge {
   height: 1.5rem;
   margin-top: 0;
@@ -206,7 +188,6 @@ body:has(.v2-session) main {
   line-height: 1.2;
 }
 @media (max-width: 39.99rem) {
-  /* The angle and the count sit in one row. With big text the count goes under the angle, and each keeps its width. */
   .v2-session .counters {
     display: flex;
     flex-wrap: wrap;
@@ -219,7 +200,7 @@ body:has(.v2-session) main {
     flex: 1 1 10rem;
   }
   .v2-session .counters > .readout-reps {
-    flex: 0 0 auto; /* the count is as wide as its number and unit, at least 9 rem, so the unit is never cut (B3-04) */
+    flex: 0 0 auto;
     min-width: 9rem;
   }
   .v2-session .counters > .readout {
@@ -230,14 +211,12 @@ body:has(.v2-session) main {
     padding-left: var(--s-3);
   }
 }
-/* Under 32 rem wide the status slot and the numbers header are tighter, and the count keeps its unit on its line. */
 @media (max-width: 31.99rem) {
   .v2-session .status-slot > .btn {
     min-height: 3rem;
     padding-block: var(--s-1);
     line-height: 1.15;
   }
-  /* The count keeps its unit on its own line (the unit is short: rep, reps, hold, holds). */
   .v2-session .readout-reps .readout-line {
     flex-wrap: nowrap;
   }
@@ -256,7 +235,6 @@ body:has(.v2-session) main {
     margin-block: var(--s-1) 0;
   }
 }
-/* The numbers stay 72 px (--step-hero). Only on a short phone under 32 rem wide they are 56 px (3.5 rem), never smaller, so the unit stays on the line of the number and the block fits above the bar. */
 @media (max-width: 31.99rem) and (max-height: 41rem) {
   .v2-session .counters > .readout:not(.readout-reps) {
     flex-basis: 9rem;
@@ -277,15 +255,13 @@ body:has(.v2-session) main {
   }
 }
 
-/* ---------- A5: the recording bar. Stop is a wide dark pill. The other button has an indigo outline and an icon. ---------- */
 .v2-session .bar-actions {
   display: contents;
 }
 .v2-session .session-bar .btn {
   border-radius: var(--r-full);
-  min-height: min(4.5rem, 12svh); /* with big text the buttons do not grow with the root size */
+  min-height: min(4.5rem, 12svh);
 }
-/* Each button has at least 9 rem. With big text they go one under the other, and Stop keeps its pill shape. */
 @media (max-width: 39.99rem) {
   .v2-session .session-bar-inner {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
@@ -299,7 +275,6 @@ body:has(.v2-session) main {
   border: 2px solid var(--accent-ink);
   color: var(--accent-ink);
 }
-/* On a short phone the buttons stay 56 px high. The bar only gives back 4 px of space above and below them, so the numbers and the ruler stay above it. */
 @media (max-height: 41rem) {
   .v2-session .session-bar .btn {
     min-height: 3.5rem;
@@ -310,7 +285,6 @@ body:has(.v2-session) main {
   }
 }
 
-/* ---------- A6: a camera problem shows in the frame, in one column. ---------- */
 .v2-session .frame > .notice {
   position: absolute;
   inset: 0;
@@ -339,7 +313,6 @@ body:has(.v2-session) main {
   margin-top: var(--s-1);
 }
 
-/* ---------- A7: Session on a laptop. The camera is on the left, the readings are on the right. ---------- */
 @media (min-width: 62rem) {
   .v2-session .session-grid {
     grid-template-columns: minmax(0, 7fr) minmax(18rem, 5fr);
@@ -374,7 +347,6 @@ body:has(.v2-session) main {
     padding-left: var(--s-5);
     border-top: 1px solid var(--line);
   }
-  /* The caption stays right under the angle, before the count. */
   .v2-session .counters > .readout:not(.readout-reps) {
     order: 0;
   }
@@ -403,7 +375,6 @@ body:has(.v2-session) main {
   }
 }
 
-/* ---------- A3: the Setup camera. A step card before the start, a chip on the picture, grouped rows under it. ---------- */
 .v2-setup .setup-state {
   display: grid;
   justify-items: center;
@@ -448,8 +419,6 @@ body:has(.v2-session) main {
 .v2-setup .frame > .notice > svg {
   margin: 0;
 }
-/* B-04: the status chip sits in a strip under the picture, so it never covers a joint label. The map keeps the picture area only.
-   The strip is two chip lines high, because the longest chip text wraps on a narrow phone. */
 .v2-setup .frame:has(> .body-map) {
   padding-bottom: 4rem;
 }
@@ -473,7 +442,6 @@ body:has(.v2-session) main {
     max-height: min(75vw, 300px);
   }
 }
-/* Rows that are not seen come first and take the full width. Rows that are seen are small. */
 .v2-setup .rule-list {
   gap: var(--s-2);
 }
@@ -502,7 +470,6 @@ body:has(.v2-session) main {
   color: var(--muted);
 }
 
-/* A3: joint labels on the picture. White lines with a dark halo, like the leg trace. The chip is dark, the text is white. */
 .v2-setup .body-map .bm-leader {
   fill: none;
   stroke: #ffffff;
@@ -526,13 +493,11 @@ body:has(.v2-session) main {
   filter: drop-shadow(0 0 1px #120b0a);
 }
 
-/* B5-04: the lock box sits on the fixed bar, never under it. It is out of the page flow, so the page does not jump and does not scroll.
-   --bar-h is the height of the fixed bar (src/lib/useBarHeight.ts). The numbers read "--" while the box shows, so it hides nothing that is in use. */
 .v2-session .lock-box {
   position: fixed;
   inset-inline: 0;
   bottom: var(--bar-h, 5rem);
-  z-index: 9; /* under the bar, which has 10 */
+  z-index: 9;
   padding: var(--s-3) var(--gutter);
   background: var(--bg);
   border-top: 1px solid var(--line);
@@ -546,8 +511,6 @@ body:has(.v2-session) main {
   display: flex;
 }
 
-/* B6-03: the general hover rule `.btn:hover:not(:disabled):not([aria-disabled])` has more weight than `.btn-stop:hover`. It gave Stop a light
-   background with a light label (contrast 1.12 to 1). These rules have more weight, so Stop keeps its dark pill with a light label. */
 .v2-session .session-bar .btn-stop:hover:not(:disabled):not([aria-disabled='true']),
 .v2-session .session-bar .btn-stop:active:not(:disabled):not([aria-disabled='true']) {
   background: var(--accent-ink);
@@ -555,10 +518,6 @@ body:has(.v2-session) main {
   color: var(--bg);
 }
 
-/* ---------- The camera is the main thing (user request, 2026-11-12) ----------
-   Wide screen, 56 rem and more: the camera takes two thirds of the width and the free height of the window. The numbers, the lock box and the
-   Stop buttons are in the right column. The buttons are in the page, sticky in the column, so no bar covers the camera and Stop is always in view.
-   --camera-top is the distance from the top of the page to the camera (src/lib/useCameraTop.ts). 6 rem under the picture hold the cue slot. */
 @media (min-width: 56rem) {
   main:has(> .v2-session),
   main:has(> .v2-setup) {
@@ -596,7 +555,6 @@ body:has(.v2-session) main {
     aspect-ratio: auto;
     height: max(18rem, calc(100svh - var(--camera-top, 9rem) - 4rem - var(--s-4)));
   }
-  /* The bar is a panel of the right column. Stop comes first. */
   .v2-session .session-bar {
     position: sticky;
     bottom: var(--s-3);
@@ -624,7 +582,6 @@ body:has(.v2-session) main {
     order: 0;
     grid-column: auto;
   }
-  /* The lock box has room in the column, so it is part of the page here. */
   .v2-session .lock-box {
     position: static;
     border: 1px solid var(--line);
@@ -632,7 +589,6 @@ body:has(.v2-session) main {
   }
 }
 
-/* ---------- Step D2: the hold timer screen (quad set, gluteal set). The seconds are large and keep their width. No goal marker, no colour change. ---------- */
 .v2-session .hold-timer {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -641,7 +597,6 @@ body:has(.v2-session) main {
 .v2-session .hold-timer > * {
   grid-column: 1 / -1;
 }
-/* The set text follows the button, so the button stays in the first view (styles.css gives the head order -2). */
 .v2-session .hold-timer > .counters-head {
   order: 1;
 }
@@ -653,7 +608,7 @@ body:has(.v2-session) main {
   font-variant-numeric: tabular-nums;
 }
 .v2-session .hold-button {
-  min-height: 3rem; /* 48 px */
+  min-height: 3rem;
   width: 100%;
   justify-content: center;
 }
@@ -673,14 +628,11 @@ body:has(.v2-session) main {
   }
 }
 
-/* With big text the Stop bar of a timer would take over 40 percent of the screen. It then sits in the page, after the timer card (set by useBarHeight). */
 .v2-session .session-solo .session-bar[data-static] {
   position: static;
   margin-top: var(--s-4);
   border-top: 1px solid var(--line);
 }
-/* The timer card comes first on the page, above the title, so the Start hold button is in the first view with big text.
-   The title stays first in the reading order. Only its place on the screen changes. */
 .v2-session.session-timer {
   display: flex;
   flex-direction: column;
