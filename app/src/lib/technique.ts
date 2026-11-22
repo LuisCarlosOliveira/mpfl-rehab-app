@@ -4,7 +4,6 @@
 // paraphrase in simple English. It is not a quote.
 import type { AnyGuideKind, GuideKind, NewGuideKind } from './guides';
 
-// Short source names. `mpflr` is true when the source is about MPFL reconstruction. Other sources are BORROWED.
 export const SOURCE_NAMES: Record<string, string> = {
   P1: 'HSS MPFL guideline',
   P2: 'Cincinnati Children\'s guideline',
@@ -33,7 +32,6 @@ const MPFLR = new Set(['P1', 'P2', 'P3', 'N3', 'T4', 'T5', 'S1']);
 export interface TechniqueLine {
   text: string;
   sources: string[];
-  /** True when no source of the line is about MPFL reconstruction. */
   borrowed: boolean;
   /** True when the line is a PROPOSAL of the app. The sources name the exercise and give no technique text. */
   proposal: boolean;
@@ -76,8 +74,6 @@ const LINES: Record<GuideKind, TechniqueLine[]> = {
   ],
 };
 
-// The five new exercises. The repo holds no technique quote for them (technique-sources.md covers four exercises).
-// Each line paraphrases only that a source names the exercise. P1, P2, P3, S1 and N3 are the sources that name them.
 const PHASE_ONE = 'The sources list this exercise in the first phase of rehab. Your care team sets the plan.';
 const PROPOSED: Record<NewGuideKind, TechniqueLine[]> = {
   'quad-set': [

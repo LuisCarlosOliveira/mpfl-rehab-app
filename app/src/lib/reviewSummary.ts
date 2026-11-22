@@ -17,13 +17,11 @@ export const MIN_COUNTED_REPS = 5;
 export const BANNER = 'Patient file, unsigned, self-reported.';
 const ANGLE_LABEL = 'estimated angle, not a medical measurement';
 
-/** The four states of a row. The first three are the phrases of progression.md section 5.2. */
 export const STATE = {
   above: 'Above the limit by more than the margin',
   below: 'Below the limit by more than the margin',
   cannotTell: 'Cannot tell, the difference is smaller than the camera error',
   notEnough: 'Not enough data',
-  // Only for measures with no camera error (pain, session count) when the value equals the limit exactly.
   equal: 'Equal to the limit',
 } as const;
 export type SummaryState = (typeof STATE)[keyof typeof STATE];
@@ -61,7 +59,6 @@ const OP_TEXT = { atLeast: 'at least', atMost: 'at most' } as const;
 type NumericCriterion = Extract<ReviewCriterion, { kind: 'numeric' }>;
 type Measure = NumericCriterion['measure'];
 
-// Criterion text from a template: what is measured, the operator, the limit and the unit.
 const MEASURE_TEXT: Record<Measure, (c: NumericCriterion) => string> = {
   peakFlexionDeg: (c) => `Peak knee bend, ${exerciseLabel(c.exerciseId ?? 'mini-squat')}, ${OP_TEXT[c.op]} ${c.limit} degrees`,
   topFlexionDeg: (c) => `Knee angle at the top, straight leg raise, ${OP_TEXT[c.op]} ${c.limit} degrees`,
@@ -70,22 +67,18 @@ const MEASURE_TEXT: Record<Measure, (c: NumericCriterion) => string> = {
 };
 const LIMIT_UNIT: Record<Measure, string> = { peakFlexionDeg: ' degrees', topFlexionDeg: ' degrees', painMax: ' (0 to 10)', sessionsDone: ' sessions' };
 
-/** The plain name of each measured value that a session can hold (exercise monitoring). The values are estimates. */
 export const REPORT_NAME: Record<ReportKey, string> = {
   'ankle-range': 'Ankle range',
   'lift-angle': 'Lift angle',
   'knee-angle-top': 'Knee angle at the top',
 };
-/** The mark for a record in which the person timed the hold. */
 export const TIMED_BY_PERSON = 'timed by the person';
 
-/** The measured value of a session as "Lift angle 38 degrees" (whole degrees). null when the session has none. The export keeps every digit. */
 export function measuredText(s: SessionRecord): string | null {
   if (s.reportKey === undefined || s.reportValue === undefined) return null;
   return `${REPORT_NAME[s.reportKey]} ${Math.round(s.reportValue)} degrees`;
 }
 
-/** The holds that the person timed, in seconds, in the order of the list. null when there is no list. */
 export function holdsText(s: SessionRecord): string | null {
   const list = s.holdList ?? [];
   return list.length === 0 ? null : `${list.join(', ')} ${list.length === 1 && list[0] === 1 ? 'second' : 'seconds'}`;
@@ -142,7 +135,6 @@ export interface ReviewInput {
   pseudonymId?: string | null;
 }
 
-/** Median of a non-empty list. An even count gives the mean of the two middle values. */
 function median(values: number[]): number {
   const v = [...values].sort((a, b) => a - b);
   const mid = v.length >> 1;
@@ -152,22 +144,18 @@ function median(values: number[]): number {
 const stateOf = (value: number | null, limit: number, margin: number): SummaryState =>
   ({ above: STATE.above, below: STATE.below, 'cannot-tell': STATE.cannotTell })[classifyAgainstLimit(value, limit, margin)];
 
-// Pain and session count have no camera error. Margin 0: equal is its own text, never a camera phrase.
 const exactStateOf = (value: number, limit: number): SummaryState => (value === limit ? STATE.equal : stateOf(value, limit, 0));
 
-/** The highest pain answer between sets, or null when no set was answered. */
 const betweenSetsMax = (s: SessionRecord): number | null => {
   const answers = (s.setPain ?? []).filter((v): v is number => v !== null);
   return answers.length ? Math.max(...answers) : null;
 };
 
-/** The highest pain of a session: the end answer or a between-set answer. Null when there is none. */
 const highestPain = (s: SessionRecord): number | null => {
   const values = [s.pain, betweenSetsMax(s)].filter((v): v is number => v != null);
   return values.length ? Math.max(...values) : null;
 };
 
-/** The pain text of a session: the end answer and the highest between-set answer, or "Not answered" when there is none. */
 export function painText(s: SessionRecord): string {
   const between = betweenSetsMax(s);
   const parts = [...(s.pain === undefined ? [] : [`${s.pain} (0 to 10)`]), ...(between === null ? [] : [`${between} (between sets)`])];
@@ -187,7 +175,6 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
   };
 
   if (c.measure === 'sessionsDone') {
-    // A count has no camera error, so the margin is 0. The window is all sessions of the phase, not the last N (decision of the main session).
     const count = phaseSessions.length;
     return {
       ...base, measured: count, measuredText: `${count} sessions`, marginDeg: null, marginText: null, marginSource: null,
@@ -208,7 +195,6 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
     };
   }
 
-  // Angle measures: only sessions of the exercise with at least MIN_COUNTED_REPS counted reps.
   const exercise = c.measure === 'topFlexionDeg' ? 'straight-leg-raise' : (c.exerciseId ?? 'mini-squat');
   const field = c.measure === 'topFlexionDeg' ? 'topFlexion' : 'peakFlexion';
   const eligible = phaseSessions.filter((s) => s.exercise === exercise && s.reps !== null && s.reps >= MIN_COUNTED_REPS);
@@ -217,11 +203,9 @@ function numericRow(c: NumericCriterion, phaseSessions: SessionRecord[]): Review
   if (window.length < c.lastSessions) {
     return { ...base, ...used, measured: null, measuredText: 'No value', marginDeg: null, marginText: null, marginSource: null, state: STATE.notEnough };
   }
-  // Use the widest margin of the window. The margin and its source come from the session records.
   const widest = window.reduce((a, b) => (b.marginDeg > a.marginDeg ? b : a));
   const marginInfo = { marginDeg: widest.marginDeg, marginText: `plus or minus ${widest.marginDeg} degrees`, marginSource: MARGIN_SOURCE_TEXT[widest.marginSource] };
   const values = window.map((s) => s[field]);
-  // A hidden leg gives a null value. One null value in the window makes the answer "Cannot tell".
   if (values.some((v) => v === null)) {
     return { ...base, ...used, ...marginInfo, measured: null, measuredText: 'No value', state: STATE.cannotTell };
   }
@@ -252,11 +236,6 @@ function swellingRow(c: Extract<ReviewCriterion, { kind: 'swelling' }>, phaseSes
   };
 }
 
-/**
- * The data for the clinician review summary of one phase. The caller passes the clock
- * (`now`) and the last export time. Sessions since the last export are those after
- * `lastExportAt`, or all sessions when `lastExportAt` is null.
- */
 export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, now, pseudonymId = null }: ReviewInput): ReviewSummary {
   const phase = protocol.phases.find((p) => p.id === phaseId);
   if (!phase) throw new Error(`Phase ${phaseId} is not in protocol ${protocol.id}`);
@@ -299,7 +278,6 @@ export function buildReviewSummary({ protocol, phaseId, sessions, lastExportAt, 
   };
 }
 
-/** Every fixed text of the summary, with sample numbers in the templates. A test checks them for verdict words. */
 export function allSummaryTexts(): string[] {
   const sample = (measure: Measure, op: 'atLeast' | 'atMost') =>
     MEASURE_TEXT[measure]({ kind: 'numeric', measure, exerciseId: 'mini-squat', op, limit: 3, lastSessions: 3, evidence: 'borrowed' });

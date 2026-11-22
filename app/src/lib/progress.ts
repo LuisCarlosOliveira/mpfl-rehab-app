@@ -1,25 +1,13 @@
-// Patient dashboard data (FR13). Pure functions, no clock, no storage.
-// One function builds the series that a chart draws. A second function turns the
-// same series into table rows, so the chart and the table cannot differ.
-// The output holds numbers and labels only. It has no goal, no target line, no
-// colour, no status and no trend field (guardrails skill, section Wording).
-
 import { PLAN_NAMES } from './planView';
 import type { SessionRecord } from './storage';
 
-// One name for each exercise: the plan name, with a capital letter. A screen never writes its own copy of a name.
 export const EXERCISE_LABEL = PLAN_NAMES;
 
 type ExerciseKind = SessionRecord['exercise'];
 const NO_ANGLE_CHART: ReadonlySet<string> = new Set(['straight-leg-raise', 'quad-set', 'gluteal-set', 'ankle-pump', 'leg-raise-side', 'leg-raise-back']);
 
-/** True when Your sessions draws an angle chart for the exercise. The straight leg raise and the five new exercises have none. */
 export const hasAngleChart = (kind: string): boolean => !NO_ANGLE_CHART.has(kind);
 
-/**
- * The plain name of an exercise for a title. A stored name that is not one of the known kinds (a corrupt file, or a key such as
- * `__proto__`) shows as short plain text. It never reads a property of the label table, so it never shows "[object Object]".
- */
 export function exerciseLabel(kind: string): string {
   if (typeof kind === 'string' && Object.hasOwn(EXERCISE_LABEL, kind)) return EXERCISE_LABEL[kind as keyof typeof EXERCISE_LABEL];
   if (typeof kind !== 'string') return 'unknown exercise';
@@ -28,7 +16,6 @@ export function exerciseLabel(kind: string): string {
   return text.length > 60 ? `${text.slice(0, 60)}…` : text;
 }
 
-/** Series titles. Units sit next to the numbers. The angle label is the one in the guardrails skill. */
 export const SERIES_TITLE = {
   peakFlexion: (exercise: ExerciseKind) => `Peak knee bend, ${exerciseLabel(exercise)}, in degrees (estimated angle, not a medical measurement)`,
   repsPerDay: 'Reps for each day, in reps',
@@ -67,21 +54,16 @@ export interface TableRow {
   valueText: string; // the number with its unit
 }
 
-/** Oldest first. Equal timestamps keep the order of the id. */
 export function sortByDate<T extends { date: string; id: number }>(sessions: readonly T[]): T[] {
   return [...sessions].sort((a, b) => Date.parse(a.date) - Date.parse(b.date) || a.id - b.id);
 }
 
-/** Peak bend for each session and exercise, reps for each day, pain for each session. */
 export function buildProgressSeries(sessions: readonly SessionRecord[]): ProgressSeries {
   const sorted = sortByDate(sessions);
 
   const byExercise = new Map<ExerciseKind, PeakPoint[]>();
   for (const s of sorted) {
     const points = byExercise.get(s.exercise) ?? [];
-    // The straight leg raise has no angle chart (clinical decision): no source sets its plausibility limit, and a chart would show a sensor fault as a trend.
-    // The five new exercises have no angle chart yet either: only reps and pain show for them (exercise monitoring, step A).
-    // The stored numbers stay in the record, the clinician table and the export.
     if (!hasAngleChart(s.exercise)) continue;
     points.push({ sessionId: s.id, date: s.date, degrees: s.peakFlexion });
     byExercise.set(s.exercise, points);
@@ -89,7 +71,6 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
 
   const reps = new Map<string, number | null>();
   for (const s of sorted) {
-    // A hold that the person timed is not a camera count, so it never enters "Reps for each day".
     if (isPersonTimed(s)) continue;
     const day = s.date.slice(0, 10);
     const before = reps.get(day) ?? null;
@@ -105,15 +86,10 @@ export function buildProgressSeries(sessions: readonly SessionRecord[]): Progres
 
 const NO_VALUE = 'no value';
 
-/** A record that the person timed by hand. It never mixes with a camera count. */
 const isPersonTimed = (s: SessionRecord): boolean => s.timedBy === 'person' || s.exercise === 'quad-set' || s.exercise === 'gluteal-set';
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
-/**
- * One plain line for each exercise that the person timed: the count of holds and the longest hold of the LAST session of that exercise.
- * It is not a total over time, and it has no goal and no streak. The order is the order of the plan names.
- */
 export function holdLines(sessions: readonly SessionRecord[]): string[] {
   const last = sortByDate(sessions.filter((s) => s.timedBy === 'person' && s.holdList !== undefined)).reverse();
   return (Object.keys(PLAN_NAMES) as ExerciseKind[]).flatMap((kind) => {
@@ -123,7 +99,6 @@ export function holdLines(sessions: readonly SessionRecord[]): string[] {
   });
 }
 
-/** Table rows for the same series. Each row carries the number of one chart point. */
 export function toTableRows(series: ProgressSeries): TableRow[] {
   const rows: TableRow[] = [];
   for (const peak of series.peakFlexion) {

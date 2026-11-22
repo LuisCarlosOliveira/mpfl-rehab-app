@@ -1,8 +1,3 @@
-// Second camera view: pure logic only. No camera, no network, no storage.
-// Plan: FR24, FR25, task T9c, section 3.0.
-// Nothing in this module is shown to the patient. The front-view value is a
-// record for the clinician only (FR24, research/form-opus.md section 3, row C8).
-
 import { MIN_VISIBILITY, selectLeg } from './angle';
 import type { Landmark, Side } from './angle';
 import { classifyAgainstLimit, MARGIN_DEG } from './margin';
@@ -10,7 +5,6 @@ import type { LimitState } from './margin';
 
 export type View = 'side' | 'front';
 
-/** One rep seen in one view. `tMs` is one time of the rep, for example its peak. Use the same rule in both views. */
 export interface RepStamp {
   tMs: number;
   repMs: number;
@@ -28,12 +22,6 @@ export interface PairedReps {
   frontOnly: RepStamp[];
 }
 
-/**
- * Join the reps of two views by time.
- * Each rep joins at most one rep of the other view: the nearest one within the tolerance (inclusive).
- * The closest pairs are taken first. A tie goes to the lower list index, so the result is stable.
- * The inputs are not changed. The result holds the same objects. Pairs follow the order of the side list.
- */
 export function pairReps(side: RepStamp[], front: RepStamp[], toleranceMs: number = PAIR_TOLERANCE_MS): PairedReps {
   const candidates: { s: number; f: number; gap: number }[] = [];
   side.forEach((a, s) =>
@@ -62,7 +50,6 @@ export function pairReps(side: RepStamp[], front: RepStamp[], toleranceMs: numbe
   };
 }
 
-/** The 33 landmarks of one video frame of the front view. The image is not mirrored. */
 export type FrontFrame = Landmark[];
 
 // PROPOSAL: the start frame plus at least 4 more usable frames.
@@ -72,7 +59,6 @@ export const MIN_FRONT_FRAMES = 5;
 export type FrontState = LimitState | 'no-limit';
 
 export interface FrontKneeResult {
-  /** Change of the frontal knee alignment, degrees. Inward is positive. */
   changeDeg: number;
   /**
    * Start value 9 degrees. The front-view margin can differ and is UNVERIFIED.
@@ -80,7 +66,6 @@ export interface FrontKneeResult {
    * The test-retest value of the change is poor (Asaeda 2024, section 4.3). T13 must measure both.
    */
   marginDeg: number;
-  /** `no-limit` when the clinician set no limit. Then the app records the value and says nothing. */
   state: FrontState;
 }
 
@@ -134,11 +119,6 @@ export function frontKneeInward(
   return { changeDeg, marginDeg: MARGIN_DEG, state };
 }
 
-// ---- The front view during a session (T12b, FR24) -------------------------------------------------
-// The side view counts the reps. The front view has no counter. So each counted side rep gives a time window,
-// and the front frames inside this window make one change value. The values are for the clinician only.
-// Nothing here keeps a frame after the session ends. The buffer holds landmark numbers for a short time.
-
 /** PROPOSAL: how long the buffer holds front frames. A rep that lasts longer than this gives no value. */
 export const FRONT_BUFFER_MS = 60_000;
 
@@ -147,7 +127,6 @@ export const FRONT_BUFFER_MS = 60_000;
 export const MIN_FRONT_REPS = 3;
 
 export interface FrontRecord {
-  /** Reps that gave a change value. A rep with too few usable frames is not counted here. */
   reps: number;
   /**
    * The median of the signed change of those reps, inward positive. UNVERIFIED sign convention.
@@ -157,7 +136,6 @@ export interface FrontRecord {
   changeDeg?: number;
 }
 
-/** Median of a list of numbers. An even count gives the mean of the two middle values. */
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
@@ -165,17 +143,12 @@ function median(values: number[]): number {
 }
 
 export interface FrontRecorder {
-  /** One frame of the front view. `null` means that the pose was lost. `tMs` is on the same clock as `rep`. */
   frame(landmarks: Landmark[] | null, tMs: number): void;
-  /** One counted rep of the side view: the time that it ended and how long it lasted. */
   rep(endMs: number, repMs: number): void;
-  /** The record, or null when no front frame with landmarks arrived. The recorder is finished after this call. */
   finish(): FrontRecord | null;
-  /** The number of frames in the buffer. */
   buffered(): number;
 }
 
-/** `aspect` is read when a rep is settled, because the phone can change it. `limitDeg` is the clinician limit, if any. */
 export function createFrontRecorder(side: Side, aspect: () => number, limitDeg?: number): FrontRecorder {
   let frames: { t: number; landmarks: Landmark[] }[] = [];
   let latest = Number.NEGATIVE_INFINITY;

@@ -1,7 +1,3 @@
-// The questionnaire model of "Create my plan". It holds the order of the questions, the check that a question is
-// answered, the early referral and the conversion to the inputs of the generator. It has no screen code.
-// The questions run in 3 groups, one group for each screen. The referral questions come first, so the app takes the least data before a refusal.
-
 import { generateProtocol, RULES, type GenerateResult, type GeneratorInputs } from './protocolGen';
 import { weeksSince } from './planView';
 import { generatorExtendedOn } from './mode';
@@ -21,13 +17,11 @@ export interface Answers {
   surgeryDate: string;
   side: GeneratorInputs['side'] | null;
   limitKind: GeneratorInputs['surgeonLimit']['kind'] | null;
-  /** The text of the number field. It is checked when the person goes on. */
   limitDegrees: string;
   redFlags: Record<string, boolean>;
   pain: number | null;
   swelling: GeneratorInputs['swelling'] | null;
   phaseClearance: YesNoUnknown | null;
-  /** The three questions of version 2. They are asked only after the answer yes to the clearance question. */
   walksWithoutCrutches: YesNoUnknown | null;
   legRaiseStraight: YesNoUnknown | null;
   seatedHoldCleared: YesNoUnknown | null;
@@ -41,16 +35,13 @@ export const emptyAnswers = (): Answers => ({
 
 const BEFORE_DATE: StepId[] = ['writtenPlan', 'procedure', 'ageBand', 'bothKnees', 'firstSurgery', 'specialRules', 'surgeryDate', 'side', 'limit', 'redFlags', 'today'];
 
-/** The weeks since surgery, or null when the date is empty, not real or in the future. */
 const weeksOf = (a: Answers, today: string) => weeksSince(a.surgeryDate, today);
 
-/** The clearance question runs from the first week of phase 2. Before that week the answer is no. */
 export const clearanceAsked = (a: Answers, today: string): boolean => {
   const w = weeksOf(a, today);
   return w !== null && w >= RULES.PH2.values.firstWeek;
 };
 
-/** The questions about walking, the leg raise and the seated hold run after the answer yes to the clearance question, only when the extended items are on. */
 export const gatesAsked = (a: Answers, today: string): boolean => generatorExtendedOn() && clearanceAsked(a, today) && a.phaseClearance === 'yes';
 
 export function stepsFor(a: Answers, today: string): StepId[] {
@@ -62,7 +53,6 @@ export function stepsFor(a: Answers, today: string): StepId[] {
   ];
 }
 
-/** The 3 screens of the questions. A group holds the steps that it asks, in the order of `stepsFor`. */
 export type GroupId = 'about' | 'surgeon' | 'today';
 export const GROUP_IDS: readonly GroupId[] = ['about', 'surgeon', 'today'];
 const GROUP_OF: Record<Exclude<StepId, 'summary'>, GroupId> = {
@@ -74,23 +64,16 @@ export const groupOf = (step: Exclude<StepId, 'summary'>): GroupId => GROUP_OF[s
 export const groupSteps = (group: GroupId, a: Answers, today: string): Exclude<StepId, 'summary'>[] =>
   stepsFor(a, today).filter((s): s is Exclude<StepId, 'summary'> => s !== 'summary' && GROUP_OF[s] === group);
 
-/** The number of the limit field, or null when the text is not a whole number from 0 to 180. */
 export function limitNumber(text: string): number | null {
   if (text.trim() === '' || !/^\s*-?\d+\s*$/.test(text)) return null;
   const n = Number(text);
   return n >= 0 && n <= 180 ? n : null;
 }
 
-/** A plain message for a limit that the app cannot use, or null. An empty field has no message. */
 export function limitProblem(text: string): string | null {
   return text.trim() === '' || limitNumber(text) !== null ? null : 'Enter a whole number of degrees from 0 to 180.';
 }
 
-/**
- * The date of surgery from the three fields. `iso` is set only when the three parts make a real date that is not in the future.
- * `problem` is a plain message for a full entry that cannot be used. A part that is empty gives no date and no message.
- * The year needs 4 digits, so 26 is not 2026. The window of weeks is a rule of the generator, not of this check.
- */
 export function surgeryDateFromParts(day: string, month: string, year: string, today: string): { iso: string | null; problem: string | null } {
   const [d, m, y] = [day.trim(), month.trim(), year.trim()];
   if (d === '' || m === '' || y === '') return { iso: null, problem: null };
@@ -101,7 +84,6 @@ export function surgeryDateFromParts(day: string, month: string, year: string, t
   return weeksSince(iso, today) === null ? { iso: null, problem: 'The date cannot be in the future' } : { iso, problem: null };
 }
 
-/** `today` is the calendar date of the device. It lets the date question refuse a date in the future. */
 export function answered(step: StepId, a: Answers, today?: string): boolean {
   switch (step) {
     case 'writtenPlan': return a.writtenPlan !== null;
@@ -123,10 +105,8 @@ export function answered(step: StepId, a: Answers, today?: string): boolean {
   }
 }
 
-/** True when every question of the group that the answers open has an answer. */
 export const groupAnswered = (group: GroupId, a: Answers, today: string): boolean => groupSteps(group, a, today).every((s) => answered(s, a, today));
 
-/** The inputs of the generator, or null when an answer is missing. */
 export function toInputs(a: Answers, today: string): GeneratorInputs | null {
   if (
     a.writtenPlan === null || a.procedure === null || a.ageBand === null || a.bothKnees === null || a.firstSurgery === null ||
@@ -159,11 +139,6 @@ export function toInputs(a: Answers, today: string): GeneratorInputs | null {
   };
 }
 
-/**
- * The answers for the questions of the stored inputs. The inputs hold a value for a question that was never asked
- * (for example "no" for the clearance question before week 7). Such a value is not an answer of the person.
- * So an answer of a step that `stepsFor` does not ask is null, and the question is asked when a change makes it open.
- */
 export function fromInputs(i: GeneratorInputs, today: string): Answers {
   const a: Answers = {
     writtenPlan: i.writtenPlan,
@@ -194,14 +169,8 @@ export function fromInputs(i: GeneratorInputs, today: string): Answers {
   return a;
 }
 
-// R10 is the window of weeks. It needs the date, so it speaks from the date question on.
 const REFERRAL_QUESTIONS = ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R10'];
 
-/**
- * A referral that the first six answers, and the date of surgery, already decide. The generator makes the text. The other
- * answers get values that cause no referral, so only these can speak. The person sees the refusal at once and gives no more data.
- * A date that is empty, not real or in the future counts as today, so it causes no referral here. The date question refuses it.
- */
 export function earlyReferral(a: Answers, today: string): Extract<GenerateResult, { kind: 'referral' }> | null {
   const probe: GeneratorInputs = {
     writtenPlan: a.writtenPlan ?? 'no',

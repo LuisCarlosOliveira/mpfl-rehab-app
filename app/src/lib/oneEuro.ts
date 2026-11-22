@@ -1,6 +1,3 @@
-// One Euro filter. Casiez, Roussel and Vogel, CHI 2012, DOI 10.1145/2207676.2208639.
-// A low-pass filter whose cutoff rises with the speed of the signal.
-
 export interface OneEuroOptions {
   minCutoff: number; // Hz. Lower removes more jitter.
   beta: number; // Higher reduces lag in fast moves.
@@ -22,7 +19,6 @@ export class OneEuroFilter {
     this.dCutoff = opts.dCutoff ?? 1;
   }
 
-  /** `t` is the time of the sample in milliseconds. */
   filter(x: number, t: number): number {
     if (this.xPrev === null) {
       this.xPrev = x;

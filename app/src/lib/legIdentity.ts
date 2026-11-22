@@ -1,4 +1,4 @@
-// The moving-leg check (T17). It is a soft hint. It never blocks, never changes the leg and never counts a rep.
+// The moving-leg check. It is a soft hint. It never blocks, never changes the leg and never counts a rep.
 // In each window it takes two ranges for each leg: the knee flexion and the direction of the hip to ankle line.
 // The larger range is the score of the leg. The range is the 5th to the 95th percentile of the window.
 // The direction range covers a straight leg raise, where the knee does not bend.
@@ -34,7 +34,6 @@ function range(values: number[], minFrames: number): number {
   return percentile(sorted, 0.95) - percentile(sorted, 0.05);
 }
 
-/** Range of angles in degrees around their circular mean, so a swing across the +180 and -180 edge is not a jump. */
 function directionRange(degrees: number[], minFrames: number): number {
   if (degrees.length < minFrames) return 0;
   const rad = (d: number) => (d * Math.PI) / 180;
@@ -63,7 +62,6 @@ function legScore(frames: Landmark[][], side: Side, aspect: number, minFrames: n
   return Math.max(range(knee, minFrames), directionRange(line, minFrames));
 }
 
-/** Which leg moves more in these frames of one window. Each frame is the full landmark list. */
 export function movingLeg(frames: Landmark[][], aspect: number, config: IdentityConfig = IDENTITY_CONFIG): MovingLeg {
   const left = legScore(frames, 'left', aspect, config.minFrames);
   const right = legScore(frames, 'right', aspect, config.minFrames);
@@ -74,19 +72,11 @@ export function movingLeg(frames: Landmark[][], aspect: number, config: Identity
   return left > right ? 'left' : 'right';
 }
 
-/**
- * True when the last `confirmWindows` answers all name the other leg. One window is not enough, so the soft note stays rare.
- * F1: on the saved clips only two windows in a row named the other leg for clips 03 and 06 (tests/legIdentityClips.test.ts).
- */
 export function otherLegConfirmed(answers: MovingLeg[], other: Side, config: IdentityConfig = IDENTITY_CONFIG): boolean {
   const n = config.confirmWindows;
   return answers.length >= n && answers.slice(-n).every((a) => a === other);
 }
 
-/**
- * Collects frames and gives one answer at the end of each window. It gives null between answers.
- * It keeps at most one window of frames and checks for the whole session (B-07).
- */
 export function createIdentityWatcher(aspect: number, config: IdentityConfig = IDENTITY_CONFIG) {
   let frames: Landmark[][] = [];
   let windowStart: number | null = null;
@@ -102,4 +92,3 @@ export function createIdentityWatcher(aspect: number, config: IdentityConfig = I
     },
   };
 }
-
