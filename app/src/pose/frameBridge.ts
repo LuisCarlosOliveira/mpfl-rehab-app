@@ -23,6 +23,9 @@ export type WorkerMessage =
   // `extra` holds the other poses. It is there only while the probe of two poses runs.
   | { type: 'result'; timestampMs: number; landmarks: Landmark[] | null; extra?: Landmark[][] };
 
+/** The time the worker has to answer one frame. After it the bridge fails, so a silent worker cannot freeze the analysis. */
+export const FRAME_REPLY_LIMIT_MS = 5000;
+
 export interface FrameBridge {
   /** Send the frame that shows now. It does nothing while the last frame is still in work. */
   submit(video: HTMLVideoElement, timestampMs: number): void;
@@ -64,8 +67,12 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
     let last: { video: HTMLVideoElement; time: number } | null = null; // the video frame in work
     let lastTs = -Infinity;
 
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const stopWatchdog = () => clearTimeout(watchdog);
+
     const close = () => {
       closed = true;
+      stopWatchdog();
       worker.terminate();
     };
     const fail = () => {
@@ -80,14 +87,23 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
       last = { video, time: video.currentTime };
       timestampMs = Math.max(timestampMs, lastTs + 0.01); // the model needs times that rise
       lastTs = timestampMs;
+      stopWatchdog();
+      watchdog = setTimeout(fail, FRAME_REPLY_LIMIT_MS);
       picture(video).then(
         (bitmap) => {
           if (closed) return bitmap.close();
           const message: FrameMessage = { type: 'frame', bitmap, timestampMs };
-          worker.postMessage(message, [bitmap]);
+          try {
+            worker.postMessage(message, [bitmap]);
+          } catch {
+            bitmap.close();
+            busy = false;
+            fail();
+          }
         },
         () => {
           busy = false; // a frame that cannot be read is dropped
+          stopWatchdog();
         },
       );
     };
@@ -108,6 +124,7 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
         });
       } else {
         busy = false;
+        stopWatchdog();
         // The handler gets a third argument only during the probe, so the usual call keeps its two arguments.
         if (data.extra) onResult(data.landmarks, data.timestampMs, data.extra);
         else onResult(data.landmarks, data.timestampMs);

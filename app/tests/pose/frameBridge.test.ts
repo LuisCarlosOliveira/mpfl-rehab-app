@@ -1,5 +1,6 @@
 // The frame bridge sends a video frame to the pose worker as a transferable picture and gets landmark numbers back.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FRAME_REPLY_LIMIT_MS } from '../../src/pose/frameBridge';
 
 class FakeWorker {
   static all: FakeWorker[] = [];
@@ -268,5 +269,58 @@ describe('frame bridge: stop and failure', () => {
     pending[0]!.resolve(b);
     await new Promise((r) => setTimeout(r));
     expect(b.close).toHaveBeenCalledOnce();
+  });
+});
+
+describe('frame bridge: a worker that cannot take or answer a frame', () => {
+  it('fails once and closes the picture when postMessage throws, and the next submit is not stuck', async () => {
+    const { bridge, worker, onFail } = await ready();
+    worker.postMessage = () => {
+      throw new DOMException('gone', 'DataCloneError');
+    };
+    bridge.submit(video, 1);
+    const b = bitmap();
+    pending[0]!.resolve(b);
+    await new Promise((r) => setTimeout(r));
+    expect(b.close).toHaveBeenCalledOnce();
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(worker.terminated).toBe(true);
+    bridge.submit(video, 2);
+    expect(createImageBitmapMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails when the worker gives no reply within the limit', async () => {
+    vi.useFakeTimers();
+    try {
+      const { bridge, worker, onFail } = await ready();
+      bridge.submit(video, 1);
+      pending[0]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(FRAME_REPLY_LIMIT_MS - 1);
+      expect(onFail).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(onFail).toHaveBeenCalledOnce();
+      expect(worker.terminated).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not fail after a reply, and does not fail after close', async () => {
+    vi.useFakeTimers();
+    try {
+      const { bridge, worker, onFail } = await ready();
+      bridge.submit(video, 1);
+      pending[0]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(10);
+      worker.emit({ type: 'result', timestampMs: 1, landmarks: null });
+      await vi.advanceTimersByTimeAsync(FRAME_REPLY_LIMIT_MS * 2);
+      expect(onFail).not.toHaveBeenCalled();
+      bridge.submit(video, 2);
+      bridge.close();
+      await vi.advanceTimersByTimeAsync(FRAME_REPLY_LIMIT_MS * 2);
+      expect(onFail).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
