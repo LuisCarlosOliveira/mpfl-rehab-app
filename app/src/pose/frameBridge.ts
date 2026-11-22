@@ -20,6 +20,9 @@ export type WorkerMessage =
 /** The time the worker has to answer one frame. After it the bridge fails, so a silent worker cannot freeze the analysis. */
 export const FRAME_REPLY_LIMIT_MS = 5000;
 
+/** The time for the first frame after the start or after a model switch. It includes the graph start-up. */
+export const FIRST_FRAME_LIMIT_MS = 60000;
+
 export interface FrameBridge {
   /** Send the frame that shows now. It does nothing while the last frame is still in work. */
   submit(video: HTMLVideoElement, timestampMs: number): void;
@@ -83,7 +86,7 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
       timestampMs = Math.max(timestampMs, lastTs + 0.01); // the model needs times that rise
       lastTs = timestampMs;
       stopWatchdog();
-      if (answered) watchdog = setTimeout(fail, FRAME_REPLY_LIMIT_MS);
+      watchdog = setTimeout(fail, answered ? FRAME_REPLY_LIMIT_MS : FIRST_FRAME_LIMIT_MS);
       picture(video).then(
         (bitmap) => {
           if (closed) return bitmap.close();
@@ -114,7 +117,9 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
           submit,
           close,
           setPoses: (count) => {
-            if (!closed) worker.postMessage({ type: 'poses', count } satisfies PosesMessage);
+            if (closed) return;
+            answered = false;
+            worker.postMessage({ type: 'poses', count } satisfies PosesMessage);
           },
         });
       } else {
