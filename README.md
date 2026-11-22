@@ -4,6 +4,31 @@ This app helps a person after MPFL reconstruction to do their knee exercises at 
 
 **This is a prototype. It is not a medical device. It is not for patient use.** No video leaves the device, and the app stores no video. No clinician has reviewed any clinical value in it.
 
+## Who is this for
+
+- A person after MPFL reconstruction who wants a guided home exercise tool with a webcam. Use it only with your care team and only as a test.
+- A clinician who wants to review the app and give a plan file to a person. Start with [docs/clinician-first-review.md](docs/clinician-first-review.md) and [docs/clinician-template.md](docs/clinician-template.md).
+- A developer who wants to build on the app, run the tests or check the claims.
+
+## Quick start
+
+1. Open a terminal in the `app` folder.
+2. Run `npm ci`.
+3. Run `npm run dev`. To test a build, run `npm run build` and then `npm run preview`.
+4. Open the address that the command prints.
+5. Read the Privacy screen and select "I understand".
+6. Allow the camera when the browser asks. The app does not record or send the picture.
+7. Load a plan file from your care team, or answer the questions so that the app makes a phase 1 plan.
+
+## Safety and limits
+
+- The app shows an estimate of the knee angle. The estimate can be off by 9 degrees or more. Follow the limit of your surgeon or physiotherapist, not the cues of the app.
+- The app gives no verdict and no score. It shows a measured number against a limit that the care team set.
+- At a pain of 7 or more, or with swelling "more than before", the app stops the session. The button "Knee gave way or hurts" ends the session at any time.
+- A clinician must review every clinical value before a patient uses the app. The register is in [docs/clinical-limits.md](docs/clinical-limits.md). The first values to review are in [docs/clinician-first-review.md](docs/clinician-first-review.md).
+- A supervised session needs a clinician in the room. Read [docs/live-session-checklist.md](docs/live-session-checklist.md) first.
+- The regulatory class of the app is open. An expert must decide it.
+
 ## What it looks like
 
 These screens come from the first live test on a real person, on 2026-11-22. The pictures show the app screens only. The camera picture is not part of them.
@@ -52,20 +77,18 @@ Last checks: 2026-11-22. The audits ran on commit `3f9297b`. The browser tests r
 | Honesty audit | 0 failures. Two items need a person to read them |
 | First load | 195,208 bytes gzip. The limit is 200,000 |
 
-The first live test used a real webcam in Edge, with the GPU delegate. Six exercises ran and the app counted every set. No console error and no request to another host showed in the log. The findings of that test are in the plan, task T44.
+The first live test used a real webcam in Edge, with the GPU delegate. Six exercises ran and the app counted every set. No console error and no request to another host showed in the log.
 
 ## What is not done
 
 - No clinician has reviewed any value, cue text, red flag, pain floor or generated plan.
 - The camera error is not measured. The margin of 9 degrees is a start value, UNVERIFIED for the `lite` model. No goniometer data exists.
 - No real phone has run the app, and the second camera has no real-phone test.
-- The regulatory class is open. An expert must decide ([plan section 1.5](MPFL_APP_PLAN.md)).
+- The regulatory class is open. An expert must decide it.
 - Patient mode is off. Nobody can turn it on before a clinician review and a decision on the class.
 - The skeleton and the rep count have run on one person only. iOS Safari camera use is UNVERIFIED.
 - Data on the device is not encrypted.
 - After "Erase", a plan of phase 1 can be made from the answers of the person. Phase 2 or more needs the flag or a plan file.
-
-A supervised session needs a clinician in the room. Read [docs/live-session-checklist.md](docs/live-session-checklist.md) first.
 
 ## Install, run, build and test
 
@@ -96,9 +119,8 @@ The full gate takes about 40 minutes, and its e2e step takes most of that. The a
 - `scripts/deps-check.sh`: each dependency is in `scripts/allowed-deps.txt` and has an exact version.
 - `scripts/claims-check.sh`: no line of the code matches the banned words, the praise words, the video APIs, the canvas code or the inline colours.
 - `scripts/phase-check.sh`: no line of the code writes the active phase outside `src/lib/protocol/`.
-- `scripts/plan-skills-check.sh`: each finished task in the plan has a `Skills used:` line.
 
-The three pattern checks cannot prove that no other banned text exists. `tests/importGraph.test.ts` reads the imports with the TypeScript parser and covers the save functions.
+The pattern checks cannot prove that no other banned text exists. `tests/importGraph.test.ts` reads the imports with the TypeScript parser and covers the save functions.
 
 ## Flags
 
@@ -143,17 +165,24 @@ Runtime: `react`, `react-dom`, `zod`, `dexie`, `recharts`, `@mediapipe/tasks-vis
 | `app/audit` | Accessibility, hostile input and honesty audits, and the gate script |
 | `app/scripts` | Check scripts, clip tools |
 | `docs` | Project documents. `docs/img` holds the pictures of this file |
-| `research` | Knowledge base. Start with [research/INDEX-v2.md](research/INDEX-v2.md) |
 
 ## Documents
 
-- [Plan](MPFL_APP_PLAN.md): requirements, tasks, open items. [TASKS.md](TASKS.md): the verification campaign.
 - [Clinical limits](docs/clinical-limits.md): what the app does not do, and the register of values for a clinician.
-- [First review for the clinician](docs/clinician-first-review.md) and [live session checklist](docs/live-session-checklist.md).
+- [First review for the clinician](docs/clinician-first-review.md), [clinician template](docs/clinician-template.md) and [live session checklist](docs/live-session-checklist.md).
 - [Threat model](docs/threat-model.md) and [security review](docs/security-review.md).
-- [Architecture](docs/architecture.md), [accuracy record](docs/accuracy.md) and [model files](docs/model.md).
-- Audits: [audit 2](docs/audit-2.md), [audit 3](docs/audit-3.md) and [final audit](docs/final-audit.md).
-- Designs: [UI design](docs/ui-design.md), [UI redesign v3](docs/ui-redesign-v3.md), [protocol generator](docs/protocol-generator-design.md), [live form and adaptation](docs/adaptation-and-live-form-design.md), [session flow](docs/session-flow-design.md).
-- Live tests: [exercise flows](docs/live-test/exercise-flows.md), [workflows](docs/live-test/workflows.md), [pairing](docs/live-test/pairing.md), [performance](docs/live-test/performance.md) and [retest](docs/live-test/retest.md).
+- [Architecture](docs/architecture.md), [accuracy record](docs/accuracy.md), [accuracy study protocol](docs/accuracy-study-protocol.md) and [model files](docs/model.md).
+- [Citation audit](docs/citation-audit.md) and [rehab rules with sources](docs/rehab-rules.md): the sources behind the plan generator.
+- [Clip analysis](docs/clip-analysis.md) and [second camera wiring](docs/pairing-wiring.md).
 - [Dependency vetting](docs/dependency-vetting.md), [UI package vetting](docs/dependency-vetting-ui.md) and [yt-dlp vetting](docs/dependency-vetting-ytdlp.md).
-- [Test results](docs/test-results.md): older counts of an earlier tree.
+
+## Contributing
+
+- Run `npm run precheck` in the `app` folder before you change the code or push a change.
+- Keep the rules table above true. A change must not break a rule. Never weaken a safety or privacy test.
+- Add a dependency only with a line in `app/scripts/allowed-deps.txt`, an exact version and a vetting note in `docs/`.
+- Do not add a video, a photo of a person or a clip to the repository.
+
+## License
+
+No license has been chosen yet. Ask the owner before you reuse the code.
