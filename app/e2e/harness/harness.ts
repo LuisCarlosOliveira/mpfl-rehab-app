@@ -1,4 +1,4 @@
-import { startCamera, stopCamera, stopOnLeave } from '../../src/pose/camera';
+import { startCamera, stopCamera } from '../../src/pose/camera';
 import { createLandmarker } from '../../src/pose/landmarker';
 
 const w = window as unknown as Record<string, unknown>;
@@ -22,7 +22,7 @@ w.__camera = {
     return r;
   },
   stop: stopCamera,
-  leave: stopOnLeave,
+  leave: stopCamera,
   states: () => stream?.getTracks().map((t) => t.readyState) ?? [],
 };
 w.__landmarker = {

@@ -18,7 +18,7 @@ test('explicit stop ends all tracks', async ({ page }) => {
   expect(await states(page)).toEqual(['ended']);
 });
 
-test('route change (stopOnLeave) ends all tracks', async ({ page }) => {
+test('route change stops all tracks', async ({ page }) => {
   await start(page);
   await page.evaluate(() => (window as any).__camera.leave());
   expect(await states(page)).toEqual(['ended']);
