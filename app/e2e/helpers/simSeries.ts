@@ -1,5 +1,3 @@
-// Frames for the simulated pose (simPose.ts), built from the synthetic series of tests/helpers/landmarkSeries.ts.
-// The fake camera of the browser has 640 x 480 pixels, so the aspect is 4 / 3.
 import { makeSeries, type PoseId, type SeriesSpec } from '../../tests/helpers/landmarkSeries';
 import type { SimFrame } from './simPose';
 

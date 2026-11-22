@@ -1,4 +1,3 @@
-// P-DATA fix c08.
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { saveSession } from '../../src/lib/storage';

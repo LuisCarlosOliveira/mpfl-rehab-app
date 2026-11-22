@@ -1,4 +1,3 @@
-// W2: the body map. An SVG layer drawn from landmark numbers. It never holds a frame and it has no score.
 import { readFileSync } from 'node:fs';
 import { createRef, Profiler } from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';

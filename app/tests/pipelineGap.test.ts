@@ -76,7 +76,7 @@ describe('B-03: a second person takes over the hip', () => {
   });
 });
 
-// B4-02: the over-limit alert fires once for each time the knee goes above the limit. A gap of no pose of 500 ms or more ends that time.
+// The over-limit alert fires once for each time the knee goes above the limit. A gap of no pose of 500 ms or more ends that time.
 describe('B4-02: the over-limit alert fires again after a gap of no pose', () => {
   const make = () => {
     const made = createPipeline(ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 90, returnWithinDeg: 10 } as never), 'right', 1, { baselineDeg: 5 });
@@ -109,7 +109,7 @@ describe('B4-02: the over-limit alert fires again after a gap of no pose', () =>
   });
 });
 
-// B5-06: a rep that began while the leg was not seen (a gap of 500 ms or more) has an unknown start time. It gives no "too fast" cue.
+// A rep that began while the leg was not seen (a gap of 500 ms or more) has an unknown start time. It gives no "too fast" cue.
 describe('B5-06: no too-fast cue for a rep that began in a gap', () => {
   const make = () => {
     const made = createPipeline(ex({ kind: 'heel-slide', targetFlexion: 60, maxFlexion: 120, returnWithinDeg: 10, minRepSeconds: 2 } as never), 'right', 1, { baselineDeg: 5 });

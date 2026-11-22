@@ -1,5 +1,3 @@
-// B3-01, B3-02, B3-03: the hip anchor. The anchor follows the person slowly. A far hip reads as not seen.
-// After 4 s of that with the whole leg visible, the pipeline reports `lockedOut`. Only `followAgain()` (a press) re-anchors.
 import { describe, expect, it } from 'vitest';
 import { createPipeline } from '../src/lib/exercises';
 import type { Exercise } from '../src/lib/protocol';
@@ -30,7 +28,7 @@ describe('B3-01: the anchor follows the person, and a press starts again', () =>
     expect(p.summary().reps).toBeGreaterThan(0);
   });
 
-  // B4-01: the pose model follows ONE person. After a jump the new hip can be another person. A press that would anchor
+  // The pose model follows ONE person. After a jump the new hip can be another person. A press that would anchor
   // far from the start hip does not move the anchor. The frames stay not seen until the person starts again from Setup.
   it('a jump to x 0.5 reads as not seen and lockedOut after 4 s. A press far from the start hip shows the other-person state, with no numbers', () => {
     const p = make();

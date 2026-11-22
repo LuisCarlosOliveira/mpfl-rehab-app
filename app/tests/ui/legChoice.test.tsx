@@ -1,4 +1,3 @@
-// T17: the leg choice and the camera side in Setup, and what Session does with them.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Session } from '../../src/ui/Session';

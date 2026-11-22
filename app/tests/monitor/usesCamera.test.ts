@@ -1,4 +1,3 @@
-// N-01: one function says whether an exercise uses the camera. The definition decides, not an id list in a screen.
 import { describe, expect, it } from 'vitest';
 import { REGISTRY, usesCamera } from '../../src/lib/monitor';
 

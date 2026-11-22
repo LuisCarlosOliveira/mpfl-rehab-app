@@ -1,4 +1,3 @@
-// The body map puts a joint at the same fraction of the picture, whatever the shape of the picture.
 import { createRef } from 'react';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';

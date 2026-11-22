@@ -1,4 +1,3 @@
-// The laptop screen of the pairing, with a fake peer connection and a fake camera.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,7 +61,7 @@ async function toScan() {
 }
 
 describe('PairHost', () => {
-  // L3-02: a second phone that takes the same offer can stop the first pairing. The transport cannot ignore it, so the screen says it.
+  // A second phone that takes the same offer can stop the first pairing. The transport cannot ignore it, so the screen says it.
   it('tells the person to use one phone only, next to the laptop code', async () => {
     await toOffer();
     expect(screen.getByText(/Use one phone only\./)).toBeInTheDocument();

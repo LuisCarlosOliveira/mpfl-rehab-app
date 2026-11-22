@@ -99,7 +99,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
     expect(strip(RULES.HEEL_P2_UNKNOWN.text)).not.toMatch(/\d/);
   });
 
-  // A3-04: the caveat, the display and the guideline words are checked for numbers too (the digits helper above reads them).
+  // The caveat, the display and the guideline words are checked for numbers too (the digits helper above reads them).
   it('reads the caveat, the disagreeing source and the reason of a rule with no value for numbers', () => {
     const withNumbers = RULE_IDS.map((id) => RULES[id]).filter((r) => r.kind !== 'engineering' && r.kind !== 'referral' && r.appOwn !== true && digits(r));
     expect(withNumbers.length).toBeGreaterThan(10);
@@ -117,7 +117,7 @@ describe('every number of a rule rests on an EXACT row of the citation audit', (
 });
 
 
-// AC4-06: two numbers of the rule text were weakly traced.
+// Two numbers of the rule text were weakly traced.
 describe('AC4-06: the 6-12 weeks window and the N3 squat window match their audit rows', () => {
   it('PH2 lists V3 for the 6-12 weeks of S1, and V3 is EXACT', () => {
     expect(RULES.PH2.auditRows).toContain('V3');

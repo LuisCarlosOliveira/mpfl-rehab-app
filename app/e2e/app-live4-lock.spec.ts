@@ -1,7 +1,3 @@
-// B5-04: the lock box and its button sit fully above the fixed bar, and a press does not scroll the page or hide the banner.
-// Real webcam clips are needed and they are not in the repo. The spec is skipped without these variables. Run it twice:
-//   LIVE_CASE=heel320 LIVE_CLIP=/path/t1-heel-shift-left.mjpeg      (heel slide, 320 x 568)
-//   LIVE_CASE=slr1280 LIVE_CLIP=/path/08-straight-leg-raise-oblique.mjpeg  (straight leg raise with "Count this rep" in the bar, 1280 x 800)
 import { expect, test, type Page } from "@playwright/test";
 import { EXAMPLE, expectScreen } from "./helpers/app";
 

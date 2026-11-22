@@ -1,4 +1,3 @@
-// B6-01: a press before the probe has an answer must not decide. A person who is alone is never stuck with "someone else".
 import { describe, expect, it } from 'vitest';
 import { createPipeline } from '../src/lib/exercises';
 import type { Landmark } from '../src/lib/angle';

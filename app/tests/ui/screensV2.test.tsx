@@ -1,5 +1,3 @@
-// UI redesign v2, package C. Tests for the new layout of the question screens, the plan, Your sessions, My data,
-// Confirm, pairing, the error screen, Privacy and Load. Safety texts are pinned in the older test files.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

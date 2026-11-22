@@ -1,4 +1,3 @@
-// Shared steps of the simulated-pose specs: Home to the live Session screen, and a log of what the screen shows.
 import { expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { EXAMPLE, expectScreen, installProbes } from './app';

@@ -1,5 +1,3 @@
-// Accessibility on the real app (NFR5): axe with the WCAG 2.2 AA tags, focus on the new heading,
-// keyboard order, a visible focus outline and the 48 px target rule.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, openMyData, saveOneSession, startCamera, toHome, toLoad, toRedFlag, toSession, toSetupCamera, toSetupGuide, toSummary } from './helpers/app';

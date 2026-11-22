@@ -1,7 +1,3 @@
-// A simulated pose for the real built app. The init script replaces window.Worker with a stub of the pose worker.
-// The stub answers each frame message with the landmark numbers of the present time of a series from tests/helpers/landmarkSeries.ts.
-// The fake camera (no person) still gives real video frames, so the camera, the frame loop, the frame bridge, the pipeline,
-// the body map, the cues and the sound run as in the app. Only the pose model is replaced. A simulated pose cannot prove model accuracy.
 import type { Page } from '@playwright/test';
 import type { Landmark } from '../../src/lib/angle';
 

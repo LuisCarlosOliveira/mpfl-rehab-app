@@ -1,7 +1,3 @@
-// The v3 frame on the real built app: Home (Today), Done step, Next card, Sessions, My data and Progress.
-// At 1440x900, 390x844, 320x568 and 200 percent zoom (720x450), in light and dark:
-// the notice is there, nothing scrolls sideways, tap targets are at least 44 px, and from 900 px the page has two columns.
-// The spec also writes a PNG of each view to test-results/v3home. The PNG files are for a person to read.
 import { mkdirSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';

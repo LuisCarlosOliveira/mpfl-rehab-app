@@ -1,4 +1,3 @@
-// B3-04: the unit next to the count is never cut, at four widths. B3-05: at 200 percent text the Session bar does not cover the live numbers.
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, expectScreen, startCamera } from "./helpers/app";
@@ -54,7 +53,7 @@ for (const size of [
   });
 }
 
-// B3-05: at 200 percent text the Session bar takes about a third of the screen. The bar stays fixed, because the guardrail says that a session
+// At 200 percent text the Session bar takes about a third of the screen. The bar stays fixed, because the guardrail says that a session
 // always has a visible Stop button. A static bar would put Stop at the end of the page. So the test pins what must hold: the bar stays under
 // 35 percent, the page starts at the top, the live numbers sit above Stop in the page, and each number scrolls fully above the bar.
 test.describe("B3-05: 200 percent text, 390 x 844", () => {

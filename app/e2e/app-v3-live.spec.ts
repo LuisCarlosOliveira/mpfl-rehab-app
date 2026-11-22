@@ -1,6 +1,3 @@
-// v3 live screens (docs/ui-redesign-v3.md 5.4, tests 1, 2, 6 and 8, and principle 8).
-// Real geometry in the built app with the fake camera: the camera is at least 55 percent of the window at 1440 px,
-// the name is above the controls, the banner shows, Stop and "Knee gave way or hurts" are in view, targets are 56 px, and nothing scrolls sideways.
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, PROTOTYPE_BANNER, expectScreen, installProbes, startCamera } from "./helpers/app";

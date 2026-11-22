@@ -1,4 +1,3 @@
-// The QR draw component. It must draw what the reader can read, and it must never throw.
 import { render } from '@testing-library/react';
 import jsQR from 'jsqr';
 import { encode } from 'uqr';

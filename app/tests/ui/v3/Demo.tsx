@@ -1,5 +1,3 @@
-// Dev-only demo of the v3 parts. No app route imports it. Two users: demo.test.tsx (a table of variants)
-// and demo.html (a page that Playwright loads for the visual check). data="worst" holds the break-ui cases.
 import { useState } from 'react';
 import { AppShell, type ShellTab } from '../../../src/ui/v3/AppShell';
 import { BigNumber } from '../../../src/ui/v3/BigNumber';

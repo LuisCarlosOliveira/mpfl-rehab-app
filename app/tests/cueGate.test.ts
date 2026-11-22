@@ -69,7 +69,7 @@ describe('cue gate', () => {
     expect(gate.allow('paused', 'p', 1100, false)).toBe(true);
   });
 
-  // B2-04: at a clip cut the cue blinked 5 times in 3 s. It needs the same 500 ms to hide as to show.
+  // At a clip cut the cue blinked 5 times in 3 s. It needs the same 500 ms to hide as to show.
   it('B2-04: the leg gate cue does not blink when pose and no pose alternate faster than 500 ms', () => {
     const gate = createCueGate();
     const visible: boolean[] = [];

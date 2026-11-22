@@ -1,4 +1,3 @@
-// Tests from the independent review of T10. Each one first failed on the defect it names.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import example from '../../src/lib/protocol/example-protocol.json';

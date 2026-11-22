@@ -1,4 +1,3 @@
-// LEGACY input: the optional array `homeExercises` of a phase. The loader moves each item into `exercises` (see protocolFiveKinds.test.ts).
 import { loadProtocol } from '../src/lib/protocol';
 
 const base = { schemaVersion: 1, id: 'p-home', side: 'left', activePhase: 1, surgeon: {} };

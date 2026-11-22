@@ -1,4 +1,3 @@
-// P-DATA2 fix C2-04: the note of the stat strip starts the second sentence with a capital letter.
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dashboard } from '../../src/ui/Dashboard';

@@ -1,4 +1,3 @@
-// Progress, My data (export, erase) and the care team view, on the real app.
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, focused, installProbes, openMyData, readStore, saveOneSession, toHome } from './helpers/app';

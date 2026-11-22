@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Accessibility and responsive audit for the MPFL rehab app. Needs no new dependency.
 // It loads Playwright and axe-core from the app folder (APP_DIR).
-//
 // Usage:
 //   BASE_URL=http://127.0.0.1:4471 LABEL=baseline node audit.mjs
 //   Options: ONLY="Home|Session" (screen names, separated by |), QUICK=1 (1280 and 390 light only),
@@ -32,7 +31,6 @@ mkdirSync(OUT, { recursive: true });
 writeFileSync(BAD_FILE, '{"not":"a protocol"}');
 const ORIGIN = new URL(BASE_URL).origin;
 
-// ---------------------------------------------------------------- navigation helpers
 const h1 = (page) => page.getByRole('heading', { level: 1 });
 const expectH1 = async (page, name, timeout = 15000) => {
   await h1(page).filter({ hasText: name }).first().waitFor({ state: 'visible', timeout });
@@ -312,7 +310,6 @@ export const SCREENS = [
   },
 ];
 
-// ---------------------------------------------------------------- measurement code that runs in the page
 function inPageMarkControls() {
   const all = [...document.querySelectorAll('button, a[href], input, select, textarea, summary, [role="button"], [tabindex="0"]')];
   const controls = all.filter((el) => {
@@ -528,7 +525,6 @@ function inPageMotion() {
   return { running: anims.length, transformAnimations: transform.length, transform: transform.slice(0, 6), cssAnimatedElements: animatedElements, elementsWithTransformTransition: transformTransitions, hasReducedMotionRule: mediaRule, smoothScroll: getComputedStyle(document.documentElement).scrollBehavior === 'smooth' };
 }
 
-// ---------------------------------------------------------------- one run on one screen
 const SCHEMES = ['light', 'dark'];
 const VPS = [
   { w: 1280, h: 800 },
@@ -680,7 +676,6 @@ async function runScreen(browser, screen, sink, progress) {
   return res;
 }
 
-// ---------------------------------------------------------------- the keyboard-only journey
 async function keyboardJourney(browser, sink) {
   const steps = [];
   const { ctx, page } = await newPage(browser, VPS[0], 'light', 'no-preference', sink, 'keyboard-journey');
@@ -817,7 +812,6 @@ async function keyboardJourney(browser, sink) {
   return steps;
 }
 
-// ---------------------------------------------------------------- main
 async function main() {
   const t0 = Date.now();
   const browser = await chromium.launch({ args: argsFake });

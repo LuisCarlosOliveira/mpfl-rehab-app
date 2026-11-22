@@ -1,5 +1,3 @@
-// T28: the optional field minFlexion of the seated knee extension hold. It is the straightest knee angle
-// that the clinician allows. It has no default. The hold runs between minFlexion and targetFlexion.
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol } from '../src/lib/protocol';
 import { MARGIN_DEG } from '../src/lib/margin';

@@ -1,4 +1,3 @@
-// The camera source tells the screen which start step runs: the camera, then the model with its bytes.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const camera = vi.hoisted(() => ({ startCamera: vi.fn(), stopCamera: vi.fn() }));

@@ -1,4 +1,3 @@
-// Step B3: the mode reps-cycle (ankle pump). One rep is one rise and one fall of the angle at the ankle (knee, ankle, foot index).
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({ testTimeout: 60000 }); // the noise tests run minutes of frames

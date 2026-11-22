@@ -1,4 +1,3 @@
-// P-DATA fix .
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DataScreen } from '../../src/ui/DataScreen';

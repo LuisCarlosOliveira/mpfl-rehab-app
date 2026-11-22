@@ -1,5 +1,5 @@
 import { MARGIN_SOURCE } from '../src/lib/margin';
-// S-07 and S-09: storage that fails, an insecure origin, and an erase that stays inside this app.
+// Storage that fails, an insecure origin, and an erase that stays inside this app.
 import { vi } from 'vitest';
 import { ANGLE_METHOD, createDb, eraseAll, parseExport, sessionSchema } from '../src/lib/storage';
 import {

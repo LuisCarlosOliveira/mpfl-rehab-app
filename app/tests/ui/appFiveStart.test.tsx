@@ -1,4 +1,3 @@
-// Step D1: the five new exercises start from Home through the red flag check to Setup.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateProtocol } from '../../src/lib/protocolGen';

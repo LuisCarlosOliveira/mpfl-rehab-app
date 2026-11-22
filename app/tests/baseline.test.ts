@@ -1,4 +1,3 @@
-// T17: the resting angle from the Setup hold-still. It is the median flexion of the chosen leg.
 import { BASELINE_MIN_SAMPLES, median, restingBaseline } from '../src/lib/baseline';
 import { SETUP_CONFIG, createSetupStabilizer, type SetupSample } from '../src/lib/setupRules';
 import { legLandmarks } from './helpers/leg';

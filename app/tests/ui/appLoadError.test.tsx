@@ -1,4 +1,3 @@
-// L2-02 in the whole app: the chunk of a lazy screen cannot load, and the person has a way back.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';

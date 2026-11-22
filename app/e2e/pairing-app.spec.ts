@@ -1,8 +1,3 @@
-// T12b: the phone as the second camera inside the REAL built app, with a real RTCPeerConnection.
-// Two browser contexts of the same build. A is the laptop. B is a fresh profile that acts as the phone.
-// The codes go through the paste fields, because no real QR camera scan can run between two pages of one machine.
-// The pose model of B sees no person in the fake camera. So B sends its landmark message over its real channel by hand.
-// Not covered here: a real phone, a real person in the camera, the QR scan with a real screen.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { expectScreen, installProbes, readStore, toSetupGuide, watch } from './helpers/app';

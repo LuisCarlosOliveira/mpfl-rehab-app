@@ -1,4 +1,3 @@
-// Step B1: the measures of lib/monitor/measure.ts against the TRUE value of every frame of the synthetic series.
 import { describe, expect, it } from 'vitest';
 import { pick, selectFoot, type Landmark, type Side } from '../../src/lib/angle';
 import { jointAngle, normalisedDistance, readMeasure, segmentAngle } from '../../src/lib/monitor/measure';

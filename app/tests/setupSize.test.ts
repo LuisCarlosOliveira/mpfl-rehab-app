@@ -1,6 +1,3 @@
-// The size rule and the side-on rule of the setup check, on every picture shape.
-// The size rule compares the leg length with the longest straight line that fits the frame along the leg.
-// The numbers of the real clips come from tests/fixtures/clipSeries.ts (numbers only, no frame).
 import { evaluateSetup, SETUP_CONFIG, type SetupSample } from '../src/lib/setupRules';
 import type { Landmark, Side } from '../src/lib/angle';
 import { CLIP_SERIES, type ClipRow } from './fixtures/clipSeries';

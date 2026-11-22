@@ -1,5 +1,3 @@
-// T5b: protocol schema follow-up. Review criteria, review date, concurrent procedures,
-// minimum rep time and the limit at the top of the straight leg raise.
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol, surgeonField } from '../src/lib/protocol';
 import { MARGIN_DEG, MARGIN_SOURCE, MARGIN_SOURCE_TEXT } from '../src/lib/margin';

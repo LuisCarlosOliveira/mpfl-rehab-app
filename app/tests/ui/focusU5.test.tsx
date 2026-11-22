@@ -1,4 +1,3 @@
-// U5: the focus never falls to the page body after a press that removes the control.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';

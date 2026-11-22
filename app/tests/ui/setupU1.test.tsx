@@ -1,4 +1,3 @@
-// U1: the Setup camera step shows no angle and no "Ready" while hip, knee and ankle are not all seen.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';

@@ -1,5 +1,3 @@
-// T12b: the pairing with a REAL RTCPeerConnection in Chromium, two pages in two browser contexts.
-// Run it with e2e/pairing/playwright.config.ts (see that file).
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { writeFileSync } from 'node:fs';
@@ -104,7 +102,6 @@ for (const withCamera of [false, true]) {
   });
 }
 
-// ---------------------------------------------------------------- the two screens with real WebRTC
 
 interface Probes {
   csp: string[];

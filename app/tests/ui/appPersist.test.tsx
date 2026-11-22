@@ -1,4 +1,3 @@
-// Every run is saved when it ends, before the person answers any question.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';

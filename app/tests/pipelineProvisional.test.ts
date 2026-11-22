@@ -1,5 +1,3 @@
-// B5-01, B5-05, B5-02: the anchor is provisional until a whole, plausible leg has been steady for 2 s. A close-up start cannot block the session.
-// A confirmed anchor can lock the person out only with a plausible whole leg. A probe of two poses tells one person who moved from two people.
 import { describe, expect, it } from 'vitest';
 import { createPipeline } from '../src/lib/exercises';
 import type { Landmark } from '../src/lib/angle';

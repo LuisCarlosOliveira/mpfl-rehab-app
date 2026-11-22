@@ -1,4 +1,3 @@
-// L2-02: a screen that cannot load shows a heading, a text and two buttons. Try again reloads the page.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { Suspense, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

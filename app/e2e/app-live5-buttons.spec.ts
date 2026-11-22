@@ -1,5 +1,3 @@
-// B6-03: the special buttons of the Session keep a readable label in hover, active and keyboard focus, in light and dark.
-// The label against its background must have a contrast of at least 4.5:1. The test reads the computed colours.
 import { expect, test, type Page } from "@playwright/test";
 import { startCamera, toSetupCamera } from "./helpers/app";
 

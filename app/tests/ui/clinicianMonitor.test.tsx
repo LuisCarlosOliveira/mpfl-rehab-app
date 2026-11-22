@@ -1,4 +1,3 @@
-// Exercise monitoring, step E: the session list of the care team view with the new columns, for a file of 100 sessions of mixed kinds.
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

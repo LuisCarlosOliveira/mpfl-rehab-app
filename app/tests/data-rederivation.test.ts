@@ -1,6 +1,3 @@
-// Independent re-derivation of the protocol, red-flag and storage rules.
-// These tests do not repeat the earlier tests. Each one comes from the rules in
-// MPFL_APP_PLAN.md (FR1, FR5, FR14, FR16) and research/clinical.md section 7.
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol, MAX_FILE_BYTES, SURGEON_FIELDS, protocolSchema } from '../src/lib/protocol';

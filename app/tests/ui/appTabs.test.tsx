@@ -1,5 +1,3 @@
-// The frame of the app (v3): four tabs on the main screens, the banner on every screen, the action bar after main.
-// This file replaces bottomNav.test.tsx. The old bottom bar (Home, Your sessions, My data) is gone. AppShell has the tabs.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PROTOTYPE_BANNER } from '../../src/lib/mode';

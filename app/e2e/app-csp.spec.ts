@@ -1,6 +1,3 @@
-// Finding S-03: the CSP test must run on the real app, not on a test page.
-// Each screen is visited in the real build under the headers of public/_headers.
-// Zero CSP violations, zero console errors and zero requests to another origin are allowed.
 import { expect, test } from '@playwright/test';
 import { EXAMPLE, expectScreen, installProbes, openMyData, saveOneSession, startCamera, stopButton, watch } from './helpers/app';
 

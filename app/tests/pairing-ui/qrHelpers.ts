@@ -1,4 +1,3 @@
-// Helpers for the QR tests. They turn a module matrix into RGBA pixels, like a camera frame.
 import { encode } from 'uqr';
 
 export type Frame = { data: Uint8ClampedArray; width: number; height: number };

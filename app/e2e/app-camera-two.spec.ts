@@ -1,6 +1,3 @@
-// The camera stream across two exercises of Today's session. By design (keepsCamera in lib/sessionPlan.ts, Session.tsx, source.ts)
-// the first stream is reused for the second camera exercise: no second getUserMedia call, the same track stays live.
-// A probe samples every stream that getUserMedia returned. At no time can more than one video track be live.
 import { expect, test } from '@playwright/test';
 import { expectBanners, expectScreen, installProbes, stopButton, trackStates } from './helpers/app';
 

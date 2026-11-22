@@ -1,6 +1,4 @@
 // @vitest-environment node
-// Tests for the pure parts of scripts/analyze-clip.mjs: the option parser, the summary maths
-// and the reference file reader. The browser run has no unit test. The docs show the real run.
 import { restingBaseline } from '../src/lib/baseline';
 import { SETUP_CONFIG } from '../src/lib/setupRules';
 import example from '../src/lib/protocol/example-protocol.json';

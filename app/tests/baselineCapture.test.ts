@@ -1,5 +1,3 @@
-// F1: the in-place capture of the starting angle in Session.
-// It uses the same still rule as Setup. The lowest steady angle is taken only after a press.
 import { CAPTURE_CONFIG, createBaselineCapture, createLowestPlateau } from '../src/lib/baseline';
 import { SETUP_CONFIG } from '../src/lib/setupRules';
 import { flexion, kneeAngle, selectLeg } from '../src/lib/angle';

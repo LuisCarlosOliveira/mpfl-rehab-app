@@ -1,4 +1,3 @@
-// P-LIVE: the angle text on the body map and the readout show one value (B-05).
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,7 +34,7 @@ describe('B-05: one angle on the screen', () => {
     expect(mapText.replace('°', '').trim()).toBe(readout);
   });
 
-  // B2-01: the map redraws at frame rate and the readout every 250 ms. After EVERY frame the two must read the same.
+  // The map redraws at frame rate and the readout every 250 ms. After EVERY frame the two must read the same.
   it('the map text equals the readout after every frame, also between two ticks', () => {
     const source = mockSource();
     const audio = audioHarness();
@@ -104,7 +103,7 @@ describe('B-07: the moving-leg note for the seated hold', () => {
   });
 });
 
-// B3-01 (c, d), B3-03: after 4 s of far hips with the whole leg visible, the screen names both causes and offers one press.
+// (c, d), B3-03: after 4 s of far hips with the whole leg visible, the screen names both causes and offers one press.
 describe('B3-01: Follow me again', () => {
   const TEXT = 'The camera can follow another person, or you moved. Press Follow me again, or stop and start again from Setup.';
   const open = (baselineDeg: number | null) => {
@@ -188,7 +187,7 @@ describe('B3-01: Follow me again', () => {
     expect(b === null || (b as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // B5-02: at the start of the lockout the screen asks the source for a probe of two poses.
+  // At the start of the lockout the screen asks the source for a probe of two poses.
   it('B5-02: the lockout asks the source for a probe of 2000 ms, once. One pose in the probe: a press re-anchors with no limit', () => {
     const { source, view } = open(5);
     let t = feedAt(source, 0.7, 0, 3000);
@@ -241,7 +240,7 @@ describe('B3-01: Follow me again', () => {
     feedAt(source, 0.3, t, 100);
   });
 
-  // B6-01: a press before the probe has an answer waits. It never decides "someone else" alone.
+  // A press before the probe has an answer waits. It never decides "someone else" alone.
   const probeFor = (source: ReturnType<typeof mockSource>, x: number, from: number, ms: number, extra: () => ReturnType<typeof at>[]) => {
     let t = from;
     for (; t < from + ms; t += 100) act(() => source.emit(at(x, 20), t, extra()));

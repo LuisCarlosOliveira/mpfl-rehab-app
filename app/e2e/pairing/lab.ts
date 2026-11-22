@@ -1,4 +1,3 @@
-// Test-only page. It gives the browser code of the pairing to the Playwright specs. It is never shipped.
 import '../../src/zodConfig'; // the first import, as in main.tsx
 import * as pairing from '../../src/lib/pairing';
 import { createCompanionLink, createHostLink } from '../../src/pairing/rtcLink';

@@ -1,5 +1,3 @@
-// L4-02 and L3-05: the focus rules with lazy screens. The first screen keeps the focus on the body.
-// A screen that opens later puts the focus on its heading, also when its chunk loads after the click.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';

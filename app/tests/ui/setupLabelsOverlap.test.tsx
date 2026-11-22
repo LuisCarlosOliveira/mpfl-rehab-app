@@ -1,4 +1,3 @@
-// B-04: on Setup, no joint chip lies on the angle text. The boxes are measured in view box units, with the same width estimate as BodyMap.
 import { createRef } from 'react';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

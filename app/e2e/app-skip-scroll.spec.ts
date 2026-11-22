@@ -1,5 +1,3 @@
-// AC6-01: after Skip in the second camera step, the "Set up the camera" screen opens at the top of the page. The banner is in view and
-// the focus is on the heading. A keyboard and screen reader user keeps their place.
 import { expect, test } from "@playwright/test";
 import { toSetupGuide } from "./helpers/app";
 

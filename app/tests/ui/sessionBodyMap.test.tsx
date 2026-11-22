@@ -1,4 +1,3 @@
-// The body map in Session (user decision 2026-11-09, after the live test). The same BodyMap as Setup, with the same switch.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';

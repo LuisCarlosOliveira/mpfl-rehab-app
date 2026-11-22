@@ -1,5 +1,3 @@
-// Home and Summary on the v3 frame: today's plan as a list (Done, Next, Later), one big Start button,
-// the last session, the surgery date in words, and the Done step with the next exercise.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

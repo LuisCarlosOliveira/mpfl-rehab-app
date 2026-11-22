@@ -1,4 +1,3 @@
-// Step D1: Setup for the five new exercises. The rules come from the definition (needs, view, legs).
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Landmark } from '../../src/lib/angle';

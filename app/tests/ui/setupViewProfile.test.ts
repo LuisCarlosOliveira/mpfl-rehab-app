@@ -1,4 +1,3 @@
-// Step D1: the rule rows of Setup follow the profile of the exercise.
 import { cameraStatusText, chipFor, jointsSeen, ruleRows, beforeYouStart } from '../../src/ui/setupView';
 
 const foot = { track: 'knee-to-toe', view: 'side' } as const;

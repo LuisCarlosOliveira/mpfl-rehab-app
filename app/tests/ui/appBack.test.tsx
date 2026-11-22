@@ -1,5 +1,3 @@
-// F3 (L2-10, R2-01): the Back button of the browser stays inside the app, and it never opens a screen that the red-flag check guards.
-// jsdom has a real history: pushState, back, forward and popstate work. The history holds only a screen id string, never data.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { markPrivacyNoticeSeen, saveProtocol, saveSession } from '../../src/lib/storage';

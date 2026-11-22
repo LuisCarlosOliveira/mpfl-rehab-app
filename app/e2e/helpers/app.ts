@@ -1,5 +1,3 @@
-// Shared helpers for the specs that load the real built app (the project "app").
-// Probes are installed with addInitScript, so they run before the app code on every page load.
 import { expect, type Page } from '@playwright/test';
 
 export const EXAMPLE = 'src/lib/protocol/example-protocol.json';

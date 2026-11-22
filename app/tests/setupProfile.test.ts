@@ -1,4 +1,3 @@
-// Step D1: the Setup rules come from the definition of the exercise (needs and view).
 import type { Landmark } from '../src/lib/angle';
 import { createSetupStabilizer, evaluateSetup, SETUP_CONFIG, setupProfileFor, type SetupSample } from '../src/lib/setupRules';
 import { legLandmarks } from './helpers/leg';

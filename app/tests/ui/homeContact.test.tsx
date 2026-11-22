@@ -1,4 +1,3 @@
-// Home, build C: the seated hold card and the B1 "Contact your care team" card (adaptation design 5.4).
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';

@@ -1,5 +1,3 @@
-// ConfirmPlan is the only screen that saves a plan that the app made. Only a real click of a person saves it.
-// jsdom never makes a trusted event, so the test stands in for the one read of the isTrusted flag, as protocolAccept.test.ts does.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { describeChanges, describeNewPlan, draftOf, type PlanDraft } from '../../src/lib/planView';

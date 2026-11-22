@@ -1,4 +1,3 @@
-// UI redesign v2, package A (Setup camera and the body map). Each test names its item of docs/ui-redesign-v2-spec.md.
 import { createRef } from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

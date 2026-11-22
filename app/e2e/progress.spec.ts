@@ -1,6 +1,3 @@
-// "Check my progress" on the real built app, with the progression flag on for the hold test.
-// The phase never changes without Confirm, a saved session survives a reload, a safety event holds the next stage,
-// and the screen passes axe, the target size and the word check at two sizes in light and dark.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, notice, PROTOTYPE_BANNER, readStore } from './helpers/app';

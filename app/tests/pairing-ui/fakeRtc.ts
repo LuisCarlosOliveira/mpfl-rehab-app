@@ -1,5 +1,3 @@
-// A fake RTCPeerConnection and data channel for the link tests. It builds descriptions with buildSdp,
-// so the fields go through the same code as in the app.
 import { vi } from 'vitest';
 import { buildSdp, encodeAnswer, encodeOffer, extractFields, type PairingFields } from '../../src/lib/pairing';
 

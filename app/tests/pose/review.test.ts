@@ -1,4 +1,3 @@
-// Independent review tests for T8 (pose wrapper). They add cases that the first tests do not cover.
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -25,7 +24,6 @@ import { startCamera, stopCamera } from '../../src/pose/camera';
 import { blockForeignFetch, createLandmarker } from '../../src/pose/landmarker';
 import { median, startPoseLoop } from '../../src/pose/loop';
 
-// ---------- camera ----------
 
 type FakeTrack = EventTarget & { stop: () => void; stopped: boolean };
 
@@ -143,7 +141,6 @@ describe('camera: races and listeners', () => {
   });
 });
 
-// ---------- loop ----------
 
 function fakeVideo() {
   const cbs = new Map<number, (now: number) => void>();
@@ -243,7 +240,6 @@ describe('loop: independent checks', () => {
   });
 });
 
-// ---------- foreign fetch guard ----------
 
 describe('blockForeignFetch', () => {
   let real: ReturnType<typeof vi.fn>;
@@ -349,7 +345,6 @@ describe('the guard follows the life of the landmarker', () => {
   });
 });
 
-// ---------- model hash check ----------
 
 describe('model-hash-check.sh: swaps that must fail', () => {
   const tmp = mkdtempSync(join(tmpdir(), 'vst-t8-review-'));

@@ -171,7 +171,7 @@ describe('Summary screen', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onDone).toHaveBeenCalledTimes(1);
-    // C-03: the answers that the person gave are kept.
+    // The answers that the person gave are kept.
     const rows = await db.sessions.toArray();
     expect(rows).toHaveLength(1);
     expect(rows[0]!.pain).toBe(8);

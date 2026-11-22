@@ -1,5 +1,3 @@
-// T17: the optional protocol field returnWithinDeg. It has no default.
-// A rep ends when the knee is back within this many degrees of the resting angle.
 import example from '../src/lib/protocol/example-protocol.json';
 import { loadProtocol } from '../src/lib/protocol';
 import { counterSetup } from '../src/lib/exercises';

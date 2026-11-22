@@ -1,4 +1,3 @@
-// Every run is saved when it ends. The Summary adds the two answers to the same record.
 import { describe, expect, it } from 'vitest';
 import { loadProtocol } from '../src/lib/protocol';
 import { buildProgressSeries, toTableRows } from '../src/lib/progress';

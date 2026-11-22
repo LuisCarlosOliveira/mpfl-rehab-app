@@ -1,4 +1,3 @@
-// W2: the unseen rules come first (U19). The start shows each step with real text (U10, L4-05).
 import { readFileSync, statSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

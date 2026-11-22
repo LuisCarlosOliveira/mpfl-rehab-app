@@ -1,4 +1,3 @@
-// F4a: the hand count marker (M3) and the repeat of the over-limit beep (M5).
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';

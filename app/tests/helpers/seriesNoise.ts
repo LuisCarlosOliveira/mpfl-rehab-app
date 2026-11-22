@@ -1,4 +1,3 @@
-// Noise, dropouts, frame drops and frames with no person for a synthetic series (see landmarkSeries.ts).
 import type { Side } from '../../src/lib/angle';
 import type { SeriesFrame, SeriesLandmark } from './landmarkSeries';
 import { gauss, rng } from './leg';

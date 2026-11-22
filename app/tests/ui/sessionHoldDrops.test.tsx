@@ -1,5 +1,3 @@
-// Step D2 review R-04 and (c): a press that the timer drops shows one polite line. The pipeline is a fake that answers like the engine
-// will: endHold returns { saved, reason }. Also the old shape (no return value) works, with the reason inferred from the press time.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlanExercise } from '../../src/lib/protocol';

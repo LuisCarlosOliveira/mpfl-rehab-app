@@ -1,4 +1,3 @@
-// Step A of exercise monitoring: the five exercises are camera exercises. An old file with `homeExercises` still loads.
 import { loadProtocol, EXERCISE_KINDS } from '../src/lib/protocol';
 import { PLAN_EXERCISE_KINDS } from '../src/lib/protocol/schema';
 

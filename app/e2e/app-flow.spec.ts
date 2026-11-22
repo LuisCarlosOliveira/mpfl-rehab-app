@@ -1,4 +1,3 @@
-// The whole flow on the real built app (demo mode): privacy, protocol, red flags, setup, session, summary, save.
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import {

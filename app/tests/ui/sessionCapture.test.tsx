@@ -1,4 +1,3 @@
-// F1: Session finds the starting angle in place when Setup gave none. No "stop and start again".
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';
@@ -68,7 +67,7 @@ describe('Session with no baseline: the finding state', () => {
     expect(lowestButton()).toBeNull();
   });
 
-  // R2-04: the card took room above the numbers, so a phone showed the angle and the count under the bar.
+  // The card took room above the numbers, so a phone showed the angle and the count under the bar.
   // V2 (spec section 5): the line and the progress sit in the status slot right under the camera. The slot has a reserved height, so nothing moves.
   it('takes no room between the camera and the numbers: the text sits in the status slot under the camera, and no card shows yet', () => {
     const { source } = open();
@@ -90,7 +89,7 @@ describe('Session with no baseline: the finding state', () => {
     expect(screen.getByText(CAPTURE_TEXT.chooseShort)).toBeInTheDocument();
   });
 
-  // R3-02: under the numbers the button was 310 px below the bar on a phone. Before the numbers it stays in the first view.
+  // Under the numbers the button was 310 px below the bar on a phone. Before the numbers it stays in the first view.
   it('puts the lowest-angle button before the numbers in the page, and not inside the card', () => {
     const { source } = open();
     moveAll(source, 0, 16000);

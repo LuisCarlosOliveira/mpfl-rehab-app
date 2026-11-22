@@ -1,4 +1,3 @@
-// The view tag and the camera choice of a landmark source (T9c leftovers, used by the second view).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startCamera, stopCamera } from '../../src/pose/camera';
 

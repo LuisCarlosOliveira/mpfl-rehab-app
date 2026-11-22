@@ -1,5 +1,3 @@
-// When the focus moves to the heading of a new screen, that heading must be in the viewport (WCAG 2.4.7, 2.4.11).
-// A return to Home must not keep the old scroll position of Home.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, focused, heading, toHome } from './helpers/app';
 

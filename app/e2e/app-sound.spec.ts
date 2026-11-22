@@ -1,4 +1,3 @@
-// Sound (FR10): the audio context starts only after a button press, and Session has a mute button.
 import { expect, test, type Page } from '@playwright/test';
 import { installProbes, startCamera, toSession, toSetupCamera, toSetupGuide, toHome } from './helpers/app';
 

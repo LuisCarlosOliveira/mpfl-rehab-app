@@ -1,4 +1,3 @@
-// P-DATA fix c05.
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildProgressSeries } from '../../src/lib/progress';

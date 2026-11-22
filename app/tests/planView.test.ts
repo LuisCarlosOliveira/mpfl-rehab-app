@@ -1,4 +1,3 @@
-// The pure helpers behind the plan screens: dates, the list of changes, the forward check, events, and the evidence labels.
 import { describe, expect, it } from 'vitest';
 import { generateProtocol, RULES, SOURCES, type GeneratorInputs } from '../src/lib/protocolGen';
 import type { SessionRecord } from '../src/lib/storage';

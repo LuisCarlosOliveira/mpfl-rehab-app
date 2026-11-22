@@ -1,4 +1,3 @@
-// W2: the marked block at the end of styles.css (start steps, body map, numbered guide).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

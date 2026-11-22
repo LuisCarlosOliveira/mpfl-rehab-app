@@ -1,5 +1,4 @@
 // @vitest-environment node
-// Tests for scripts/bland-altman.mjs and scripts/agreement.mjs.
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

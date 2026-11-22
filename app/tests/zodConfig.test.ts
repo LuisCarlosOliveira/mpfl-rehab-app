@@ -1,5 +1,4 @@
 // @vitest-environment node
-// S-02: Zod must not call Function('') under a CSP without eval. See docs/security-review.md.
 import { readFileSync } from 'node:fs';
 import { vi } from 'vitest';
 

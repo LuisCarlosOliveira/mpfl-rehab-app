@@ -1,4 +1,3 @@
-// flowV2.css of package B: scoped under its own root classes, tokens only, no important, reduced motion safe.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

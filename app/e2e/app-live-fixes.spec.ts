@@ -1,4 +1,3 @@
-// P-LIVE: real geometry checks for B-02 (alert and button), B-04 (Setup labels) and C-11 (swelling control at 320 px).
 import { expect, test, type Page } from "@playwright/test";
 import { startCamera, toSetupCamera, toSetupGuide } from "./helpers/app";
 

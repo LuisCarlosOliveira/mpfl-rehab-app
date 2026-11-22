@@ -1,5 +1,3 @@
-// N-07: the Stop bar of a session with no camera (the timers) sits in the page when it would take over 40 percent of the screen.
-// The Stop bar of a camera session stays fixed.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { measureBars } from '../src/lib/useBarHeight';
 

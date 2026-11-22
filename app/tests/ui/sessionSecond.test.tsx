@@ -1,5 +1,3 @@
-// T12b: the second camera in the Session screen (FR24, FR25).
-// The chip shows the status. The front-view change goes to the record for the clinician. Patient screens never show it.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Landmark, Side } from '../../src/lib/angle';

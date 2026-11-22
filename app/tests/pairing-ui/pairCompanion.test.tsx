@@ -1,4 +1,3 @@
-// The phone screen of the pairing, with a fake peer connection, a fake camera and a fake pose source.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { FALLBACK_TEXT, parseMessage } from '../../src/lib/pairing';

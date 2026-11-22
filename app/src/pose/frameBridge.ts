@@ -1,7 +1,3 @@
-// The frame bridge. It is the only file that turns a video frame into a picture (plan task T-W, user decision "6. ok").
-// The picture moves to the pose worker (poseWorker.ts) as a transferable object, and the worker sends back landmark numbers.
-// No frame is stored or sent. One picture is in flight at a time. A frame that comes while the worker is busy is dropped,
-// so nothing queues and the latest frame wins. close() ends the worker and closes every picture.
 import type { Landmark } from '../lib/angle';
 
 export interface FrameMessage {
@@ -9,7 +5,7 @@ export interface FrameMessage {
   bitmap: ImageBitmap;
   timestampMs: number;
 }
-/** Switch the model between one and two poses (B5-02). */
+/** Switch the model between one and two poses. */
 export interface PosesMessage {
   type: 'poses';
   count: 1 | 2;
@@ -17,10 +13,8 @@ export interface PosesMessage {
 export type WorkerMessage =
   | { type: 'progress'; bytes: number }
   | { type: 'ready' }
-  // The 2-pose model of the probe is made. The probe frames carry `extra` from now on.
   | { type: 'probe-ready' }
   | { type: 'failed' }
-  // `extra` holds the other poses. It is there only while the probe of two poses runs.
   | { type: 'result'; timestampMs: number; landmarks: Landmark[] | null; extra?: Landmark[][] };
 
 /** The time the worker has to answer one frame. After it the bridge fails, so a silent worker cannot freeze the analysis. */

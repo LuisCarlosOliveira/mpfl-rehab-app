@@ -1,7 +1,4 @@
-// The WebRTC link between the laptop (host) and the phone (companion). Task T12b, plan FR25 and NFR1.
 // One ordered data channel. No STUN server, no relay (`iceServers: []`). Landmark numbers only.
-// This file never adds a track, never asks for a camera and never touches a frame.
-// The state machine and the text rules live in src/lib/pairing. This file only connects them to the browser.
 import {
   buildSdp, decodeAnswer, decodeOffer, encodeAnswer, encodeOffer, extractFields, FALLBACK_TEXT,
   makeHello, newSecret, OFFER_TTL_MS, pairingStep, parseMessage,
@@ -78,7 +75,6 @@ function onLeave(leave: () => void): () => void {
   };
 }
 
-// ---------------------------------------------------------------- host (laptop)
 
 export interface HostLink {
   state(): PairingState;
@@ -193,7 +189,6 @@ export function createHostLink(deps: LinkDeps = {}): HostLink {
   };
 }
 
-// ---------------------------------------------------------------- companion (phone)
 
 export type CompanionState =
   | { kind: 'idle' }

@@ -1,4 +1,3 @@
-// F4a: the plausibility check of the leg raise peak (M8), the hand count label (M3) and the plural fix (L8).
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

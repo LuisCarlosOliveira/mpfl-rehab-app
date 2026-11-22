@@ -248,9 +248,7 @@ function makeHelpers(page, rec) {
   return h;
 }
 
-// ======================================================================
 // CASES
-// ======================================================================
 
 // 1. Clean baseline. The first run collects the words that the app uses by itself, so that they are not flagged later.
 function EX_PATH() { return `${PW_ROOT}/src/lib/protocol/example-protocol.json`; }

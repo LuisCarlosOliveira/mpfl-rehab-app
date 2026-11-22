@@ -1,4 +1,3 @@
-// T12b (FR24): the front-view change reaches the stored record, never a patient screen, and shows in the Care team view.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

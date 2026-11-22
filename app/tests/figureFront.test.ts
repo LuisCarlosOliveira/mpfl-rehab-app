@@ -1,4 +1,3 @@
-// Step D1: the front camera plan of the leg raise to the side. The person lies on the side. The camera is in front, at hip height near the floor.
 import { boxShapeGap, cameraPlan, planObstacles, unionBox, type Box } from '../src/lib/figure';
 
 const boxInView = (b: Box, v: Box) => b.x >= v.x - 0.01 && b.y >= v.y - 0.01 && b.x + b.w <= v.x + v.w + 0.01 && b.y + b.h <= v.y + v.h + 0.01;
