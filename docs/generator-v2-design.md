@@ -377,8 +377,8 @@ The guardrails skill still holds the narrow exception for the squat depth. While
 ## 11. Update of 2026-11-11: the extended items are on by default
 
 The user decided that the app proposes the full plan from the guidelines. The function `generatorExtendedOn` in `app/src/lib/mode.ts` now returns true unless `VITE_GENERATOR_EXTENDED` is the exact text `false` or `0`.
-The flag gates four things: the mini squat (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE), the seated hold (HOLD_P2, ENG_HOLD), the heel slide in phase 2 for an unknown limit (HEEL_P2_UNKNOWN), and the three questions about walking, the leg raise and the clearance of the hold (`gatesAsked` in `app/src/lib/onboarding.ts`, and the Update my plan screen).
-The flag value `false` keeps the old behaviour, with the rule EXTENDED_OFF. `VITE_SELF_PROGRESSION` is unchanged. Every number of these rules has an EXACT audit row or is marked as a value that the app sets (test `app/tests/protocolGenAudit.test.ts`, run with the flag unset, `true` and `false`).
+The flag gates four things. The first is the mini squat (SQUAT_P2, SQUAT_DEPTH, SQUAT_GATE). The second is the seated hold (HOLD_P2, ENG_HOLD). The third is the heel slide in phase 2 for an unknown limit (HEEL_P2_UNKNOWN). The fourth is the three questions about walking, the leg raise and the clearance of the hold. These are in `gatesAsked` in `app/src/lib/onboarding.ts` and on the Update my plan screen.
+The flag value `false` keeps the old behaviour, with the rule EXTENDED_OFF. `VITE_SELF_PROGRESSION` is unchanged. Every number of these rules has an EXACT audit row, or the audit marks it as a value that the app sets. See test `app/tests/protocolGenAudit.test.ts`, run with the flag unset, `true` and `false`.
 
 Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
 
