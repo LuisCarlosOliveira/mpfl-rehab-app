@@ -1,5 +1,3 @@
-// The way into the phone screen. Home and the Load screen show it. It is a secondary action.
-// The phone sends landmark numbers only. It records nothing and counts nothing, so no protocol and no red-flag check apply.
 import { Icon } from './Icon';
 import './screensV2.css';
 

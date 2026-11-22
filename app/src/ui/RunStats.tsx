@@ -1,6 +1,3 @@
-// The measured numbers of one run, as a list. Summary shows it for the exercise that just ended.
-// The session summary shows it for each exercise of today's session. Whole degrees, as the record stores them.
-// No total, no verdict. The set lines list the reps of each set.
 import type { ReactNode } from 'react';
 import { PEAK_NO_VALUE_TEXT, peakUnreadable, topUnreadable } from '../lib/cues';
 import type { Exercise } from '../lib/protocol';
@@ -15,7 +12,6 @@ import './liveV3.css';
 interface Props {
   kind: ExerciseKind;
   summary: RunSummary;
-  /** Shown after the numbers and before the set lines. Summary puts the pause message here (FR12). */
   between?: ReactNode;
 }
 
@@ -25,9 +21,8 @@ export function RunStats({ kind, summary, between }: Props) {
   const sets = summary.sets ?? null;
   const topWhole = storedWhole(summary.topFlexion);
   const peakWhole = storedWhole(summary.peakFlexion);
-  const overLimit = summary.eventCounts.overLimit; // the stored count: bends past the limit of the care team
+  const overLimit = summary.eventCounts.overLimit;
   const unit = summary.holds === null ? 'rep' : 'hold';
-  // The five new kinds. The values come from the engine (RunSummary.engine).
   const engine = summary.engine;
   const timedByPerson = engine?.timedBy === 'person';
   const holdList = engine?.holdList ?? [];
@@ -44,8 +39,6 @@ export function RunStats({ kind, summary, between }: Props) {
           <BigNumber label={REPORT_LINE[engine.reportKey]} value={reportWhole} unit={plural(reportWhole, 'degree')} note={note} />
         )}
         {summary.peakFlexion !== null && (
-          /* M8: a leg raise peak above the plausibility value is a camera misread. The record keeps the number. */
-          /* peakFlexion is set by the four old kinds only */
           <BigNumber
             label="Highest knee bend"
             value={peakUnreadable(kind as Exercise['kind'], summary.peakFlexion) ? null : peakWhole}
@@ -54,7 +47,6 @@ export function RunStats({ kind, summary, between }: Props) {
             missingReason={PEAK_NO_VALUE_TEXT}
           />
         )}
-        {/* U4: the angle at the top of a leg raise is its own line. It is the highest top angle of the sets, the number that the live screen showed. */}
         {kind === 'straight-leg-raise' && topWhole !== null && (
           <BigNumber label="Angle at the top" value={topUnreadable(summary.topFlexion) ? null : topWhole} unit={plural(topWhole, 'degree')} note={note} missingReason={PEAK_NO_VALUE_TEXT} />
         )}

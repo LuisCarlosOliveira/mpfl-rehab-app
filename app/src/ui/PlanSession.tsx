@@ -1,6 +1,3 @@
-// Today's session: the card between two exercises and the list at the end.
-// The Next card opens the next exercise after 5 seconds. It starts no movement: the exercise screen asks for its own Start.
-// A key press or a pointer press on the card stops the 5 seconds, so a person who reads has time. Any button stops them too.
 import { useEffect, useRef, useState } from 'react';
 import { MESSAGES } from '../lib/redflags';
 import { Icon } from './Icon';
@@ -21,7 +18,6 @@ interface NextProps {
   name: string;
   index: number;
   total: number;
-  /** The whole plan in order. Without it the card shows the progress bar only. */
   items?: readonly PlanItem[];
   onStart: () => void;
   onSkip: () => void;

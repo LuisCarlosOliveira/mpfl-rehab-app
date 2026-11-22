@@ -1,10 +1,7 @@
-// Segmented progress through a session. It shows a place in a process. It does not rate anything, so it has no verdict colour.
-// One segment for each step: done, now, later. The segments are decoration. The bar role and the text carry the meaning.
 import './parts.css';
 
 interface Props {
   total: number;
-  /** The step in progress, from 1. A value outside the range is moved into the range. */
   current: number;
   unit: 'Exercise' | 'Step';
   set?: { current: number; total: number };

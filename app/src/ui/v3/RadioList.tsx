@@ -1,4 +1,3 @@
-// A choice of four or more options, one below the other. For two or three options use SegmentedChoice.
 import { ChoiceGroup, ChoiceInput, type ChoiceProps } from './ChoiceGroup';
 
 export function RadioList<T extends string>({ name, legend, value, options, onChange, children }: ChoiceProps<T>) {

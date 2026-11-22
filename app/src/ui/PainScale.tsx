@@ -1,5 +1,3 @@
-// The pain question, 0 to 10, as 11 radio buttons with 48 px targets. No answer is pre-selected.
-// Summary asks it at the end of a session. Session asks it between sets. One markup for both (ui-design.md section 4.3).
 import { Icon } from './Icon';
 import './flowV2.css';
 
@@ -21,7 +19,6 @@ export function PainScale({ name, value, onChange }: Props) {
         <Icon name="activity" size={22} />
         How much pain do you have now? 0 is no pain. 10 is the worst pain.
       </legend>
-      {/* The read-out shows the chosen value only. It adds no word of its own. */}
       <p className="pain-readout" data-testid="pain-readout">
         {value === null || !Number.isFinite(value) ? (
           <span className="pain-none">{NOT_ANSWERED}</span>

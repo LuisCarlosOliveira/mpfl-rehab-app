@@ -1,5 +1,3 @@
-// The app shell. It holds the stored protocol and the navigation state (appState.ts).
-// Banners show above every screen (plan FR3, NFR2).
 import { Suspense, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { bannersFor } from '../lib/mode';
 import { localIsoDate } from '../lib/planView';
@@ -53,11 +51,8 @@ const Setup = retryableLazy(() => import('./Setup').then((m) => ({ default: m.Se
 const Summary = retryableLazy(() => import('./Summary').then((m) => ({ default: m.Summary })));
 const UpdatePlan = retryableLazy(() => import('./UpdatePlan').then((m) => ({ default: m.UpdatePlan })));
 
-// The screens that load on demand. The shell cannot move the focus to their heading while the chunk loads,
-// so FocusHeading does it when the screen appears. The first screen (Privacy) is not here: its focus stays on the body.
 const LAZY_SCREENS: ReadonlySet<string> = new Set(['setup', 'session', 'summary', 'dashboard', 'data', 'clinician', 'onboarding', 'plan', 'confirm', 'update', 'progress', 'companion', 'next', 'overview']);
 
-/** Moves the focus to the heading when a lazy screen appears. The shell cannot do it while the screen still loads. */
 function FocusHeading({ children }: { children: ReactNode }) {
   useEffect(() => {
     focusHeading(document.querySelector<HTMLElement>('main h1'));
@@ -65,15 +60,12 @@ function FocusHeading({ children }: { children: ReactNode }) {
   return children;
 }
 
-// The screens that have a tab, and the screen that each tab opens. Every other screen is a step of a flow and shows no tabs.
 const TAB_OF: Partial<Record<ScreenId, ShellTab>> = { home: 'today', progress: 'progress', dashboard: 'sessions', data: 'data' };
 const SCREEN_OF: Record<ShellTab, ScreenId> = { today: 'home', progress: 'progress', sessions: 'dashboard', data: 'data' };
-// The two live screens keep their own frame until they move to LiveShell. They render the camera and need the full window.
 const LIVE_SCREENS: ReadonlySet<string> = new Set(['setup', 'session']);
 
 type Rows = { state: 'loading' } | { state: 'error' } | { state: 'ready'; sessions: SessionRecord[]; skipped: number };
 
-/** Reads the sessions in the parent, so the dashboard stays a pure view (plan FR13). */
 function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
   const [rows, setRows] = useState<Rows>({ state: 'loading' });
   useEffect(() => {
@@ -81,7 +73,6 @@ function Progress({ db, onBack }: { db: MpflDb; onBack: () => void }) {
     Promise.resolve()
       .then(() => db.sessions.orderBy('date').toArray())
       .then(
-        // A stored row that fails the schema is left out and counted. It is not deleted.
         (stored) => {
           const { rows: sessions, skipped } = readValidRows(stored);
           if (alive) setRows({ state: 'ready', sessions, skipped });
@@ -124,11 +115,8 @@ export interface AppProps {
   db: MpflDb;
   mode: Mode;
   source: LandmarkSource;
-  /** The clock. Tests replace it. */
   now?: () => Date;
-  /** The sound cues. The app makes one. Tests give one over a fake audio context. */
   sound?: Sound;
-  /** Tests give a fake peer connection for the second camera. The app gives nothing. */
   pairingDeps?: LinkDeps;
 }
 
@@ -184,11 +172,9 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     initialAppState,
   );
 
-  // F3: the Back button of the browser acts like the Back, Cancel or Stop button of the screen (appState.backStep).
-  // The Session registers its Stop here, so a Back press ends the session and the camera.
   const stateNow = useRef(state);
   const stopSession = useRef<(() => void) | null>(null);
-  const questionBack = useRef<(() => boolean) | null>(null); // the questions of "Create my plan" step back inside the screen (R3-04)
+  const questionBack = useRef<(() => boolean) | null>(null);
   useEffect(() => {
     stateNow.current = state;
   });
@@ -196,7 +182,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     const now = stateNow.current;
     const step = backStep(now);
     if (step === 'stop-session') {
-      // The Session is not on screen yet (its code still loads): no camera runs, so Back goes Home like Cancel.
       if (stopSession.current === null) {
         dispatch({ type: 'open', screen: 'home' });
         return { landed: 'home', root: true };
@@ -212,8 +197,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     return { landed: next.screen, root: backStep(next) === null };
   });
 
-  // The second camera (T12b). One pairing lives from Setup to the end of the Session, so the Session can read it.
-  // It stops when the person leaves Setup and Session by any way: Cancel, Stop, "Knee gave way or hurts", or a new screen.
   const { pairing, view: pairingView } = usePairing(pairingDeps);
   const pairingOpen = ['starting', 'offer', 'connecting', 'connected'].includes(pairingView.status);
   useEffect(() => {
@@ -223,17 +206,13 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   // The only source of the active phase is the read-only store (FR4).
   const store = useMemo(() => (protocol ? createProtocolStore(protocol) : null), [protocol]);
   const phase = protocol && store ? protocol.phases.find((p) => p.id === store.activePhase) : undefined;
-  // Only an exercise with a definition can start a session (isMonitored). Home shows no Start for another one.
   const chosen = phase?.exercises.find((e) => e.kind === state.exercise);
   const exercise = chosen !== undefined && isMonitored(chosen.kind) ? chosen : undefined;
 
-  // The app has no URL routes. The browser must not restore the old scroll position when the history entry
-  // above a root screen goes (useBackButton). The focused heading would then leave the screen.
   useEffect(() => {
     if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
   }, []);
 
-  // Move focus to the heading when the screen changes, so a screen reader announces it.
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -243,13 +222,10 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     focusHeading(document.querySelector<HTMLElement>('main h1'));
   }, [state.screen]);
 
-  // Today's session. The place in the plan, and whether the camera of the exercise before is still on.
   const plan = state.plan;
   const planMark = plan ? { index: plan.index, total: plan.kinds.length } : undefined;
   const last = plan?.entries[plan.entries.length - 1];
   const cameraKept = plan !== null && plan.index > 0 && last?.run != null && last.kind === plan.kinds[plan.index - 1] && keepsCamera(plan.kinds, plan.index - 1);
-  // The camera stays on between two camera exercises only: on the Done step, and on the Next card when the next one uses it too.
-  // The summary at the end stops it. Session and Setup also stop it by themselves. A single exercise has no plan, so it is not touched here.
   const screenNow = state.screen;
   const nextUsesCamera = state.exercise !== null && usesCamera(state.exercise);
   useEffect(() => {
@@ -258,7 +234,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   }, [screenNow, plan, nextUsesCamera, source]);
 
   const banners = bannersFor(mode, protocol?.example === true, protocol?.generated !== undefined && protocol.approvedOn === undefined);
-  // The whole plan as rows, for the progress panels of the Done step and the Next card.
   const items = plan ? planItems(phase?.exercises ?? [], plan.kinds, protocol?.generated !== undefined) : [];
 
   const screen = (() => {
@@ -305,7 +280,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               kind={exercise.kind}
               side={protocol.side}
               exerciseName={EXERCISE_NAMES[exercise.kind]}
-              // The figure shows no number for a plan that the app made: its count value is no target (L2-01).
               targetFlexion={protocol.generated === undefined ? exercise.targetFlexion : undefined}
               limit={exercise.maxFlexion}
               returnWithinDeg={exercise.returnWithinDeg}
@@ -318,7 +292,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               plan={planMark && { ...planMark, detail: exercise.sets === undefined ? null : `${exercise.sets} ${plural(exercise.sets, 'set')}` }}
               cameraKept={cameraKept}
               onReady={(done) => {
-                // The next start remembers the two answers and that the guide was seen. Only the words left or right are stored.
                 if (usesCamera(exercise.kind)) setLegPrefs(done.exerciseLeg, done.cameraSide);
                 markGuideSeen(exercise.kind);
                 dispatch({ type: 'setup-done', ...done });
@@ -345,13 +318,12 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
               plan={planMark}
               keepCamera={plan !== null && keepsCamera(plan.kinds, plan.index)}
               onEnd={(reason, summary) => {
-                // The run is saved now, before any question. A closed tab or a crash after this point keeps the run.
                 const run = { reason, summary };
                 const record = saveSession(
                   db,
                   runToSessionInput({ run, exercise: exercise, protocol, phase: store.activePhase, redFlagBlocks: state.redFlagBlocks, legTracked: state.exerciseLeg ?? undefined, cameraSide: state.cameraSide ?? undefined, now }),
                 );
-                record.catch(() => undefined); // the Summary reads the failure from the same promise
+                record.catch(() => undefined);
                 dispatch({ type: 'session-end', ...run, record });
               }}
             />
@@ -405,7 +377,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
             onBack={() => dispatch({ type: 'open', screen: 'home' })}
             onOpenPrivacy={() => dispatch({ type: 'open', screen: 'privacy' })}
             onErased={() => {
-              // Nothing of the old protocol stays in memory.
               setProtocol(null);
               setBootError(null);
               dispatch({ type: 'erased' });
@@ -477,7 +448,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
         }
         break;
       case 'companion':
-        // The phone screen needs no protocol and no red-flag check. It never starts an exercise.
         return <PairCompanion onExit={() => dispatch({ type: 'open', screen: 'home' })} />;
       case 'clinician':
         return (
@@ -501,7 +471,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
             });
           }}
         />
-        {/* A new phone has no protocol, so the way to the phone screen sits here too. */}
         <div className="narrow mt">
           <CompanionEntry onOpen={() => dispatch({ type: 'open', screen: 'companion' })} />
         </div>
@@ -518,7 +487,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
   );
 
   if (LIVE_SCREENS.has(state.screen)) {
-    // Setup and Session draw their own frame (LiveShell, with the notices). The frame below only covers the load and the load error.
     const frame = (inner: ReactNode) => (
       <AppShell tab={null} onNavigate={() => undefined} banner={banners}>
         <AppShell.Main>{inner}</AppShell.Main>
@@ -532,7 +500,6 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
       </LoadError>
     );
   }
-  // Tabs show on the main screens, and only when a protocol is stored. Flow screens never show them.
   const tab = protocol !== null && store !== null ? (TAB_OF[state.screen] ?? null) : null;
   return (
     <AppShell tab={tab} onNavigate={(next) => dispatch({ type: 'open', screen: SCREEN_OF[next] })} banner={banners}>

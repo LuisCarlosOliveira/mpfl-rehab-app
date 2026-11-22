@@ -1,10 +1,4 @@
-/* v3 tokens (docs/ui-redesign-v3.md section 2.2 and 7.2).
-   They sit on the class .v3, so the old screens keep their own values until a screen moves to v3.
-   Names that styles.css already uses keep the same name (--bg, --raised, --ink, --primary ...).
-   Theme: the system setting (prefers-color-scheme), the same mechanism as styles.css. The app has no theme switch.
-   Contrast is pinned by tests/ui/v3/tokens.test.ts: text 4.5 or more, control edge 3.0 or more.
-   No green and no red: the app never shows a verdict colour. */
-
+/* No green and no red: the app never shows a verdict colour. */
 .v3 {
   color-scheme: light;
 
@@ -15,11 +9,11 @@
   --muted: #42505c;
   --line: #c9d1d6;
   --edge: #6f7d87;
-  --primary: #076a96; /* corrected: 4.62 or more on every surface */
+  --primary: #076a96;
   --primary-hover: #05587d;
   --on-primary: #ffffff;
   --primary-soft: #d3e8f2;
-  --accent: #2e3260; /* care: red-flag headings, pause, notices */
+  --accent: #2e3260;
   --accent-soft: #e2e5f6;
   --on-accent: #ffffff;
   --banner-bg: #2e3260;
@@ -27,7 +21,6 @@
   --cam: #1b2630;
   --tap: #076a962e;
 
-  /* Space, radius, motion, size. */
   --v3-s1: 0.25rem;
   --v3-s2: 0.5rem;
   --v3-s3: 0.75rem;
@@ -40,9 +33,8 @@
   --v3-r-card: 1.25rem;
   --v3-ease: cubic-bezier(0.23, 1, 0.32, 1);
   --v3-press: 120ms;
-  --v3-width: 75rem; /* 1200 px */
-  --v3-target: 2.75rem; /* 44 px */
-  /* Live numbers: 4 rem on a phone, 96 px from about 530 px, 144 px at most. */
+  --v3-width: 75rem;
+  --v3-target: 2.75rem;
   --v3-num: clamp(4rem, 2rem + 12vw, 9rem);
 }
 

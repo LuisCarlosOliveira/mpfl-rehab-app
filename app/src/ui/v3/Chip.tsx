@@ -1,4 +1,3 @@
-// A small label. On the camera slot it sits in the corner and names what the picture is.
 import type { ReactNode } from 'react';
 import './parts.css';
 

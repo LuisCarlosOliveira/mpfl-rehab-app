@@ -1,15 +1,9 @@
-// A row of short marks that shows the position in a form or a flow. It is a position mark and not a measure of progress.
-// Every mark has the same colour. The current mark is taller and has a solid ink fill. There is no percent and no fill that grows.
 import { Fragment } from 'react';
 
 interface Props {
-  /** The number of steps. A value that is not a whole number of 1 or more draws nothing. */
   total: number;
-  /** The place of the current step, from 0. A value outside the range goes to the nearest end. */
   current: number;
-  /** The name of the list for a screen reader, for example "Question 7 of 11". */
   label: string;
-  /** Optional names. When given, each name shows inside its mark (the pairing steps use this). */
   names?: readonly string[];
 }
 

@@ -1,4 +1,3 @@
-// The step card of the Setup camera (A3). One state line and an optional help line. The text comes from setupView.ts.
 import type { ReactNode, Ref } from 'react';
 import { Icon, type IconName } from './Icon';
 
@@ -8,7 +7,6 @@ interface Props {
   help?: string;
   className?: string;
   role?: 'status';
-  /** The card can take the focus, so the focus does not fall to the page body when the button that started the camera goes. */
   focusRef?: Ref<HTMLDivElement>;
   children?: ReactNode;
 }

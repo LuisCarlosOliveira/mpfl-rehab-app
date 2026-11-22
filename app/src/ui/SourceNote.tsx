@@ -3,7 +3,6 @@
 import { sourceLines, type SourceNoteId } from "../lib/planView";
 import "./screensV2.css";
 
-/** The label is optional. Without it, the first line is the value alone, as in a row that already names the exercise. */
 const LABELS: Record<SourceNoteId, string> = {
   DOSE: "Sets and reps",
   SQUAT_DEPTH: "Mini squat depth",

@@ -17,11 +17,8 @@ interface Props {
   db: MpflDb;
   mode: Mode;
   draft: PlanOnly;
-  /** The plan that is stored now, or null when none is stored. */
   current: Protocol | null;
-  /** The plan was saved. The app shows it. */
   onAccepted: (protocol: Protocol) => void;
-  /** The person keeps what is stored. Nothing was saved. */
   onKeep: () => void;
 }
 
@@ -35,11 +32,9 @@ interface ChangeView {
 const NOT_IN_PLAN = 'Not in your plan';
 const IN_PLAN = 'In your plan';
 
-/** Splits one line of describeChanges into a title, a before value, an after value and the reason. A line of another shape stays whole. */
 export function splitChange(line: string): ChangeView {
   const at = line.indexOf('. Reason: ');
   const what = at < 0 ? line.replace(/\.$/, '') : line.slice(0, at);
-  // A rule code in brackets at the end of a reason, like (PH2), is for the code and the tests. The person does not see it.
   const reason = at < 0 ? null : line.slice(at + 2).replace(/\.$/, '').replace(/\s\([A-Z][A-Z0-9_]*\)$/, '');
   let m = /^Knee-bend limit in your plan: from (.+) to (.+)$/.exec(what);
   if (m) return { title: 'Knee-bend limit in your plan', before: m[1]!, after: m[2]!, reason };
@@ -59,7 +54,6 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
   const update = draft.origin === 'update';
   const lines = update ? draft.changes : describeNewPlan(draft.protocol);
   const noChange = update && draft.changes.length === 0;
-  // An update comes with its hold. A new plan over a stored plan gets the same hold here, before the person acts. The save step refuses the same cases.
   const hold =
     draft.hold ?? (!update && current !== null && movesForward(current, draft.protocol) && (!selfProgressionOn() || losesPainLimit(current, draft.protocol)) ? holdTextFor(current, draft.protocol) : null);
   const canConfirm = hold === null && !noChange;
@@ -81,11 +75,9 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
       setError(result.message);
       return;
     }
-    // The answers of the person stay on this device, so "Update my plan" can use them. A failed write does not undo the plan.
     try {
       await saveGeneratorInputs(db, draft.inputs);
     } catch {
-      // Update my plan then asks for the answers again.
     }
     onAccepted(result.protocol);
   }
@@ -125,7 +117,6 @@ export function ConfirmPlan({ db, mode, draft, current, onAccepted, onKeep }: Pr
           </Notice>
         )}
 
-        {/* A change on hold is not listed, because the app will not make it. */}
         {hold === null && (
           <section className="stack-s" aria-labelledby="confirm-what">
             <h2 id="confirm-what">{update ? 'What changes' : 'Your new plan'}</h2>

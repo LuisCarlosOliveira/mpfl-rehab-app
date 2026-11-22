@@ -1,16 +1,10 @@
-/* Position guide and camera guide drawings (FR28). Colours come from classes, never from style attributes.
-   The palette is the palette of styles.css. The --fig- names are the names of this file only.
-   One calm body colour. The operated leg is the darkest and the thickest limb, and it has a ring on its knee.
-   No green or red verdict colour. Meaning does not rely on colour: words and the ring carry it too.
-   The label size is set by the svg attribute font-size, so it follows the view box. It is about 15 px at 300 px width. */
-
 :root {
-  --fig-body: var(--muted); /* head, torso and arm. 7.8:1 on the card in light, 8.6:1 in dark */
-  --fig-near: var(--ink); /* the operated leg */
-  --fig-far: var(--edge); /* the other leg. 3.4:1 on the card, a stroke needs 3:1 */
-  --fig-object: var(--sunken); /* mat, chair and counter */
+  --fig-body: var(--muted);
+  --fig-near: var(--ink);
+  --fig-far: var(--edge);
+  --fig-object: var(--sunken);
   --fig-object-line: var(--edge);
-  --fig-accent: var(--chart); /* knee ring, arc, arrows and the distance. 7:1 on the card, text needs 4.5:1 */
+  --fig-accent: var(--chart);
   --fig-cone: var(--primary-soft);
   --fig-camera: var(--ink);
 }
@@ -18,7 +12,7 @@
 .fig {
   display: block;
   width: 100%;
-  max-width: 22rem; /* a label stays 14 px or more, because the picture is never narrower than 288 px on a phone */
+  max-width: 22rem;
   height: auto;
   margin-inline: auto;
   background: var(--raised);

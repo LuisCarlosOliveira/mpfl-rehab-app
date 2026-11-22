@@ -1,6 +1,3 @@
-// "Check my progress". A read-only screen: it shows the numbers of the person next to published guidelines
-// (design docs/progression-evaluation-design.md, section 5). It saves nothing, sets no phase and gives no verdict.
-// Every sentence comes from progressCheck.ts, so the word checks cover it.
 import { useEffect, useState } from 'react';
 import { ANGLE, checkProgress, CHECK_SCREEN, type ProgressCheck } from '../lib/progressCheck';
 import type { Protocol } from '../lib/protocol';
@@ -17,9 +14,7 @@ import './formsV3.css';
 interface Props {
   db: MpflDb;
   protocol: Protocol;
-  /** The calendar date of today, as year-month-day. The app gives it from the clock. */
   today: string;
-  /** Opens "Update my plan". */
   onUpdate: () => void;
   onBack: () => void;
 }
@@ -31,7 +26,6 @@ export function CheckProgress({ db, protocol, today, onUpdate, onBack }: Props) 
 
   useEffect(() => {
     let alive = true;
-    // Reads only. A stored row that fails the schema is left out and is not deleted.
     Promise.all([db.sessions.toArray(), loadGeneratorInputs(db)]).then(
       ([rows, inputs]) => alive && setLoaded({ state: 'ready', check: checkProgress({ sessions: readValidRows(rows).rows, inputs, protocol, today }) }),
       () => alive && setLoaded({ state: 'error' }),
@@ -56,7 +50,6 @@ export function CheckProgress({ db, protocol, today, onUpdate, onBack }: Props) 
   );
 
   if (loaded.state !== 'ready') {
-    // The same tree as the ready screen (section, columns, first column), so the heading keeps its element when the data arrives.
     return (
       <section aria-labelledby="check-title" className="v3 v3-screen v2-screens v2-check">
         <div className="v3-cols">
@@ -86,7 +79,6 @@ export function CheckProgress({ db, protocol, today, onUpdate, onBack }: Props) 
   const { check } = loaded;
   const held = check.events.length > 0;
   const [counted, more] = [check.rows.filter((r) => r.type === 'measured'), check.rows.filter((r) => r.type !== 'measured')];
-  // In the list of what the app can check, a line that an earlier row already shows (the peak angle, the camera error) shows once.
   const shown = new Set<string>();
   const rowView = (row: ProgressCheck['rows'][number], chip: boolean) => {
     const lines = chip ? row.lines : row.lines.filter((line) => !shown.has(line) && shown.add(line));

@@ -19,12 +19,9 @@ const MARGIN = { top: 12, right: 28, bottom: 36, left: 40 };
 
 export interface ChartPoint {
   label: string;
-  /** The time of the point in milliseconds. The line charts place the point by this number. */
   t: number;
   value: number | null;
-  /** The value minus and plus the camera error of that session. Only angle charts have it. null when the value is missing. */
   band?: [number, number] | null;
-  /** The camera error of that session, in degrees. Only angle charts have it. */
   margin?: number;
 }
 export interface ChartSeries {
@@ -32,12 +29,9 @@ export interface ChartSeries {
   kind: 'line' | 'bar';
   yLabel: string;
   yDomain: [number, number | 'auto'];
-  /** Fixed tick values. Without it the axis picks them. */
   yTicks?: number[];
   whenHeader: string;
-  /** What one point is, for the line under the title. */
   noun: { one: string; many: string };
-  /** An angle chart carries the band of the camera error. */
   angle: boolean;
   data: ChartPoint[];
 }
@@ -45,13 +39,10 @@ export interface ChartSeries {
 const SESSIONS = { one: 'session', many: 'sessions' };
 const DAYS = { one: 'day', many: 'days' };
 
-/** The top of a value axis, so that three ticks (0, middle, top) land on whole numbers. */
 const axisTop = (highest: number, step: number) => Math.max(step, Math.ceil(highest / step) * step);
 const threeTicks = (top: number) => [0, top / 2, top];
 const known = (values: (number | null)[]) => values.filter((v): v is number => v !== null);
 
-/** What the charts draw. The values are the ones of the series, so the table can show the same numbers.
- *  `sessions` gives the camera error that each session stored, for the band of an angle chart. */
 export function chartSeries(series: ProgressSeries, sessions: readonly SessionRecord[] = []): ChartSeries[] {
   const peaks = series.peakFlexion.map<ChartSeries>((s) => {
     const data = s.points.map<ChartPoint>((p) => {
@@ -89,7 +80,6 @@ export function chartSeries(series: ProgressSeries, sessions: readonly SessionRe
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** "2026-11-08" as "8 Nov". With the year, "8 Nov 2026". */
 const dayText = (iso: string, year = false) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const [y, m, d] = iso.split('-');
@@ -97,7 +87,6 @@ const dayText = (iso: string, year = false) => {
 };
 
 const PAD_MIN_MS = 2 * 60_000;
-/** The width of the plot in pixels, and the width that one tick label needs. */
 export const PLOT_PX = 412;
 export const LABEL_PX = 44;
 /**
@@ -114,20 +103,15 @@ export function timeAxis(times: number[], plotPx = PLOT_PX): { domain: [number, 
   const pad = oneDay ? Math.max((last - first) * 0.15, PAD_MIN_MS) : 0;
   const domain: [number, number] = [first - pad, last + pad];
   const x = (v: number) => ((v - domain[0]) / (domain[1] - domain[0])) * plotPx;
-  // One tick for each readable label: the first stays, a later tick needs a distinct label and room for it.
   const ticks: number[] = [];
   for (const v of [first, last]) if (ticks.length === 0 || (format(v) !== format(ticks[ticks.length - 1] as number) && x(v) - x(ticks[ticks.length - 1] as number) >= LABEL_PX)) ticks.push(v);
   return { domain, ticks, format, title: oneDay ? 'Time (UTC)' : 'Date' };
 }
 
-/** A number for display in whole degrees, as the Summary shows it, so a raw value like 141.1 shows as 141. A value that is not a number gives an empty text.
- *  The stored value and the export keep their digits. */
 export const roundWhole = (n: number): string => (Number.isFinite(n) ? String(Math.round(n)) : '');
 
-/** The text of a table row for display. The numbers inside it show as whole numbers. */
 const shown = (text: string) => (/NaN|Infinity|undefined/.test(text) ? 'No value' : text).replace(/-?\d+\.\d+/g, (m) => roundWhole(Number(m)));
 
-/** The camera errors that the sessions stored: "9", or "6 to 9". */
 function marginText(data: ChartPoint[]): string {
   const margins = data.flatMap((d) => (d.margin === undefined ? [] : [d.margin]));
   const low = Math.min(...margins);
@@ -146,7 +130,6 @@ export function WhenCell({ when }: { when: string }) {
   );
 }
 
-/** Facts only: how many values, the lowest, the highest and the last. No word about a trend. */
 function summaryText(rows: TableRow[]): string {
   const known = rows.filter((r) => r.value !== null);
   if (known.length === 0) return 'No values.';
@@ -154,7 +137,6 @@ function summaryText(rows: TableRow[]): string {
   return `${known.length} ${known.length === 1 ? 'value' : 'values'}. Lowest ${shown(byValue[0]!.valueText)}. Highest ${shown(byValue[byValue.length - 1]!.valueText)}. Last ${shown(known[known.length - 1]!.valueText)}.`;
 }
 
-/** A table box that a keyboard user can scroll. A long table keeps a height limit. A short table (natural) shows every row. */
 export function TableScroll({ label, natural = false, children }: { label: string; natural?: boolean; children: ReactNode }) {
   return (
     <div className={natural ? 'table-scroll table-scroll--natural' : 'table-scroll'} role="region" aria-label={label} tabIndex={0}>
@@ -168,7 +150,6 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   const [picked, setPicked] = useState<number | null>(null);
   const titleId = `${id}-title`;
   const summaryId = `${id}-summary`;
-  // No value at all: the title and one line, with no plot frame and no table.
   if (rows.every((r) => r.value === null)) {
     return (
       <section className="dash-chart" aria-labelledby={titleId}>
@@ -181,8 +162,6 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   }
   const labels = chart.data.map((d) => d.label);
   const ends = [...new Set([labels[0], labels[labels.length - 1]])].filter((l): l is string => l !== undefined);
-  // A line chart places each point by its time, so a gap of 24 days looks 24 times wider than a gap of 1 day.
-  // The reps chart has one bar for each day that has a session, so its axis says so.
   const times = chart.data.map((d) => d.t).filter(Number.isFinite);
   const axis = timeAxis(times);
   const xAxis =
@@ -192,7 +171,6 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
       <XAxis dataKey="label" ticks={ends} tickFormatter={(v: string) => dayText(v)} interval={0} label={{ value: 'Days with sessions', position: 'insideBottom', offset: -22 }} />
     );
   const yAxis = <YAxis domain={chart.yDomain} ticks={chart.yTicks} allowDecimals={false} label={{ value: chart.yLabel, angle: -90, position: 'insideLeft', offset: 8 }} />;
-  // A tap on the chart picks one point. Before a tap, the read-out shows the last value.
   const lastIndex = rows.reduce((at, r, i) => (r.value !== null ? i : at), -1);
   const pickedRow = picked !== null && rows[picked]?.value != null ? picked : lastIndex;
   const lastKnown = pickedRow >= 0 ? rows[pickedRow] : undefined;
@@ -239,7 +217,6 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
       <p id={summaryId} className="dash-note">
         {summaryText(rows)}
       </p>
-      {/* The tap is an extra way to read one value. The table below the chart holds every value for a keyboard or a screen reader. */}
       <div className="dash-chart-box" role="img" aria-labelledby={titleId} aria-describedby={summaryId} onClick={onPick}>
         {chart.kind === 'line' ? (
           <ComposedChart {...common}>
@@ -298,11 +275,8 @@ function ChartBlock({ chart, rows }: { chart: ChartSeries; rows: TableRow[] }) {
   );
 }
 
-/** Said in place of a chart for the straight leg raise. No number, no chart. The number stays in the record, the export and the care team view. */
 export const SLR_NOT_DRAWN = 'The angle at the top of a straight leg raise is saved for your care team. The app does not draw it.';
 
-/** The charts with their tables, with no heading of their own. The care team view uses this part.
- *  `slrNote` puts one plain line where a straight leg raise chart would be (after the peak bend charts). Your sessions sets it. */
 export function DashboardCharts({ sessions, slrNote = false }: { sessions: readonly SessionRecord[]; slrNote?: boolean }) {
   const series = buildProgressSeries(sessions);
   const rows = toTableRows(series);
@@ -323,10 +297,8 @@ const exerciseName = (kind: string) => (Object.hasOwn(EXERCISE_NAMES, kind) ? EX
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const isDay = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso);
 
-/** The numbers above the charts. Every value comes from the stored sessions. No total and no word about a trend. */
 function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   const ordered = sortByDate(sessions);
-  // The straight leg raise has no angle chart, so its peak is not the last peak either.
   const lastPeak = [...ordered].reverse().find((x) => hasAngleChart(x.exercise) && typeof x.peakFlexion === 'number' && roundWhole(x.peakFlexion) !== '');
   const days = ordered.map((x) => x.date.slice(0, 10)).filter(isDay);
   const first = days[0];
@@ -379,7 +351,6 @@ function StatStrip({ sessions }: { sessions: readonly SessionRecord[] }) {
   );
 }
 
-/** One plain line for each exercise that the person timed, from its last session. No running total. */
 function HoldLines({ sessions }: { sessions: readonly SessionRecord[] }) {
   const lines = holdLines(sessions);
   if (lines.length === 0) return null;
@@ -397,7 +368,6 @@ function HoldLines({ sessions }: { sessions: readonly SessionRecord[] }) {
 interface Props {
   sessions: readonly SessionRecord[];
   title?: string;
-  /** The number of stored rows that failed the schema and are left out. The line shows only when it is more than 0. */
   skipped?: number;
   onBack: () => void;
 }

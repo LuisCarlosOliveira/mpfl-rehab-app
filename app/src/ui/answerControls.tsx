@@ -1,5 +1,3 @@
-// The answer controls that the questions share: a radio group of cards, the limit question, the swelling question
-// and the red-flag tick list. Onboarding and "Update my plan" use them, so the two screens ask in the same way.
 import { useState } from 'react';
 import { limitProblem, surgeryDateFromParts } from '../lib/onboarding';
 import { surgeryDateWords } from '../lib/planView';
@@ -18,9 +16,7 @@ export interface Choice {
 interface GroupProps {
   /** The radio group name. It must be different for each question on one screen. */
   name: string;
-  /** The question. It is the visible legend, so a screen reader reads it once. */
   legend: string;
-  /** True puts a short list of answers (2 or 3) side by side as a segmented choice. Four or more answers, or long answers, stay one under the other. */
   row?: boolean;
   value: string | null;
   choices: readonly Choice[];
@@ -48,7 +44,6 @@ export function SurgeryDateField({ value, today, onChange }: { value: string; to
   const [parts, setParts] = useState(() => partsOf(value));
   const [yearLeft, setYearLeft] = useState(false);
   const { iso, problem } = surgeryDateFromParts(parts.day, parts.month, parts.year, today);
-  // A value from outside (for example the stored date that loads late) replaces the typed parts. The empty value keeps them.
   const [seen, setSeen] = useState(value);
   if (value !== seen) {
     setSeen(value);
@@ -59,7 +54,6 @@ export function SurgeryDateField({ value, today, onChange }: { value: string; to
     setParts(next);
     onChange(surgeryDateFromParts(next.day, next.month, next.year, today).iso ?? '');
   };
-  // While the year is still being typed, 202 is not an error yet. A 4-digit year or a left year field shows the message.
   const shown = problem !== null && (parts.year.trim().length >= 4 || yearLeft || problem !== 'Enter a real date') ? problem : null;
   const words = iso === null ? null : surgeryDateWords(iso, today);
   const describedBy = shown !== null ? 'surgery-date-problem' : words !== null ? 'surgery-date-words' : undefined;
@@ -103,7 +97,6 @@ export function SurgeryDateField({ value, today, onChange }: { value: string; to
   );
 }
 
-/** The three questions of the next exercises. Onboarding asks the same words (TITLES in Onboarding.tsx). A test pins the two to each other. */
 export const GATE_QUESTIONS = {
   walking: 'Do you walk without crutches?',
   legRaise: 'Can you lift your leg with a straight knee, with no bend in the knee while the leg is up?',
@@ -135,7 +128,6 @@ interface LimitProps {
   degrees: string;
   onKind: (kind: LimitKind) => void;
   onDegrees: (text: string) => void;
-  /** The question. It is the visible legend. */
   legend: string;
 }
 
@@ -182,7 +174,6 @@ const GROUPS: { id: RedFlagGroup; legend: string; icon: IconName }[] = [
   { id: 'care-team', legend: 'Contact your care team if any of these is true', icon: 'phone' },
 ];
 
-/** The same tick list as the check before an exercise (RED_FLAGS). A tick is an answer for the generator. It blocks nothing here. */
 export function RedFlagChecklist({ ticked, onToggle }: { ticked: Record<string, boolean>; onToggle: (id: string, on: boolean) => void }) {
   return (
     <div className="v3-flags">

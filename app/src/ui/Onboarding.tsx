@@ -1,6 +1,3 @@
-// "Create my plan": the questions of the protocol generator (docs/protocol-generator-design.md section 2).
-// The questions run in 3 groups, one group for each screen. The referral questions come first. The answers stay in this component.
-// Nothing is saved here. The generator runs only when the person presses "Make my plan", and it saves nothing.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import {
   earlyReferral, emptyAnswers, fromInputs, GROUP_IDS, groupAnswered, groupOf, limitNumber, stepsFor, toInputs,
@@ -18,17 +15,13 @@ import './screensV2.css';
 import './formsV3.css';
 
 interface Props {
-  /** The calendar date of today, as year-month-day. The app gives it from the clock. */
   today: string;
-  /** Earlier answers. The screen then opens on the summary, so the person can change one. */
   initial?: GeneratorInputs | null;
-  /** The shell calls this when the Back button of the browser is pressed. It does what the Back button of the screen does and returns true. On the first question it returns false, and the shell leaves the questions. */
   backRef?: MutableRefObject<(() => boolean) | null>;
   onDone: (draft: PlanDraft) => void;
   onCancel: () => void;
 }
 
-/** The question texts. The date question and the pain and swelling questions have their own legends in their controls. */
 const TITLES = {
   writtenPlan: 'Did your care team give you a written rehab plan?',
   procedure: 'Which operation did you have?',
@@ -45,7 +38,6 @@ const TITLES = {
   seatedHold: GATE_QUESTIONS.seatedHold,
 } as const;
 
-/** The page of each group: the heading, the line under it and the label of the button that goes on. */
 const GROUP_PAGES: Record<GroupId, { title: string; intro: string; next: string }> = {
   about: { title: 'You and your surgery', intro: 'The app keeps your answers on this device.', next: 'Continue to your surgeon' },
   surgeon: { title: 'Your surgeon', intro: 'Use what your surgeon or physiotherapist told you.', next: 'Continue to today' },
@@ -105,7 +97,6 @@ const SWELLING_TEXT = { none: 'No swelling', some: 'Some swelling', more: 'More 
 
 const word = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'no' ? 'No' : 'I do not know');
 
-/** The answer of one step as a short line for the summary. */
 function valueText(step: Exclude<StepId, 'summary'>, a: Answers, today: string): string {
   switch (step) {
     case 'writtenPlan': case 'firstSurgery': case 'specialRules':
@@ -131,7 +122,6 @@ function valueText(step: Exclude<StepId, 'summary'>, a: Answers, today: string):
 export function Onboarding({ today, initial = null, backRef, onDone, onCancel }: Props) {
   const [answers, setAnswers] = useState<Answers>(() => (initial ? fromInputs(initial, today) : emptyAnswers()));
   const [step, setStep] = useState<GroupId | 'summary'>(initial ? 'summary' : 'about');
-  // After Change on the summary, Continue goes back to the summary. A group with a new open question that the change opens comes first.
   const [fromSummary, setFromSummary] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
@@ -148,7 +138,6 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
   const set = (patch: Partial<Answers>) => setAnswers((a) => ({ ...a, ...patch }));
 
   function goNext() {
-    // A referral can come from the first 2 groups: the 6 referral questions, and the date of surgery.
     if (step === 'about' || step === 'surgeon') {
       const referral = earlyReferral(answers, today);
       if (referral) {
@@ -173,7 +162,6 @@ export function Onboarding({ today, initial = null, backRef, onDone, onCancel }:
     else setStep(GROUP_IDS[index - 1] as GroupId);
   }
 
-  // The Back button of the browser goes one question back, with the answers kept. The ref clears when the screen goes.
   useEffect(() => {
     if (!backRef) return;
     backRef.current = () => {

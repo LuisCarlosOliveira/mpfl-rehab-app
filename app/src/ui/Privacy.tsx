@@ -4,7 +4,6 @@ import { markPrivacyNoticeSeen } from '../lib/storage';
 import { Icon, type IconName } from './Icon';
 import './screensV2.css';
 
-/** The first sentence is the bold line of a row. The rest is the grey line. A text with one sentence has an empty grey line. */
 function splitFirst(text: string): [string, string] {
   const at = text.search(/[.!?]\s/);
   return at < 0 ? [text, ''] : [text.slice(0, at + 1), text.slice(at + 2)];
@@ -44,7 +43,6 @@ export function Privacy({ onDone }: { onDone: () => void }) {
           );
         })}
       </ul>
-      {/* A fixed same-origin link. The text and the target never come from file data (NFR10). The file is in public/. */}
       <p className="mt">
         <a className="tap-link" href="/THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener noreferrer">
           Third-party software notices (opens in a new tab)
