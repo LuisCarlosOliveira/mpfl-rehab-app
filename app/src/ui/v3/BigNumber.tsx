@@ -1,5 +1,3 @@
-// One live number with its label, its unit and an optional note. The size is fluid and the box never grows past its column.
-// A null value shows "--" and the reason in words, and no unit, so a blank is not read as zero.
 import { useId, type ComponentProps } from 'react';
 import './parts.css';
 
@@ -10,7 +8,6 @@ interface Props {
   note?: string;
   tone?: 'ink' | 'primary';
   missingReason?: string;
-  /** Props for the line that holds the number, for example a ref and tabIndex to take the focus, aria-live or a test id. */
   valueProps?: Omit<ComponentProps<'p'>, 'className' | 'children'> & { 'data-testid'?: string };
 }
 

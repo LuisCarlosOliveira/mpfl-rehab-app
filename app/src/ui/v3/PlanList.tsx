@@ -1,6 +1,3 @@
-// Today's plan as a list with a position mark. The status of a row comes from the position of currentId:
-// rows before it are done, the row itself is next, rows after it are later. currentId null means every row is done.
-// The current row has aria-current="step". The children show only in the current row (for example the Start button).
 import type { ReactNode } from 'react';
 import { Icon } from '../Icon';
 import './parts.css';
@@ -9,7 +6,6 @@ export interface PlanItem {
   id: string;
   name: string;
   dose: string;
-  /** One more line under the dose, for example what the camera does for this exercise. */
   note?: string;
 }
 
@@ -22,14 +18,13 @@ interface Props {
   currentId: string | null;
   label?: string;
   children?: ReactNode;
-  /** A control for a row, by item id. It shows in that row in any status. */
   actions?: Readonly<Record<string, ReactNode>>;
 }
 
 export function PlanList({ items, currentId, label = "Today's plan", children, actions }: Props) {
   if (items.length === 0) return <p className="v3-empty">No exercises in the plan.</p>;
   const at = currentId === null ? items.length : items.findIndex((i) => i.id === currentId);
-  const position = at === -1 ? items.length + 1 : at; // an unknown id marks nothing as current
+  const position = at === -1 ? items.length + 1 : at;
   const status = (i: number): Status => (i < position ? 'done' : i === position ? 'next' : 'later');
   return (
     <ol className="v3-plan" aria-label={label}>

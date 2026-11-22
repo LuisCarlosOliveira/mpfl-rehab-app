@@ -1,4 +1,3 @@
-// A choice of two or three options in one row (leg, camera side, swelling). For four or more options use RadioList.
 import { ChoiceGroup, ChoiceInput, type ChoiceProps } from './ChoiceGroup';
 
 export function SegmentedChoice<T extends string>({ name, legend, value, options, onChange, children }: ChoiceProps<T>) {
