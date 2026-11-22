@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { z } from 'zod';
-import { MARGIN_SOURCE } from '../margin';
+import { LEGACY_MARGIN_SOURCES, MARGIN_SOURCE_IDS } from '../margin';
 import { PLAN_EXERCISE_KINDS, protocolIdSchema } from '../protocol/schema';
 import { loadProtocol, type LoadResult, type Mode } from '../protocol';
 import { inputsSchema } from '../protocolGen/inputs';
@@ -10,11 +10,10 @@ const counter = z.number().int().min(0).max(100000);
 
 // A1-3: the margin source is a fixed text, not free text (FR14). It lists the two values that older versions wrote
 // (git history of margin.ts) and the value of this version. Any other value is refused, so no free text enters the export.
-const MARGIN_SOURCES = [
-  'start value, UNVERIFIED for the lite model (Okuno 2026, heavy model, still photos)',
-  'start value, UNVERIFIED for the lite model (Okuno 2026, highest-complexity model, tablet, healthy adults)',
-  MARGIN_SOURCE,
-] as const;
+const marginSource = z.preprocess(
+  (v) => (typeof v === 'string' && Object.hasOwn(LEGACY_MARGIN_SOURCES, v) ? LEGACY_MARGIN_SOURCES[v] : v),
+  z.enum(MARGIN_SOURCE_IDS),
+);
 
 export const REPORT_KEYS = ['ankle-range', 'lift-angle', 'knee-angle-top'] as const;
 export type ReportKey = (typeof REPORT_KEYS)[number];
@@ -28,7 +27,7 @@ export const sessionSchema = z.strictObject({
   holdSeconds: z.number().min(0).max(3600).nullable(),
   topFlexion: z.number().min(0).max(180).nullable(), // estimated angle at the top of the leg raise
   marginDeg: z.number().min(0).max(45), // the camera error margin used for this session
-  marginSource: z.enum(MARGIN_SOURCES), // where that margin comes from, so old sessions stay readable
+  marginSource,
   view: z.enum(['side', 'front']),
   nearLimit: counter,
   overLimit: counter,

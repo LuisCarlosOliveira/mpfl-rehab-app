@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { MARGIN_SOURCE } from '../src/lib/margin';
+import { MARGIN_SOURCE, MARGIN_SOURCE_TEXT } from '../src/lib/margin';
 import { protocolSchema, type Protocol } from '../src/lib/protocol/schema';
 import { allProgressTexts, checkProgress, localDayOf, sessionsSince, type ProgressCheck, type ProgressInput } from '../src/lib/progressCheck';
 import { STATE } from '../src/lib/reviewSummary';
@@ -138,7 +138,7 @@ describe('rows', () => {
     expect(byId.limit).toMatchObject({ value: 90, unit: 'degrees', label: 'Limit in your plan' });
     expect(byId.margin).toMatchObject({ value: 9, unit: 'degrees' });
     expect(byId.s1).toMatchObject({ value: 110, unit: 'degrees' });
-    expect(byId.margin?.note).toContain(MARGIN_SOURCE);
+    expect(byId.margin?.note).toContain(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]);
     expect(checkProgress(input({ sessions: [] })).numbers).toEqual([]);
     expect(checkProgress(input({ protocol: plan(null) })).numbers.map((n) => n.id)).not.toContain('limit');
   });
@@ -155,7 +155,7 @@ describe('rows', () => {
     expect(e1(125).state).toBe('above');
     expect(e1(84).lines.join(' ')).toContain('S1, audit row V100 (EXACT)');
     expect(e1(84).lines.join(' ')).toContain('estimated angle, not a medical measurement');
-    expect(e1(84).lines.join(' ')).toContain(MARGIN_SOURCE);
+    expect(e1(84).lines.join(' ')).toContain(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]);
   });
   it('says "No heel slide done yet" when other sessions exist but no heel slide, and "Not enough data" for a heel slide with no angle', () => {
     const other = checkProgress(input({ sessions: [session({ exercise: 'straight-leg-raise', peakFlexion: null })] }));

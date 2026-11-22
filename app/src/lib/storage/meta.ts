@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import type { Side } from '../angle';
+import { PLAN_EXERCISE_KINDS, type PlanExercise } from '../protocol/schema';
 
 const PSEUDO_KEY = 'mpfl.pseudoId';
 const EXPORT_KEY = 'mpfl.lastExport';
@@ -39,8 +40,8 @@ function write(key: string, value: string): boolean {
 function newId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   const b = crypto.getRandomValues(new Uint8Array(16));
-  b[6] = (b[6]! & 0x0f) | 0x40;
-  b[8] = (b[8]! & 0x3f) | 0x80;
+  b[6] = ((b[6] ?? 0) & 0x0f) | 0x40;
+  b[8] = ((b[8] ?? 0) & 0x3f) | 0x80;
   const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
@@ -134,16 +135,16 @@ export function setLegPrefs(leg: Side, cameraSide: Side): void {
 }
 
 /** The exercises whose guide the person has seen in full. The next start shows the compact card. */
-export function getGuideSeen(): string[] {
+export function getGuideSeen(): PlanExercise['kind'][] {
   try {
     const list: unknown = JSON.parse(read(GUIDE_SEEN_KEY) ?? '[]');
-    return Array.isArray(list) ? list.filter((k): k is string => typeof k === 'string') : [];
+    return Array.isArray(list) ? list.filter((k): k is PlanExercise['kind'] => (PLAN_EXERCISE_KINDS as readonly unknown[]).includes(k)) : [];
   } catch {
     return [];
   }
 }
 
-export function markGuideSeen(kind: string): void {
+export function markGuideSeen(kind: PlanExercise['kind']): void {
   const seen = getGuideSeen();
   if (!seen.includes(kind)) write(GUIDE_SEEN_KEY, JSON.stringify([...seen, kind]));
 }

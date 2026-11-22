@@ -2,7 +2,7 @@
 // The original tests check examples. These check rules that must hold for any input.
 import { flexion, kneeAngle, type Landmark } from '../src/lib/angle';
 import { holdInitial, holdStep, repsInitial, repsStep, type RepsConfig } from '../src/lib/counters';
-import { MARGIN_DEG, MARGIN_SOURCE, classifyAgainstLimit } from '../src/lib/margin';
+import { MARGIN_DEG, MARGIN_SOURCE, MARGIN_SOURCE_TEXT, classifyAgainstLimit } from '../src/lib/margin';
 import { OneEuroFilter } from '../src/lib/oneEuro';
 import { PAIN_FLOOR, evaluateSession } from '../src/lib/safety';
 import { gauss, rng } from './helpers/leg';
@@ -193,8 +193,8 @@ describe('classifyAgainstLimit and the margin', () => {
   });
 
   it('does not claim a source that the knowledge base did not verify', () => {
-    expect(MARGIN_SOURCE).not.toMatch(/still photos/i);
-    expect(MARGIN_SOURCE).toMatch(/UNVERIFIED/);
+    expect(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]).not.toMatch(/still photos/i);
+    expect(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]).toMatch(/UNVERIFIED/);
   });
 });
 

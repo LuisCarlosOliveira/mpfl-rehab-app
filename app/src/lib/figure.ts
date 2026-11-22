@@ -517,6 +517,8 @@ function insideWedge(b: Box, arc: Pick<Figure['kneeArc'], 'center' | 'fromDeg' |
   });
 }
 
+const seg = (a: Point, b: Point, r: number): Shape => ({ k: 'seg', a, b, r });
+
 /** The arc of the knee as short segments. A label can sit inside the arc, but it must not touch the stroke. */
 function arcSegments(arc: Pick<Figure['kneeArc'], 'center' | 'fromDeg' | 'toDeg' | 'radius'>): Shape[] {
   const delta = ((arc.toDeg - arc.fromDeg + 540) % 360) - 180;
@@ -532,9 +534,9 @@ export function obstaclesOf(f: Pick<Figure, 'limbs' | 'points' | 'head' | 'ghost
     { k: 'seg', a: f.arrow.from, b: f.arrow.to, r: 1.5 },
     { k: 'circle', c: f.arrow.to, r: 5 },
     { k: 'circle', c: f.kneeRing.center, r: f.kneeRing.r },
-    ...(f.kneeArc.flexionDeg > 0 ? [...arcSegments(f.kneeArc), { k: 'seg', a: f.kneeArc.reference.from, b: f.kneeArc.reference.to, r: 1 } as Shape] : []),
+    ...(f.kneeArc.flexionDeg > 0 ? [...arcSegments(f.kneeArc), seg(f.kneeArc.reference.from, f.kneeArc.reference.to, 1)] : []),
     ...f.surface.rects.map((r): Shape => ({ k: 'rect', box: r })),
-    ...(f.floor ? [{ k: 'seg', a: { x: FLOOR_EDGE, y: f.floor.y }, b: { x: -FLOOR_EDGE, y: f.floor.y }, r: 0.75 } as Shape] : []),
+    ...(f.floor ? [seg({ x: FLOOR_EDGE, y: f.floor.y }, { x: -FLOOR_EDGE, y: f.floor.y }, 0.75)] : []),
   ];
 }
 

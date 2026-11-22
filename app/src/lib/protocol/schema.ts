@@ -136,8 +136,13 @@ const clinicianCheck = z.strictObject({
 
 export const reviewCriterionSchema = z.discriminatedUnion('kind', [numericCriterion, swellingCriterion, clinicianCheck]);
 
+export const phaseNumber = z.number().int().min(1).max(10).brand<'Phase'>();
+export type Phase = z.infer<typeof phaseNumber>;
+export const PHASE_FIRST = phaseNumber.parse(1);
+export const PHASE_SECOND = phaseNumber.parse(2);
+
 export const phaseSchema = z.strictObject({
-  id: z.number().int().min(1).max(10),
+  id: phaseNumber,
   name: text(60),
   exercises: z.array(planExerciseSchema).max(10),
   homeExercises: z.array(homeExerciseSchema).max(10).optional(),
@@ -179,7 +184,7 @@ export const protocolSchema = z.strictObject({
   authoredBy: text(100).optional(),
   approvedOn: z.iso.date().optional(),
   generated: generatedSchema.optional(),
-  activePhase: z.number().int().min(1).max(10),
+  activePhase: phaseNumber,
   painPauseThreshold: z.number().int().min(0).max(10).optional(),
   phases: z.array(phaseSchema).min(1).max(10),
   surgeon: surgeonSchema,

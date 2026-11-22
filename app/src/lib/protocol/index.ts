@@ -2,5 +2,5 @@ export { loadProtocol, normalizeLegacy, surgeonField, MAX_FILE_BYTES } from './l
 export type { LoadResult, Mode, SurgeonValue } from './loader';
 export { createProtocolStore } from './store';
 export type { ProtocolStore } from './store';
-export { protocolSchema, EXERCISE_KINDS, PLAN_EXERCISE_KINDS, NEW_EXERCISE_KINDS, HOME_EXERCISE_KINDS, SURGEON_FIELDS } from './schema';
-export type { Protocol, Exercise, PlanExercise, HomeExercise, SurgeonField } from './schema';
+export { protocolSchema, phaseNumber, PHASE_FIRST, PHASE_SECOND, EXERCISE_KINDS, PLAN_EXERCISE_KINDS, NEW_EXERCISE_KINDS, HOME_EXERCISE_KINDS, SURGEON_FIELDS } from './schema';
+export type { Phase, Protocol, Exercise, PlanExercise, HomeExercise, SurgeonField } from './schema';

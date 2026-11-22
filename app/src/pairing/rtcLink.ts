@@ -119,7 +119,8 @@ export function createHostLink(deps: LinkDeps = {}): HostLink {
       else if (state.kind === 'paired') clearInterval(ticker); // no time limit after pairing
       stateListeners.forEach((l) => l(state));
     }
-    if (step.landmarks) landmarkListeners.forEach((l) => l(step.landmarks!));
+    const { landmarks } = step;
+    if (landmarks) landmarkListeners.forEach((l) => l(landmarks));
   }
 
   return {

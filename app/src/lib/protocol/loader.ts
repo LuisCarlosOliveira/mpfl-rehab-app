@@ -93,6 +93,8 @@ function countPlaceholders(root: unknown): number {
 
 const isRecord = (v: unknown): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+const omitKey = <T extends object, K extends keyof T>(source: T, key: K): Omit<T, K> => Object.fromEntries(Object.entries(source).filter(([name]) => name !== key)) as Omit<T, K>;
+
 /**
  * LEGACY input. A file from before exercise monitoring lists quad-set, gluteal-set, ankle-pump, leg-raise-side and leg-raise-back
  * in `homeExercises`. They are camera exercises now, so each one moves into `exercises` with its sets, reps and source.
@@ -107,7 +109,7 @@ export function normalizeLegacy(data: unknown): unknown {
     const held = new Set(phase.exercises.filter(isRecord).map((e) => e.kind));
     const moved = phase.homeExercises.filter((x) => moves(x) && !held.has((x as Record<string, unknown>).kind));
     const left = phase.homeExercises.filter((x) => !moves(x));
-    const { homeExercises: _legacy, ...rest } = phase; // eslint-disable-line @typescript-eslint/no-unused-vars
+    const rest = omitKey(phase, 'homeExercises');
     return left.length > 0 ? { ...rest, exercises: [...phase.exercises, ...moved], homeExercises: left } : { ...rest, exercises: [...phase.exercises, ...moved] };
   });
   return { ...data, phases };

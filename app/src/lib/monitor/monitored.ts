@@ -4,7 +4,7 @@ import { EXERCISE_KINDS, type Exercise, type PlanExercise } from '../protocol/sc
 import { specFor } from './registry';
 
 /** True when the registry holds a definition for this kind. Home shows Start only then. */
-export function isMonitored(kind: string): boolean {
+export function isMonitored(kind: PlanExercise['kind']): boolean {
   return specFor(kind) !== undefined;
 }
 

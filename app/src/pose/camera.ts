@@ -1,7 +1,7 @@
 // Camera access. Rules: NFR9 and the guardrails skill.
 // Video only (audio:false). The UI calls startCamera only after a button press.
 // All tracks stop on: explicit stop, visibilitychange to hidden, pagehide, and error.
-// The UI calls stopCamera (or stopOnLeave) on route change.
+// The UI calls stopCamera on route change.
 
 export type CameraErrorKind = 'permission-denied' | 'no-device' | 'other';
 
@@ -51,9 +51,6 @@ export function stopCamera(): void {
   active = null;
   stream?.getTracks().forEach((t) => t.stop());
 }
-
-/** Call from a route change or an unmount. Same effect as stopCamera. */
-export const stopOnLeave = stopCamera;
 
 export interface CameraOptions {
   /** One camera by id. It wins over `facingMode`. */

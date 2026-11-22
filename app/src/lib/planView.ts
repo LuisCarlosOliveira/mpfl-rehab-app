@@ -3,7 +3,7 @@
 
 import { contactReason } from './contactCard';
 import { specFor } from './monitor';
-import type { HomeExercise, PlanExercise, Protocol } from './protocol';
+import { PHASE_SECOND, type HomeExercise, type PlanExercise, type Protocol } from './protocol';
 import { DOSE_SHOWN, NOT_APPROVED, RULES, SOURCES, type GenerateResult, type GeneratorInputs, type Grade, type SourceId, type WhyEntry } from './protocolGen';
 import type { SessionRecord } from './storage';
 
@@ -226,7 +226,7 @@ const ADDED_REASON = (e: PlanExercise, next: Protocol): string => {
   if ((HOME_KINDS as readonly string[]).includes(e.kind)) return `published plans list it for this stage (${RULES.HOME.id})`;
   if (e.kind === 'mini-squat') return `you reported that you walk without crutches and lift your leg without the knee bending (${RULES.SQUAT_P2.id})`;
   if (e.kind === 'seated-extension-hold') return `you reported that your surgeon cleared it (${RULES.HOLD_P2.id})`;
-  if (e.maxFlexion === undefined && next.activePhase === 2) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
+  if (e.maxFlexion === undefined && next.activePhase === PHASE_SECOND) return `you do not know a limit, or you have none, and phase 2 allows it (${RULES.HEEL_P2_UNKNOWN.id})`;
   return `you gave a knee-bend limit from your surgeon (${RULES.HEEL.id})`;
 };
 const HOME_KINDS = Object.keys(HOME_NAMES);

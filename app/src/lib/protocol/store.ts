@@ -1,10 +1,10 @@
-import type { Protocol } from './schema';
+import type { Phase, Protocol } from './schema';
 
 type DeepReadonly<T> = T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;
 
 export interface ProtocolStore {
   readonly protocol: DeepReadonly<Protocol>;
-  readonly activePhase: number;
+  readonly activePhase: Phase;
 }
 
 function deepFreeze<T>(value: T): T {

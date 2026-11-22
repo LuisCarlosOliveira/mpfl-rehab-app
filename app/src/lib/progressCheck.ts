@@ -6,7 +6,7 @@
 // EXACT audit row of research/citation-audit.md. Where the guideline has no number, the row says so.
 // Every sentence of the output sits in T below, and allProgressTexts() lists them all.
 
-import { classifyAgainstLimit, MARGIN_SOURCE, type LimitState } from './margin';
+import { classifyAgainstLimit, MARGIN_SOURCE, MARGIN_SOURCE_TEXT, type LimitState } from './margin';
 import { contactReason } from './contactCard';
 import { hasAngleChart, sortByDate } from './progress';
 import { ANGLE, CHECK_TITLE, LAST_PLAN_WEEK, lastSessionLine, localDayOf, progressCard, sessionParts, weekLine, type SessionParts } from './progressHome';
@@ -190,7 +190,7 @@ export function allProgressTexts(): string[] {
   return [
     T.notApproved, T.week(8), T.noDate, T.phase1, T.phase2, T.clearance, T.week4, T.noPlan,
     T.gaveWay('2026-11-03'), T.pain('2026-11-04', 8), T.swelling('2026-11-05'), T.redFlag('2026-11-06'),
-    ...names.map((n) => T.peak(n, 84)), T.margin(9, MARGIN_SOURCE), T.cannot,
+    ...names.map((n) => T.peak(n, 84)), T.margin(9, MARGIN_SOURCE_TEXT[MARGIN_SOURCE]), T.cannot,
     STATE.notEnough,
     T.e1Title, T.e1None, T.e1Criterion, T.e1Passive, T.e1Surgeon(90),
     T.e2Title, T.e2Criterion,
@@ -200,7 +200,7 @@ export function allProgressTexts(): string[] {
     T.e9Title, ...names.map((n) => T.repsSets(n, '8, 8')), ...names.map((n) => T.reps(n, 10)), T.planDose(1, 10), T.planDose(2, 10), T.e9P2, T.noNumber(T.minReps),
     T.e10Title, T.noNumber(T.holdWhat), T.e10P2,
     T.e11Title, T.planLimit(90), T.noLimit,
-    ...names.map(T.peakLabel), T.limitLabel, T.limitNote, T.marginLabel, T.marginNote(MARGIN_SOURCE), T.s1Label, T.s1Note,
+    ...names.map(T.peakLabel), T.limitLabel, T.limitNote, T.marginLabel, T.marginNote(MARGIN_SOURCE_TEXT[MARGIN_SOURCE]), T.s1Label, T.s1Note,
     T.e12Title, T.e12Weeks, T.e12Cannot,
     ...Object.values(CHECK_SCREEN).flatMap((v) => (typeof v === 'string' ? [v] : Object.values(v))),
     weekHead(0), weekHead(2), weekHead(11), weekWords(2),
@@ -307,7 +307,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
   const heelSlideDone = sorted.some((s) => s.exercise === 'heel-slide');
   const e1: ProgressRow = lastHeelSlide && e1State
     ? row('E1', 'measured', T.e1Title, [
-      T.peak(lowerName('heel-slide'), Math.round(lastHeelSlide.peakFlexion as number)), T.margin(lastHeelSlide.marginDeg, lastHeelSlide.marginSource),
+      T.peak(lowerName('heel-slide'), Math.round(lastHeelSlide.peakFlexion as number)), T.margin(lastHeelSlide.marginDeg, MARGIN_SOURCE_TEXT[lastHeelSlide.marginSource]),
       T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : []),
     ], e1State)
     : row('E1', 'measured', T.e1Title, [heelSlideDone ? STATE.notEnough : T.e1None, T.e1Criterion, T.e1Passive, ...(surgeonDeg !== undefined && surgeonDeg < S1_FLEXION ? [T.e1Surgeon(surgeonDeg)] : [])]);
@@ -337,7 +337,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
       ? row('E11', 'measured', T.e11Title, [T.peak(lowerName(lastAngle.exercise), Math.round(lastAngle.peakFlexion as number)), T.noLimit])
       : row('E11', 'measured', T.e11Title, [
         T.peak(lowerName(lastAngle.exercise), Math.round(lastAngle.peakFlexion as number)), T.planLimit(limit),
-        T.margin(lastAngle.marginDeg, lastAngle.marginSource),
+        T.margin(lastAngle.marginDeg, MARGIN_SOURCE_TEXT[lastAngle.marginSource]),
       ], e11State);
 
   const rows: ProgressRow[] = [
@@ -359,7 +359,7 @@ export function checkProgress(input: ProgressInput): ProgressCheck {
   if (lastAngle) {
     numbers.push({ id: 'peak', label: T.peakLabel(lowerName(lastAngle.exercise)), value: Math.round(lastAngle.peakFlexion as number), unit: 'degrees', note: ANGLE });
     if (limit !== undefined) numbers.push({ id: 'limit', label: T.limitLabel, value: limit, unit: 'degrees', note: T.limitNote });
-    numbers.push({ id: 'margin', label: T.marginLabel, value: lastAngle.marginDeg, unit: 'degrees', note: T.marginNote(lastAngle.marginSource) });
+    numbers.push({ id: 'margin', label: T.marginLabel, value: lastAngle.marginDeg, unit: 'degrees', note: T.marginNote(MARGIN_SOURCE_TEXT[lastAngle.marginSource]) });
   }
   if (lastHeelSlide) {
     if (lastAngle?.exercise !== 'heel-slide') numbers.push({ id: 'heel-peak', label: T.peakLabel(lowerName('heel-slide')), value: Math.round(lastHeelSlide.peakFlexion as number), unit: 'degrees', note: ANGLE });

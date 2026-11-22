@@ -31,5 +31,12 @@ export function guideFor(kind: AnyGuideKind, legend: LegLegend = 'operated'): Gu
   const guide: Guide = { startPosition, legFacingCamera, handsAndSupport, range, speed, cameraMustSee };
   if (legend === 'operated') return guide;
   const own = (text: string) => text.replace(/operated (leg|side)/g, 'chosen $1');
-  return Object.fromEntries(Object.entries(guide).map(([key, text]) => [key, own(text)])) as unknown as Guide;
+  return {
+    startPosition: own(guide.startPosition),
+    legFacingCamera: own(guide.legFacingCamera),
+    handsAndSupport: own(guide.handsAndSupport),
+    range: own(guide.range),
+    speed: own(guide.speed),
+    cameraMustSee: own(guide.cameraMustSee),
+  };
 }
