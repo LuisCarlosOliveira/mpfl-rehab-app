@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 const PORT = 4173;
 const APP_PORT = 4174; // the real build in dist, for the specs that load the whole app
-const FLAG_ON_PORT = 4175; // the same app built with VITE_SELF_PROGRESSION=true, for the specs that move the phase forward
+const FLAG_ON_PORT = Number(process.env.E2E_FLAG_ON_PORT ?? 4175); // the same app built with VITE_SELF_PROGRESSION=true, for the specs that move the phase forward
 const fake = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'];
 
 export default defineConfig({

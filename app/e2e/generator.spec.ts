@@ -164,7 +164,7 @@ test('typing 29, 10 and 2026 stores 2026-10-29 and says it in words, and a click
   expect(inputs!.inputs).toMatchObject({ surgeryDate: '2026-10-29' });
 });
 
-const FLAG_ON_URL = 'http://127.0.0.1:4175'; // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
+const FLAG_ON_URL = `http://127.0.0.1:${process.env.E2E_FLAG_ON_PORT ?? 4175}`; // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
 
 async function moveClockAndAnswerNextStage(page: Page) {
   await page.clock.setFixedTime(new Date(Date.now() + 28 * 86_400_000));
@@ -186,7 +186,7 @@ test('with the default build (flag off), Update my plan shows no way to move the
   await toHomeWithPlan(page);
   const [before] = (await readStore(page, 'protocol')) as { raw: string }[];
   await moveClockAndAnswerNextStage(page);
-  await expectScreen(page, 'Confirm the change');
+  await expectScreen(page, 'Change held');
   await expect(page.getByText('Ask your care team about the next stage.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0);
   await press(page, 'Keep my plan');

@@ -100,7 +100,7 @@ test('a saved session is still there after a reload: Home, Your sessions and Che
 });
 
 test.describe('with the flag on', () => {
-test.use({ baseURL: 'http://127.0.0.1:4175' }); // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
+test.use({ baseURL: `http://127.0.0.1:${process.env.E2E_FLAG_ON_PORT ?? 4175}` }); // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
 test('a safety event since the plan date shows HOLD_EVENT, and Update my plan shows the hold with no way forward', async ({ page }) => {
   await toHomeWithPlan(page);
   await seedSession(page, { gaveWayPresses: 1 });
