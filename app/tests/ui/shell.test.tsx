@@ -1,18 +1,11 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Banners } from '../../src/ui/Banners';
-import { Brand, LoadingScreen } from '../../src/ui/Shell';
+import { LoadingScreen } from '../../src/ui/Shell';
 
 afterEach(cleanup);
 
 describe('Shell pieces', () => {
-  it('Brand shows the app name in a banner landmark and hides its mark', () => {
-    const { container } = render(<Brand />);
-    expect(screen.getByRole('banner')).toHaveTextContent('MPFL Rehab');
-    expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
-    expect(container.querySelector('[style]')).toBeNull();
-  });
-
   it('LoadingScreen keeps the heading "Loading" and hides the skeleton', () => {
     const { container } = render(<LoadingScreen />);
     expect(screen.getByRole('heading', { level: 1, name: 'Loading' })).toBeInTheDocument();

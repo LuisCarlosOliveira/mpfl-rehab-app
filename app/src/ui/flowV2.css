@@ -25,82 +25,25 @@
 .v2-home .exercise-list {
   gap: 0;
 }
-.v2-home .exercise-featured {
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    'icon text'
-    'go go';
-  align-items: start;
-  gap: var(--s-3) var(--s-4);
-  margin-bottom: var(--s-2);
-  padding: var(--s-5);
-  background: var(--primary-soft);
-  border: 0;
-  border-radius: var(--r-m);
-}
-.v2-home .exercise-featured .exercise-icon {
-  grid-area: icon;
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--r-s);
-}
-.v2-home .exercise-featured .exercise-body {
-  grid-area: text;
-}
-.v2-home .exercise-featured .exercise-go {
-  grid-area: go;
-}
-.v2-home .exercise-featured .exercise-figure {
-  display: none;
-}
-.v2-home .exercise-featured .exercise-name {
-  margin: 0 0 var(--s-2);
-  font-size: var(--step-3);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-}
-.v2-home .exercise-featured .chips {
-  flex-direction: column;
-  gap: 0;
-}
-.v2-home .exercise-featured .chip {
-  min-height: 1.75rem;
-  padding: 0;
-  background: transparent;
-  font-size: var(--step-0);
-  font-weight: 650;
-}
-.v2-home .exercise-featured .exercise-go .btn {
-  width: 100%;
-}
-.v2-home .exercise:not(.exercise-featured) {
+.v2-home .exercise {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--s-1) var(--s-3);
   padding: var(--s-3) 0;
 }
-.v2-home .exercise:not(.exercise-featured) .exercise-name {
+.v2-home .exercise .exercise-name {
   margin: 0 0 var(--s-1);
   font-size: var(--step-0);
   font-weight: 750;
 }
-.v2-home .exercise:not(.exercise-featured) .chips {
+.v2-home .exercise .chips {
   gap: 0 var(--s-3);
 }
-.v2-home .exercise:not(.exercise-featured) .chip {
+.v2-home .exercise .chip {
   min-height: 1.5rem;
   padding: 0;
   background: transparent;
   color: var(--muted);
   font-size: var(--step-m1);
-}
-.v2-home .exercise:not(.exercise-featured) .exercise-go {
-  grid-column: auto;
-}
-.v2-home .exercise:not(.exercise-featured) .exercise-go .btn {
-  width: auto;
-  min-width: 6rem;
-  border-radius: var(--r-full);
 }
 .v2-home .exercise-body,
 .v2-home .exercise-body .chip {
@@ -108,48 +51,13 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 39.99rem) {
-  .v2-home .exercise-featured,
-  .v2-home .exercise:not(.exercise-featured) {
+  .v2-home .exercise {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
   }
-  .v2-home .exercise-featured .exercise-icon {
-    flex: none;
-  }
   .v2-home .exercise-body {
     flex: 1 1 10rem;
-  }
-  .v2-home .exercise-featured .exercise-go {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
-  .v2-home .exercise-go .btn {
-    max-width: 100%;
-    padding-inline: var(--s-3);
-  }
-  .v2-home .exercise:not(.exercise-featured) .exercise-go {
-    flex: none;
-    align-self: center;
-  }
-}
-@media (min-width: 40rem) {
-  .v2-home .exercise-featured {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 15rem);
-    grid-template-areas:
-      'icon figure'
-      'text figure'
-      'go figure';
-  }
-  .v2-home .exercise-featured .exercise-figure {
-    display: block;
-    grid-area: figure;
-    align-self: center;
-    margin: 0;
-  }
-  .v2-home .exercise-featured .exercise-go .btn {
-    width: auto;
-    min-width: 14rem;
   }
 }
 .v2-home .facts .fact-row {
@@ -605,21 +513,6 @@
   }
 }
 
-.v2-nav .bottom-nav-item[aria-current='page']::before {
-  display: none;
-}
-.v2-nav .nav-ico {
-  display: grid;
-  place-items: center;
-  width: min(3.5rem, 100%);
-  height: 2rem;
-  border-radius: var(--r-full);
-}
-.v2-nav .bottom-nav-item[aria-current='page'] .nav-ico {
-  background: var(--ink);
-  color: var(--bg);
-}
-
 .v2-home .progress-row {
   margin-bottom: var(--s-4);
 }
@@ -629,26 +522,6 @@
   overflow-wrap: anywhere;
 }
 
-.v2-flow.plan-progress {
-  margin-bottom: var(--s-4);
-  display: grid;
-  gap: var(--s-2);
-}
-.v2-flow .plan-progress-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-1) var(--s-3);
-  margin: 0;
-}
-.v2-flow .plan-progress-count {
-  font-weight: 700;
-}
-.v2-home .session-start-card {
-  padding: var(--s-4);
-  background: var(--sunken);
-  border-radius: var(--r-s);
-}
 .v2-flow.v2-overview .overview-list {
   display: grid;
   gap: var(--s-5);
