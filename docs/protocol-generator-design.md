@@ -140,6 +140,8 @@ Upward changes (phase 2, a higher surgeon limit) sit behind the flag `VITE_SELF_
 
 Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
 
+Superseded 2026-11-22: the flag is off by default. Only the text `true` or `1` turns it on (see [clinical-limits](clinical-limits.md)).
+
 Proposed FR4 text: "The active phase comes only from the protocol field `activePhase`. The store is read-only and has no setter. A protocol changes only after an action of the person: a loaded file (FR1, FR29), or Confirm on a generated proposal (FR30, FR31). The generator in `src/lib/protocolGen/` is pure and never saves. Only `acceptProposal` in `src/lib/protocol/` saves a generated protocol. It needs a `PersonConfirmation` value that only the Confirm handler creates." AC: a type test shows that `PersonConfirmation` cannot be built outside `src/ui/ConfirmPlan.tsx`. An e2e test moves the clock forward and reloads, and the phase stays until Confirm. "Keep my current plan" leaves the stored bytes unchanged.
 
 Proposed additions to `app/scripts/phase-check.sh` (the existing patterns stay):
