@@ -139,7 +139,7 @@ Stored data:
 
 No video, image, Blob or data URL is stored. `eraseAll` deletes the database, recreates it, clears `localStorage`, deletes all Cache storage entries and unregisters service workers. The app registers none. No UI calls it yet, so FR16 cannot be tested in a browser. After an erase a new id is made on the next export. See S-09 for the over-wide `clear()`.
 
-`crypto.randomUUID` exists only in secure contexts (`https`, `localhost`, `127.0.0.1`). On an `http` LAN address it is `undefined` and `getPseudonymId` throws. Export is not wired to a screen yet, so there is no effect today (S-07).
+`crypto.randomUUID` exists only in secure contexts (`https`, `localhost`, `127.0.0.1`). On an `http` LAN address it is `undefined`. `getPseudonymId` then falls back to `crypto.getRandomValues` (`src/lib/storage/meta.ts`). The Data screen (`src/ui/DataScreen.tsx`) calls `exportJson` and `exportCsv` from `src/lib/storage/export.ts`, so the export reaches this code (S-07).
 
 ## Check 5: Safety rule bypasses
 

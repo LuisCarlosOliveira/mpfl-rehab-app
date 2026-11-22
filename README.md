@@ -23,7 +23,7 @@ This app is a research and evaluation prototype that counts reps and estimates t
 ## Safety and limits
 
 - The app shows an estimate of the knee angle. The error of the estimate is not measured. The app uses a start value of 9 degrees. It is UNVERIFIED. Follow the limit of your surgeon or physiotherapist, not the cues of the app.
-- The app gives no verdict and no score. It shows a measured number against a limit that the care team set.
+- The app gives no score and no praise. It shows a measured number against a limit that the care team set.
 - At a pain of 7 or more, or with swelling "more than before", the app stops the session. The button "Knee gave way or hurts" ends the session at any time.
 - A clinician must review every clinical value before a patient uses the app. The register is in [docs/clinical-limits.md](docs/clinical-limits.md). The first values to review are in [docs/clinician-first-review.md](docs/clinician-first-review.md).
 - A supervised session needs a clinician in the room. Read [docs/live-session-checklist.md](docs/live-session-checklist.md) first.
@@ -58,7 +58,7 @@ During an exercise, the app shows the measured number and the rep count. It show
 
 | Rule | How it is held |
 |---|---|
-| No video leaves the device or is stored | The page sends each camera frame to a Web Worker in the same browser. Only the worker returns numbers. The frame stays in the browser and the app never sends it over the network. The second camera sends numbers only (see Second camera). The MediaPipe library tries one metrics request. The fetch guard of the app blocks it ([docs/threat-model.md](docs/threat-model.md), T9). A test records all network traffic of a full session. `scripts/claims-check.sh` bans the video APIs |
+| No video leaves the device or is stored, when the app is served with the headers of `app/public/_headers` | The page sends each camera frame to a Web Worker in the same browser. Only the worker returns numbers. The frame stays in the browser and the app never sends it over the network. The second camera sends numbers only (see Second camera). The MediaPipe library tries one metrics request. The fetch guard of the app blocks it ([docs/threat-model.md](docs/threat-model.md), T9). A test records all network traffic of a full session. `scripts/claims-check.sh` bans the video APIs |
 | The active phase never changes without a person | `src/lib/protocol/accept.ts` is the only save path of a generated plan. The flag `VITE_SELF_PROGRESSION` is off by default. With the flag off, a generated plan of phase 2 or more is refused |
 | No verdict, score or praise | A test of the words and a check of the colours. The screens show numbers against a limit |
 | The prototype banner is on every screen | The banner text comes from `src/lib/mode.ts` |
@@ -144,6 +144,10 @@ A clip never enters the repository. One clip is a smoke test and not a validatio
 ## Second camera
 
 A phone can send body points of the front view to the laptop. The phone runs the pose model and sends numbers only, over a WebRTC data channel with no server. The steps are in [docs/pairing-wiring.md](docs/pairing-wiring.md). The real-phone test is UNPROVEN.
+
+## Hosting
+
+Serve the built app only from a host that sends the headers of `app/public/_headers`, for example Netlify or Cloudflare Pages. GitHub Pages ignores this file. The CSP tag in `index.html` covers the page but not the pose worker, and it cannot set `frame-ancestors`. Without the headers, another site can frame the app, and the pose worker runs with no CSP. See [docs/threat-model.md](docs/threat-model.md), T9 and T10.
 
 ## Dependencies
 

@@ -205,6 +205,15 @@ The 8 clips are public videos under Creative Commons Attribution (CC BY). The fi
 - Clip 07: "Mini Squats - Stage 1 PFPS" by Spire Injury Clinic, https://www.youtube.com/watch?v=NRcuNnO988g, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 - Clip 08: "Quads   03 Straight Leg Raise" by MyMichiganHealth, https://www.youtube.com/watch?v=gH-CJTv7TyQ, licensed under Creative Commons Attribution (CC BY). Re-encoded and trimmed, video only.
 
+The fixture file `app/tests/fixtures/clipLifts.ts` also holds landmark numbers of six more public clips. The uploader, title and link come from its header. The licence in that header is CC BY. The version of the licence is not recorded there. The owner must check the version on each source page:
+
+- Window S1: "Side Lying Leg Raise" by Hybrid Fitness, https://www.youtube.com/watch?v=mr_r9dFK-Hs, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window S2: "Side Lying Hip Abduction 2" by Spire Injury Clinic, https://www.youtube.com/watch?v=SlDwEyHVzLw, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window S3: "Side Lying Hip Abduction 1" by Spire Injury Clinic, https://www.youtube.com/watch?v=9J0UcDcZr5Q, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B1: "Standing Hip" by Motion, https://www.youtube.com/watch?v=Gp1-EfY5X-g, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B2: "Hip Exercises - Rear Leg Lift" by Fitnessyard, https://www.youtube.com/watch?v=pY8PWoA-A-g, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+- Window B3: "Standing Bodyweight Hip Extension" by OMNIFUNCTION, https://www.youtube.com/watch?v=t_PDPTMIPIA, licensed under Creative Commons Attribution (CC BY). Landmark numbers only.
+
 ## Re-run after the baseline rule, 2026-11-08
 
 This section is a plausibility check of the clip tool after task T17. It is not validation. Before this run, the tool called `createPipeline` with no baseline. Since T17 the counter counts no rep without a baseline, so the old tool counted 0 reps. The tool now takes the baseline from the first still window of the clip, with the real functions `restingBaseline` and `isStill`. It then calls the real `createPipeline` with the baseline, the leg and the camera side ([clip analysis](clip-analysis.md)). The pose model is `lite`. The target is 60 degrees. The return value is the value of the example protocol: 20 degrees for the heel slide and 15 degrees for the mini squat. This is a PROPOSAL and not clinical evidence. The count starts when the still window ends. No frame and no image is stored in the repository.

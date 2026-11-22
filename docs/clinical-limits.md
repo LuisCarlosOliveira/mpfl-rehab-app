@@ -22,7 +22,7 @@ A person who lies and faces the camera can get a wrong pose (live test, 2026-11-
 
 The app does not rate movement form. It shows a measured value against a limit that the care team set. No validated threshold for form exists after MPFL surgery. The reasons are in the project knowledge base, section 2.2 and the wording rules are in section 4.4 of the same file. A rep inside the limit shows no message, because a message such as "within range" reads as approval.
 
-## The app never changes the phase
+## The app never changes the phase on its own
 
 The active phase comes only from the protocol field `activePhase`. The app has no setter for it (plan FR4). A check in `npm run precheck` finds a line that matches a pattern for a write outside `app/src/lib/protocol/`. The check is a pattern match and cannot prove that no other path exists. The test `tests/importGraph.test.ts` reads the imports of the save functions. The check cannot stop a person from editing the protocol file.
 
