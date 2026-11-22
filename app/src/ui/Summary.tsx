@@ -90,15 +90,19 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     if (saved) savedNote.current?.focus();
   }, [saved]);
 
+  // The run was saved when it ended: add the answers to that record. With no record, write the whole run once.
+  async function writeAnswers(answers: Parameters<typeof updateSessionAnswers>[2]) {
+    const id = await run.record?.catch(() => undefined);
+    if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), ...answers });
+    else await updateSessionAnswers(db, id, answers);
+  }
+
   async function save() {
     if (pain === null || swelling === null || saving.current) return;
     saving.current = true;
     setSaveBusy(true);
     try {
-      // The run was saved when it ended: add the answers to that record. With no record, write the whole run once.
-      const id = await run.record?.catch(() => undefined);
-      if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), pain, swelling });
-      else await updateSessionAnswers(db, id, { pain, swelling });
+      await writeAnswers({ pain, swelling });
       setSaveError(false);
       setSaved(true);
       // Today's session goes on to the next exercise at once. A pause message holds it: then only "End session" is left.
@@ -118,9 +122,7 @@ export function Summary({ run, exercise, protocol, activePhase, redFlagBlocks, l
     saving.current = true;
     try {
       const answers = { pain: pain ?? undefined, swelling: swelling ?? undefined };
-      const id = await run.record?.catch(() => undefined);
-      if (id === undefined) await saveSession(db, { ...runToSessionInput({ run, exercise, protocol, phase: activePhase, redFlagBlocks, legTracked, cameraSide, now }), ...answers });
-      else await updateSessionAnswers(db, id, answers);
+      await writeAnswers(answers);
       setSaveError(false);
       setKept([...(answers.pain === undefined ? [] : ['pain']), ...(answers.swelling === undefined ? [] : ['swelling'])]);
       setDiscarded(true);
