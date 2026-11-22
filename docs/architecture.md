@@ -209,3 +209,6 @@ The threats to these items and their controls are in [docs/threat-model.md](thre
 | No component library. Plain CSS | [Plan section 11](../MPFL_APP_PLAN.md), `research/ui-decisions.md` |
 | Second view over a serverless WebRTC link | [Plan FR25](../MPFL_APP_PLAN.md) |
 | Body map in Setup only, until the Session gate passes | [docs/ui-ideas.md section 4](ui-ideas.md), [TASKS.md](../TASKS.md) |
+
+- Clinician first review sheet: [docs/clinician-first-review.md](clinician-first-review.md)
+- Live session checklist for the first test on a real person: [docs/live-session-checklist.md](live-session-checklist.md)
