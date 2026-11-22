@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { waitForText } from './wait.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = process.env.APP_ROOT || path.resolve(HERE, '../..');
@@ -179,16 +180,7 @@ async function clickNav(page, name) {
   }
   throw new Error(`no button, link or tab named "${name}"`);
 }
-async function expectH1(page, text, ms = 20000) {
-  const t0 = Date.now();
-  let got = '';
-  while (Date.now() - t0 < ms) {
-    got = await h1(page);
-    if (got.trim() === text) return;
-    await sleep(150);
-  }
-  throw new Error(`h1 is "${got}", wanted "${text}"`);
-}
+const expectH1 = (page, text, ms = 20000) => waitForText(() => h1(page), text, ms, sleep);
 
 // A number of degrees is not a camera estimate when its own sentence names a published source (S1, P2, N3 ...)
 // or says the number comes from the surgeon or the plan. Only camera estimates need the angle label.
