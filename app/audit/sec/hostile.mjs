@@ -14,7 +14,7 @@ const OWN = new URL(BASE).origin;
 const OUT = process.env.OUT || path.join(os.tmpdir(), 'mpfl-audit-sec', 'hostile-result.json');
 const ONLY = process.env.ONLY || '';
 const EX = JSON.parse(fs.readFileSync(`${PW_ROOT}/src/lib/protocol/example-protocol.json`, 'utf8'));
-const MARGIN_SOURCE = (fs.readFileSync(`${PW_ROOT}/src/lib/margin.ts`, 'utf8').match(/MARGIN_SOURCE\s*=\s*'([^']+)'/) || [])[1];
+const MARGIN_SOURCE = (fs.readFileSync(`${PW_ROOT}/src/lib/margin.ts`, 'utf8').match(/MARGIN_SOURCE(?::\s*\w+)?\s*=\s*'([^']+)'/) || [])[1];
 
 // ---- payloads ----
 const FLAG = 'window.__pwn=1';

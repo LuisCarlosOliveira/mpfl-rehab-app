@@ -153,7 +153,7 @@ async function toHomeWithPlan(page) {
 
 // ---- auditnew: plan made by the app at week 8, seeded session, fixed clock (as app/e2e/progress.spec.ts does) ----
 import { readFileSync } from 'node:fs';
-const MARGIN_SOURCE = (readFileSync(join(APP_DIR, 'src/lib/margin.ts'), 'utf8').match(/MARGIN_SOURCE\s*=\s*'([^']+)'/) || [])[1];
+const MARGIN_SOURCE = (readFileSync(join(APP_DIR, 'src/lib/margin.ts'), 'utf8').match(/MARGIN_SOURCE(?::\s*\w+)?\s*=\s*'([^']+)'/) || [])[1];
 const WEEK8_SHIFT_DAYS = 32; // plan starts in week 3 (24 days); 24 + 32 = 56 days is week 8
 async function seedSessionNew(page, extra = {}) {
   const raw = await page.evaluate(() => new Promise((res, rej) => { const o = indexedDB.open('mpfl-rehab'); o.onerror = () => rej(o.error); o.onsuccess = () => { const db = o.result; const g = db.transaction('protocol').objectStore('protocol').getAll(); g.onsuccess = () => { db.close(); res(g.result[0].raw); }; }; }));
