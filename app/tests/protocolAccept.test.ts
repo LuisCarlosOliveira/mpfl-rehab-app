@@ -247,7 +247,7 @@ describe('acceptProposal: the active phase', () => {
 
   const phase2 = () => plan(8, { phaseClearance: 'yes' });
 
-  // User decision 2026-11-22: the flag is off by default. Only the exact text true or 1 turns it on.
+  // Owner decision 2026-11-22: the flag is off by default. Only the exact text true or 1 turns it on.
   it('with no flag value, a forward move is refused with progression-off and the bytes stay', async () => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
     const before = await storedRaw();

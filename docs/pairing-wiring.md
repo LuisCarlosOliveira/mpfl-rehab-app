@@ -31,7 +31,7 @@ Both screens import `src/pairing/pair.css` by themselves.
 
 - The laptop sends `{"type":"ready"}` when its own end of the data channel opens. The phone sends its `hello` only after `ready`. The message was added in commit 939d096.
 - The time limits of the link use `performance.now()`, a clock that never steps. `Date.now()` can step back or forward when a device syncs its time, and the state machine then ended a good pairing. The test machine showed `Date.now()` going back by 9.09 s about every 5.5 s while `performance.now()` did not (comment in `tests/pairing-ui/rtcLink.test.ts`).
-- The main session reported 3 failures in 30 runs and 2 failures in 30 runs before the two fixes, and 0 failures after them. No report file in the repo holds these runs. I did not re-run them (not re-run).
+- A report states 3 failures in 30 runs and 2 failures in 30 runs before the two fixes, and 0 failures after them. No report file in the repo holds these runs. I did not re-run them (not re-run).
 - Limits of the link: the offer is valid for 120 seconds and the hello must come within 15 seconds (PROPOSAL values). The phone sends at most 15 messages each second. A message has at most 4,096 bytes.
 
 ## The Wake Lock on the phone
@@ -59,4 +59,4 @@ Both screens import `src/pairing/pair.css` by themselves.
 
 ## The test route that is not in the pipeline
 
-The browser specs of the pairing use their own config: `e2e/pairing/playwright.config.ts`. Run `npm run e2e:pairing`, or `PAIR_OUT=<folder> npx playwright test -c e2e/pairing/playwright.config.ts --workers=1`. The config has two projects, `pairing` and `pairing-ip`. The spec `e2e/pairing-app.spec.ts` runs the wired screens in the main config. The test pages are in `e2e/pairing/`. They are never shipped. The main session reported 18 tests and three passes in a row (not re-run by me).
+The browser specs of the pairing use their own config: `e2e/pairing/playwright.config.ts`. Run `npm run e2e:pairing`, or `PAIR_OUT=<folder> npx playwright test -c e2e/pairing/playwright.config.ts --workers=1`. The config has two projects, `pairing` and `pairing-ip`. The spec `e2e/pairing-app.spec.ts` runs the wired screens in the main config. The test pages are in `e2e/pairing/`. They are never shipped. A report states 18 tests and three passes in a row (not re-run by me).

@@ -1,7 +1,7 @@
 # Dependency vetting: shadcn/ui and Tailwind v4 stack
 
-Date: 2026-11-08. The user ordered that every new dependency is checked for safety. This file holds the evidence. It follows the method of `docs/dependency-vetting.md` (checklist in its section 7).
-Skills loaded with the Skill tool: `owasp-security`, `simple-english:simple-english`, `context7-mcp`. I read `mpfl-clinical-guardrails/SKILL.md`, the UI decisions note section 2 and the shadcn Vite guide. I did not call the Context7 tools. The registry JSON and the shipped code gave the facts.
+Date: 2026-11-08. Every new dependency is checked for safety. This file holds the evidence. It follows the method of `docs/dependency-vetting.md` (checklist in its section 7).
+I read `mpfl-clinical-guardrails/SKILL.md`, the UI decisions note section 2 and the shadcn Vite guide. I did not call the Context7 tools. The registry JSON and the shipped code gave the facts.
 
 Method: `npm view`, `npm pack` (download only), `npm install --ignore-scripts --package-lock-only` and `npm audit`. I also used the npm advisory bulk query (POST, read-only), the npm attestation read and GitHub API reads (GET only). A regex scan covered the shipped code. I ran no code from any package. All data is from 2026-11-08. Nothing was added to `app/`.
 ## 1. Summary

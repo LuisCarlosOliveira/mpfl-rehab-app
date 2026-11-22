@@ -1,7 +1,7 @@
 # Dependency vetting: uqr and jsqr
 
-Date: 2026-11-08. Task: T12b (QR pairing). The user ordered that every new dependency is checked for safety. This file holds the evidence.
-Skills loaded with the Skill tool: `owasp-security`, `simple-english:simple-english`, `context7-mcp`. I read `mpfl-clinical-guardrails/SKILL.md`, the QR pairing note, NFR6 and section 3.2 of the plan. Context7 gave the API of both packages (library ids `/unjs/uqr` and `/cozmo/jsqr`).
+Date: 2026-11-08. Task: T12b (QR pairing). Every new dependency is checked for safety. This file holds the evidence.
+I read `mpfl-clinical-guardrails/SKILL.md`, the QR pairing note, NFR6 and section 3.2 of the plan. Context7 gave the API of both packages (library ids `/unjs/uqr` and `/cozmo/jsqr`).
 
 Method: `npm view`, `npm pack` (tarball download only), `npm install --ignore-scripts --package-lock-only`, `npm audit`, GitHub API reads (GET only), and the npm advisory bulk query (POST, read-only). I ran no code from any package. All data is from 2026-11-08.
 

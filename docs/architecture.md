@@ -136,7 +136,7 @@ Paths are under `app/src`.
 
 ## Pose worker
 
-The pose model runs in a Web Worker (task T42, user decision "6. ok"). The model call `detectForVideo` is synchronous. On the main thread it blocked the page for most of each second. The measurements are in the pose worker measurements.
+The pose model runs in a Web Worker (task T42). The model call `detectForVideo` is synchronous. On the main thread it blocked the page for most of each second. The measurements are in the pose worker measurements.
 
 Design:
 

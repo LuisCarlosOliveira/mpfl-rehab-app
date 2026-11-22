@@ -6,7 +6,7 @@ This document states what the app does not do and why. Each claim links to its s
 
 The app monitors exercise and symptoms after an injury. Under EU MDR this is probably a medical purpose, so the app is probably medical device software. The class is not settled. An expert must set it. The draft is in plan section 1.5. It is a draft for expert review. The research reading is in the project knowledge base, section 6.1. It is a reading and not a ruling.
 
-Update 2026-11-09: the app now makes an exercise plan from the answers of the person (the generator, FR30 and FR31). The reading of MDCG 2019-11 rev.1 is that software which recommends personalised exercises is medical device software under Rule 11. Rule 22 applies to software that adapts therapy by itself. The main session did NOT verify this reading (UNVERIFIED). Whether a confirmation by the person closes the loop of Rule 22 is not known. No regulatory expert has reviewed the app.
+Update 2026-11-09: the app now makes an exercise plan from the answers of the person (the generator, FR30 and FR31). The reading of MDCG 2019-11 rev.1 is that software which recommends personalised exercises is medical device software under Rule 11. Rule 22 applies to software that adapts therapy by itself. Nobody has verified this reading (UNVERIFIED). Whether a confirmation by the person closes the loop of Rule 22 is not known. No regulatory expert has reviewed the app.
 
 ## The webcam angle is an estimate
 
@@ -102,7 +102,7 @@ No clinician reviewed any item below. Each item names its mark. ENGINEERING and 
 | Return tolerance of 9 degrees (the margin) | Generated plan (`ENG_RETURN`) | ENGINEERING. A clinician must say whether the value suits a rep |
 | `returnWithinDeg` of a care-team protocol, and whether a resting angle above 0 is normal | Protocol field | No source and no default. A clinician sets it |
 | Capture limit of 15 seconds and the "lowest steady angle" button | `CAPTURE_CONFIG` in `lib/baseline.ts` | ENGINEERING. The person chooses the button. The app never takes the lowest angle alone. Clinician review needed |
-| Still rule: 0.02 of the frame height over 2 seconds. Size rule: leg length at least 0.30 of the frame along the leg | `SETUP_CONFIG` in `lib/setupRules.ts` | PROPOSAL. Check on real phone video. With a field of view of 65 degrees the leg can fill about 0.27 of the width at 2.5 m (calculation of the main session, not measured). Then the app can say "Move closer." although the advice of 2 to 2.5 m holds |
+| Still rule: 0.02 of the frame height over 2 seconds. Size rule: leg length at least 0.30 of the frame along the leg | `SETUP_CONFIG` in `lib/setupRules.ts` | PROPOSAL. Check on real phone video. With a field of view of 65 degrees the leg can fill about 0.27 of the width at 2.5 m (a calculation, not measured). Then the app can say "Move closer." although the advice of 2 to 2.5 m holds |
 | `painPauseThreshold` of a protocol, and the FR12 value 7 | `lib/safety.ts` | The threshold is a clinician value. The value 7 has no source |
 | Seated hold: `minFlexion`, `targetFlexion` and `holdSeconds` | Protocol fields | Clinician fields with no default. The generator never adds the hold in weeks 0 to 11 (P1, P2 rec 29) |
 | Cue texts, including the new cue "Slow down." | `lib/cues.ts` | A clinician must review each text |
@@ -132,11 +132,11 @@ Source: the third audit and the fixes of commit 903d2c9. No clinician reviewed a
 
 ## Items that need an expert or the user
 
-- The regulatory class (MDCG 2019-11, Rule 11 and Rule 22): UNVERIFIED by the main session.
+- The regulatory class (MDCG 2019-11, Rule 11 and Rule 22): UNVERIFIED.
 - The legal basis to store the surgery date, and the data controller of the file exchange.
 - A hand-added `approvedOn` date (L2-05): patient mode cannot check a claim in an unsigned file.
-- The clip licences: 8 Creative Commons clips ran in private tests. The attribution is in `docs/accuracy.md`. The clips never enter the repo. YouTube terms forbid a download with a tool. The user accepted this after the vetting in `docs/dependency-vetting-ytdlp.md`.
-- Moving the pose loop to a Worker (L4-04): the user decided yes ("6. ok"). The work is T42 and the pose worker measurements. The speed on a real phone is NOT RUN.
+- The clip licences: 8 Creative Commons clips ran in private tests. The attribution is in `docs/accuracy.md`. The clips never enter the repo. Downloading a video from YouTube with a tool is against the YouTube terms. Use a tool like this only where the terms allow it. The repository holds no clip. The vetting of the tool is in `docs/dependency-vetting-ytdlp.md`.
+- Moving the pose loop to a Worker (L4-04): decision: yes. The work is T42 and the pose worker measurements. The speed on a real phone is NOT RUN.
 
 ## Register of values for clinician review
 

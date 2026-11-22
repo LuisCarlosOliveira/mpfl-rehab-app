@@ -6,9 +6,9 @@ import { gauss, rng } from './leg';
 export const SEGMENT_LEN = 0.2;
 
 /**
- * SCALE AND SOURCE. The worst documented error of the knee angle is about 9 degrees (research/form-evidence.md: F1 Okuno 2026,
+ * SCALE AND SOURCE. The worst documented error of the knee angle is about 9 degrees (the project knowledge base: F1 Okuno 2026,
  * limits of agreement of plus or minus 8.7 degrees in the best case. F3 Rode 2025, mean absolute error of 9.3 to 21.9 degrees in
- * exercise video. The text there reads "the best case error for a knee angle is about 9 degrees"). The user asked for 9 degrees RMS.
+ * exercise video. The text there reads "the best case error for a knee angle is about 9 degrees"). The tests use 9 degrees RMS.
  * The model adds independent Gaussian noise to the x and y of every visible landmark. For a knee angle from three points with two
  * segments of length L, the variance of the angle is sigma squared times (4 minus 2 cos(interior angle)) divided by L squared.
  * The worst case is a straight leg (interior angle 180 degrees, factor 6). So sigma = rms (in radians) times L divided by sqrt(6).

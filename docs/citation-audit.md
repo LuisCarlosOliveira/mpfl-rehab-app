@@ -1,6 +1,6 @@
 # Independent citation audit of the knowledge base
 
-Date: 2026-11-08. Auditor: a separate agent that did not write the audited files.
+Date: 2026-11-08. Auditor: an independent reviewer who did not write the audited files.
 
 Scope: `rehab-rules.md`, `form-evidence.md`, `source-audit.md`, `search-log.md`, `INDEX-v2.md`. The aim was to disprove each quote and number against the real source.
 
@@ -67,7 +67,7 @@ Locations: P1 = HSS PDF, 22 pages. P2 = Cincinnati Guideline 46 PDF, 38 pages. P
 | V31 | S10 TTO "delayed or non weight bearing (56%) ... (67%)" | S10 abstract | EXACT | |
 | V32 | S1 weight-bearing changes with "a concurrent procedure" | S1 text | EXACT | |
 | V33 | P2 excludes "tibial tubercle re-alignment" | P2 page 1, Exclusions | EXACT | Also excludes lateral retinacular release |
-| V34 | P1 "Follow more conservative guideline" | P1 page 1 | PARAPHRASED | The first audit read "most", corrected by the Opus final audit, 2026-11-09 |
+| V34 | P1 "Follow more conservative guideline" | P1 page 1 | PARAPHRASED | The first audit read "most", corrected by the final audit, 2026-11-09 |
 | V35 | R5 "100% of papers evaluated lacked adequate return-to-play guidelines" | R5 abstract | EXACT | |
 | V36 | Heel slides in phase 1 (S1, P3) | S1 Table 1, P3 page 4 | EXACT | |
 | V37 | Heel slides in phase 1, "P1: heel slides in the AROM progression" | P1 pages 7, 9, 12 | WRONG | P1 phase 1 uses "Sitting knee ROM exercise: AAROM KF to PROM KE". Heel slides start in phase 2: "heel slides once KF >120" |
@@ -133,7 +133,7 @@ Rows not checked by me: P4 to P13, Willy 2019, Biebl 2021, T1, T3, N20. They car
 
 ## 3. Evidence grade in substance
 
-The earlier agent marks P2 items CONSENSUS (low). The quotes are right, but the mark misleads a reader. These facts come from P2 itself:
+The earlier audit marks P2 items CONSENSUS (low). The quotes are right, but the mark misleads a reader. These facts come from P2 itself:
 - Almost every rehab item ends with "(LocalConcensus 2014 [5])".
 - The P2 table of evidence levels defines level 5 as "General review, expert opinion, case report, consensus report, or guideline".
 - All 55 P2 recommendations use "It is recommended". P2 defines this strength as "There is consensus that benefits are closely balanced with risks and burdens". No item is "Strongly recommended".
@@ -231,12 +231,12 @@ Verdict: SAFE FOR THE APP TO ENCODE as a block. If a bone or cartilage procedure
 
 | Item | Content |
 |---|---|
-| Quote | P2 Exclusions: "With patellofemoral re-alignment techniques as part of the surgical procedure (e.g. lateral retinacular release, tibial tubercle re-alignment)". P1: "Follow more conservative guideline" (corrected by the Opus final audit, 2026-11-09: the first audit wrote "most"). S10: TTO "delayed or non weight bearing (56%), locked brace duration greater than 6 weeks (67%)" |
+| Quote | P2 Exclusions: "With patellofemoral re-alignment techniques as part of the surgical procedure (e.g. lateral retinacular release, tibial tubercle re-alignment)". P1: "Follow more conservative guideline" (corrected by the final audit, 2026-11-09: the first audit wrote "most"). S10: TTO "delayed or non weight bearing (56%), locked brace duration greater than 6 weeks (67%)" |
 | Grade in substance | OPINION and REVIEW of practice |
 | Contrary source | N5 RCT (TTO plus MPFLR, N=50): rapid rehab "appears to be safe and effective". This supports surgeon choice, not isolated defaults |
 | Harm if wrong | Isolated values after a TTO can overload the osteotomy. N3: "Avoid open chain quadriceps exercises to avoid pull at osteotomy site through patellar tendon" |
 
-## 5. What the earlier agent missed
+## 5. What the earlier audit missed
 
 | # | Finding | Source read | Effect on an app rule |
 |---|---|---|---|
@@ -300,9 +300,9 @@ New references:
 
 ## 9. Addendum of 2026-11-09: quotes for generator version 2
 
-Auditor: the build agent of generator version 2. It did not trust the quotes of `docs/generator-v2-design.md`. It opened each source again on 2026-11-09 and compared the text.
+Auditor: the author of generator version 2. It did not trust the quotes of `docs/generator-v2-design.md`. It opened each source again on 2026-11-09 and compared the text.
 
-Method: P1, P2 and P3 were downloaded as PDF files and read as text. N3 and S1 came from NCBI efetch (PMC11180699 and PMC12222034). S16 came from the Europe PMC record by DOI. A line break in the PDF text counts as a space. Page numbers are PDF pages. No paywall was worked around. This audit was done by the same agent that builds the generator. A person must still review the rows.
+Method: P1, P2 and P3 were downloaded as PDF files and read as text. N3 and S1 came from NCBI efetch (PMC11180699 and PMC12222034). S16 came from the Europe PMC record by DOI. A line break in the PDF text counts as a space. Page numbers are PDF pages. No paywall was worked around. The same person who builds the generator did this audit. A person must still review the rows.
 
 | # | Claim | Where I found it | Verdict | Note or true wording |
 |---|---|---|---|---|

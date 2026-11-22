@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllEnvs());
 const audit = readFileSync(resolve(__dirname, '../../docs/citation-audit.md'), 'utf8');
 const rowOf = (id: string) => audit.split('\n').find((l) => l.startsWith(`| ${id} |`));
 
-// User decision 2026-11-11: the app proposes the plan from the guidelines. Every number needs a real source and an EXACT audit row.
+// Owner decision 2026-11-11: the app proposes the plan from the guidelines. Every number needs a real source and an EXACT audit row.
 describe('every number of a rule rests on an EXACT row of the citation audit', () => {
   const withNumbers = RULE_IDS.map((id) => RULES[id]).filter((r) => Object.keys(r.values).length > 0 && (r.kind === 'generated' || r.kind === 'structure'));
 
