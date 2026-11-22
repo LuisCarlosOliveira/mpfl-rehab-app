@@ -185,4 +185,9 @@ Runtime: `react`, `react-dom`, `zod`, `dexie`, `recharts`, `@mediapipe/tasks-vis
 
 ## License
 
-No license has been chosen yet. Ask the owner before you reuse the code.
+The code of this app is under the Apache License 2.0. Read the file [LICENSE](LICENSE).
+
+- You can use, copy, change and share the code, also in your own work.
+- The license has a patent grant and says that the software comes with no warranty and no liability.
+- This does not change the safety limits above: the app is a prototype and not a medical device.
+- The packages and the model files that the app uses have their own licenses. They are listed in `app/public/THIRD_PARTY_NOTICES.txt` and in [docs/model.md](docs/model.md).
