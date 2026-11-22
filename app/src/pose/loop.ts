@@ -5,7 +5,7 @@
 // throttle any state update there.
 import type { Landmark } from '../lib/angle';
 
-export interface LoopStats {
+interface LoopStats {
   frames: number;
   longTasks: number;
   /** Median frames per second over the last WINDOW frames. */
@@ -28,7 +28,7 @@ function push(arr: number[], v: number) {
   if (arr.length > WINDOW) arr.shift();
 }
 
-export interface LoopOptions {
+interface LoopOptions {
   video: HTMLVideoElement;
   /** `undefined` means the answer comes later, from the pose worker. The loop calls no onFrame then. */
   detect: (video: HTMLVideoElement, timestampMs: number) => Landmark[] | null | undefined;

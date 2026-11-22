@@ -1,7 +1,7 @@
 // The only file that reads camera pixels (docs/dependency-vetting.md section 5).
 import jsQR from 'jsqr';
 
-export type QrFrame = { data: Uint8ClampedArray; width: number; height: number };
+type QrFrame = { data: Uint8ClampedArray; width: number; height: number };
 
 const MAX_TEXT_CHARS = 600; // The same cap as MAX_SCANNED_CHARS in src/lib/pairing. Checked before any parse.
 const MAX_SIDE = 640; // pixels on the long side of the scan canvas

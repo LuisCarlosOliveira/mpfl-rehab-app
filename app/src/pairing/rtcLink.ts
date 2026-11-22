@@ -18,7 +18,7 @@ export interface LinkDeps {
   gatherTimeoutMs?: number;
 }
 
-export type LinkError = DecodeError | SdpError | 'not-ready' | 'peer-error';
+type LinkError = DecodeError | SdpError | 'not-ready' | 'peer-error';
 
 // The time limits use a clock that never steps. Date.now() can step back or forward when the device syncs its time,
 // and the state machine then ends a good pairing (a negative age is not fresh).
@@ -190,7 +190,7 @@ export function createHostLink(deps: LinkDeps = {}): HostLink {
 }
 
 
-export type CompanionState =
+type CompanionState =
   | { kind: 'idle' }
   | { kind: 'answered' }
   | { kind: 'connected' }
