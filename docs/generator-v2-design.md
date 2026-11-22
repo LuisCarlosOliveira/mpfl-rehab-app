@@ -382,3 +382,5 @@ The flag value `false` keeps the old behaviour, with the rule EXTENDED_OFF. `VIT
 
 Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
 
+Superseded 2026-11-22: the flag is off by default. Only the text `true` or `1` turns it on (see [clinical-limits](clinical-limits.md)).
+

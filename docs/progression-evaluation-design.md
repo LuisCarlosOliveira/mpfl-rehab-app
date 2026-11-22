@@ -15,7 +15,7 @@ Skills used: `simple-english`, `mpfl-clinical-guardrails` (read as a file).
 - Missing today: a screen that shows the measured numbers next to the guideline, and a prompt on Home. The new screen is "Check my progress".
 - The evaluation is a pure function. It never saves and never sets the phase. The save path stays `acceptProposal` after a click on Confirm. R: `app/src/lib/protocol/accept.ts`.
 - Result of the evidence check: few published criteria can be measured by the camera app. Section 4 lists them. The app shows numbers. It gives no pass, fail or score.
-- The flag `VITE_SELF_PROGRESSION` turns on by default. The confirm step stays. A safety event still holds every forward move. Section 6 has the detail.
+- Superseded 2026-11-22: the flag is off by default (see [clinical-limits](clinical-limits.md)). The flag `VITE_SELF_PROGRESSION` turned on by default on 2026-11-13. The confirm step stays. A safety event still holds every forward move. Section 6 has the detail.
 
 ## 2. Inputs
 
@@ -142,6 +142,8 @@ The text "You are in week N" shows the real week. After week 11 the card shows `
 R today: `selfProgressionOn()` in `lib/protocol/accept.ts` is true only for the text "true". Without it, `acceptProposal` refuses a forward move with `progression-off`, and `UpdatePlan` shows `HOLD_NEXT_STAGE`.
 
 Decision (user rule: no human-decision blockers, the standards decide): turn it on by default. Only the exact text "false" or "0" turns it off. Same pattern as `generatorExtendedOn` in `lib/mode.ts`. The person-confirm step stays.
+
+Superseded 2026-11-22: the flag is off by default. Only the text "true" or "1" turns it on (see [clinical-limits](clinical-limits.md)).
 
 What stays the same:
 - Only `acceptProposal` saves. It needs a `PersonConfirmation` that only a trusted click creates. R: `accept.ts`, `trustedClick.ts`.

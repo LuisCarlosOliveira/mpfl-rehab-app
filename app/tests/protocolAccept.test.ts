@@ -245,15 +245,15 @@ describe('acceptProposal: the active phase', () => {
 
   const phase2 = () => plan(8, { phaseClearance: 'yes' });
 
-  // User decision 2026-11-13: the flag is on by default. Only the exact text false or 0 turns it off.
-  it('with no flag value, a forward move saves after a trusted click', async () => {
+  // User decision 2026-11-22: the flag is off by default. Only the exact text true or 1 turns it on.
+  it('with no flag value, a forward move is refused with progression-off and the bytes stay', async () => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
-    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
-    const stored = await loadStoredProtocol(db, 'demo');
-    expect(stored?.ok && stored.protocol.activePhase).toBe(2);
+    const before = await storedRaw();
+    expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
+    expect(await storedRaw()).toBe(before);
   });
 
-  it.each(['false', '0'])('with the flag text %s, a forward move is refused with progression-off and the bytes stay', async (value) => {
+  it.each(['false', '0', 'yes', 'TRUE', ''])('with the flag text "%s", a forward move is refused with progression-off and the bytes stay', async (value) => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
     const before = await storedRaw();
     vi.stubEnv('VITE_SELF_PROGRESSION', value);
@@ -261,14 +261,14 @@ describe('acceptProposal: the active phase', () => {
     expect(await storedRaw()).toBe(before);
   });
 
-  it.each([undefined, 'true'])('a stored clinician pain limit is never lost, flag value %s', async (value) => {
-    if (value !== undefined) vi.stubEnv('VITE_SELF_PROGRESSION', value);
+  it.each([['false', 'progression-off'], ['true', 'pain-limit']])('a stored clinician pain limit is never lost, flag value %s gives %s', async (value, code) => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', value);
     const base = plan(4);
     const clinician = { ...base, generated: undefined, approvedOn: '2026-01-02', painPauseThreshold: 3 } as Protocol;
     const saved = await saveProtocol(db, JSON.stringify(clinician), 'demo');
     if (!saved.ok) throw new Error(saved.error.message);
     const before = await storedRaw();
-    expect(await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'pain-limit' });
+    expect(await acceptProposal(db, proposalOf(plan(4)), confirmed(), 'demo')).toMatchObject({ ok: false, code });
     expect(await storedRaw()).toBe(before);
   });
 
@@ -289,7 +289,7 @@ describe('acceptProposal: the active phase', () => {
     expect(await storedRaw()).toBe(before);
   });
 
-  it.each(['1', 'true', 'yes', ''])('keeps the flag on for the value "%s": only false or 0 turn it off', async (value) => {
+  it.each(['1', 'true'])('turns the flag on for the value "%s"', async (value) => {
     vi.stubEnv('VITE_SELF_PROGRESSION', value);
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
     expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
@@ -315,8 +315,7 @@ describe('acceptProposal: the active phase', () => {
     vi.stubEnv('VITE_SELF_PROGRESSION', 'false');
     expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'progression-off' });
     expect(await storedRaw()).toBe(before);
-    vi.unstubAllEnvs();
-    vi.stubEnv('VITE_GENERATOR_EXTENDED', 'true');
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     expect(await acceptProposal(db, proposalOf(more), confirmed(), 'demo')).toMatchObject({ ok: true });
   });
 

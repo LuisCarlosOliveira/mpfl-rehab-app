@@ -225,7 +225,16 @@ describe('ConfirmPlan, a new plan over a stored plan that it would move forward 
     expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
   });
 
-  it('by default, Confirm stays open for a move forward', async () => {
+  it('by default, a move forward shows the hold and no Confirm', async () => {
+    const db = freshDb();
+    const current = await stored(db, { surgeryDate: '2026-10-15' });
+    setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
+    expect(screen.getByText(/Ask your care team about the next stage/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  });
+
+  it('with the flag on, Confirm stays open for a move forward', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-10-15' });
     setup(createDraft({ surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
@@ -286,7 +295,8 @@ describe('ConfirmPlan, an update', () => {
     expect((await db.protocol.get('current'))!.raw).toBe(before);
   });
 
-  it('accepts a change that moves forward by default, after a click', async () => {
+  it('accepts a change that moves forward with the flag on, after a click', async () => {
+    vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
     const db = freshDb();
     const current = await stored(db, { surgeryDate: '2026-09-15' });
     const { onAccepted } = setup(updateDraft(current, { surgeryDate: '2026-09-15', phaseClearance: 'yes' }), current, db);
