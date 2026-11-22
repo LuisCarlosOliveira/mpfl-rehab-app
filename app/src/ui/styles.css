@@ -1866,6 +1866,7 @@ main.has-nav {
   padding-top: var(--s-2);
 }
 
+/* LONG TEXT AND NARROW SCREENS (F2a) */
 .card,
 .notice,
 .fact-row dd,
@@ -1951,6 +1952,7 @@ main h3 {
   background: var(--primary);
 }
 
+/* ===== W1: Session screen ===== */
 :root {
   --dur-press: 120ms;
   --dur-swap: 160ms;
@@ -2079,7 +2081,9 @@ main h3 {
     transition: opacity 120ms linear !important;
   }
 }
+/* ===== end of W1 ===== */
 
+/* ===== W2 START ===== */
 .btn-swap {
   min-width: calc(20ch + 2.5rem + var(--s-2) + 3.5rem);
 }
@@ -2206,7 +2210,9 @@ main h3 {
   font-size: 0.8125rem;
   font-weight: 750;
 }
+/* ===== W2 END ===== */
 
+/* ===== W3 START ===== */
 .tap-link {
   display: inline-flex;
   align-items: center;
@@ -2243,6 +2249,7 @@ main h3 {
   min-width: 14rem;
   justify-content: center;
 }
+/* ===== W3 END ===== */
 
 .session-grid .frame .body-map-switch {
   position: absolute;
@@ -2309,6 +2316,7 @@ main h3 {
   white-space: normal;
 }
 
+/* ===== F3 START ===== */
 .capture-line {
   position: absolute;
   inset-inline: var(--s-2);
@@ -2420,3 +2428,4 @@ main h3 {
     align-items: flex-start;
   }
 }
+/* ===== F3 END ===== */
