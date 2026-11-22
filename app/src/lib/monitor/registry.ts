@@ -148,7 +148,7 @@ const SEATED_EXTENSION_HOLD: ExerciseSpec = {
 
 // ---- The five new exercises (PROPOSAL) -------------------------------------------------------
 // The sources table names these exercises (P1, P2, P3, S1, N3). No source gives a camera number for them.
-// research/technique-sources.md covers the four camera exercises only, so the guide texts below are a PROPOSAL of the app.
+// the project knowledge base covers the four camera exercises only, so the guide texts below are a PROPOSAL of the app.
 // Step B set the three engineering values that were null (min-amplitude, lift-angle twice). The numbers and the way to get them are in modes.ts.
 // The settle and end times reuse the values of the straight leg raise (500 ms and 300 ms).
 

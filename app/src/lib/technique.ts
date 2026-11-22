@@ -1,4 +1,4 @@
-// Text guide lines for the four exercises. Source: research/technique-sources.md, section "What the app can show without judging".
+// Text guide lines for the four exercises. Source: the project knowledge base, section "What the app can show without judging".
 // Rules: a line states an instruction and its sources. It never rates a movement. It carries no number, because the sources
 // disagree on every number and a clinician sets them. A point that only one source states (WEAK) stays out. The text is a
 // paraphrase in simple English. It is not a quote.

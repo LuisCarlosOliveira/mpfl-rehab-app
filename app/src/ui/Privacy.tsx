@@ -1,5 +1,5 @@
 // FR18. The first launch shows this notice. The button sets the flag. Home links here.
-// Source of the content: research/ux-flow.md section 3.1 (F1) and plan FR18.
+// Source of the content: the project knowledge base. Requirement FR18.
 import { markPrivacyNoticeSeen } from '../lib/storage';
 import { Icon, type IconName } from './Icon';
 import './screensV2.css';

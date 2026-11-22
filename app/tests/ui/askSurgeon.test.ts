@@ -3,7 +3,7 @@ import { ASK_HOLD_ANGLE_TEXT, ASK_SURGEON_ITEMS, ASK_SURGEON_TEXT } from '../../
 import { VERDICT_WORDS, hasVerdictWord } from './verdict';
 
 describe('askSurgeon list', () => {
-  it('has the 5 decisions of research/clinical.md section 9 (items 5, 8, 10, 12, 13)', () => {
+  it('has the 5 decisions of the project knowledge base (items 5, 8, 10, 12, 13)', () => {
     expect(ASK_SURGEON_ITEMS).toHaveLength(5);
     expect(ASK_SURGEON_ITEMS.join(' ')).toMatch(/graft type and fixation/i);
     expect(ASK_SURGEON_ITEMS.join(' ')).toMatch(/run, jump, cut and pivot/i);

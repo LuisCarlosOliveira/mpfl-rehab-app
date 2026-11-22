@@ -1,5 +1,5 @@
 // Progress charts (FR13). The same component serves the patient and the care team view:
-// the caller passes the sessions. Source of the wording: research/ux-flow.md section 3.4.
+// the caller passes the sessions. Source of the wording: the project knowledge base.
 // Every chart has a data table with the same numbers, built by toTableRows. A chart has no
 // line for a limit and no colour that carries a meaning. Nothing moves.
 // An angle chart shows the camera error as a pale band around the values (U16). The band is not a range to reach.

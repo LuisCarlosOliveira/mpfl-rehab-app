@@ -259,7 +259,7 @@ describe('protocol id goes into the export, so it holds no free text', () => {
   });
 });
 
-describe('example protocol, value by value (research/clinical.md sections 2 and 4)', () => {
+describe('example protocol, value by value (the project knowledge base)', () => {
   type Ex = { kind: string; source: string; maxFlexion?: number; maxTopFlexion?: number };
   const exercises = (example.phases as Array<{ exercises: Ex[] }>).flatMap((p) => p.exercises);
   const byKind = (kind: string) => exercises.find((e) => e.kind === kind)!;
@@ -300,7 +300,7 @@ describe('surgeon fields', () => {
   });
 });
 
-describe('red flags against research/clinical.md section 7 and the Cincinnati guideline (clinical-update.md 2.5)', () => {
+describe('red flags against the project knowledge base and the Cincinnati guideline', () => {
   const ids = RED_FLAGS.map((f) => f.id);
   const group = (id: string) => RED_FLAGS.find((f) => f.id === id)?.group;
 

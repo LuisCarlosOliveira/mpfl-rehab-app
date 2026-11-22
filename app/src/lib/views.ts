@@ -12,7 +12,7 @@ export interface RepStamp {
 
 // PROPOSAL, 500 ms. Each view is analysed alone and the reps last at least 2 s.
 // So independent 2D views need only loose sync. Offsets of a few hundred ms
-// are enough to pair reps (research/dual-camera-opus.md section 3, level L0 and section 5).
+// are enough to pair reps (the project knowledge base, level L0).
 // No published sync tolerance exists for slow rehab movements.
 export const PAIR_TOLERANCE_MS = 500;
 
@@ -62,7 +62,7 @@ interface FrontKneeResult {
   changeDeg: number;
   /**
    * Start value 9 degrees. The front-view margin can differ and is UNVERIFIED.
-   * research/form-opus.md section 3, row C8, lists 7.4 to 8.8 degrees for a manual 2D method (Janisch 2026).
+   * the project knowledge base lists 7.4 to 8.8 degrees for a manual 2D method (Janisch 2026).
    * The test-retest value of the change is poor (Asaeda 2024, section 4.3). T13 must measure both.
    */
   marginDeg: number;
@@ -73,7 +73,7 @@ interface FrontKneeResult {
  * Signed frontal knee alignment of one frame, in degrees. Zero is a straight leg.
  * The angle is between the thigh (hip to knee) and the shank (knee to ankle) in the image plane.
  * Inward is positive: the knee is on the body-midline side of the hip-ankle line.
- * This is only a step of the change value. It is not exported on purpose (form-opus.md C9: never show an absolute angle).
+ * This is only a step of the change value. It is not exported on purpose (the project knowledge base: never show an absolute angle).
  *
  * Assumes the front camera does not mirror the image and the thigh points down in the image.
  * The person right leg then appears on the image left, so the midline is at +x for the right leg and -x for the left leg.
@@ -96,7 +96,7 @@ function alignment(frame: FrontFrame, side: Side, aspect: number): number | null
  * Change of the frontal knee alignment inside ONE rep seen from the front.
  * The value is the signed change from the first frame to the frame with the largest change (first one on a tie).
  * Inward is positive. It is a change from the start of the rep and never an absolute angle
- * (research/form-opus.md section 3, rows C8 and C9, and section 4.3).
+ * (the project knowledge base).
  * A frame with a hidden landmark is skipped.
  * Returns null if the first frame is unusable or the rep has fewer than MIN_FRONT_FRAMES usable frames.
  * `limitDeg` is the limit that a clinician set. Without it the state is `no-limit` (section 4.1).
@@ -131,7 +131,7 @@ export interface FrontRecord {
   /**
    * The median of the signed change of those reps, inward positive. UNVERIFIED sign convention.
    * Absent when fewer than MIN_FRONT_REPS reps gave a value. A front-view 2D angle is a logged change for the care team
-   * and not a measure of valgus (research/form-evidence.md: 2D and 3D frontal angle do not correlate, r = 0.127).
+   * and not a measure of valgus (the project knowledge base: 2D and 3D frontal angle do not correlate, r = 0.127).
    */
   changeDeg?: number;
 }

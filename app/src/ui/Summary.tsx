@@ -1,5 +1,5 @@
 // Summary (S7, S8). Pain 0 to 10 and swelling, then the safety floor of FR12, then the save (FR11).
-// Copy source: research/ux-flow.md section 8.3. No value is pre-selected.
+// Copy source: the project knowledge base. No value is pre-selected.
 // "Knee gave way or hurts" shows the care-team message first.
 // Persistence: App writes the record when the run ends (src/ui/sessionRecord.ts). Save adds pain and swelling to that record. Skip leaves them out.
 // Sets: when Session passes the set data, the record holds it and the screen lists the reps of each set. No total, no verdict.

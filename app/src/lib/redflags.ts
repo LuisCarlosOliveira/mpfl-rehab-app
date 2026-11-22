@@ -1,6 +1,6 @@
 // Red-flag list. General guidance, UNVERIFIED for MPFL surgery.
 // The app gives no diagnosis. It tells the user to stop and to contact help.
-// Source of each item (research/clinical.md section 7, research/clinical-update.md section 2.5):
+// Source of each item (the project knowledge base):
 //   calf: Cincinnati Children's guideline (P2) lists signs of DVT. Consensus, evidence level 5.
 //   swelling: P2 lists persistent or recurrent effusion. No numeric threshold exists.
 //   catching-locking, bend-loss: P2 lists catching or locking, and loss or no progress of range of motion.

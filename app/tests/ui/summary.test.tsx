@@ -406,7 +406,7 @@ describe('Summary, pause message apart from the save (finding S-01, FR12)', () =
   });
 });
 
-describe('Summary sets (plan FR9)', () => {
+describe('Summary sets (FR9)', () => {
   const withSets = (prescription: { sets?: number; reps?: number }, repsPerSet: number[]): RunResult => ({
     reason: 'stop',
     summary: {
