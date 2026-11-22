@@ -1,11 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';
 import { loadProtocol } from '../../src/lib/protocol';
 import type { PlanEntry } from '../../src/ui/appState';
 import { Home } from '../../src/ui/Home';
 import { NextCard, SessionOverview } from '../../src/ui/PlanSession';
-import { PlanProgress } from '../../src/ui/PlanProgress';
 import { Session } from '../../src/ui/Session';
 import { Setup } from '../../src/ui/Setup';
 import { Summary } from '../../src/ui/Summary';
@@ -49,17 +48,6 @@ describe('Home: Start today\'s session', () => {
     const p = protocol();
     render(<Home protocol={p} phase={p.phases[0]} activePhase={1} db={freshDb()} now={() => new Date()} onStart={vi.fn()} onLoadProtocol={vi.fn()} />);
     expect(screen.queryByRole('button', { name: "Start today's session" })).toBeNull();
-  });
-});
-
-describe('PlanProgress', () => {
-  it('names the place and marks it in the track', () => {
-    render(<PlanProgress index={2} total={6} detail="3 sets" />);
-    expect(screen.getByText('Exercise 3 of 6')).toBeInTheDocument();
-    expect(screen.getByText('3 sets')).toBeInTheDocument();
-    const marks = within(screen.getByRole('list', { name: 'Exercise 3 of 6' })).getAllByRole('listitem');
-    expect(marks).toHaveLength(6);
-    expect(marks[2]).toHaveAttribute('aria-current', 'step');
   });
 });
 

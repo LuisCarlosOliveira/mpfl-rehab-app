@@ -522,21 +522,6 @@
   overflow-wrap: anywhere;
 }
 
-.v2-flow.plan-progress {
-  margin-bottom: var(--s-4);
-  display: grid;
-  gap: var(--s-2);
-}
-.v2-flow .plan-progress-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-1) var(--s-3);
-  margin: 0;
-}
-.v2-flow .plan-progress-count {
-  font-weight: 700;
-}
 .v2-flow.v2-overview .overview-list {
   display: grid;
   gap: var(--s-5);
