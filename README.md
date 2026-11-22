@@ -66,16 +66,16 @@ During an exercise, the app shows the measured number and the rep count. It show
 
 ## Status
 
-Last checks: 2026-11-22. The audits ran on commit `3f9297b`. The browser tests ran on commit `a4d9cf1`. Fixes of the first live test came after.
+Last full check: 2026-11-22, on the commit after the fixes of the first live test. The one change after it is the wording of the setup notice, which the honesty audit and the setup accessibility specs ran again.
 
 | Check | Result |
 |---|---|
-| Unit tests (`npm test`) | 4,497 tests in 250 files, passed |
-| Browser tests (`npm run e2e`) | 319 passed, 11 skipped, 0 failed. 7 skips need a webcam clip that is not in the repository (see [app/audit/README.md](app/audit/README.md)). 4 skips only write screenshots |
+| Unit tests (`npm test`) | 4,515 tests in 254 files, passed |
+| Browser tests (`npm run e2e`) | 319 passed, 11 skipped, 0 failed (the webkit project ran again alone after one load timeout). 7 skips need a webcam clip that is not in the repository (see [app/audit/README.md](app/audit/README.md)). 4 skips only write screenshots |
 | Accessibility audit | 0 run errors on 28 screens, no sideways scroll at 200% text |
 | Hostile input audit | 72 of 72 cases passed, 0 foreign requests |
-| Honesty audit | 0 failures. Two items need a person to read them |
-| First load | 195,208 bytes gzip. The limit is 200,000 |
+| Honesty audit | 0 failures, 470 checks passed. Two items need a person to read them |
+| First load | 195,263 bytes gzip. The limit is 200,000 |
 
 The first live test used a real webcam in Edge, with the GPU delegate. Six exercises ran and the app counted every set. No console error and no request to another host showed in the log.
 
