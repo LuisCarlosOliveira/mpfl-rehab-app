@@ -19,7 +19,8 @@
 @media (max-width: 47.5rem) {
   .v3-shell:has(.v3-live) .v3-banner {
     padding-block: var(--v3-s1);
-    font-size: min(0.75rem, 16px);
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
   .v3-live-head .v3-exhead h1 {
     font-size: max(28px, 1.25rem);
@@ -255,7 +256,8 @@
 .v3-actions .setup-bar .btn {
   min-height: 56px;
   padding-block: var(--v3-s2);
-  font-size: min(0.9375rem, 20px);
+  font-size: 0.9375rem;
+  line-height: 1.15;
   justify-content: center;
   text-align: center;
   overflow-wrap: anywhere;
@@ -263,7 +265,7 @@
 }
 .v3-actions .session-bar .btn-gave-way {
   padding-block: var(--v3-s1);
-  font-size: min(0.875rem, 18px);
+  font-size: 0.875rem;
   line-height: 1.15;
 }
 .v3-actions .session-bar .btn-count {
