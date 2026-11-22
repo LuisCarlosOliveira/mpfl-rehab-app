@@ -47,7 +47,7 @@ During an exercise, the app shows the measured number and the rep count. It show
 
 ## What it does
 
-- It loads a plan file from the care team, or it makes a phase 1 plan from published protocols and the answers of the person. The plan names the source and the evidence level of each value.
+- It loads a plan file from the care team. Or it makes a phase 1 plan from published protocols and the answers of the person. The plan names the source and the evidence level of each value.
 - It runs the exercise live with the webcam. A body map draws the leg over the camera picture. The app counts reps and shows the angle as an estimate.
 - It compares the measured number with the limit of the plan. It never gives a verdict. A rep in range shows nothing and plays no sound.
 - It asks about pain between sets. At a pain of 7 or more, the next set does not start.
@@ -119,7 +119,7 @@ The full gate takes about 40 minutes, and its e2e step takes most of that. The a
 - `scripts/deps-check.sh`: each dependency is in `scripts/allowed-deps.txt` and has an exact version.
 - `scripts/claims-check.sh`: no line of the code matches the banned words, the praise words, the video APIs, the canvas code or the inline colours.
 - `scripts/phase-check.sh`: no line of the code writes the active phase outside `src/lib/protocol/`.
-- `scripts/secrets-check.sh`: no tracked file holds a secret, a private key, a personal email address, a private IP address, a local user path or a forbidden file. A test value can carry the marker `secrets-check:allow <reason>`.
+- `scripts/secrets-check.sh`: no tracked file holds a secret, a private key, a personal email, a private IP address, a local user path or a forbidden file. A test value can carry the marker `secrets-check:allow <reason>`.
 
 The pattern checks cannot prove that no other banned text exists. `tests/importGraph.test.ts` reads the imports with the TypeScript parser and covers the save functions.
 
