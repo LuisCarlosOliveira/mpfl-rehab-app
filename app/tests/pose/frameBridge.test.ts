@@ -289,12 +289,30 @@ describe('frame bridge: a worker that cannot take or answer a frame', () => {
     expect(createImageBitmapMock).toHaveBeenCalledTimes(1);
   });
 
-  it('fails when the worker gives no reply within the limit', async () => {
+  it('gives the first frame no limit, because the first frame includes the graph start-up', async () => {
     vi.useFakeTimers();
     try {
       const { bridge, worker, onFail } = await ready();
       bridge.submit(video, 1);
       pending[0]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(onFail).not.toHaveBeenCalled();
+      expect(worker.terminated).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('fails when the worker gives no reply within the limit after the first result', async () => {
+    vi.useFakeTimers();
+    try {
+      const { bridge, worker, onFail } = await ready();
+      bridge.submit(video, 1);
+      pending[0]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(10);
+      worker.emit({ type: 'result', timestampMs: 1, landmarks: null });
+      bridge.submit(video, 2);
+      pending[1]!.resolve(bitmap());
       await vi.advanceTimersByTimeAsync(FRAME_REPLY_LIMIT_MS - 1);
       expect(onFail).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(1);

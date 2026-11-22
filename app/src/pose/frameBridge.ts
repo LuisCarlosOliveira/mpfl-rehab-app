@@ -62,6 +62,7 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
       return;
     }
     let started = false;
+    let answered = false;
     let closed = false;
     let busy = false; // a picture is made or the worker works on one
     let last: { video: HTMLVideoElement; time: number } | null = null; // the video frame in work
@@ -88,7 +89,7 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
       timestampMs = Math.max(timestampMs, lastTs + 0.01); // the model needs times that rise
       lastTs = timestampMs;
       stopWatchdog();
-      watchdog = setTimeout(fail, FRAME_REPLY_LIMIT_MS);
+      if (answered) watchdog = setTimeout(fail, FRAME_REPLY_LIMIT_MS);
       picture(video).then(
         (bitmap) => {
           if (closed) return bitmap.close();
@@ -124,6 +125,7 @@ export function createFrameBridge({ onResult, onProgress, onProbeReady, onFail }
         });
       } else {
         busy = false;
+        answered = true;
         stopWatchdog();
         // The handler gets a third argument only during the probe, so the usual call keeps its two arguments.
         if (data.extra) onResult(data.landmarks, data.timestampMs, data.extra);
