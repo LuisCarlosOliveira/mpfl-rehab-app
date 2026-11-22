@@ -11,7 +11,7 @@ function splitFirst(text: string): [string, string] {
 
 const POINTS: { icon: IconName; text: string }[] = [
   { icon: 'video-off', text: 'No video leaves your device. The app does not record video and does not send video.' },
-  { icon: 'users', text: 'A shared device means shared data. Anyone who uses this browser can see your sessions.' },
+  { icon: 'users', text: 'A shared device means shared data. The app does not encrypt it. Anyone who uses this browser can see your sessions.' },
   { icon: 'file-text', text: 'The export file holds health data. Send it only to your care team.' },
   {
     icon: 'calendar-check',
