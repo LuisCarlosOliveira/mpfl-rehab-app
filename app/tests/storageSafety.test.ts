@@ -75,7 +75,7 @@ describe('eraseAll keeps keys of other apps (S-09)', () => {
     expect(Object.keys(localStorage).sort()).toEqual(['mpflx', 'other.app']);
   });
 
-  it('clears the keys before the database goes, and keeps going when localStorage is blocked', async () => {
+  it('clears the keys after the database is deleted', async () => {
     const db = createDb(`erase-${Math.random()}`);
     await db.open();
     const order: string[] = [];
@@ -84,7 +84,31 @@ describe('eraseAll keeps keys of other apps (S-09)', () => {
     vi.spyOn(db, 'delete').mockImplementation(() => (order.push('db'), del()));
     localStorage.setItem('mpfl.pseudoId', 'x');
     await eraseAll(db);
-    expect(order).toEqual(['keys', 'db']);
+    expect(order).toEqual(['db', 'keys']);
+  });
+
+  it('keeps the keys when the delete is blocked', async () => {
+    const name = `erase-${Math.random()}`;
+    const db = createDb(name);
+    await db.open();
+    localStorage.setItem('mpfl.pseudoId', 'x');
+    const other = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(name);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await expect(eraseAll(db)).rejects.toThrow(/blocked/i);
+    expect(localStorage.getItem('mpfl.pseudoId')).toBe('x');
+    other.close();
+  });
+
+  it('leaves one listener after two calls', async () => {
+    const db = createDb(`erase-${Math.random()}`);
+    await db.open();
+    const before = db.on('blocked').subscribers.length;
+    await eraseAll(db);
+    await eraseAll(db);
+    expect(db.on('blocked').subscribers.length).toBe(before);
   });
 
   it('still erases the database when localStorage throws', async () => {
