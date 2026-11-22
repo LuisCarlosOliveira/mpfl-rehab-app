@@ -31,7 +31,7 @@ This app is a research and evaluation prototype that counts reps and estimates t
 
 ## What it looks like
 
-These screens come from the first live test on a real person, on 2026-11-22. The pictures show the app screens only. The camera picture is not part of them.
+These screens come from live tests on a real person, on 2026-11-22. Only the exercise picture below shows a camera view.
 
 | Privacy, the first screen | The plan that the app made |
 |---|---|
@@ -43,9 +43,9 @@ These screens come from the first live test on a real person, on 2026-11-22. The
 
 During an exercise, the app shows the measured number and the rep count. It shows no verdict, no score and no colour of praise or blame.
 
-![The heel slide screen: a drawn figure with the body map on the leg, knee bend 37 degrees, 3 reps, and two buttons](docs/img/exercise.jpg)
+![The straight leg raise screen: body map on the raised leg, knee bend 29 degrees, 6 reps](docs/img/exercise.jpg)
 
-The leg movement is replayed from landmark numbers of a public CC BY test clip (attribution in docs/accuracy.md). The picture is an illustration. No video or real person is shown.
+This is the screen during a real straight leg raise on a laptop webcam, with the example plan. The camera picture shows a room and the legs of the person who ran the test. The body map follows the raised leg. The angle is an estimate.
 
 ![The live numbers: knee bend 8 degrees, 2 reps, labelled as an estimate](docs/img/live-numbers.jpg)
 
