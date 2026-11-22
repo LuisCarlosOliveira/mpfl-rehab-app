@@ -26,8 +26,7 @@ npm-debug.log*
 *.key
 .npmrc.local
 
-# Claude Code: personal settings and worktrees stay local.
-# The project skills and agents in .claude/skills and .claude/agents ARE committed.
+# Claude Code files stay local.
 .claude/settings.local.json
 .claude/worktrees/
 .claude/scheduled_tasks.lock
@@ -53,3 +52,38 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# Internal working files. They stay on the developer machine and are not published.
+/MPFL_APP_PLAN.md
+/TASKS.md
+/.claude/
+/skill-workspaces/
+/research/
+/docs/live-test/
+/docs/ui-redesign-survey/
+/docs/audit-2.md
+/docs/audit-3.md
+/docs/audit-generator-v2.md
+/docs/final-audit.md
+/docs/final-review-issues.md
+/docs/adaptation-and-live-form-design.md
+/docs/design-reconciliation.md
+/docs/exercise-monitoring-design.md
+/docs/generator-v2-design.md
+/docs/leg-and-baseline-design.md
+/docs/progression-evaluation-design.md
+/docs/protocol-generator-design.md
+/docs/session-flow-design.md
+/docs/lighthouse.md
+/docs/pose-worker.md
+/docs/test-results.md
+/docs/ui-audit-a11y-plan.md
+/docs/ui-audit-honesty-plan.md
+/docs/ui-audit-security-plan.md
+/docs/ui-design.md
+/docs/ui-ideas.md
+/docs/ui-redesign-brief.md
+/docs/ui-redesign-decisions.md
+/docs/ui-redesign-v2-spec.md
+/docs/ui-redesign-v3.md
+/.mcp.json
