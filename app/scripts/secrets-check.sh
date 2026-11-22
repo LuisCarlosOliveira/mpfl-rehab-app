@@ -34,6 +34,21 @@ rules=(
   'npm-auth-token~-~_authToken=[^[:space:]$"'"'"']+~'
   'url-password~-~[A-Za-z][A-Za-z0-9+.-]*://[^/[:space:]:@"'"'"']+:[^/[:space:]@"'"'"']+@[^/[:space:]"'"'"']+~evil\.example'
   'generic-secret~i~(key|secret|token|password|passwd|bearer)[A-Za-z0-9_]*["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][A-Za-z0-9+/=_-]{16,}["'"'"']~(example|placeholder|changeme|your[-_]|x{6,}|dummy|fake)'
+  'generic-secret-unquoted~i~(key|secret|token|password|passwd|bearer|credential)[A-Za-z0-9_]*["'"'"']?[[:space:]]*[:=][[:space:]]*[A-Za-z0-9+/=_-]{16,}([^A-Za-z0-9+/=_(.-]|$)~(example|placeholder|changeme|your[-_]|x{6,}|dummy|fake)'
+  'auth-header~i~Authorization["'"'"']?[[:space:]]*:[[:space:]]*["'"'"']?(Bearer|Basic)[[:space:]]+[A-Za-z0-9+/=._-]{16,}~(example|placeholder|changeme|your[-_]|x{6,}|dummy|fake)'
+  'gitlab-token~-~\bglpat-[A-Za-z0-9_-]{20,}~'
+  'huggingface-token~-~\bhf_[A-Za-z0-9]{30,}~'
+  'sendgrid-key~-~\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}~'
+  'google-oauth-secret~-~GOCSPX-[A-Za-z0-9_-]{28}~'
+  'azure-storage-key~-~AccountKey=[A-Za-z0-9+/]{40,}={0,2}~'
+  'npm-auth-basic~-~_auth=[A-Za-z0-9+/]{16,}={0,2}~'
+  'docker-auth~-~"auth"[[:space:]]*:[[:space:]]*"[A-Za-z0-9+/]{16,}={0,2}"~'
+  'twilio-key~-~\bSK[0-9a-f]{32}\b~'
+  'mailgun-key~-~\bkey-[0-9a-f]{32}\b~'
+  'digitalocean-token~-~\bdop_v1_[0-9a-f]{64}~'
+  'telegram-bot-token~-~\b[0-9]{8,10}:[A-Za-z0-9_-]{35}\b~'
+  'pypi-token~-~\bpypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]{20,}~'
+  'hex-token~i~(token|key)[A-Za-z0-9_]*["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"']?[0-9a-f]{40}\b~'
   'email~-~[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b~^noreply@|@(example\.com|example\.org|evil\.example)$'
   'private-ip~-~(^|[^0-9.])(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3})([^0-9]|$)~'
   'local-path~-~(^|[^A-Za-z0-9._%/-])(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[c]/)|[A-Za-z]:\\+Users\\+[A-Za-z0-9._-]+~'
@@ -87,13 +102,21 @@ scan() {
       [ -z "$hit" ] && continue
       file="${hit%%:*}"; rest="${hit#*:}"; line="${rest%%:*}"; text="${rest#*:}"
       if [[ "$text" =~ secrets-check:allow[[:space:]]+[^[:space:]] ]]; then continue; fi
-      if [ "$kind" = generic-secret ] && [[ "$text" =~ (sha[0-9]*|integrity|hash|checksum) ]]; then continue; fi
+      case "$kind" in
+        generic-secret|generic-secret-unquoted|hex-token)
+          if [[ "$text" =~ (sha[0-9]*|integrity|hash|checksum) ]]; then continue; fi ;;
+      esac
       if [ "$kind" = email ] && [ "$file" = "app/public/THIRD_PARTY_NOTICES.txt" ]; then continue; fi
       while IFS= read -r m; do
         [ -z "$m" ] && continue
         if [ -n "$exc" ] && printf '%s' "$m" | grep -qE${flag/-/} -- "$exc"; then continue; fi
         if [ "$kind" = generic-secret ]; then
           v="$(printf '%s' "$m" | grep -oE "[\"'][A-Za-z0-9+/=_-]{16,}[\"']" | tail -n 1)"
+          [[ "$v" =~ [0-9] && "$v" =~ [A-Za-z] ]] || continue
+        fi
+        if [ "$kind" = generic-secret-unquoted ]; then
+          [[ "$m" =~ ^[A-Za-z0-9_]*[\"\']?[[:space:]]*[:=][[:space:]]*(.*)$ ]] || continue
+          v="${BASH_REMATCH[1]%%[^A-Za-z0-9+/=_-]*}"
           [[ "$v" =~ [0-9] && "$v" =~ [A-Za-z] ]] || continue
         fi
         echo "$file:$line: $kind: $(mask "$m")"
@@ -126,6 +149,21 @@ selftest() {
     [npm-auth-token]="//registry.example.test/:_auth""Token=abcDEF123456"
     [url-password]="https://bob:hunter2pw""@db.internal.test/x"
     [generic-secret]="const api_""key = 'Ab3dE6gH9jK2mN5pQ8';"
+    [generic-secret-unquoted]="API_""KEY=Ab3dE6gH9jK2mN5pQ8"
+    [auth-header]="Authorization: Bear""er Ab3dE6gH9jK2mN5pQ8sT"
+    [gitlab-token]="gl""pat-AbCdEfGhIjKlMnOpQrSt1"
+    [huggingface-token]="h""f_AbCdEfGhIjKlMnOpQrStUvWxYz0123"
+    [sendgrid-key]="S""G.AbCdEfGhIjKlMnOpQrStUv.AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCdE"
+    [google-oauth-secret]="GOC""SPX-AbCdEfGhIjKlMnOpQrStUvWxYz01"
+    [azure-storage-key]="Account""Key=AbCdEfGhIjKlMnOpQrStUvWxYz0123456789+/AbCdEf=="
+    [npm-auth-basic]="//reg.example.test/:_au""th=dXNlcjpwYXNzd29yZDEyMzQ1Njc4"
+    [docker-auth]="\"au""th\": \"dXNlcjpwYXNzd29yZDEyMzQ1Njc4\""
+    [twilio-key]="S""Ka1b2c3d4e5f60718293a4b5c6d7e8f90"
+    [mailgun-key]="ke""y-a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    [digitalocean-token]="dop""_v1_a1b2c3d4e5f60718293a4b5c6d7e8f900123456789abcdef0123456789abcdef"
+    [telegram-bot-token]="1234567890"":AAEhBOweik6ad9r_QXmN1o3pQ8sT5vW2yZ0"
+    [pypi-token]="py""pi-AgEIcHlwaS5vcmcAbCdEfGhIjKlMnOpQrStUv1234"
+    [hex-token]="api_to""ken = a1b2c3d4e5f60718293a4b5c6d7e8f900123abcd"
     [email]="mail jane.doe""@corp.test now"
     [private-ip]="host 192.""168.1.20 here"
     [local-path]="at /ho""me/jane/notes"
