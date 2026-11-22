@@ -43,7 +43,7 @@ Leg and camera side stay in the state between exercises and come from the stored
 
 - `src/lib/sessionPlan.ts`: the list of kinds (pure) and the camera rule.
 - `src/lib/storage/meta.ts`: leg, camera side and guide-seen helpers.
-- `src/ui/PlanProgress.tsx`: the progress mark and the text.
+- `src/ui/PlanProgress.tsx`: removed on 2026-11-22. `SessionProgress` shows the progress now.
 - `src/ui/PlanSession.tsx` (lazy): the Next card and the session summary.
 - `src/ui/Home.tsx`, `Setup.tsx`, `SetupGuide.tsx`, `Session.tsx`, `Summary.tsx`, `App.tsx`, `appState.ts`, `lib/flow.ts`.
 - Tests: `tests/sessionPlan.test.ts`, `tests/planState.test.ts`, `tests/ui/planSession.test.tsx`, `e2e/session-flow.spec.ts`.

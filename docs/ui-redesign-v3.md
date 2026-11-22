@@ -173,7 +173,7 @@ A third branch, `fix-plan-text` in `plantext-wt`, changes `PlanResult.tsx` and `
 Rules to keep the work apart:
 - v3 changes no logic file in `src/lib`. It only moves markup and CSS.
 - v3 starts after (a) and (b) merge to master. `Setup.tsx`, `Summary.tsx`, `Home.tsx` and `CheckProgress.tsx` change heavily in both. A parallel edit gives conflicts.
-- v3 reuses `PlanProgress` and `StepTrack` of (a). It does not write a second progress bar.
+- v3 reuses `StepTrack` of (a). It does not write a second progress bar. `PlanProgress` was removed on 2026-11-22.
 - `SessionProgress` below is the visual wrapper of `PlanProgress`. It adds the 6 bars and the "Exercise 3 of 6" label.
 - Where (a) already merges the red-flag check, v3 only moves it into GetReadyCard.
 - (b) decides what the progress page says about the surgery date. v3 decides where each block sits.

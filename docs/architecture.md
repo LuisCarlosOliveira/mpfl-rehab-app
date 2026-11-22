@@ -123,7 +123,7 @@ Paths are under `app/src`.
 | `pose/source.ts` | Landmark source interface, with the tag `side` or `front` |
 | `pairing/` | QR draw and read, WebRTC link (`rtcLink.ts`), frame messages, `pairing.ts`, `usePairing` hook |
 | `ui/App.tsx`, `ui/appState.ts` | App shell with lazy screens, and the navigation state (pure reducer) |
-| `ui/LoadError.tsx`, `ui/Shell.tsx` | Load error screen and `retryableLazy`, brand bar and loading state |
+| `ui/LoadError.tsx`, `ui/Shell.tsx` | Load error screen and `retryableLazy` (an alias of `lazy`), loading state |
 | `ui/Privacy.tsx`, `LoadProtocol.tsx`, `Home.tsx`, `RedFlag.tsx`, `CompanionEntry.tsx` | Entry and check screens, and the way to the phone screen |
 | `ui/Onboarding.tsx`, `PlanResult.tsx`, `ConfirmPlan.tsx`, `UpdatePlan.tsx`, `Referral.tsx`, `answerControls.tsx` | Plan generator screens. Only `ConfirmPlan.tsx` saves |
 | `ui/Setup.tsx`, `setupView.ts`, `GuideFigure.tsx` | Camera setup screen, its rule rows, the numbered guide and the drawings |
