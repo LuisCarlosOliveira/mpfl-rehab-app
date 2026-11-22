@@ -198,7 +198,7 @@ Report a security problem: see [SECURITY.md](SECURITY.md).
 
 ## License
 
-The code of this app is under the Apache License 2.0. Read the file [LICENSE](LICENSE).
+The code of this app is under the Apache License 2.0. Read the file [LICENSE](LICENSE). Copyright 2026 LuisCarlosOliveira and contributors. This is a personal project.
 
 - You can use, copy, change and share the code, also in your own work.
 - The license has a patent grant and says that the software comes with no warranty and no liability.
