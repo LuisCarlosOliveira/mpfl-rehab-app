@@ -4,7 +4,7 @@ import { SECRET_BYTES } from './security';
 import { toBase64Url } from './payload';
 
 export const MAX_MESSAGE_BYTES = 4096; // PROPOSAL: qr-pairing.md section 5 rule 5. Counted in bytes, not characters.
-export const PROTOCOL_VERSION = 1;
+const PROTOCOL_VERSION = 1;
 export const LANDMARK_COUNT = 33;
 
 const secretText = z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${Math.ceil((SECRET_BYTES * 4) / 3)}}$`));
@@ -15,12 +15,12 @@ const landmark = z.strictObject({
   visibility: z.number().min(0).max(1).optional(),
 });
 
-export const helloSchema = z.strictObject({
+const helloSchema = z.strictObject({
   type: z.literal('hello'),
   v: z.literal(PROTOCOL_VERSION),
   secret: secretText,
 });
-export const landmarksSchema = z.strictObject({
+const landmarksSchema = z.strictObject({
   type: z.literal('landmarks'),
   tMs: z.number().min(0).max(Number.MAX_SAFE_INTEGER),
   view: z.enum(['side', 'front']),
@@ -28,9 +28,9 @@ export const landmarksSchema = z.strictObject({
   aspect: z.number().min(0.2).max(5).optional(),
   landmarks: z.array(landmark).length(LANDMARK_COUNT),
 });
-export const byeSchema = z.strictObject({ type: z.literal('bye') });
+const byeSchema = z.strictObject({ type: z.literal('bye') });
 
-export const readySchema = z.strictObject({ type: z.literal('ready') });
+const readySchema = z.strictObject({ type: z.literal('ready') });
 
 export const messageSchema = z.discriminatedUnion('type', [helloSchema, landmarksSchema, byeSchema, readySchema]);
 

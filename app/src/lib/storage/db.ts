@@ -76,7 +76,7 @@ export type SessionData = z.infer<typeof sessionSchema>;
 export type SessionRecord = SessionData & { id: number };
 export type SessionInput = Omit<SessionData, 'schemaVersion'>;
 
-export interface StoredProtocol {
+interface StoredProtocol {
   key: 'current';
   raw: string; // the file text. It is checked again on every load.
   savedAt: string;
@@ -85,7 +85,7 @@ export interface StoredProtocol {
 export const storedInputsSchema = inputsSchema.omit({ phaseClearance: true, walksWithoutCrutches: true, legRaiseStraight: true, seatedHoldCleared: true, kneeGaveWay: true, redFlags: true, pain: true, swelling: true });
 export type StoredInputs = z.infer<typeof storedInputsSchema>;
 
-export interface StoredInputsRow {
+interface StoredInputsRow {
   key: 'current';
   inputs: StoredInputs;
   savedAt: string;

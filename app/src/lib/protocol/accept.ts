@@ -24,11 +24,11 @@ export const selfProgressionOn = (): boolean => {
   return flag === 'true' || flag === '1';
 };
 
-export interface Proposal {
+interface Proposal {
   readonly protocol: Protocol;
 }
 
-export type AcceptCode =
+type AcceptCode =
   | 'no-confirmation'
   | 'reused'
   | 'stale'
@@ -40,7 +40,7 @@ export type AcceptCode =
   | 'refused-by-loader'
   | 'save-failed';
 
-export type AcceptResult = { ok: true; protocol: Protocol } | { ok: false; code: AcceptCode; message: string };
+type AcceptResult = { ok: true; protocol: Protocol } | { ok: false; code: AcceptCode; message: string };
 
 const refuse = (code: AcceptCode, message: string): AcceptResult => ({ ok: false, code, message });
 

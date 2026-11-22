@@ -13,7 +13,7 @@ export interface EngineData {
 }
 
 export const HOLD_MIN_MS = 1000; // a shorter hold is dropped (a double press)
-export const HOLD_MAX_S = 3600; // the limit of the stored field
+const HOLD_MAX_S = 3600; // the limit of the stored field
 export const HOLD_LIST_MAX = 50; // the limit of the stored field
 
 export interface EndHoldResult {
@@ -54,13 +54,13 @@ export function createPersonTimer(): PersonTimer {
   };
 }
 
-export interface CycleConfig {
+interface CycleConfig {
   minAmplitude: number; // degrees
   minStateMs: number;
   maxRiseMs: number;
 }
 
-export interface CycleState {
+interface CycleState {
   phase: 'low' | 'high';
   ref: number | null;
   base: number | null;
@@ -163,7 +163,7 @@ export function createCycleDriver(cfg: CycleConfig): CycleDriver {
   };
 }
 
-export interface LiftConfig {
+interface LiftConfig {
   settleMs: number;
   endMs: number;
 }
@@ -174,7 +174,7 @@ export interface LiftState {
   belowSince: number | null;
 }
 
-export interface LiftOutput {
+interface LiftOutput {
   lift: LiftState | null;
   settled: boolean;
   counted: boolean;
@@ -231,12 +231,12 @@ export interface LiftDriver {
   data(): EngineData;
 }
 
-export interface LiftDriverConfig extends LiftConfig {
+interface LiftDriverConfig extends LiftConfig {
   liftAngle: number;
   directional?: { cameraFacing: 1 | -1 | null; maxWidth?: number };
 }
 
-export const WIDTH_FRAMES = 5;
+const WIDTH_FRAMES = 5;
 
 export const facingFromCameraSide = (cameraSide: 'left' | 'right' | undefined): 1 | -1 | null =>
   cameraSide === undefined ? null : cameraSide === 'left' ? -1 : 1;

@@ -22,7 +22,7 @@ const ZOD_DEFAULT = /^(Invalid |Too |Unrecognized |Input )/;
 
 const UNKNOWN_EXERCISE = 'This file names an exercise that the app does not know. Ask your care team to use an exercise from the list.';
 
-export function plainIssue(issue: Issue | undefined): string {
+function plainIssue(issue: Issue | undefined): string {
   if (!issue) return 'unknown problem';
   if (!ZOD_DEFAULT.test(issue.message)) return issue.message;
   if (issue.code === 'invalid_value' && issue.path.length >= 2 && issue.path.at(-1) === 'kind' && issue.path.at(-3) === 'exercises') return UNKNOWN_EXERCISE;
@@ -101,7 +101,7 @@ export function normalizeLegacy(data: unknown): unknown {
 
 export type Mode = 'demo' | 'patient';
 
-export type LoadErrorCode = 'too-large' | 'invalid-json' | 'schema' | 'example-in-patient-mode' | 'not-approved' | 'generated-not-approved';
+type LoadErrorCode = 'too-large' | 'invalid-json' | 'schema' | 'example-in-patient-mode' | 'not-approved' | 'generated-not-approved';
 
 export type LoadResult =
   | { ok: true; protocol: Protocol }

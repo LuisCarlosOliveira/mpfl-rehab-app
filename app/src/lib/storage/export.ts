@@ -21,7 +21,7 @@ export const exportSchema = z.strictObject({
 
 export type ExportFile = z.infer<typeof exportSchema>;
 
-export type ExportErrorCode = 'too-large' | 'invalid-json' | 'unknown-version' | 'schema' | 'duplicate' | 'other-person';
+type ExportErrorCode = 'too-large' | 'invalid-json' | 'unknown-version' | 'schema' | 'duplicate' | 'other-person';
 export type ParseResult = { ok: true; file: ExportFile } | { ok: false; error: { code: ExportErrorCode; message: string } };
 
 const fail = (code: ExportErrorCode, message: string): { ok: false; error: { code: ExportErrorCode; message: string } } => ({
