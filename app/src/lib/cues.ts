@@ -62,7 +62,7 @@ export const cuePriority = (event: CueEvent): number => {
 
 const isSafety = (event: CueEvent) => event === 'over-limit' || event === 'near-limit';
 
-interface CueGate {
+export interface CueGate {
   note(event: CueEvent | null, nowMs: number): void;
   pausedVisible(nowMs: number): boolean;
   allow(event: CueEvent, text: string, nowMs: number, safetyActive: boolean): boolean;
@@ -98,6 +98,37 @@ export function createCueGate(): CueGate {
       return true;
     },
   };
+}
+
+export const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
+
+export interface LiveCue {
+  text: string;
+  alert: boolean;
+  paused: boolean;
+  event: CueEvent;
+  until: number;
+}
+
+interface CueFrame {
+  event: CueEvent;
+  text: string | null;
+  flexion: number | null;
+  stillOver: boolean;
+}
+
+export function nextCueView(prev: LiveCue | null, gate: CueGate, f: CueFrame, nowMs: number): LiveCue | null {
+  const alertOn = prev !== null && prev.alert && nowMs < prev.until;
+  gate.note(f.event, nowMs);
+  let cue = prev;
+  if (f.text !== null && gate.allow(f.event, f.text, nowMs, alertOn)) {
+    cue = { text: f.text, alert: f.event === 'over-limit', paused: f.event === 'paused', event: f.event, until: nowMs + CUE_SHOW_MS };
+  } else if (prev?.paused && f.event !== 'paused') {
+    cue = gate.pausedVisible(nowMs) ? { ...prev, until: nowMs + CUE_SHOW_MS } : null;
+  } else if (prev?.event === 'not-side-on' && f.event !== 'not-side-on' && f.flexion !== null) {
+    cue = null;
+  }
+  return cue?.alert && f.stillOver ? { ...cue, until: nowMs + CUE_SHOW_MS } : cue;
 }
 
 export function stillOverLimit(exercise: Pick<Exercise, 'kind' | 'maxFlexion' | 'minFlexion'>, flexion: number | null): boolean {

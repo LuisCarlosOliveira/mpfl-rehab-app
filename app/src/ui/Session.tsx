@@ -25,7 +25,7 @@
 // A camera problem shows in the frame (A6). The unit sits on the baseline of the number (A2). The styles are in sessionV2.css.
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { Side } from '../lib/angle';
-import { createCueGate, cueFor, stillOverLimit, topAngleText, type CueEvent } from '../lib/cues';
+import { createCueGate, cueFor, nextCueView, stillOverLimit, topAngleText, type CueEvent, type LiveCue } from '../lib/cues';
 import { counterSetup, createPipeline, legRoleOf, type Pipeline, type SetupResult, type Summary } from '../lib/exercises';
 import { engineSpecFor, usesCamera as kindUsesCamera } from '../lib/monitor/engine';
 import { specFor } from '../lib/monitor/registry';
@@ -67,7 +67,6 @@ const HOLD_LIST_MAX = 50;
 const TICK_MS = 250;
 const PROBE_MS = 2000; // ENGINEERING: how long the source returns two poses when the lockout starts (B5-02)
 const LOCK_HOLD_MS = 500; // ENGINEERING: the lock box stays this long after the lock ends. The same time as PAUSED_CUE_MS.
-const CUE_SHOW_MS = 4000; // PROPOSAL, no source: how long a cue text stays on screen. The over-limit alert waits until the knee is back below the limit.
 const STALE_MS = 2000; // PROPOSAL, no source: no frame for this long shows the camera notice
 // ENGINEERING, not clinical: the over-limit beep repeats this often while the knee stays past the limit (M5).
 // Reason: a person who looks away must still hear that the limit is passed. 5 s is slower than a storm of beeps.
@@ -85,13 +84,6 @@ const EMPTY_SUMMARY: Summary = {
 export interface SessionRunSummary extends RunSummary {
   setPain?: (number | null)[];
   repsBy?: 'camera' | 'hand';
-}
-
-interface LiveCue {
-  text: string;
-  alert: boolean;
-  paused: boolean;
-  until: number;
 }
 
 const COUNTED_EVENTS = new Set(['rep', 'too-fast', 'hold-complete']);
@@ -345,22 +337,12 @@ export function Session({ exercise, side, cameraSide, baselineDeg, source, secon
         repMs: out.repMs,
         minRepMs,
       });
-      const alertOn = state.cue !== null && state.cue.alert && now < state.cue.until;
-      gate.note(out.event as CueEvent, now);
-      if (text !== null && gate.allow(out.event as CueEvent, text, now, alertOn)) {
-        state.cue = {
-          text,
-          alert: out.event === 'over-limit',
-          paused: out.event === 'paused',
-          until: now + CUE_SHOW_MS,
-        };
-      } else if (state.cue?.paused && out.event !== 'paused') {
-        if (gate.pausedVisible(now)) state.cue.until = now + CUE_SHOW_MS;
-        else state.cue = null;
-      }
-      if (state.cue?.alert && !engine && stillOverLimit(exercise as Exercise, out.flexion)) {
-        state.cue.until = now + CUE_SHOW_MS;
-      }
+      state.cue = nextCueView(
+        state.cue,
+        gate,
+        { event: out.event as CueEvent, text, flexion: out.flexion, stillOver: !engine && stillOverLimit(exercise as Exercise, out.flexion) },
+        now,
+      );
     };
 
     let lastKey = '';
