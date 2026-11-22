@@ -43,6 +43,10 @@ These screens come from the first live test on a real person, on 2026-11-22. The
 
 During an exercise, the app shows the measured number and the rep count. It shows no verdict, no score and no colour of praise or blame.
 
+![The heel slide screen: a drawn figure with the body map on the leg, knee bend 37 degrees, 3 reps, and two buttons](docs/img/exercise.jpg)
+
+The leg movement is replayed from landmark numbers of a public CC BY test clip (attribution in docs/accuracy.md). The picture is an illustration. No video or real person is shown.
+
 ![The live numbers: knee bend 8 degrees, 2 reps, labelled as an estimate](docs/img/live-numbers.jpg)
 
 ## What it does
