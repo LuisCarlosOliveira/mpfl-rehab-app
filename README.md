@@ -6,7 +6,7 @@ This app is a research and evaluation prototype that counts reps and estimates t
 
 ## Who is this for
 
-- A person after MPFL reconstruction. Use it only as a test, together with your care team. It does not replace your care team or your physiotherapy plan.
+- A person who wants to see how a webcam tool for knee exercises works. Try it only as a test, together with your care team. It is not a rehab programme. It does not replace your care team or your physiotherapy plan.
 - A clinician who wants to review the app and give a plan file to a person. Start with [docs/clinician-first-review.md](docs/clinician-first-review.md) and [docs/clinician-template.md](docs/clinician-template.md).
 - A developer who wants to build on the app, run the tests or check the claims.
 
