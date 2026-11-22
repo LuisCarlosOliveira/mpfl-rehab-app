@@ -106,3 +106,92 @@ describe('secrets-check.sh', () => {
     expect(run('--repo', join(repo, 'missing')).status).toBe(2);
   });
 });
+
+const j = (...parts: string[]) => parts.join('');
+const hex32 = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+
+// One line per new kind: [kind, fake value built from pieces, line template]. The secret part follows the prefix.
+const providerCases: Array<[string, string, string, string]> = [
+  ['gitlab-token', j('gl', 'pat-', 'AbCdEfGhIjKlMnOpQrSt1'), 'x = $V', ''],
+  ['huggingface-token', j('h', 'f_', 'AbCdEfGhIjKlMnOpQrStUvWxYz0123'), 'x = "$V"', ''],
+  [
+    'sendgrid-key',
+    j('S', 'G.', 'AbCdEfGhIjKlMnOpQrStUv', '.', 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-AbCdE'),
+    'x = "$V"',
+    '',
+  ],
+  ['google-oauth-secret', j('GOC', 'SPX-', 'AbCdEfGhIjKlMnOpQrStUvWxYz01'), 'x = "$V"', ''],
+  [
+    'azure-storage-key',
+    j('DefaultEndpointsProtocol=https;Account', 'Key=', 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789+/AbCdEf=='),
+    '$V',
+    '',
+  ],
+  ['npm-auth-basic', j('//reg.example.test/:_au', 'th=', 'dXNlcjpwYXNzd29yZDEyMzQ1Njc4'), '$V', ''],
+  ['docker-auth', j('"au', 'th": "', 'dXNlcjpwYXNzd29yZDEyMzQ1Njc4', '"'), '{ $V }', ''],
+  ['twilio-key', j('S', 'K', hex32), 'x = "$V"', ''],
+  ['mailgun-key', j('ke', 'y-', hex32), 'x = "$V"', ''],
+  ['digitalocean-token', j('dop', '_v1_', hex32, '0123456789abcdef0123456789abcdef'), 'x = "$V"', ''],
+  ['telegram-bot-token', j('1234567890', ':', 'AAEhBOweik6ad9r_QXmN1o3pQ8sT5vW2yZ0'), 'x = "$V"', ''],
+  ['pypi-token', j('py', 'pi-AgEIcHlwaS5vcmc', 'AbCdEfGhIjKlMnOpQrStUv1234'), 'x = "$V"', ''],
+  ['hex-token', j('api_to', 'ken = ', hex32, '0123abcd'), '$V', ''],
+  ['auth-header', j('Authorization: Bear', 'er ', 'Ab3dE6gH9jK2mN5pQ8sT'), '$V', ''],
+  ['auth-header', j('Authorization: Bas', 'ic ', 'dXNlcjpwYXNzd29yZA=='), "curl -H '$V'", ''],
+  ['generic-secret-unquoted', j('API_', 'KEY=', 'Ab3dE6gH9jK2mN5pQ8'), '$V', ''],
+];
+
+describe('secrets-check.sh new kinds', () => {
+  it.each(providerCases)('catches %s without printing the value', (kind, value, tpl) => {
+    track('src/p.txt', tpl.replace('$V', value) + '\n');
+    const r = check();
+    expect(r.status).toBe(1);
+    expect(r.stdout).toMatch(new RegExp(`^src/p\\.txt:1: ${kind}: `, 'm'));
+    expect(r.stdout + r.stderr).not.toContain(value);
+    const payload = value.replace(/^.*?[=: ]/, '');
+    expect(r.stdout + r.stderr).not.toContain(payload.slice(0, 6));
+  });
+
+  it.each([
+    ['env file', 'src/a.sh', j('API_', 'KEY=', 'Ab3dE6gH9jK2mN5pQ8')],
+    ['Markdown', 'docs/a.md', j('Set `access_to', 'ken: ', 'Ab3dE6gH9jK2mN5pQ8`')],
+    ['YAML', 'src/a.yml', j('client_sec', 'ret: ', 'Ab3dE6gH9jK2mN5pQ8')],
+    ['spaces', 'src/a.env', j('DB_PASS', 'WORD = ', 'Ab3dE6gH9jK2mN5pQ8')],
+  ])('flags an unquoted assignment in %s', (_n, file, text) => {
+    track(file, text + '\n');
+    const r = check();
+    expect(r.status).toBe(1);
+    expect(r.stdout).toContain(`${file}:1: generic-secret-unquoted`);
+    expect(r.stdout).not.toContain('Ab3dE');
+  });
+
+  it.each([
+    j('API_', 'KEY=', 'your-api-key-1234567890'),
+    j('API_', 'KEY=', 'example1234567890abcd'),
+    j('API_', 'KEY=', '$MY_SECRET_VALUE_123456'),
+    j('API_', 'KEY=', '${MY_SECRET_VALUE_123456}'),
+    j('const to', 'ken = ', 'process.env.APP_TOKEN_VALUE_1;'),
+    j('const to', 'ken = ', 'import.meta.env.VITE_TOKEN_VALUE;'),
+    j('const to', 'ken = ', 'getAuthTokenFromStorage2();'),
+    j('const to', 'ken: ', 'AuthTokenResponseType,'),
+    j('API_', 'KEY=', 'abcdefghijklmnopqrstu'),
+    j('API_', 'KEY=', '1234567890123456789'),
+    j('API_', 'KEY=', 'Ab3dE6gH9j'),
+    j('integrity: sha512-Ab3dE6gH9jK2mN5pQ8sT, to', 'ken: ', 'Ab3dE6gH9jK2mN5pQ8sT'),
+    j('Authorization: Bear', 'er ', '${accessTokenValue123}'),
+    j('Authorization: Bear', 'er ', '<your-token-here-1234>'),
+    j('api_to', 'ken = ', hex32, '0123abcd // sha1 of the file'),
+  ])('does not flag normal code: %s', (text) => {
+    track('src/ok.ts', text + '\n');
+    const r = check();
+    expect(r.stdout).not.toMatch(/ok\.ts:1/);
+    expect(r.status).toBe(0);
+  });
+
+  it('accepts the allow marker for a new kind and rejects a bare marker', () => {
+    const v = j('API_', 'KEY=', 'Ab3dE6gH9jK2mN5pQ8');
+    track('src/m.sh', `${v} # secrets-check:allow test value\n`);
+    expect(check().status).toBe(0);
+    track('src/m.sh', `${v} # secrets-check:allow\n`);
+    expect(check().status).toBe(1);
+  });
+});
