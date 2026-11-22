@@ -1,10 +1,3 @@
-/* MPFL Rehab design system, approach B: hand-written CSS on design tokens. No framework.
-   Palette: cool Plaster page, ink blue-black, goniometer blue for the main action, night indigo for attention (pale lavender in the dark theme).
-   Contrast of every text and edge pair is computed by script. Fixed in pass 1: the control edge on a sunken surface is 3.27:1 in the light theme.
-   Guardrails: no green or red verdict colour anywhere. Attention is a strong indigo block with an icon and text. One series per chart, so no second chart colour.
-   Nothing moves unless the person acts. Every colour is a hex token. Alpha uses 8-digit hex.
-   Font: Figtree variable, self-hosted (SIL OFL 1.1, 20 kB). No network request. */
-
 @font-face {
   font-family: 'Figtree';
   src: url('./fonts/figtree-latin-wght.woff2') format('woff2');
@@ -16,51 +9,47 @@
 :root {
   color-scheme: light dark;
 
-  /* Colour. Light theme. */
-  --bg: #eceff0; /* Plaster, the page */
+  --bg: #eceff0;
   --surface: #f6f8f8;
   --raised: #ffffff;
   --sunken: #dde3e6;
-  --ink: #101c26; /* 14.9:1 on the page */
-  --muted: #42505c; /* 7.2:1 on the page */
-  --subtle: #566570; /* 5.2:1 on the page, large text and hints only */
-  --line: #c9d1d6; /* quiet divider, not a control edge */
-  --edge: #6f7d87; /* control edge, 3.7:1 on the page and 3.3:1 on a sunken surface */
+  --ink: #101c26;
+  --muted: #42505c;
+  --subtle: #566570;
+  --line: #c9d1d6;
+  --edge: #6f7d87;
   --primary: #0872a0;
   --primary-hover: #06648e;
   --primary-press: #055577;
   --on-primary: #ffffff;
   --primary-soft: #d3e8f2;
-  --accent: #2e3260; /* strong neutral accent: pause, emergency and notices */
+  --accent: #2e3260;
   --accent-hover: #232750;
   --on-accent: #ffffff;
   --accent-soft: #e2e5f6;
-  --accent-ink: #2e3260; /* accent as text or icon on a neutral surface */
-  --banner-bg: #2e3260; /* the prototype banner strip. It stays quiet in the dark theme. */
+  --accent-ink: #2e3260;
+  --banner-bg: #2e3260;
   --banner-ink: #ffffff;
   --banner-edge: #2e3260;
   --link: #075e86;
-  --focus: #054e6e; /* 7.8:1 on the page, ring */
+  --focus: #054e6e;
   --disabled-bg: #dde3e6;
   --disabled-ink: #566570;
   --scrim: #0e151ba6;
   --chart: #0b72a8;
 
-  /* Shadow: one level for the dialog and one for the sticky bar. Cards have none. */
   --shadow-1: none;
   --shadow-2: none;
   --shadow-3: 0 8px 16px #101c2614, 0 32px 64px #101c2626;
 
-  /* Radius, four ranks. --radius is an alias for figures.css, pair.css and qr.css. */
   --r-xs: 0.375rem;
   --r-s: 0.75rem;
   --r-m: 1.25rem;
   --r-full: 999px;
   --radius: var(--r-s);
 
-  /* Type. Fluid steps: 360 px to 1280 px, ratio 1.2 to 1.25 (utopia.fyi scale). */
   --font-text: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-num: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* tabular figures, see .num */
+  --font-num: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --step-m1: clamp(0.8854rem, 0.8601rem + 0.1123vw, 0.95rem);
   --step-0: clamp(1.0625rem, 1.0136rem + 0.2174vw, 1.1875rem);
   --step-1: clamp(1.275rem, 1.1931rem + 0.3641vw, 1.4844rem);
@@ -69,7 +58,6 @@
   --step-4: clamp(2.2032rem, 1.9309rem + 1.2104vw, 2.8992rem);
   --step-hero: clamp(4.5rem, 3.6rem + 3.4vw, 6.5rem);
 
-  /* Space. Fluid from step 5 up. */
   --s-1: 0.25rem;
   --s-2: 0.5rem;
   --s-3: 0.75rem;
@@ -78,8 +66,8 @@
   --s-6: clamp(1.5rem, 1.2rem + 1vw, 2rem);
   --s-7: clamp(2rem, 1.5rem + 1.8vw, 3rem);
   --gutter: clamp(1rem, 0.5rem + 2.6vw, 2rem);
-  --touch: 3rem; /* 48 px */
-  --row: 3.5rem; /* 56 px: tick rows and the bottom bar */
+  --touch: 3rem;
+  --row: 3.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,7 +86,7 @@
     --primary-press: #86d0f2;
     --on-primary: #06141c;
     --primary-soft: #0b2a3a;
-    --accent: #c3c8f2; /* the attention block is pale on the dark page */
+    --accent: #c3c8f2;
     --accent-hover: #d3d7f7;
     --on-accent: #14183a;
     --accent-soft: #1a1e3c;
@@ -167,7 +155,7 @@ h3 {
   font-weight: 650;
 }
 h1:focus {
-  outline: none; /* the heading takes focus on a screen change. It is not a control. */
+  outline: none;
 }
 
 p {
@@ -186,7 +174,6 @@ a {
   font-size: var(--step-m1);
 }
 
-/* Numbers only: tabular figures. */
 .num {
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
@@ -217,7 +204,6 @@ a {
   border-radius: var(--r-xs);
 }
 
-/* ---------- Shell ---------- */
 .app {
   display: flex;
   flex-direction: column;
@@ -261,7 +247,6 @@ main {
   padding: var(--s-4) var(--gutter) var(--s-7);
 }
 
-/* Banners: fixed text on every screen. A slim strip, neutral accent, with an icon. */
 .banners {
   background: var(--banner-bg);
   color: var(--banner-ink);
@@ -285,7 +270,6 @@ main {
   line-height: 1.3;
 }
 
-/* ---------- Page head ---------- */
 .page-head {
   display: flex;
   align-items: center;
@@ -314,7 +298,6 @@ main {
   max-width: 46ch;
 }
 
-/* ---------- Cards ---------- */
 .card {
   background: var(--surface);
   border: 0;
@@ -336,7 +319,6 @@ main {
   border-color: transparent;
 }
 
-/* Disclosure (native details) */
 .disclosure {
   padding: 0;
   overflow: clip;
@@ -374,7 +356,6 @@ main {
   border-top: 1px solid var(--line);
 }
 
-/* Chips: icon and word */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -407,7 +388,6 @@ main {
   padding: 0;
 }
 
-/* Facts: label and value pairs */
 .facts {
   margin: 0;
   display: grid;
@@ -450,7 +430,6 @@ main {
   text-align: right;
 }
 
-/* ---------- Buttons: at least 48 px high and wide ---------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -468,7 +447,6 @@ main {
   border-radius: var(--r-s);
   cursor: pointer;
   text-decoration: none;
-  /* No colour transition: when a button turns on, the text colour changes at once but a fading background shows white text on the grey of a disabled button for 140 ms (ratio 1.3). */
   transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -515,7 +493,7 @@ main {
   cursor: not-allowed;
 }
 .btn-danger {
-  border-width: 2.5px; /* a thick edge marks the one action that erases. It is not a colour. */
+  border-width: 2.5px;
   border-color: var(--accent-ink);
   color: var(--accent-ink);
 }
@@ -533,13 +511,12 @@ main {
   margin-left: calc(var(--s-3) * -1);
 }
 
-/* Sticky action bar: the main action stays in reach on every screen size. */
 .action-bar {
   position: sticky;
   bottom: 0;
   z-index: 5;
   display: flex;
-  flex-wrap: wrap; /* with big text the buttons go one under the other */
+  flex-wrap: wrap;
   align-items: stretch;
   gap: var(--s-3);
   margin-top: var(--s-6);
@@ -548,7 +525,6 @@ main {
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
-/* With big text the bar would take too much of the screen. It then sits at the end of the content (set by useBarHeight). */
 .action-bar[data-static] {
   position: static;
 }
@@ -559,7 +535,6 @@ main {
   min-width: min(100%, 8rem);
 }
 
-/* ---------- Notices ---------- */
 .notice {
   display: flex;
   gap: var(--s-3);
@@ -594,7 +569,6 @@ main {
   color: var(--on-accent);
 }
 
-/* ---------- Forms ---------- */
 .field {
   display: flex;
   flex-direction: column;
@@ -613,7 +587,6 @@ select {
   border-radius: var(--r-s);
 }
 
-/* File picker as a drop area */
 .dropzone {
   display: flex;
   flex-direction: column;
@@ -656,7 +629,6 @@ input[type='file']::file-selector-button {
   cursor: pointer;
 }
 
-/* Choice groups: fieldset as a card, each choice a large row */
 .choices {
   margin: 0;
   padding: var(--s-4) 0 var(--s-2);
@@ -668,7 +640,6 @@ input[type='file']::file-selector-button {
   min-inline-size: 0;
 }
 .choices legend {
-  /* float takes the legend out of the border notch, so it sits inside the card */
   float: left;
   width: 100%;
   display: flex;
@@ -744,7 +715,6 @@ input[type='file']::file-selector-button {
   outline-offset: 2px;
 }
 
-/* Radio cards: swelling */
 .options {
   display: grid;
   gap: var(--s-2);
@@ -789,7 +759,6 @@ input[type='file']::file-selector-button {
   padding: calc(var(--s-3) - 1.5px) calc(var(--s-4) - 1.5px);
 }
 
-/* Pain scale: segmented control, 0 to 10 */
 .scale {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -825,7 +794,6 @@ input[type='file']::file-selector-button {
   opacity: 0;
   cursor: pointer;
 }
-/* The chosen pill is filled with ink and has a heavier edge, so the choice does not rely on colour alone. */
 .scale-item:has(input:checked) {
   background: var(--ink);
   border: 3px solid var(--ink);
@@ -838,7 +806,6 @@ input[type='file']::file-selector-button {
   font-size: var(--step-m1);
 }
 
-/* ---------- Exercise cards (Home) ---------- */
 .exercise-list {
   list-style: none;
   margin: 0;
@@ -893,7 +860,6 @@ input[type='file']::file-selector-button {
     width: auto;
   }
 }
-/* The first exercise is the hero of Home: larger, with the main action. */
 .exercise-featured {
   grid-template-columns: minmax(0, 1fr);
   padding: var(--s-6);
@@ -947,7 +913,6 @@ input[type='file']::file-selector-button {
   }
 }
 
-/* Home layout */
 .home-grid {
   display: grid;
   gap: var(--s-6);
@@ -958,7 +923,6 @@ input[type='file']::file-selector-button {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
   }
 }
-/* Home: plain sections with a thin divider, not stacks of cards. */
 .home-grid .card {
   background: transparent;
   border: 0;
@@ -975,8 +939,6 @@ input[type='file']::file-selector-button {
   min-height: var(--row);
 }
 
-/* ---------- Bottom bar: Home, Your sessions, My data. Three items, labels always visible. ---------- */
-/* --bar-h is the real height of the tallest bar that sticks to the bottom (src/lib/useBarHeight.ts). A focused control scrolls above it. */
 html {
   scroll-padding-bottom: calc(var(--bar-h, var(--row)) + var(--s-6));
 }
@@ -1022,7 +984,6 @@ html {
   color: var(--ink);
   font-weight: 750;
 }
-/* The open item has a bar above it, so the state does not rely on colour. */
 .bottom-nav-item[aria-current='page']::before {
   content: '';
   position: absolute;
@@ -1040,7 +1001,6 @@ main.has-nav {
   padding-bottom: calc(var(--row) + var(--s-7) + env(safe-area-inset-bottom));
 }
 
-/* ---------- Camera preview. It is not mirrored. ---------- */
 .frame {
   position: relative;
   overflow: hidden;
@@ -1074,7 +1034,6 @@ main.has-nav {
   font-weight: 700;
 }
 
-/* ---------- Steps ---------- */
 .steps {
   display: flex;
   flex-wrap: wrap;
@@ -1123,7 +1082,6 @@ main.has-nav {
   border-radius: 1px;
 }
 
-/* ---------- Setup ---------- */
 .setup-grid {
   display: grid;
   gap: var(--s-6);
@@ -1225,7 +1183,6 @@ main.has-nav {
   color: var(--muted);
 }
 
-/* Position guide drawing. The near leg is thick, the far leg is thin and dashed. No colour carries meaning. */
 .fig {
   display: block;
   width: 100%;
@@ -1281,14 +1238,12 @@ main.has-nav {
   font-family: var(--font-text);
   font-size: 5px;
   font-weight: 700;
-  /* a halo in the card colour keeps the words readable where they cross a line */
   paint-order: stroke;
   stroke: var(--raised);
   stroke-width: 2.4px;
   stroke-linejoin: round;
 }
 
-/* ---------- Session: readable from 2 metres ---------- */
 .session {
   padding-bottom: 7.5rem;
 }
@@ -1308,7 +1263,6 @@ main.has-nav {
   grid-template-columns: 1fr;
   padding: 0;
   overflow: clip;
-  /* No card around the live numbers: they sit on the page, between thin dividers. */
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -1337,7 +1291,7 @@ main.has-nav {
 }
 .readout-line {
   display: flex;
-  flex-wrap: wrap; /* a long number puts its unit on the next line, never over the next cell */
+  flex-wrap: wrap;
   align-items: baseline;
   column-gap: var(--s-3);
   max-width: none;
@@ -1387,7 +1341,6 @@ main.has-nav {
 .gauge-tick-long {
   stroke: var(--ink);
 }
-/* The index is the live angle. It is taller than any tick, and it is a line, not a colour change. */
 .gauge-index {
   stroke: var(--primary-press);
   stroke-width: 4;
@@ -1446,7 +1399,6 @@ main.has-nav {
   width: 1.75rem;
   height: 1.75rem;
   background: currentColor;
-  /* a triangle shape next to the text: the shape and the words carry the meaning, not the colour */
   clip-path: polygon(50% 6%, 98% 92%, 2% 92%);
 }
 .session-meta {
@@ -1500,7 +1452,6 @@ main.has-nav {
   text-align: center;
 }
 
-/* ---------- Skeleton: loading ---------- */
 .skeleton {
   display: grid;
   gap: var(--s-3);
@@ -1516,7 +1467,6 @@ main.has-nav {
   width: 40%;
 }
 
-/* ---------- Empty state ---------- */
 .empty {
   display: flex;
   flex-direction: column;
@@ -1535,7 +1485,6 @@ main.has-nav {
   max-width: 40ch;
 }
 
-/* ---------- Summary stats ---------- */
 .stats {
   display: grid;
   gap: var(--s-3);
@@ -1576,7 +1525,6 @@ main.has-nav {
   }
 }
 
-/* Plain list (privacy) */
 .points {
   list-style: none;
   margin: 0;
@@ -1630,7 +1578,6 @@ main.has-nav {
   max-width: 16rem;
 }
 
-/* The camera frame never takes more than half the screen height, so the status chips and the action bar stay in view. */
 .setup-grid .preview,
 .session-grid .preview {
   max-height: 50vh;
@@ -1648,7 +1595,6 @@ main.has-nav {
   padding-inline: var(--s-4);
 }
 
-/* ---------- Wave 2c: session sets and summary list (append only) ---------- */
 .set-label {
   font-weight: 600;
 }
@@ -1669,8 +1615,6 @@ main.has-nav {
   border-radius: var(--r-s);
 }
 
-/* ===== Setup, wave 2a. Appended block. The figure sizes and the camera guide card. ===== */
-/* The drawings need a width of 18 rem or more, so that their labels stay readable. Two drawings share a row only on a wide screen. */
 @media (max-width: 40rem) {
   .guide-figures {
     grid-template-columns: 1fr;
@@ -1689,8 +1633,6 @@ main.has-nav {
   margin-inline: auto;
 }
 
-/* ===== Wave 2d: session header and counter labels (append only) ===== */
-/* The set labels sit in the header of the counter card, so the fixed bar never hides them. */
 .counters-head {
   grid-column: 1 / -1;
   display: flex;
@@ -1703,7 +1645,6 @@ main.has-nav {
 .counters-head p {
   max-width: none;
 }
-/* The title and the mute button stay on one row. The title can shrink and wrap inside its own cell. */
 .session-head {
   flex-wrap: nowrap;
   gap: var(--s-2);
@@ -1721,13 +1662,11 @@ main.has-nav {
   padding-inline: var(--s-2);
   white-space: nowrap;
 }
-/* On a wide screen the camera frame stays low, so the large instruction and the status chips show without a scroll. */
 @media (min-width: 62rem) {
   .setup-grid .preview {
     max-height: 34vh;
   }
 }
-/* The camera guide shares the row of the two drawings on a wide screen. On a narrower screen it takes its own row. */
 .guide-figures .camera-guide {
   grid-column: 1 / -1;
   align-self: start;
@@ -1741,7 +1680,6 @@ main.has-nav {
   }
 }
 
-/* ===== T17: leg choice in Setup. Appended block. Reuses .choices and .option. ===== */
 .option-hint {
   display: block;
   font-weight: 450;
@@ -1756,7 +1694,6 @@ main.has-nav {
   margin-top: var(--s-3);
 }
 
-/* ===== T24a: contact card on Home and the pain question between sets. Appended block. Reuses .notice-strong, .choices and .scale. ===== */
 .contact-card {
   margin-block-end: var(--s-6);
 }
@@ -1764,8 +1701,6 @@ main.has-nav {
   margin-top: var(--s-3);
 }
 
-/* ===== T23c: Create my plan, the plan, the refusal, Confirm and Update my plan. Appended block. Reuses .choices, .option, .card, .disclosure, .facts, .chip and .action-bar. ===== */
-/* A question with long answers shows one answer in each row, so a phone never needs a second column. */
 .options-stack {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -1789,7 +1724,6 @@ main.has-nav {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
-/* The date question has no radio cards, so its own card holds the field and the hint. */
 .field.choices {
   padding-bottom: var(--s-4);
 }
@@ -1797,7 +1731,6 @@ main.has-nav {
   margin-top: var(--s-2);
 }
 
-/* The summary of the answers: a row for each answer, with a quiet Change button. */
 .answer-list {
   list-style: none;
   margin: 0;
@@ -1829,7 +1762,6 @@ main.has-nav {
   overflow-wrap: anywhere;
 }
 
-/* The plan before Confirm. */
 .plan-exercises,
 .why-list,
 .why-answers,
@@ -1854,7 +1786,6 @@ main.has-nav {
   border-left: 3px solid var(--primary);
 }
 
-/* Why this plan: one block for each rule. */
 .why-group {
   margin: 0;
   font-weight: 750;
@@ -1894,14 +1825,12 @@ main.has-nav {
 .why-source {
   display: block;
 }
-/* A legend that only a screen reader reads must not take the width of the card (it floats and has width 100% in .choices). */
 .choices legend.visually-hidden {
   float: none;
   width: 1px;
   margin: -1px;
   display: block;
 }
-/* Each rule of Why this plan is a small disclosure, so the list stays short until the person opens one. */
 .why-details > summary {
   display: flex;
   align-items: center;
@@ -1937,10 +1866,7 @@ main.has-nav {
   padding-top: var(--s-2);
 }
 
-/* ===== LONG TEXT AND NARROW SCREENS (F2a). Appended block. L2-06, L2-11, load error screen. =====
-   A text without spaces (a file name, a long answer, a long title) wraps inside its box.
-   Running text uses "anywhere". Headings and chips use "break-word", so a flex row never squeezes them to one letter.
-   Grid items shrink with min-width 0. Below 320 px the pain scale has 3 columns and the option cards fit the screen. */
+/* LONG TEXT AND NARROW SCREENS (F2a) */
 .card,
 .notice,
 .fact-row dd,
@@ -1973,7 +1899,6 @@ main h3 {
 .chip {
   max-width: 100%;
 }
-/* Labels and buttons keep their words whole. Only long free text breaks inside a word. */
 .facts dt,
 .btn {
   overflow-wrap: normal;
@@ -2006,7 +1931,6 @@ main h3 {
   }
 }
 
-/* ===== F1: the in-place capture of the starting angle and the hold still progress. Appended block. ===== */
 .capture-progress {
   display: block;
   width: 100%;
@@ -2028,15 +1952,13 @@ main h3 {
   background: var(--primary);
 }
 
-/* ===== W1: Session screen (UI study U3, U4, U6, U8, U10, U17, L3-06). Appended block. Reuses .counters, .readout, .notice and .capture-progress. ===== */
-/* U17: one set of motion tokens. No bounce. Nothing is longer than 300 ms. */
+/* ===== W1: Session screen ===== */
 :root {
   --dur-press: 120ms;
   --dur-swap: 160ms;
   --dur-dialog: 200ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
-/* U4: the live numbers keep one width, so the digits and the unit do not move. */
 .readout-number {
   min-width: 3ch;
   text-align: end;
@@ -2049,28 +1971,23 @@ main h3 {
   font-weight: 600;
   line-height: 1.2;
 }
-/* U10: a button keeps its width when the label changes. */
 .session-swap {
   min-width: 9.5rem;
 }
-/* L3-06: the fixed bar can hold two rows, so the page leaves room for both. */
 .session {
   padding-bottom: 11rem;
 }
 .session-notices {
   margin-bottom: var(--s-4);
 }
-/* U3: on a phone the camera is first. The count is on the left and the angle on the right, in one card. */
 @media (max-width: 61.99rem) {
   .session-grid .frame {
     order: -1;
-    /* Full width: the picture runs to the screen edge, with no card. */
     margin-inline: calc(-1 * var(--gutter));
     width: calc(100% + 2 * var(--gutter));
     max-width: none;
     border-radius: 0;
   }
-  /* The picture takes 42 percent of the height, and less on a short screen, so the count and the angle stay above the bar. */
   .session-grid .preview {
     max-height: min(42svh, max(7rem, 100svh - 32rem));
   }
@@ -2096,16 +2013,13 @@ main h3 {
   .counters > .readout + .readout {
     padding-left: var(--s-4);
   }
-  /* The unit sits under the number here, so the number starts at the left edge with the unit. */
   .counters .readout-number {
     text-align: start;
   }
 }
-/* The live numbers start at the left edge, with the unit under them. */
 .counters .readout-number {
   text-align: start;
 }
-/* U10: the start step sits on the camera picture, so it takes no room and nothing below it moves. */
 .session-start {
   position: absolute;
   inset-inline: var(--s-3);
@@ -2122,7 +2036,6 @@ main h3 {
 .session-start:empty {
   display: none;
 }
-/* U6: the hold timer is a thin bar and a text. It has no goal marker and no colour change. */
 .hold-meter {
   display: grid;
   gap: var(--s-2);
@@ -2151,12 +2064,11 @@ main h3 {
 .hold-bar::-moz-progress-bar {
   background: var(--primary);
 }
-/* U8: the rest panel replaces the live card. It fades in with opacity only. */
 .rest-title {
   margin: 0;
 }
 .rest-title:focus {
-  outline: none; /* the focus moves here only to announce the panel. The title is not a control. */
+  outline: none;
 }
 .rest-panel {
   transition: opacity var(--dur-swap) var(--ease-out);
@@ -2171,8 +2083,7 @@ main h3 {
 }
 /* ===== end of W1 ===== */
 
-/* ===== W2 START: Setup start steps, body map, numbered guide. Appended block. Keep this block together. ===== */
-/* The Start camera button keeps its width when the label changes (Start camera, Starting the camera, Try again). */
+/* ===== W2 START ===== */
 .btn-swap {
   min-width: calc(20ch + 2.5rem + var(--s-2) + 3.5rem);
 }
@@ -2202,7 +2113,6 @@ main h3 {
   background: var(--primary);
 }
 
-/* The body map lies on the camera picture. It has the same box and the same mirror as the picture. No transition: a point moves with the data. */
 .body-map {
   position: absolute;
   inset: 0;
@@ -2267,7 +2177,7 @@ main h3 {
 }
 .bm-label {
   fill: #ffffff;
-  stroke: #120b0a; /* the width of the outline is an svg attribute, set from the size of the picture */
+  stroke: #120b0a;
   paint-order: stroke;
   font-family: var(--font-text);
   font-weight: 700;
@@ -2276,7 +2186,6 @@ main h3 {
   min-height: 48px;
   width: fit-content;
 }
-/* Numbered labels in the guide drawings and the numbers of the guide steps (U13, U14). */
 .fg-mark-line {
   stroke: var(--muted);
   stroke-width: 1;
@@ -2303,8 +2212,7 @@ main h3 {
 }
 /* ===== W2 END ===== */
 
-/* ===== W3 START: tap target of the notices link, import drop area states, fixed-width buttons, chart bits. Appended block. Keep this block together. ===== */
-/* L3-05: a link that stands alone in a row has a target of 48 px. */
+/* ===== W3 START ===== */
 .tap-link {
   display: inline-flex;
   align-items: center;
@@ -2312,7 +2220,6 @@ main h3 {
   min-width: 48px;
 }
 
-/* U12: the drop area changes its border and its fill between states. No green and no red. */
 .dropzone[data-state='over'] {
   background: var(--primary-soft);
   border: 2px solid var(--primary);
@@ -2338,15 +2245,12 @@ main h3 {
     background-color 120ms cubic-bezier(0.23, 1, 0.32, 1),
     border-color 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-/* U9: an export button keeps its width while its label changes (Export JSON file, Exporting, Done). */
 .btn-keep {
   min-width: 14rem;
   justify-content: center;
 }
 /* ===== W3 END ===== */
 
-/* The switch of the body map in Session sits on the corner of the camera picture and takes no room. A row in the header made the title 0 px wide
-   at 390 px, and a row under the picture pushed the angle under the fixed bar (measured in the real app, docs/live-test/skeleton-validation.md). */
 .session-grid .frame .body-map-switch {
   position: absolute;
   inset-block-start: var(--s-1);
@@ -2359,7 +2263,6 @@ main h3 {
   box-shadow: var(--shadow-1);
 }
 
-/* ===== Redesign pass 4: error screen and Setup picture. ===== */
 .error-screen {
   display: grid;
   gap: 2.5rem;
@@ -2398,7 +2301,6 @@ main h3 {
   }
 }
 
-/* 200 percent text at 320 px wide: grid and flex items may shrink and long words wrap, so no screen scrolls sideways. */
 .guide-notes {
   grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
 }
@@ -2414,9 +2316,7 @@ main h3 {
   white-space: normal;
 }
 
-/* ===== F3 START: fixes of the live test round 2. Appended block. Keep this block together at the end of the file. ===== */
-/* R2-04: while the app looks for the starting angle, one line and the progress sit on the camera picture, like .session-start.
-   They take no room, so the count and the angle stay above the fixed bar. */
+/* ===== F3 START ===== */
 .capture-line {
   position: absolute;
   inset-inline: var(--s-2);
@@ -2438,13 +2338,10 @@ main h3 {
   max-width: none;
   height: 0.5rem;
 }
-/* R2-04 at 360 x 640: the picture is 1 rem lower, so the unit under the angle clears the fixed bar.
-   R3-02: it is 4 rem lower again, so the button of the starting angle fits under the numbers in the first view. */
 @media (max-width: 61.99rem) {
   .session-grid .preview {
     max-height: min(42svh, max(5rem, 100svh - 37rem));
   }
-  /* R3-03: during a rest the panel comes first. The pause message, the pain scale and the next step need no scroll. The camera is not in use. */
   .session-paused .frame {
     order: 0;
   }
@@ -2462,7 +2359,6 @@ main h3 {
     max-height: min(42svh, max(4rem, 100svh - 37rem));
   }
 }
-/* L2-06 and L2-11 at 195 px (WCAG 1.4.10 asks 320 px, 195 px is the stretch goal). A grid or flex item shrinks to its box. */
 .setup-grid > *,
 .session-grid > *,
 .data-grid > *,
@@ -2505,7 +2401,6 @@ main h3 {
   .stat {
     padding: var(--s-3);
   }
-  /* The live numbers stack: a 72 px number needs more than half of a 195 px card. */
   .counters {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2517,7 +2412,6 @@ main h3 {
   .counters .readout-number {
     min-width: 0;
   }
-  /* The title keeps its words, and the mute button goes under it. A caption wraps at its spaces. */
   .session-head {
     flex-wrap: wrap;
   }
@@ -2529,7 +2423,6 @@ main h3 {
     flex-wrap: wrap;
     overflow-wrap: normal;
   }
-  /* A row of the summary of answers puts the Change button under its text. */
   .answer-row {
     flex-wrap: wrap;
     align-items: flex-start;
