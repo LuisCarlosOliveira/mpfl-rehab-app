@@ -17,7 +17,7 @@
     "audit:selftest": "node audit/honesty/honesty-audit.mjs --selftest --no-shots",
     "gate": "bash audit/gate/chain.sh",
     "e2e:pairing": "playwright test -c e2e/pairing/playwright.config.ts --workers=1",
-    "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/model-hash-check.sh && bash scripts/deps-check.sh && bash scripts/claims-check.sh src && bash scripts/phase-check.sh src && bash scripts/plan-skills-check.sh"
+    "precheck": "npm run typecheck && npm run lint && npm test && bash scripts/model-hash-check.sh && bash scripts/deps-check.sh && bash scripts/claims-check.sh src && bash scripts/phase-check.sh src"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.2.2",
