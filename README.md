@@ -119,6 +119,7 @@ The full gate takes about 40 minutes, and its e2e step takes most of that. The a
 - `scripts/deps-check.sh`: each dependency is in `scripts/allowed-deps.txt` and has an exact version.
 - `scripts/claims-check.sh`: no line of the code matches the banned words, the praise words, the video APIs, the canvas code or the inline colours.
 - `scripts/phase-check.sh`: no line of the code writes the active phase outside `src/lib/protocol/`.
+- `scripts/secrets-check.sh`: no tracked file holds a secret, a private key, a personal email address, a private IP address, a local user path or a forbidden file. A test value can carry the marker `secrets-check:allow <reason>`.
 
 The pattern checks cannot prove that no other banned text exists. `tests/importGraph.test.ts` reads the imports with the TypeScript parser and covers the save functions.
 

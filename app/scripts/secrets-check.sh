@@ -8,7 +8,8 @@
 # A line that holds the marker "secrets-check:allow <reason>" is skipped. The reason is required. A bare marker does not work.
 # The marker does not apply to the rule file-name and large-file (they have no line).
 # Output: <file>:<line>: <kind>: <first 4 characters>****. The matched value is never printed in full.
-# Skipped: binary files, package-lock.json, app/public/models/ (content and size, not the file name) and this script
+# Skipped: binary files, package-lock.json, app/public/models/ (content and size, not the file name) and this script.
+# The rule email also skips app/public/THIRD_PARTY_NOTICES.txt: a license notice can hold the published address of a package author.
 # (its own patterns would match some rules).
 # HONEST LIMIT: this is a pattern match. It finds the shapes in the rules. It cannot find a secret of another shape,
 # a secret in a binary file, or a secret that is split over two lines. History is not scanned: only the tracked tree.
@@ -87,6 +88,7 @@ scan() {
       file="${hit%%:*}"; rest="${hit#*:}"; line="${rest%%:*}"; text="${rest#*:}"
       if [[ "$text" =~ secrets-check:allow[[:space:]]+[^[:space:]] ]]; then continue; fi
       if [ "$kind" = generic-secret ] && [[ "$text" =~ (sha[0-9]*|integrity|hash|checksum) ]]; then continue; fi
+      if [ "$kind" = email ] && [ "$file" = "app/public/THIRD_PARTY_NOTICES.txt" ]; then continue; fi
       while IFS= read -r m; do
         [ -z "$m" ] && continue
         if [ -n "$exc" ] && printf '%s' "$m" | grep -qE${flag/-/} -- "$exc"; then continue; fi
