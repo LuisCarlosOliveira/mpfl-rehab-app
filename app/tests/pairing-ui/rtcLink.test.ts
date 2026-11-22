@@ -529,6 +529,29 @@ describe('companion', () => {
   });
 });
 
+describe('a browser without WebRTC', () => {
+  const noRtc = () => {
+    throw new Error('WebRTC is off');
+  };
+  it('host: createOffer resolves with a typed failure and the link is failed', async () => {
+    const link = createHostLink({ createPeer: noRtc });
+    await expect(link.createOffer()).resolves.toEqual({ ok: false, code: 'peer-error' });
+    expect(link.state().kind).toBe('failed');
+  });
+  it('host: the failed link refuses a second offer and a new link works', async () => {
+    const link = createHostLink({ createPeer: noRtc });
+    await link.createOffer();
+    expect(await link.createOffer()).toEqual({ ok: false, code: 'not-ready' });
+    expect(await createHostLink(deps).createOffer()).toMatchObject({ ok: true });
+  });
+  it('phone: acceptOffer resolves with a typed failure and the link is failed', async () => {
+    const host = await offered();
+    const link = createCompanionLink({ createPeer: noRtc });
+    await expect(link.acceptOffer(host.text)).resolves.toEqual({ ok: false, code: 'peer-error' });
+    expect(link.state().kind).toBe('failed');
+  });
+});
+
 describe('the source of rtcLink', () => {
   const source = readFileSync('src/pairing/rtcLink.ts', 'utf8');
   it.each(['addTrack', 'addTransceiver', 'getUserMedia', 'captureStream', 'getDisplayMedia', 'toBlob', 'toDataURL', 'MediaRecorder', 'iceServers: [{'])(

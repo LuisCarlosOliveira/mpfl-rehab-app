@@ -457,18 +457,22 @@ function Shell({ db, mode, source, now, sound, pairingDeps, protocol: storedProt
     return (
       <>
         <LoadProtocol
+          key={bootError?.message}
           db={db}
           mode={mode}
           initialError={bootError}
           onCancel={protocol ? () => dispatch({ type: 'open', screen: 'home' }) : undefined}
           onCreatePlan={() => dispatch({ type: 'open', screen: 'onboarding' })}
           onLoaded={() => {
-            void loadStoredProtocol(db, mode).then((result) => {
-              if (result?.ok) {
-                setProtocol(result.protocol);
-                dispatch({ type: 'protocol-loaded' });
-              }
-            });
+            loadStoredProtocol(db, mode).then(
+              (result) => {
+                if (result?.ok) {
+                  setProtocol(result.protocol);
+                  dispatch({ type: 'protocol-loaded' });
+                }
+              },
+              () => setBootError({ title: 'Stored file not read', message: 'The stored protocol could not be read. Pick the file again.' }),
+            );
           }}
         />
         <div className="narrow mt">

@@ -60,7 +60,7 @@ export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmatio
 
   try {
     const stored = await loadStoredProtocol(db, mode);
-    if (stored && !stored.ok && !selfProgressionOn()) {
+    if (stored && !stored.ok) {
       return refuse('stored-plan-unreadable', 'The app cannot read your stored plan. Ask your care team. The plan did not change.');
     }
     if (stored === null && next.activePhase > 1 && !selfProgressionOn()) {

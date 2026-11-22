@@ -133,10 +133,10 @@ export function createHostLink(deps: LinkDeps = {}): HostLink {
     async createOffer() {
       if (state.kind !== 'idle' || busy) return { ok: false, code: 'not-ready' };
       busy = true;
-      const mine = createPeer();
-      pc = mine;
-      removeLeave = onLeave(() => apply({ type: 'close' }));
       try {
+        const mine = createPeer();
+        pc = mine;
+        removeLeave = onLeave(() => apply({ type: 'close' }));
         const dc = mine.createDataChannel(CHANNEL_LABEL, { ordered: true });
         channel = dc;
         dc.onmessage = (e) => apply({ type: 'message-received', result: parseMessage(e.data) });
@@ -260,11 +260,11 @@ export function createCompanionLink(deps: LinkDeps = {}): CompanionLink {
       if (state.kind !== 'idle' || pc) return { ok: false, code: 'not-ready' }; // each link takes one offer
       const offer = decodeOffer(text);
       if (!offer.ok) return offer;
-      const mine = createPeer();
-      pc = mine;
-      secret = offer.value.secret;
-      removeLeave = onLeave(() => finish({ kind: 'closed' }));
       try {
+        const mine = createPeer();
+        pc = mine;
+        secret = offer.value.secret;
+        removeLeave = onLeave(() => finish({ kind: 'closed' }));
         mine.ondatachannel = (e) => adopt(e.channel);
         mine.onconnectionstatechange = () => {
           if (mine.connectionState === 'failed') fail();

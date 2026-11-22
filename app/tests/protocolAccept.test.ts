@@ -269,7 +269,7 @@ describe('acceptProposal: the active phase', () => {
     });
   });
 
-  describe('a stored plan that is not readable, flag off', () => {
+  describe('a stored plan that is not readable', () => {
     const putRaw = (raw: string) => db.protocol.put({ key: 'current', raw, savedAt: new Date().toISOString() } as never);
     const unreadable: Array<[string, () => string]> = [
       ['corrupt bytes', () => '{not json'],
@@ -285,10 +285,11 @@ describe('acceptProposal: the active phase', () => {
       expect(await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
       expect(await storedRaw()).toBe('{not json');
     });
-    it('saves over an unreadable plan when the flag is on', async () => {
+    it.each([['a first-phase plan', () => plan(8)], ['a phase 2 plan', () => phase2()]])('flag on, refuses %s over an unreadable plan and the bytes stay', async (_n, make) => {
       vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
       await putRaw('{not json');
-      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+      expect(await acceptProposal(db, proposalOf(make()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
+      expect(await storedRaw()).toBe('{not json');
     });
   });
 
