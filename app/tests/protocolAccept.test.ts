@@ -253,6 +253,32 @@ describe('acceptProposal: the active phase', () => {
     expect(await storedRaw()).toBe(before);
   });
 
+  describe('a stored plan that is not readable, flag off', () => {
+    const putRaw = (raw: string) => db.protocol.put({ key: 'current', raw, savedAt: new Date().toISOString() } as never);
+    const unreadable: Array<[string, () => string]> = [
+      ['corrupt bytes', () => '{not json'],
+      ['a wrong schema', () => JSON.stringify({ schemaVersion: 999, hostile: true })],
+    ];
+    it.each(unreadable)('refuses a forward move for %s and the bytes stay', async (_n, raw) => {
+      await putRaw(raw());
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
+      expect(await storedRaw()).toBe(raw());
+    });
+    it('refuses a first-phase plan too, because the app cannot compare it with the stored plan', async () => {
+      await putRaw('{not json');
+      expect(await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo')).toMatchObject({ ok: false, code: 'stored-plan-unreadable' });
+      expect(await storedRaw()).toBe('{not json');
+    });
+    it('saves over an unreadable plan when the flag is on', async () => {
+      vi.stubEnv('VITE_SELF_PROGRESSION', 'true');
+      await putRaw('{not json');
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+    });
+    it('keeps today for an empty store', async () => {
+      expect(await acceptProposal(db, proposalOf(phase2()), confirmed(), 'demo')).toMatchObject({ ok: true });
+    });
+  });
+
   it.each(['false', '0', 'yes', 'TRUE', ''])('with the flag text "%s", a forward move is refused with progression-off and the bytes stay', async (value) => {
     await acceptProposal(db, proposalOf(plan(8)), confirmed(), 'demo');
     const before = await storedRaw();
