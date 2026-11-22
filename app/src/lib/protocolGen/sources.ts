@@ -1,10 +1,3 @@
-// The sources table of the protocol generator.
-// Every entry is copied from research/citation-audit.md, research/rehab-rules.md and
-// research/source-audit.md. Every quote is findable in citation-audit.md or rehab-rules.md.
-// A test reads both files and checks each quote.
-// `verified` is true only when the audit verdict of every row used is EXACT.
-// A PARAPHRASED source uses the corrected wording of the audit. A WRONG row is not used.
-
 export const AUDIT_DATE = '2026-11-08';
 
 export const GRADES = ['CONSENSUS', 'REVIEW', 'STUDY', 'OPINION', 'NONE', 'ENGINEERING'] as const;
@@ -22,18 +15,12 @@ export interface Source {
   studyType: string;
   population: string;
   claim: string;
-  /** Exact text, as the two research files print it. */
   quotes: readonly string[];
   grade: Grade;
   audit: AuditVerdict;
-  /** Rows of research/citation-audit.md that cover the quotes. */
   auditRows: readonly string[];
   checked: string;
   verified: boolean;
-  /**
-   * Set only for a project file that is not a published source. The screen shows this label instead of the authors and year.
-   * A rule that carries a number must list at least one source without this label.
-   */
   notPublished?: string;
 }
 
@@ -101,8 +88,6 @@ const list = [
       'Squat progression: chair squats to free squats',
     ],
     grade: 'OPINION',
-    // V47 and V14 are PARAPHRASED. V37 is WRONG for the old claim, so only its corrected wording is used.
-    // V102 to V108 and V117 are EXACT rows of audit section 9. The source stays PARAPHRASED because of the older rows.
     audit: 'PARAPHRASED',
     auditRows: ['V12', 'V14', 'V34', 'V37', 'V47', 'V102', 'V103', 'V104', 'V105', 'V106', 'V107', 'V108', 'V117'],
   }),
@@ -362,7 +347,6 @@ const list = [
   }),
 ];
 
-/** True for a published source. False for a project file such as the knowledge base summary. */
 export const isPublished = (s: Source): boolean => s.notPublished === undefined;
 
 export type SourceId = (typeof list)[number]['id'];

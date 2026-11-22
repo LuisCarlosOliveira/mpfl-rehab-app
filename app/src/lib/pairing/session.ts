@@ -1,5 +1,3 @@
-// The pairing state machine (T12b, FR25). It is a pure function: the caller passes `now` and gets a new state.
-// A state of `failed` or `closed` is final. To try again, start from `initialState`.
 import { fromBase64Url } from './payload';
 import { DEFAULT_TTL_MS, isFresh, secretsEqual } from './security';
 import type { LandmarksMessage } from './messages';
@@ -32,7 +30,6 @@ export type PairingEvent =
 
 export interface PairingStep {
   state: PairingState;
-  /** Set only when the state is `paired` and a valid landmarks message came in. */
   landmarks: LandmarksMessage | null;
 }
 
@@ -45,7 +42,6 @@ function checkHello(state: PairingState & { kind: 'waiting-hello' }, secret: Uin
   return secretsEqual(state.secret, secret) ? to({ kind: 'paired', pairedAt: now }) : failed('bad-secret');
 }
 
-/** Turns an event into a hello secret, or returns null when the event is not a hello. */
 function helloSecret(event: PairingEvent): Uint8Array | null {
   if (event.type === 'hello-received') return event.secret;
   if (event.type === 'message-received' && event.result.ok && event.result.value.type === 'hello') {
@@ -65,7 +61,6 @@ export function pairingStep(state: PairingState, event: PairingEvent, now: numbe
   const isRemote = event.type === 'answer-received' || event.type === 'hello-received' || event.type === 'message-received';
   switch (state.kind) {
     case 'idle':
-      // Nothing was issued, so a message from a peer has nothing to attack. Ignore it.
       return event.type === 'issue-offer'
         ? to({ kind: 'offer-issued', secret: event.secret.slice(), issuedAt: now })
         : to(state);
@@ -75,12 +70,10 @@ export function pairingStep(state: PairingState, event: PairingEvent, now: numbe
           ? to({ kind: 'waiting-hello', secret: state.secret, answeredAt: now })
           : failed('bad-secret');
       }
-      // The channel cannot be open before the answer. Data now means a stranger or a bug. Fail closed.
       return isRemote ? failed('no-hello') : to(state);
     case 'waiting-hello': {
       const secret = helloSecret(event);
       if (secret) return checkHello(state, secret, now);
-      // A second answer is ignored (qr-pairing.md rule 4). The first channel message must be a hello.
       return event.type === 'message-received' ? failed('no-hello') : to(state);
     }
     case 'paired': {

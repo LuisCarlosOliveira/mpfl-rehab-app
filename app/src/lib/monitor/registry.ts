@@ -1,11 +1,3 @@
-// The registry: one ExerciseSpec for each exercise. DATA only. Nothing reads it yet (Step 0).
-// The four camera exercises are written EXACTLY as exercises.ts, counters.ts, cues.ts and guides.ts use them today.
-// A test (tests/monitor/registry.test.ts) compares the numbers and the texts with that code.
-// Origins:
-//  - source:<id>     a source id of protocolGen/sources.ts holds the value.
-//  - clinician:<f>   the protocol field <f> (protocol/schema.ts) sets the value. The app holds no default (value null).
-//  - engineering     a value of the app. No source sets it. The screen says so.
-
 import { ANKLE_MAX_RISE_MS, ANKLE_MIN_AMPLITUDE, LIFT_ANGLE_BACK, LIFT_ANGLE_SIDE } from './modes';
 import type { ExerciseSpec } from './spec';
 
@@ -15,7 +7,6 @@ const SLOW = 'Move slowly and with control. If your care team sets a time for ea
 // The value 9 is rounded from it. It stays UNVERIFIED for the lite model (margin.ts, MARGIN_SOURCE).
 const margin = { name: 'margin', value: 9, unit: 'deg', origin: 'source:F1' } as const;
 
-// Heel slide and mini squat count reps by the peak angle. Same data, other texts.
 const repsPeak = [
   { name: 'target-flexion', value: null, unit: 'deg', origin: 'clinician:targetFlexion' },
   { name: 'max-flexion', value: null, unit: 'deg', origin: 'clinician:maxFlexion' },
@@ -93,7 +84,6 @@ const STRAIGHT_LEG_RAISE: ExerciseSpec = {
   phases: [1, 2],
   posture: ['supine'],
   view: { angle: 'side', cameraSide: 'operated-leg-near', legs: 'chosen' },
-  // The gate is ankle above hip. The knee angle at the top is a report value only.
   measure: { kind: 'height-gate', above: 'ankle', reference: 'hip', threshold: 'raise-min-height' },
   report: ['top-angle'],
   mode: 'lift',
@@ -101,7 +91,6 @@ const STRAIGHT_LEG_RAISE: ExerciseSpec = {
     { name: 'raise-min-height', value: 0.05, unit: 'fraction', origin: 'engineering' }, // image fraction
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
-    // The limit logs only. The app shows the top angle against it, with no cue (Summary of exercises.ts).
     { name: 'max-top-flexion', value: null, unit: 'deg', origin: 'clinician:maxTopFlexion' },
     margin,
   ],
@@ -228,10 +217,8 @@ const ANKLE_PUMP: ExerciseSpec = {
   report: ['range'],
   mode: 'reps-cycle',
   thresholds: [
-    // Step B: 30 degrees. Measured on the synthetic series with 9 degree RMS noise (the numbers are in modes.ts, ANKLE_MIN_AMPLITUDE).
     { name: 'min-amplitude', value: ANKLE_MIN_AMPLITUDE, unit: 'deg', origin: 'engineering' },
     { name: 'min-state-ms', value: 300, unit: 'ms', origin: 'engineering' },
-    // R-10: a rise slower than this is a drift (modes.ts, ANKLE_MAX_RISE_MS).
     { name: 'max-rise-ms', value: ANKLE_MAX_RISE_MS, unit: 'ms', origin: 'engineering' },
   ],
   cues: [],
@@ -254,13 +241,12 @@ const LEG_RAISE_SIDE: ExerciseSpec = {
   label: 'Leg raise to the side',
   sourceIds: ['S1', 'P1', 'P2', 'P3'],
   phases: [1, 2],
-  posture: ['side-lying'], // R-01: side-lying only. The angle is signed (up is plus), so a standing leg reads -90 and counts no lift.
+  posture: ['side-lying'], // side-lying only. The angle is signed (up is plus), so a standing leg reads -90 and counts no lift.
   view: { angle: 'front', cameraSide: 'either', legs: 'chosen' },
   measure: { kind: 'segment-angle', from: 'hip', to: 'ankle', against: 'horizontal' },
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    // 3 degrees of the SIGNED angle, from 3 real side-lying clips (modes.ts, LIFT_ANGLE_SIDE). The leg at rest reads about -10 degrees.
     { name: 'lift-angle', value: LIFT_ANGLE_SIDE, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
@@ -291,11 +277,9 @@ const LEG_RAISE_BACK: ExerciseSpec = {
   report: ['peak'],
   mode: 'lift',
   thresholds: [
-    // 20 degrees, from real clips: a leg at rest reads 11 to 15 degrees (modes.ts, LIFT_ANGLE_BACK).
     { name: 'lift-angle', value: LIFT_ANGLE_BACK, unit: 'deg', origin: 'engineering' },
     { name: 'raise-settle-ms', value: 500, unit: 'ms', origin: 'engineering' },
     { name: 'lift-end-ms', value: 300, unit: 'ms', origin: 'engineering' },
-    // 0.2 of the torso length, from real clips: hip to hip width of a side-on person is 0.00 to 0.15, of a person who faces the camera 0.28 to 0.36 (modes.ts, WIDTH_FRAMES).
     { name: 'side-on-width', value: 0.2, unit: 'fraction', origin: 'engineering' },
   ],
   cues: [],

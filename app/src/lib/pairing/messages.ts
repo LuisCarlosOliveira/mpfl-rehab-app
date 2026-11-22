@@ -1,5 +1,3 @@
-// Every message on the data channel (T12b, research/qr-pairing.md section 5 rules 5 and 7).
-// The channel carries landmark numbers only. No schema here accepts an image, a frame or a pixel buffer.
 import { z } from 'zod';
 import { fail, type Result } from './result';
 import { SECRET_BYTES } from './security';
@@ -9,7 +7,6 @@ export const MAX_MESSAGE_BYTES = 4096; // PROPOSAL: qr-pairing.md section 5 rule
 export const PROTOCOL_VERSION = 1;
 export const LANDMARK_COUNT = 33;
 
-// The secret travels as base64url text. 16 bytes give exactly 22 characters.
 const secretText = z.string().regex(new RegExp(`^[A-Za-z0-9_-]{${Math.ceil((SECRET_BYTES * 4) / 3)}}$`));
 
 const landmark = z.strictObject({
@@ -33,7 +30,6 @@ export const landmarksSchema = z.strictObject({
 });
 export const byeSchema = z.strictObject({ type: z.literal('bye') });
 
-// The laptop sends `ready` once its own end of the channel is open. The phone sends its hello only after that.
 export const readySchema = z.strictObject({ type: z.literal('ready') });
 
 export const messageSchema = z.discriminatedUnion('type', [helloSchema, landmarksSchema, byeSchema, readySchema]);
@@ -50,10 +46,6 @@ export const makeHello = (secret: Uint8Array): HelloMessage => ({
 
 export type ParseError = 'not-text' | 'too-large' | 'not-json' | 'duplicate-key' | 'forbidden-key' | 'bad-schema';
 
-/**
- * JSON.parse keeps the last value of a repeated key. So this scan reads the text of a valid JSON value
- * and finds repeated keys and the key `__proto__`. Escapes are decoded first, so `__proto__` is found too.
- */
 function badKey(text: string): 'duplicate-key' | 'forbidden-key' | null {
   const stack: ({ keys: Set<string>; expectKey: boolean } | null)[] = []; // null stands for an array
   for (let i = 0; i < text.length; i++) {
@@ -83,10 +75,8 @@ function badKey(text: string): 'duplicate-key' | 'forbidden-key' | null {
   return null;
 }
 
-/** Reads one channel message. The input is `unknown` because a channel can also deliver binary data. It never throws. */
 export function parseMessage(data: unknown): Result<Message, ParseError> {
   if (typeof data !== 'string') return fail('not-text');
-  // A character has at least one byte, so this cheap test cannot refuse a message that fits.
   if (data.length > MAX_MESSAGE_BYTES || new TextEncoder().encode(data).length > MAX_MESSAGE_BYTES) {
     return fail('too-large');
   }

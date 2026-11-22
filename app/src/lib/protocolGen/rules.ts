@@ -1,10 +1,3 @@
-// The rules data of the protocol generator. Every rule is data, with a source id, a grade and a population note.
-// The generator reads its numbers from `values`. No number sits in generate.ts.
-// Option C (decision of the user, 2026-11-08): the generator infers every value that the verified
-// knowledge base supports, with source, grade and caveat. Where sources disagree it takes the more
-// conservative value. Where the knowledge base says NONE it generates nothing and says "Ask your surgeon".
-// It never invents a number.
-
 import { MARGIN_DEG } from '../margin';
 import { generatorExtendedOn } from '../mode';
 import type { Grade, SourceId } from './sources';
@@ -23,38 +16,24 @@ export interface Rule {
   id: string;
   title: string;
   kind: RuleKind;
-  /** Every number that the rule can put in a plan. Empty when the rule gives no number. */
   values: Readonly<Record<string, number>>;
-  /** Protocol fields that carry a number that the person entered. */
   personEntered?: readonly string[];
   sourceIds: readonly SourceId[];
   grade: Grade;
   population: string;
-  /** What the app does when the sources disagree. */
   conservative?: string;
-  /** Why an engineering value or a NONE value is built this way. */
   reason?: string;
   flag?: 'clinical-review-needed';
-  /** Rows of research/citation-audit.md (V ids, verdict EXACT) that hold the quote behind each number of `values`. */
   auditRows?: readonly string[];
-  /** True when a number in the text is a value that the app sets and no source gives it. The text must say so. */
   appOwn?: true;
-  /** The words that the plan screens show next to a number from a published source. One place for each sentence. */
   display?: {
-    /** The population line of the note, when it is not the population of the rule. */
     population?: string;
-    /** The value as the guideline gives it. */
     value: string;
-    /** Author, year and guideline, as the line "Source: ..." shows it. */
     cite: string;
-    /** The evidence line, for example "OPINION (level 5)". */
     evidence: string;
-    /** A source that disagrees. It shows on the same screen as the value. */
     disagree?: string;
   };
-  /** The sentence for the screen when the rule did not make the plan. It says that the exercise is not in the plan. */
   textRefused?: string;
-  /** One plain sentence for the screen "Why this plan". */
   text: string;
   referralText?: string;
 }
@@ -66,14 +45,11 @@ export const REFERRAL_LINE = 'The app cannot make a plan for you.';
 const ADULT_ISO = 'Adults after a first, isolated MPFL reconstruction. The sources state no age limit.';
 const P2_POPULATION = 'Ages 8 to 25 after isolated soft-tissue knee surgery. Not studied in adults after MPFL reconstruction.';
 
-/** The one reference for the knee bend by week. S1 describes practice. It is no limit (audit row V10, EXACT). */
 export const RANGE_REFERENCE =
   'Knee bend limit by week: no number in the guideline. Typical practice: start at 0 to 30 degrees in the first or second week and progress by 20 to 30 degrees per week. This is not a limit and not your plan. Your surgeon sets your limit.';
 
-/** The plain line for a value that no source gives. */
 export const NO_NUMBER = 'No number in the guideline.';
 
-/** The week-4 check line for the week of the person. The only number is the 4 weeks of P1 (audit row V12). It adds no degree value. */
 export function romCheckText(week: number): string {
   const first = 'Your care team checks your knee bend at about 4 weeks after surgery (P1).';
   if (week < 4) return `${first} The check is about ${4 - week} ${4 - week === 1 ? 'week' : 'weeks'} from now. If no check is planned, contact your care team.`;
@@ -81,15 +57,12 @@ export function romCheckText(week: number): string {
   return `${first} The check is due now or past. If you did not have it, contact your care team.`;
 }
 
-/** The line for a person who stays in phase 1 from week 7 on, because no report of the clearance was given. */
 export const phaseOneStaysText = (week: number): string =>
   `Your plan is still phase 1. You are in week ${week}. Phase 2 needs the report that your care team cleared you. Contact your care team.`;
 
-/** The dose as P2 rec 26 gives it. The plan shows the whole range. */
 export const DOSE_SHOWN = '2 sets of 10 to 15, then 3 sets as tolerated';
 
 const defs = {
-  // Structure
   W1: {
     title: 'Plan window',
     kind: 'structure',
@@ -125,7 +98,6 @@ const defs = {
       'S1 lists the second stage as 6-12 weeks. Week 7 is a boundary that the app sets. Time alone never starts phase 2. You must report that your care team said you can start it.',
     text: 'Phase 2 starts from week 7, a boundary that the app sets. It needs your report that your care team said you can start the next stage.',
   },
-  // Exercises
   SLR: {
     title: 'Straight leg raise',
     kind: 'generated',
@@ -145,7 +117,6 @@ const defs = {
     population: ADULT_ISO,
     conservative:
       'S1 and P3 start the heel slide in phase 1. P1 starts it in phase 2. The app takes the later start, unless you enter a knee-bend limit from your surgeon.',
-    // The text follows the flag, because generate.ts adds the heel slide for an unknown limit in phase 2 only with the flag on.
     get text() {
       return generatorExtendedOn()
         ? 'The heel slide is in phase 1 only with a knee-bend limit from your surgeon. In phase 2 it is in your plan with a limit, with no limit, or when you do not know a limit.'
@@ -354,7 +325,6 @@ const defs = {
     reason: 'P2 gives a dose for strengthening exercises only. No source gives a dose for the heel slide or the ankle pump.',
     text: 'The app sets no dose for the heel slide and the ankle pump. Ask your care team how many to do.',
   },
-  // Range
   RANGE_NONE: {
     title: 'Knee-bend ceiling',
     kind: 'none',
@@ -383,7 +353,6 @@ const defs = {
     population: 'Any. The number comes from the surgeon of the person, as entered by the person.',
     text: 'The knee-bend limit in the heel slide is the limit from your surgeon, as entered by you. The app can only lower a limit.',
   },
-  // Engineering values
   ENG_TARGET: {
     title: 'Where the heel slide count starts',
     kind: 'engineering',
@@ -407,7 +376,6 @@ const defs = {
     flag: 'clinical-review-needed',
     text: 'A heel slide rep ends when the knee is back within the camera margin of rest. It is an engineering value.',
   },
-  // Review
   REVIEW: {
     title: 'Review dates and checks',
     kind: 'generated',
@@ -418,7 +386,6 @@ const defs = {
     population: ADULT_ISO,
     text: 'The review date of phase 1 is 6 weeks after surgery, and of phase 2 is 12 weeks. The checks are for your clinician and hold no number.',
   },
-  // App rule
   PAIN: {
     title: 'Pain and swelling pause',
     kind: 'appRule',
@@ -432,7 +399,6 @@ const defs = {
     flag: 'clinical-review-needed',
     text: 'The plan sets no pain threshold. The pause rule of the app stays: pain of 7 or more, or swelling more than before.',
   },
-  // Values that stay NONE
   NONE_WB_BRACE: {
     title: 'Weight-bearing and brace',
     kind: 'none',
@@ -516,7 +482,6 @@ const defs = {
     reason: 'The knowledge base holds no graft strain value for rehab.',
     text: 'The app sets no limit from graft strain. Ask your surgeon.',
   },
-  // Referral cases. The order of checks is in generate.ts.
   R1: {
     title: 'A written care-team plan',
     kind: 'referral',
@@ -637,10 +602,8 @@ export type RuleId = keyof typeof defs;
 
 export const RULE_IDS = Object.keys(defs) as RuleId[];
 
-// The type keeps the literal keys of `values`, so a missing value is a compile error.
 type Typed = { [K in RuleId]: Omit<Rule, 'id' | 'values'> & { id: K; values: (typeof defs)[K]['values'] } };
 
-// The copy keeps a getter as a getter (HEEL.text follows the flag at the time of the call).
 export const RULES = Object.fromEntries(
   RULE_IDS.map((id) => [id, Object.defineProperties({ id }, Object.getOwnPropertyDescriptors(defs[id]))]),
 ) as unknown as Typed;

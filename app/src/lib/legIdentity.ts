@@ -15,7 +15,7 @@ export interface IdentityConfig {
   minFrames: number; // frames with the whole leg visible that a leg needs in a window
   minRangeDeg: number; // below this range for both legs the answer is none
   ambiguousRatio: number; // the smaller range over the larger range at or above this gives ambiguous
-  confirmWindows: number; // the note needs the other leg to win this many windows in a row (F1, issue L1-08)
+  confirmWindows: number; // the note needs the other leg to win this many windows in a row
 }
 
 export const IDENTITY_CONFIG: IdentityConfig = {

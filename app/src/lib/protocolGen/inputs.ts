@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-// The answers of the person. Every answer is an enum, a number or one ISO date. No free text.
-// The date is checked by the generator, because a bad date is a referral (R7) and not an error.
-
 const yesNoUnknown = z.enum(['yes', 'no', 'unknown']);
 
 export const inputsSchema = z.strictObject({
@@ -20,7 +17,6 @@ export const inputsSchema = z.strictObject({
     z.strictObject({ kind: z.literal('unknown') }),
   ]), // I9
   phaseClearance: yesNoUnknown, // the person reports that the care team cleared phase 2
-  // The three answers of version 2. A missing answer is "unknown" or "no event", so no mini squat and no seated hold is added.
   walksWithoutCrutches: yesNoUnknown.default('unknown'), // gate of the mini squat (S1, first stage)
   legRaiseStraight: yesNoUnknown.default('unknown'), // gate of the mini squat: the leg raise with no bend of the knee (S1, first stage)
   seatedHoldCleared: yesNoUnknown.default('unknown'), // the person reports that the surgeon cleared the seated hold (P1 phase 2)
