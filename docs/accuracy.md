@@ -1,12 +1,12 @@
 # Accuracy record
 
-This file records the angle error and the frame rate of the app. It follows [plan NFR3 and NFR4](../MPFL_APP_PLAN.md) and task T13.
+This file records the angle error and the frame rate of the app. It follows plan NFR3 and NFR4 and task T13.
 
 ## Status
 
 No reference data exists. No goniometer data and no consented real-video clip have been collected. No frame rate has been measured on a phone. Update 2026-11-09: the frame rate of the pose loop was measured on one laptop with no GPU (section "Frame rate" below). No angle error was measured against a reference.
 
-The margin of 9 degrees is a start value. It is UNVERIFIED for the `lite` model. It comes from a study of the highest-complexity model on still photos. The source is in [research/form-opus.md section 2.3](../research/form-opus.md). The margin rule is in section 4.3 of the same file. Reported errors range from about 3 to 15 degrees. The 15 degree figure is UNVERIFIED ([research/tech.md section 2.3](../research/tech.md)).
+The margin of 9 degrees is a start value. It is UNVERIFIED for the `lite` model. It comes from a study of the highest-complexity model on still photos. The source is in the project knowledge base, section 2.3. The margin rule is in section 4.3 of the same file. Reported errors range from about 3 to 15 degrees. The 15 degree figure is UNVERIFIED (the project knowledge base, section 2.3).
 
 ## Collect the data for the margin
 
@@ -38,7 +38,7 @@ Use the columns `subject,view,session,camera_deg`. Each subject needs 2 or more 
 A clinician or a physiotherapist must review this protocol before use.
 
 1. Use a universal goniometer. Use one examiner and one goniometer for the whole data set.
-2. Place the subject in the pose. Use fixed knee angles, for example 0, 30, 60, 90 and 120 degrees ([research/tech.md section 5.3](../research/tech.md)).
+2. Place the subject in the pose. Use fixed knee angles, for example 0, 30, 60, 90 and 120 degrees (the project knowledge base, section 5.3).
 3. Hold the pose still. The examiner reads the goniometer and writes the value.
 4. At the same time, the app shows the angle. Write the value that the app shows after it is stable.
 5. Repeat for each view. Keep the camera setup fixed for the whole set.
@@ -101,11 +101,11 @@ The target is a median of at least 15 frames per second. Measure it over 60 seco
 | Phone | Chrome | not measured | not measured |
 | Phone | Safari | not measured | not measured |
 
-Sources and caveats. The first row is the figure of `docs/test-results.md` (from `docs/live-test/performance.md` and the W4 measurements of the main session). The second row is from `docs/live-test/exercise-flows.md`. The 4x throttle figure of `docs/live-test/performance.md` reads 3.0 in the plan (NFR4), and this record gives about 3.5 as the main session reported. The two figures differ and the cause is not recorded (UNPROVEN). The medians depend on the clip and on the load of the machine. The loop runs on the main thread. Live test round 2 measured 29.94 in 7 of 8 runs and 20.04 in 1 run on clip 01 in Setup, from `requestVideoFrameCallback` (`docs/live-test/retest.md`). The reports do not agree and the cause is not recorded. No measurement exists on a phone, so the target of 15 on a phone is UNPROVEN.
+Sources and caveats. The first row is the figure of the test results record (from the performance record and the W4 measurements of the main session). The second row is from the exercise flows record. The 4x throttle figure of the performance record reads 3.0 in the plan (NFR4), and this record gives about 3.5 as the main session reported. The two figures differ and the cause is not recorded (UNPROVEN). The medians depend on the clip and on the load of the machine. The loop runs on the main thread. Live test round 2 measured 29.94 in 7 of 8 runs and 20.04 in 1 run on clip 01 in Setup, from `requestVideoFrameCallback` (the retest record). The reports do not agree and the cause is not recorded. No measurement exists on a phone, so the target of 15 on a phone is UNPROVEN.
 
 ## Baseline spread of the lowest-angle button
 
-Round 2 found that the starting angle of the lowest-angle button depended on the press moment. It gave 46, 41 and 20 degrees in three runs on clip 01 (`docs/live-test/retest.md`, R2-06). Round 3 changed the rule to the lowest 0.5 s plateau of the whole capture (`lib/baseline.ts`, commit ab171d3). The test `tests/baselineStable.test.ts` presses at 24 moments between 15 s and 61 s on clips 01, 02 and 05. It requires a spread of at most 2 degrees. The main session reported a spread of 50.8 degrees before the change and 0.4 degrees after it on clip 01. No document in the repository holds these two numbers (UNPROVEN, not re-run). A clip is a smoke test and not a validation. The plateau value of 0.5 s is ENGINEERING and needs a clinician review.
+Round 2 found that the starting angle of the lowest-angle button depended on the press moment. It gave 46, 41 and 20 degrees in three runs on clip 01 (the retest record, R2-06). Round 3 changed the rule to the lowest 0.5 s plateau of the whole capture (`lib/baseline.ts`, commit ab171d3). The test `tests/baselineStable.test.ts` presses at 24 moments between 15 s and 61 s on clips 01, 02 and 05. It requires a spread of at most 2 degrees. The main session reported a spread of 50.8 degrees before the change and 0.4 degrees after it on clip 01. No document in the repository holds these two numbers (UNPROVEN, not re-run). A clip is a smoke test and not a validation. The plateau value of 0.5 s is ENGINEERING and needs a clinician review.
 
 ## Not done
 
@@ -131,7 +131,7 @@ This section is a plausibility check of the clip tool. It is not validation. The
 | 07 | mini squat | front, whole body | right | 100 percent | 0 to 55 | 1 | unclear |
 | 08 | straight leg raise | oblique, supine, therapist in frame | right | 94.1 percent | 92 to 134 | none by design | not recorded |
 
-The straight leg raise has a camera count since 2026-11-09. It counts a lifted leg as an estimate, with the height of the ankle above the hip and not with the knee angle. The counter kind is `lag`. It also reports the estimated angle at the top ([plan FR9](../MPFL_APP_PLAN.md)). The columns "none by design" and "no rep counter" in the tables below are from before this change. The counts on the clips are in [leg-raise-count.md](live-test/leg-raise-count.md). The check did not fire on the oblique clip 08.
+The straight leg raise has a camera count since 2026-11-09. It counts a lifted leg as an estimate, with the height of the ankle above the hip and not with the knee angle. The counter kind is `lag`. It also reports the estimated angle at the top (plan FR9). The columns "none by design" and "no rep counter" in the tables below are from before this change. The counts on the clips are in the leg raise count record. The check did not fire on the oblique clip 08.
 
 ### Root cause of 0 reps in clip 01
 

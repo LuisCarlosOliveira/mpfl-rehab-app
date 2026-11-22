@@ -3,11 +3,11 @@
 # Usage: bash scripts/clip-to-webcam.sh <clip> [<out folder>]
 # Output: <out folder>/<clip name>.mjpeg, 30 fps, long side at most 640 px, no sound.
 # Set FORMAT=y4m for a y4m file. It is much larger. Set WIDTH to change the long side.
-# The script writes no frame to the repository. The default out folder is the scratch folder of this run.
+# The script writes no frame to the repository. The default out folder is `.clip-out/webcam` in the current folder. Git ignores `.clip-out/`.
 set -euo pipefail
 
 clip="${1:-}"
-out="${2:-/tmp/claude-1000/-home-luis-projects/c0df9405-b52e-4b2f-b357-194865342f04/scratchpad/clips-real/webcam}"
+out="${2:-.clip-out/webcam}"
 format="${FORMAT:-mjpeg}"
 long_side="${WIDTH:-640}"
 

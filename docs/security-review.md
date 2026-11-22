@@ -159,7 +159,7 @@ Finding S-01 in detail. In `save()` the lines `await saveSession(db, input); set
 
 ## Check 6: Scripts
 
-- `claims-check.sh`, `phase-check.sh`, `plan-skills-check.sh`, `model-hash-check.sh`, `deps-check.sh`: no `eval`, no `source`, no network call. User input is limited to path arguments. They read only the repo (`src`, `public/models`, `../docs/model.md`, `../MPFL_APP_PLAN.md`). `deps-check.sh` runs `node -e` with single-quoted code, so the shell does not expand anything in it.
+- `claims-check.sh`, `phase-check.sh`, `model-hash-check.sh`, `deps-check.sh`: no `eval`, no `source`, no network call. User input is limited to path arguments. They read only the repo (`src`, `public/models`, `../docs/model.md`). `deps-check.sh` runs `node -e` with single-quoted code, so the shell does not expand anything in it.
 - `claims-check.sh` line 36 uses `$text_files` unquoted on purpose. A path with a space splits into two words and a file is skipped, so the check passes by mistake. The repo path has no space today. The list of banned APIs is short (S-06). The checks are text searches. They stop honest mistakes. They do not stop `window['to'+'Blob']`.
 - `bland-altman.mjs` and `agreement.mjs` read one CSV path from the command line and print JSON. No `eval`, no shell. They are developer tools.
 - `model-hash-check.sh`. It fails on a symlink, on a changed file, on an extra file and on a missing file. It also needs every `SHA256SUMS` line in `docs/model.md`. I ran it: `model-hash-check: ok`. A swapped model passes only if the same commit changes `SHA256SUMS` and `docs/model.md`. This is an integrity check, not an authenticity check (S-05). The script accepts a folder argument. `dist/models` can be checked with it, but the docs line check is then skipped.

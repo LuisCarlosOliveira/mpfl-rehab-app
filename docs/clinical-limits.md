@@ -4,31 +4,31 @@ This document states what the app does not do and why. Each claim links to its s
 
 ## Not a medical device, and the intended-purpose draft
 
-The app monitors exercise and symptoms after an injury. Under EU MDR this is probably a medical purpose, so the app is probably medical device software. The class is not settled. An expert must set it. The draft is in [plan section 1.5](../MPFL_APP_PLAN.md). It is a draft for expert review. The research reading is in [research/tech.md section 6.1](../research/tech.md). It is a reading and not a ruling.
+The app monitors exercise and symptoms after an injury. Under EU MDR this is probably a medical purpose, so the app is probably medical device software. The class is not settled. An expert must set it. The draft is in plan section 1.5. It is a draft for expert review. The research reading is in the project knowledge base, section 6.1. It is a reading and not a ruling.
 
 Update 2026-11-09: the app now makes an exercise plan from the answers of the person (the generator, FR30 and FR31). The reading of MDCG 2019-11 rev.1 is that software which recommends personalised exercises is medical device software under Rule 11. Rule 22 applies to software that adapts therapy by itself. The main session did NOT verify this reading (UNVERIFIED). Whether a confirmation by the person closes the loop of Rule 22 is not known. No regulatory expert has reviewed the app.
 
 ## The webcam angle is an estimate
 
-A 2D webcam angle is an estimate. It is not a medical measurement. The error and the margin are in [research/form-opus.md section 3](../research/form-opus.md). The margin is a start value. It is UNVERIFIED for the `lite` model. No study checks a webcam against a goniometer after MPFL surgery ([research/clinical-update.md section 6](../research/clinical-update.md), gap 10).
+A 2D webcam angle is an estimate. It is not a medical measurement. The error and the margin are in the project knowledge base, section 3. The margin is a start value. It is UNVERIFIED for the `lite` model. No study checks a webcam against a goniometer after MPFL surgery (the project knowledge base, section 6, gap 10).
 
-The accuracy record ([docs/accuracy.md](accuracy.md)) exists. It holds no goniometer number, because no reference data exists. Update 2026-11-09: it holds a smoke test on 8 public clips of healthy people. That test shows that the tools work together. It does not show accuracy. Live tests on the same clips found angles that follow the picture in direction (`docs/live-test/exercise-flows.md`, check 17). They found no reference angle.
+The accuracy record ([docs/accuracy.md](accuracy.md)) exists. It holds no goniometer number, because no reference data exists. Update 2026-11-09: it holds a smoke test on 8 public clips of healthy people. That test shows that the tools work together. It does not show accuracy. Live tests on the same clips found angles that follow the picture in direction (the exercise flows record, check 17). They found no reference angle.
 
-The frame rate of the pose loop is about 15 detections per second on a laptop with no GPU. It moves with machine load (`docs/live-test/performance.md`, [docs/accuracy.md](accuracy.md)). No phone frame rate exists. The real Redmi A3 is UNPROVEN.
+The frame rate of the pose loop is about 15 detections per second on a laptop with no GPU. It moves with machine load (the performance record, [docs/accuracy.md](accuracy.md)). No phone frame rate exists. The real Redmi A3 is UNPROVEN.
 
 A person who lies and faces the camera can get a wrong pose (live test, 2026-11-22). The model can place the hip and the other leg on the chest or the arm, with a visibility above the gate. The gate cannot catch this. In Setup, the body map draws no body while the chosen hip, knee and ankle are not all seen. The setup check stays the only proof of a good view.
 
 ## No form rating and no verdict
 
-The app does not rate movement form. It shows a measured value against a limit that the care team set. No validated threshold for form exists after MPFL surgery. The reasons are in [research/form-opus.md section 2.2](../research/form-opus.md) and the wording rules are in section 4.4 of the same file. A rep inside the limit shows no message, because a message such as "within range" reads as approval.
+The app does not rate movement form. It shows a measured value against a limit that the care team set. No validated threshold for form exists after MPFL surgery. The reasons are in the project knowledge base, section 2.2 and the wording rules are in section 4.4 of the same file. A rep inside the limit shows no message, because a message such as "within range" reads as approval.
 
 ## The app never changes the phase
 
-The active phase comes only from the protocol field `activePhase`. The app has no setter for it ([plan FR4](../MPFL_APP_PLAN.md)). A check in `npm run precheck` finds a line that matches a pattern for a write outside `app/src/lib/protocol/`. The check is a pattern match and cannot prove that no other path exists. The test `tests/importGraph.test.ts` reads the imports of the save functions. The check cannot stop a person from editing the protocol file.
+The active phase comes only from the protocol field `activePhase`. The app has no setter for it (plan FR4). A check in `npm run precheck` finds a line that matches a pattern for a write outside `app/src/lib/protocol/`. The check is a pattern match and cannot prove that no other path exists. The test `tests/importGraph.test.ts` reads the imports of the save functions. The check cannot stop a person from editing the protocol file.
 
 Update 2026-11-09: a plan that the app made changes the stored protocol only after the person presses Confirm (`app/src/ui/ConfirmPlan.tsx`, `app/src/lib/protocol/accept.ts`). A later date does not move the phase. An upward change (phase 2, a higher limit) sits behind the flag `VITE_SELF_PROGRESSION`, which is off by default. A script in the same page can still call the save function. The check cannot stop it. A file that the person edits can carry an `approvedOn` date that no one verified (open item L2-05).
 
-Superseded 2026-11-13: the flag is on by default (MPFL_APP_PLAN.md FR31).
+Superseded 2026-11-13: the flag is on by default (plan FR31).
 
 Decision 2026-11-22, supersedes 2026-11-13: the flag `VITE_SELF_PROGRESSION` is off by default. Only the exact text `true` or `1` turns it on. With the flag off, a move forward (phase 2, a higher or removed limit, a new mini squat or seated hold) is refused with "Ask your care team about the next stage." The person can still read the plan. The Confirm step and the pain limit hold stay.
 
@@ -36,19 +36,19 @@ With the flag off, a stored plan that the app cannot read blocks every save (cod
 
 ## The safety floor
 
-The app pauses the session and shows "pause and contact your care team" when the pain or swelling entry reaches a set level. A protocol can set a lower pain threshold. The floor is an app rule. It is not a clinical default. Its value is a PROPOSAL. A clinician must review it. The value is stated once, in [plan FR12](../MPFL_APP_PLAN.md).
+The app pauses the session and shows "pause and contact your care team" when the pain or swelling entry reaches a set level. A protocol can set a lower pain threshold. The floor is an app rule. It is not a clinical default. Its value is a PROPOSAL. A clinician must review it. The value is stated once, in plan FR12.
 
-Update 2026-11-09: one answer is enough. Pain at the level, or swelling "more than before", pauses the session. An unanswered question never counts as a high value. Live test 1 found that the old code waited for both answers (L1-01). The fix is in commit 6264037. Live test round 2 verified it (`docs/live-test/retest.md`, L1-01: pain 7 alone gives the message at once).
+Update 2026-11-09: one answer is enough. Pain at the level, or swelling "more than before", pauses the session. An unanswered question never counts as a high value. Live test 1 found that the old code waited for both answers (L1-01). The fix is in commit 6264037. Live test round 2 verified it (the retest record, L1-01: pain 7 alone gives the message at once).
 
 Update 2026-11-09, audit 3 (H1, commit 903d2c9): the floor now also applies between sets. A pain answer between sets stops the session by the same rule as the Summary. A protocol threshold below 7 stops earlier. A threshold above 7 does not lift the floor. The Summary takes the highest answer. This has unit tests and no live re-test. The value 7 still has no source.
 
 ## The red-flag list
 
-The red-flag list is general guidance. It is UNVERIFIED for MPFL surgery. The sources of each item are in `app/src/lib/redflags.ts` and in [research/clinical.md section 7](../research/clinical.md). A clinician must confirm each item and its group ([plan section 11](../MPFL_APP_PLAN.md)).
+The red-flag list is general guidance. It is UNVERIFIED for MPFL surgery. The sources of each item are in `app/src/lib/redflags.ts` and in the project knowledge base, section 7. A clinician must confirm each item and its group (plan section 11).
 
 ## Surgeon decisions that the app leaves open
 
-The app shows each of these as "ask your surgeon" when the protocol does not set it. The app sets no default. The source is [research/clinical.md section 9](../research/clinical.md).
+The app shows each of these as "ask your surgeon" when the protocol does not set it. The app sets no default. The source is the project knowledge base, section 9.
 
 1. Start date and daily knee flexion limit, weeks 0 to 6.
 2. Weight-bearing status and crutch use.
@@ -67,19 +67,19 @@ The app shows each of these as "ask your surgeon" when the protocol does not set
 
 ## The exported file
 
-The exported file is unsigned. A patient can edit it. It holds health data. The export screen warns about this ([plan FR14](../MPFL_APP_PLAN.md)). The data controller for a file exchange is an open question for the expert ([plan section 11](../MPFL_APP_PLAN.md)).
+The exported file is unsigned. A patient can edit it. It holds health data. The export screen warns about this (plan FR14). The data controller for a file exchange is an open question for the expert (plan section 11).
 
 ## Model weights license
 
-The model card says Apache-2.0. It also says the model is for entertainment and not for life-critical decisions. A legal review must decide this before any release to a patient. See [docs/model.md](model.md) and [plan section 11](../MPFL_APP_PLAN.md).
+The model card says Apache-2.0. It also says the model is for entertainment and not for life-critical decisions. A legal review must decide this before any release to a patient. See [docs/model.md](model.md) and plan section 11.
 
 ## The evidence is low
 
-The evidence is low or very low for almost every rehab decision after MPFL surgery. The top gaps are in [research/clinical-update.md section 6](../research/clinical-update.md). They include stop rules for red flags, combined surgery, motion limits in weeks 0 to 6, weight-bearing and brace, and squat depth and load. The list also names return to sport, thromboprophylaxis, anatomic risk, adolescents and webcam measurement in this group.
+The evidence is low or very low for almost every rehab decision after MPFL surgery. The top gaps are in the project knowledge base, section 6. They include stop rules for red flags, combined surgery, motion limits in weeks 0 to 6, weight-bearing and brace, and squat depth and load. The list also names return to sport, thromboprophylaxis, anatomic risk, adolescents and webcam measurement in this group.
 
 ## What a clinician must review before any patient uses the app
 
-Source: [plan section 11](../MPFL_APP_PLAN.md).
+Source: plan section 11.
 
 - Every protocol value.
 - The regulatory class, including the class of the clinician review summary (FR22a).
@@ -115,7 +115,7 @@ No clinician reviewed any item below. Each item names its mark. ENGINEERING and 
 
 ## Items that need a clinician after audit 3 (2026-11-09)
 
-Source: [docs/audit-3.md](audit-3.md) and the fixes of commit 903d2c9. No clinician reviewed any item below. ENGINEERING and PROPOSAL values are not clinical values.
+Source: the third audit and the fixes of commit 903d2c9. No clinician reviewed any item below. ENGINEERING and PROPOSAL values are not clinical values.
 
 | Item | Where | Mark and note |
 |---|---|---|
@@ -136,7 +136,7 @@ Source: [docs/audit-3.md](audit-3.md) and the fixes of commit 903d2c9. No clinic
 - The legal basis to store the surgery date, and the data controller of the file exchange.
 - A hand-added `approvedOn` date (L2-05): patient mode cannot check a claim in an unsigned file.
 - The clip licences: 8 Creative Commons clips ran in private tests. The attribution is in `docs/accuracy.md`. The clips never enter the repo. YouTube terms forbid a download with a tool. The user accepted this after the vetting in `docs/dependency-vetting-ytdlp.md`.
-- Moving the pose loop to a Worker (L4-04): the user decided yes ("6. ok"). The work is T42 and `docs/pose-worker.md`. The speed on a real phone is NOT RUN.
+- Moving the pose loop to a Worker (L4-04): the user decided yes ("6. ok"). The work is T42 and the pose worker measurements. The speed on a real phone is NOT RUN.
 
 ## Register of values for clinician review
 
@@ -155,19 +155,19 @@ Each row is one value or one group of values. The source of each row is a note i
 | ID | Value and unit | File and symbol | What it controls | Status in code note | Source named in code | Reviewed by | Date |
 |---|---|---|---|---|---|---|---|
 | CV-02 | 9 degrees, camera margin | `lib/margin.ts`, `MARGIN_DEG` and `MARGIN_SOURCE`; `lib/monitor/registry.ts`, `margin` | Base tolerance for the generated targets and cue limits | "start value, UNVERIFIED for the" | Okuno 2026, F1 | | |
-| CV-03 | 0.5, landmark visibility | `lib/angle.ts`, `MIN_VISIBILITY` | Minimum visibility before an angle is read | "The value 0.5 is a start value." | research/tech.md section 2.3 | | |
+| CV-03 | 0.5, landmark visibility | `lib/angle.ts`, `MIN_VISIBILITY` | Minimum visibility before an angle is read | "The value 0.5 is a start value." | the project knowledge base, section 2.3 | | |
 
 ### Setup and capture
 
 | ID | Value and unit | File and symbol | What it controls | Status in code note | Source named in code | Reviewed by | Date |
 |---|---|---|---|---|---|---|---|
-| CV-04 | 0.05 of frame edge | `lib/setupRules.ts`, `SETUP_CONFIG.edgeFraction` | A leg landmark this close to the edge fails the setup | "PROPOSAL, to be tuned in T13" | ux-flow 6.2 rule 4 | | |
+| CV-04 | 0.05 of frame edge | `lib/setupRules.ts`, `SETUP_CONFIG.edgeFraction` | A leg landmark this close to the edge fails the setup | "PROPOSAL, to be tuned in T13" | the UX flow note, section 6.2 rule 4 | | |
 | CV-05 | 0.25 of leg length, maximum hip gap | `lib/setupRules.ts`, `SETUP_CONFIG.maxHipGap` | Side-on gap check | "PROPOSAL, to be tuned in T13" | setup rule 6, no clinical source named | | |
 | CV-06 | 2000 ms, still window | `lib/setupRules.ts`, `SETUP_CONFIG.stillWindowMs` | Time window of the stillness check | "PROPOSAL (engineering, not clinical)" | rule 7, F1 check on 7 clips | | |
 | CV-07 | 1000 ms, failure hold | `lib/setupRules.ts`, `SETUP_CONFIG.failHoldMs` | A failure must last this long before the text changes | "PROPOSAL, to be tuned in T13" | FR27 | | |
 | CV-08 | 3000 ms, spoken text interval | `lib/setupRules.ts`, `SETUP_CONFIG.announceEveryMs` | Spoken setup text changes at most this often | "PROPOSAL, to be tuned in T13" | FR27, WCAG 4.1.3 | | |
 | CV-09 | 5000 ms, start countdown | `lib/setupRules.ts`, `SETUP_CONFIG.countdownMs` | Countdown before a capture starts | "PROPOSAL, to be tuned in T13" | FR27 | | |
-| CV-10 | 30000 ms, More time extension | `lib/setupRules.ts`, `SETUP_CONFIG.moreTimeMs` | Time added by the More time button | "PROPOSAL, to be tuned in T13" | WCAG 2.2.1, ux-flow 6.2 | | |
+| CV-10 | 30000 ms, More time extension | `lib/setupRules.ts`, `SETUP_CONFIG.moreTimeMs` | Time added by the More time button | "PROPOSAL, to be tuned in T13" | WCAG 2.2.1, the UX flow note, section 6.2 | | |
 | CV-11 | 20 samples, minimum for a median | `lib/baseline.ts`, `BASELINE_MIN_SAMPLES` | Fewer samples are not steady enough to use | "PROPOSAL, no source: a median" | no source named | | |
 | CV-12 | 20 samples, minimum for the lowest steady angle | `lib/baseline.ts`, `CAPTURE_CONFIG.minLowestSamples` | Samples needed before the lowest steady angle counts | "ENGINEERING values, not clinical." | no source named | | |
 | CV-13 | 0.8 of the protocol target, rep start | `lib/exercises.ts`, `ENTER_FRACTION`; `lib/baseline.ts`, note on `startBelowDeg` | Angle where a rep starts | "PROPOSAL, no source: a rep starts" | no source named | | |
@@ -202,7 +202,7 @@ Each row is one value or one group of values. The source of each row is a note i
 
 | ID | Value and unit | File and symbol | What it controls | Status in code note | Source named in code | Reviewed by | Date |
 |---|---|---|---|---|---|---|---|
-| CV-30 | 500 ms, view sync | `lib/views.ts`, `PAIR_TOLERANCE_MS` | Offset allowed when reps are paired across views | "PROPOSAL, 500 ms. Each view" | research/dual-camera-opus.md section 3 | | |
+| CV-30 | 500 ms, view sync | `lib/views.ts`, `PAIR_TOLERANCE_MS` | Offset allowed when reps are paired across views | "PROPOSAL, 500 ms. Each view" | the dual camera note, section 3 | | |
 | CV-31 | 60000 ms, front buffer | `lib/views.ts`, `FRONT_BUFFER_MS` | How long the front buffer holds frames | "PROPOSAL: how long the buffer" | no source named | | |
 | CV-32 | Start frame plus 4 usable frames | `lib/views.ts`, `MIN_FRONT_FRAMES` | Frames needed for a front view | "PROPOSAL: the start frame plus" | no source named | | |
 
@@ -210,13 +210,13 @@ Each row is one value or one group of values. The source of each row is a note i
 
 | ID | Value and unit | File and symbol | What it controls | Status in code note | Source named in code | Reviewed by | Date |
 |---|---|---|---|---|---|---|---|
-| CV-33 | 5 counted reps | `lib/reviewSummary.ts`, `MIN_COUNTED_REPS` | Minimum reps for an angle measure | "PROPOSAL, no source (progression.md" | progression.md section 5.2 | | |
+| CV-33 | 5 counted reps | `lib/reviewSummary.ts`, `MIN_COUNTED_REPS` | Minimum reps for an angle measure | "PROPOSAL, no source (the progression note" | the progression note, section 5.2 | | |
 | CV-34 | Highest pain of the window | `lib/reviewSummary.ts`, `numericRow`, branch `painMax` | A pain limit reads the highest value | "The highest value of the window" | no source named | | |
 | CV-35 | 1 set when sets are missing | `lib/sets.ts`, `totalSets` | Reps without sets count as one set | "PROPOSAL: reps without sets count" | no source named | | |
 | CV-36 | One space | `lib/storage/export.ts`, `REPS_PER_SET_SEPARATOR` | Separator of the per-set count cell | "PROPOSAL: the per-set counts are" | no source named | | |
 | CV-37 | 5 to 1, maximum width to height of the phone image | `lib/pairing/messages.ts`, field `aspect` of the frame schema | Range of the phone image aspect | "PROPOSAL range, a camera is not" | no source named | | |
-| CV-38 | Visit check wording | `lib/reviewSummary.ts`, `CHECK_TEXT` | Visit check texts | "The wording is a PROPOSAL." | progression.md section 5.2, strength item only | | |
-| CV-39 | Group: 3000 ms gather, 16384 bytes buffer, 15 frames each second, 4096 bytes message, 15000 ms hello, 120000 ms secret, 4 open secrets, 600 characters scan | `pairing/rtcLink.ts`, `GATHER_TIMEOUT_MS` and `SEND_BUFFER_LIMIT`; `pairing/frameMessage.ts`, `SEND_HZ`; `lib/pairing/messages.ts`, `MAX_MESSAGE_BYTES`; `lib/pairing/session.ts`, `HELLO_TTL_MS`; `lib/pairing/security.ts`, `DEFAULT_TTL_MS` and `MAX_OPEN_SECRETS`; `lib/pairing/payload.ts`, `MAX_SCANNED_CHARS` | Connection and transfer limits of the phone pairing | "PROPOSAL: qr-pairing.md section 5" | qr-pairing.md section 5 | | |
+| CV-38 | Visit check wording | `lib/reviewSummary.ts`, `CHECK_TEXT` | Visit check texts | "The wording is a PROPOSAL." | the progression note, section 5.2, strength item only | | |
+| CV-39 | Group: 3000 ms gather, 16384 bytes buffer, 15 frames each second, 4096 bytes message, 15000 ms hello, 120000 ms secret, 4 open secrets, 600 characters scan | `pairing/rtcLink.ts`, `GATHER_TIMEOUT_MS` and `SEND_BUFFER_LIMIT`; `pairing/frameMessage.ts`, `SEND_HZ`; `lib/pairing/messages.ts`, `MAX_MESSAGE_BYTES`; `lib/pairing/session.ts`, `HELLO_TTL_MS`; `lib/pairing/security.ts`, `DEFAULT_TTL_MS` and `MAX_OPEN_SECRETS`; `lib/pairing/payload.ts`, `MAX_SCANNED_CHARS` | Connection and transfer limits of the phone pairing | "PROPOSAL: the QR pairing note, section 5" | the QR pairing note, section 5 | | |
 | CV-40 | Pairing identity config group: 6000 ms window, 30 frames, 8 degrees range, 0.6 ratio, 2 windows | `lib/legIdentity.ts`, `IDENTITY_CONFIG` | Decides which leg moves | "Every value in IDENTITY_CONFIG is a PROPOSAL" | T13, internal | | |
 
 ### Monitor and body map
@@ -228,20 +228,20 @@ Each row is one value or one group of values. The source of each row is a note i
 | CV-43 | 3 degrees for the side view, 20 degrees for the back view, lift angle | `lib/monitor/modes.ts`, `LIFT_ANGLE_SIDE` and `LIFT_ANGLE_BACK` | Angle at which a leg counts as lifted | "ENGINEERING, not clinical. No source" | no source named | | |
 | CV-44 | 0.02 of picture, minimum foot move | `lib/monitor/modes.ts`, `FOOT_MIN_DX` | The foot must point this far to vote for facing | "ENGINEERING. The foot of" | no source named | | |
 | CV-45 | Filter cut-offs 1.2 and 1.5 | `lib/monitor/modes.ts`, `CYCLE_FILTER` and `LIFT_FILTER` | Smoothing of the angles for cycles and lifts | "Every number here is ENGINEERING." | no source named | | |
-| CV-46 | Group: 500 ms lost hold, 0.02 spike, 100 ms hold, 0.06 side band | `ui/BodyMap.tsx`, `LOST_HOLD_MS`, `SPIKE_FRACTION`, `HOLD_MS`, `SIDE_BAND` | Drawing of the joints on the body map | "ENGINEERING, not clinical. Measured on" | docs/live-test/skeleton-validation.md | | |
+| CV-46 | Group: 500 ms lost hold, 0.02 spike, 100 ms hold, 0.06 side band | `ui/BodyMap.tsx`, `LOST_HOLD_MS`, `SPIKE_FRACTION`, `HOLD_MS`, `SIDE_BAND` | Drawing of the joints on the body map | "ENGINEERING, not clinical. Measured on" | the skeleton validation record | | |
 
 ### Drawings, examples and texts
 
 | ID | Value and unit | File and symbol | What it controls | Status in code note | Source named in code | Reviewed by | Date |
 |---|---|---|---|---|---|---|---|
 | CV-47 | 60 degrees, heel slide drawing | `lib/figure.ts`, `ILLUSTRATIVE_FLEXION`, key `heel-slide` | Illustrative angle in the drawing | "PROPOSAL, same as the example target" | example-protocol.json | | |
-| CV-48 | 30 degrees, mini squat drawing | `lib/figure.ts`, `ILLUSTRATIVE_FLEXION`, key `mini-squat` | Illustrative angle in the drawing, not a limit | "PROPOSAL, inside the borrowed range" | clinical.md section 4, S16 | | |
-| CV-49 | 30 degrees, hip flexion in the straight leg raise drawing | `lib/figure.ts`, `poseFor`, case `straight-leg-raise` | Hip angle in the drawing | "PROPOSAL: a hip flexion of 30" | clinical.md section 4 | | |
+| CV-48 | 30 degrees, mini squat drawing | `lib/figure.ts`, `ILLUSTRATIVE_FLEXION`, key `mini-squat` | Illustrative angle in the drawing, not a limit | "PROPOSAL, inside the borrowed range" | the project knowledge base, section 4, S16 | | |
+| CV-49 | 30 degrees, hip flexion in the straight leg raise drawing | `lib/figure.ts`, `poseFor`, case `straight-leg-raise` | Hip angle in the drawing | "PROPOSAL: a hip flexion of 30" | the project knowledge base, section 4 | | |
 | CV-50 | 0.62 of label size | `lib/figure.ts`, `CHAR_W` | Width of one bold character in labels | "PROPOSAL, width of one bold" | browser check, no clinical source | | |
 | CV-51 | 50 degrees, example maximum flexion | `lib/protocol/example-protocol.json`, field `source` of the mini squat | Example ceiling in the example plan | "maxFlexion 50: S16, BORROWED (healthy" | S16, healthy people | | |
 | CV-52 | 2 sets of 10 repetitions, example dose | `lib/protocol/example-protocol.json`, field `source` of the mini squat | Example dose | "sets, reps: example values, P2" | P2 rec 26, OPINION, ages 8 to 25 | | |
 | CV-53 | 40 and 60 degrees, example seated hold | `lib/protocol/example-protocol.json`, field `source` of the seated extension hold | Example hold range | "minFlexion 40: P1 phase 2" | P1, OPINION | | |
-| CV-54 | Five new exercise guide texts | `lib/guides.ts`, header note; `lib/monitor/registry.ts`, comment "The five new exercises (PROPOSAL)" | Patient guide texts for five exercises | "The five new exercises (PROPOSAL)" | research/technique-sources.md covers four exercises | | |
+| CV-54 | Five new exercise guide texts | `lib/guides.ts`, header note; `lib/monitor/registry.ts`, comment "The five new exercises (PROPOSAL)" | Patient guide texts for five exercises | "The five new exercises (PROPOSAL)" | the technique sources note covers four exercises | | |
 | CV-55 | Technique note text | `lib/technique.ts`, `PROPOSAL_NOTE` | Note above the guide lines | "These lines are a proposal" | no source named | | |
 | CV-56 | Beep pitch and length | `ui/sound.ts`, `TONES` | Sound of the cues | "PROPOSAL, no source: the pitches" | no source named | | |
 | CV-57 | Camera question starts on the side of the chosen leg | `ui/setupView.ts`, `LEG_TEXT.cameraHint` | Order of the camera questions | "PROPOSAL: the camera question starts" | no source named | | |

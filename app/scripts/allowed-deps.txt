@@ -1,4 +1,4 @@
-# Allowed direct dependencies. Add a line only with a reason in MPFL_APP_PLAN.md.
+# Allowed direct dependencies. Add a line only with a reason in the pull request and a vetting note in docs/.
 @mediapipe/tasks-vision
 dexie
 jsqr
