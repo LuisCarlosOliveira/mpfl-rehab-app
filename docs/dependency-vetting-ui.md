@@ -1,7 +1,7 @@
 # Dependency vetting: shadcn/ui and Tailwind v4 stack
 
 Date: 2026-11-08. The user ordered that every new dependency is checked for safety. This file holds the evidence. It follows the method of `docs/dependency-vetting.md` (checklist in its section 7).
-Skills loaded with the Skill tool: `owasp-security`, `simple-english:simple-english`, `context7-mcp`. I read `mpfl-clinical-guardrails/SKILL.md`, `research/ui-decisions.md` section 2 and the shadcn Vite guide. I did not call the Context7 tools. The registry JSON and the shipped code gave the facts.
+Skills loaded with the Skill tool: `owasp-security`, `simple-english:simple-english`, `context7-mcp`. I read `mpfl-clinical-guardrails/SKILL.md`, the UI decisions note section 2 and the shadcn Vite guide. I did not call the Context7 tools. The registry JSON and the shipped code gave the facts.
 
 Method: `npm view`, `npm pack` (download only), `npm install --ignore-scripts --package-lock-only` and `npm audit`. I also used the npm advisory bulk query (POST, read-only), the npm attestation read and GitHub API reads (GET only). A regex scan covered the shipped code. I ran no code from any package. All data is from 2026-11-08. Nothing was added to `app/`.
 ## 1. Summary
@@ -95,7 +95,7 @@ The app CSP blocks the `style` attribute in markup and blocks `<style>` elements
 | shadcn `progress.tsx` | `style={{ transform: ... }}` | Allowed (CSSOM) |
 | shadcn `toggle-group.tsx` | `style={{ "--gap": spacing }}` | Allowed (CSSOM) |
 
-The cause of the 4 violations in the spike (`research/ui-decisions.md` section 2) is the `<style>` element of `react-remove-scroll-bar`. It is added by `Dialog` and `AlertDialog` when they open. I found it by reading the code. I did not re-run the browser test. Status of the link: UNVERIFIED.
+The cause of the 4 violations in the spike (the UI decisions note section 2) is the `<style>` element of `react-remove-scroll-bar`. It is added by `Dialog` and `AlertDialog` when they open. I found it by reading the code. I did not re-run the browser test. Status of the link: UNVERIFIED.
 The style text holds measured numbers (the scrollbar gap in pixels). A fixed hash in the CSP cannot cover it. A nonce needs a server that adds a fresh nonce to every response. A static host cannot do this.
 The single author `kashey` maintains `react-remove-scroll`, `react-remove-scroll-bar`, `react-style-singleton`, `use-sidecar`, `use-callback-ref`, `get-nonce` and `aria-hidden`. None of the six I checked has provenance. All are MIT. The weekly downloads are 87 to 94 million for the main two.
 ### 3.5 Advisories and maintenance
@@ -216,7 +216,7 @@ Other licences in the build set: MIT, 0BSD (`tslib`), Apache-2.0, ISC and BSD-3-
 | C13 | The Tailwind CSS must use no `@plugin`, no `@config` and no `@source` with a path outside `app/`. Add a check for these three words in `src/**/*.css`. | `tailwindcss` |
 | C14 | Run the build in CI with no secrets in the environment. Keep `node_modules` out of any cache that is shared with deploy jobs. | build set |
 | C15 | Extend `make-notices.mjs` so that the notices also cover the transitive Radix and helper packages that reach the browser bundle (about 60 MIT and 1 0BSD). The script today reads direct dependencies only. | notices |
-| C16 | Add the CSP test: open the erase dialog and each added component in a real browser and check for zero violations. Also fix contrast (muted text 4.34, ring 2.59, border 1.26, from the spike). These are the open items of section 2 of `research/ui-decisions.md`. | all UI |
+| C16 | Add the CSP test: open the erase dialog and each added component in a real browser and check for zero violations. Also fix contrast (muted text 4.34, ring 2.59, border 1.26, from the spike). These are the open items of section 2 of the UI decisions note. | all UI |
 ## 9. Pinning
 Lines for `package.json`. Runtime (`dependencies`):
 
@@ -270,7 +270,7 @@ Notices (`public/THIRD_PARTY_NOTICES.txt`). `make-notices.mjs` matches `LICENSE`
 - `lucide-react`: the `LICENSE` file holds ISC for Lucide and MIT for the icons that come from Feather (Copyright 2013-present Cole Bemis). The script copies the whole file, so both texts stay.
 - `tailwindcss` and `@tailwindcss/vite` do not ship to the browser. Their notices are not needed in the app file.
 ## 10. Package count and the plan limit
-The plan limit is at most 6 added runtime packages (`research/ui-decisions.md` section 2).
+The plan limit is at most 6 added runtime packages (the UI decisions note section 2).
 
 Runtime, in the browser bundle (5): `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`. Build only, in `devDependencies` (3): `tailwindcss`, `@tailwindcss/vite`, `tw-animate-css`. The CLI `shadcn` is not a dependency (0). It runs with `npx` and `eject` removes it.
 The runtime count of 5 fits the limit of 6. The limit must say "runtime" and must list the build only packages separately. The runtime tree has 81 packages in total (section 7). The spike counted 9 direct packages because it also counted the build packages and `shadcn`. If the 11 single Radix packages are used, the runtime count is 15 and breaks the limit. If the team drops cva and `tailwind-merge`, the runtime count is 3.

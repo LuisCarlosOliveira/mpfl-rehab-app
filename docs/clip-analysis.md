@@ -1,6 +1,6 @@
 # Clip analysis
 
-The script `app/scripts/analyze-clip.mjs` runs the real pose pipeline of the app on a video file. It writes numbers only. It stores no frame and no image. Use it on a consented clip for task T13 ([plan](../MPFL_APP_PLAN.md)).
+The script `app/scripts/analyze-clip.mjs` runs the real pose pipeline of the app on a video file. It writes numbers only. It stores no frame and no image. Use it on a consented clip for task T13 (plan).
 
 ## What the script does
 
@@ -102,7 +102,7 @@ The app has three sources of the resting angle:
 
 The tool options `--baseline <deg>` and `--baseline-from <s>-<s>` stand in for source 1. The tool has no option for sources 2 and 3. A clip with `no-steady-window` shows the case in which the app asks the person to capture in place.
 
-Live test 1 (round 1, commit b451206) ran 8 clips as the fake webcam. No clip of the heel slide or the mini squat gave a resting angle. So the app counted 0 reps on every such run (`docs/live-test/exercise-flows.md`, checks 14, 18 and 50). The in-place capture is the fix. Its run on a real clip is PENDING (the re-test).
+Live test 1 (round 1, commit b451206) ran 8 clips as the fake webcam. No clip of the heel slide or the mini squat gave a resting angle. So the app counted 0 reps on every such run (the exercise flows record, checks 14, 18 and 50). The in-place capture is the fix. Its run on a real clip is PENDING (the re-test).
 
 ## Limits
 
@@ -124,7 +124,7 @@ Run the script in the folder `app/`. It needs `ffmpeg`.
 bash scripts/clip-to-webcam.sh <clip>
 ```
 
-The script converts the clip to an MJPEG file. The file has 30 frames each second, a long side of at most 640 px, and no sound. The default folder is `clips-real/webcam/` in the scratch folder of the run. You can give another folder as the second argument. Set `FORMAT=y4m` for a y4m file. It is much larger. Set `WIDTH` to change the long side.
+The script converts the clip to an MJPEG file. The file has 30 frames each second, a long side of at most 640 px, and no sound. The default folder is `.clip-out/webcam/`, which Git ignores. You can give another folder as the second argument. Set `FORMAT=y4m` for a y4m file. It is much larger. Set `WIDTH` to change the long side.
 
 The script prints the launch arguments for Playwright:
 
@@ -139,11 +139,11 @@ Use them in `chromium.launch({ args: [...] })`. The page must also have the perm
 What Chromium does with the file:
 
 - The picture has the size of the file. A test run with a 640 x 360 file gave a video of 640 x 360 in the page. Chromium did not change it to the size that the page asks for.
-- Chromium plays the file again from the start when it ends. This is the documented behavior of the fake camera. The live tests of 2026-11-08 saw it. A 60 second run shows a clip about two times. The restart causes a gap of about 5 seconds in the message log (`docs/live-test/exercise-flows.md`, `docs/live-test/pairing.md`).
+- Chromium plays the file again from the start when it ends. This is the documented behavior of the fake camera. The live tests of 2026-11-08 saw it. A 60 second run shows a clip about two times. The restart causes a gap of about 5 seconds in the message log (the exercise flows record, the pairing record).
 - An MJPEG file has no rotation flag. The script makes the picture upright first, with `ffmpeg`.
 - An MJPEG file holds no frame rate. Chromium plays it at 30 frames each second. The script sets 30 frames each second.
 - The stream has no sound. The app asks for video only.
 - The file is a recording of a person. Keep it out of the repository. The privacy rule holds for every output: frames, stills and clips stay in the scratch folder.
-- How the live tests used it: Playwright with the three launch arguments and the permission `camera`. Each run had a fresh profile and used the built app in `dist`. The app asked for video only and made no request to another origin (`docs/live-test/exercise-flows.md`, privacy inspection).
+- How the live tests used it: Playwright with the three launch arguments and the permission `camera`. Each run had a fresh profile and used the built app in `dist`. The app asked for video only and made no request to another origin (the exercise flows record, privacy inspection).
 - The picture is not the same as a phone picture. The clips are studio recordings of a person who is far from the camera. The setup check reached the countdown in 1 of 3 runs on clip 04 and in no run on the other clips. A recording by the product owner at 2 to 2.5 m can behave in another way (PENDING).
 - The live angle in the app comes from live detection, with real time and dropped frames. It can differ from the offline numbers of Method A. See [accuracy](accuracy.md).

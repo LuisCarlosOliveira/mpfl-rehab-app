@@ -44,7 +44,7 @@ Use the file `docs/clinician-template.json`. It is a protocol file that a physio
 ## Limits that you must know
 
 - `approvedOn` is an unsigned claim. Anyone who edits the file can add a date. The app cannot check who wrote it (open item L2-05 in `docs/clinical-limits.md`).
-- The camera angle is an estimate. The error is about 9 degrees at best and more in exercise video (`research/form-evidence.md`). Choose limits with this error in mind.
+- The camera angle is an estimate. The error is about 9 degrees at best and more in exercise video (the form evidence note). Choose limits with this error in mind.
 - The app stores no frame and no video. It stores angles, counts and the answers of the person on the device.
 - The app does not rate form. It states what the camera measured against your limit.
 - The file loads in the browser only. Nothing goes to a server.

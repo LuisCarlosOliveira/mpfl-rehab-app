@@ -2,7 +2,7 @@
 
 Status: NOT RUN. No volunteer has been measured. No result exists. This file is a plan for a physiotherapist.
 
-The app estimates the knee angle from a webcam. The margin of 9 degrees is a start value from still photos of the highest-complexity model ([accuracy record](accuracy.md), [research/form-opus.md section 2.3](../research/form-opus.md)). This study measures the real error of the app against a goniometer. A clinician and a statistician must review this protocol before use. Every number below that has no source is a PROPOSAL.
+The app estimates the knee angle from a webcam. The margin of 9 degrees is a start value from still photos of the highest-complexity model ([accuracy record](accuracy.md), the project knowledge base, section 2.3). This study measures the real error of the app against a goniometer. A clinician and a statistician must review this protocol before use. Every number below that has no source is a PROPOSAL.
 
 ## Aim
 
@@ -100,7 +100,7 @@ Known limits of this design:
 - One volunteer gives 5 holds. The holds of one person are not independent. The limits of agreement are therefore too narrow. A statistician must decide how to handle this.
 - 10 volunteers and 50 holds are a small set. The existing proposal in [accuracy.md](accuracy.md) is at least 30 pairs for each view.
 - Healthy volunteers and a still hold do not show the error of a moving patient.
-- The goniometer has its own error. After knee surgery, a published detectable difference is about 8 degrees (Lenssen 2007, https://doi.org/10.1186/1471-2474-8-83, in [research/form-opus.md](../research/form-opus.md), patients after TKA, so it is borrowed). The `readers` output shows the error of your own readers.
+- The goniometer has its own error. After knee surgery, a published detectable difference is about 8 degrees (Lenssen 2007, https://doi.org/10.1186/1471-2474-8-83, in the project knowledge base, patients after TKA, so it is borrowed). The `readers` output shows the error of your own readers.
 
 ## Decision rule (set before any data)
 

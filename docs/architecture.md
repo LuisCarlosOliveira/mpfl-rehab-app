@@ -1,10 +1,10 @@
 # Architecture
 
-The app is a static single-page app. All code runs in the browser. The app has no backend and no account. The app reads landmark numbers from each camera frame and keeps no frame. Full detail is in [MPFL_APP_PLAN.md](../MPFL_APP_PLAN.md) section 3. The app is a prototype and not a medical device.
+The app is a static single-page app. All code runs in the browser. The app has no backend and no account. The app reads landmark numbers from each camera frame and keeps no frame. Full detail is in the project plan, section 3. The app is a prototype and not a medical device.
 
 Updated on 2026-11-09 for commit 939d096. The second camera is now wired into Home and Setup. A real phone has not run it (UNPROVEN).
 
-Updated on 2026-11-09 (task T42). The pose model runs in a Web Worker. The section "Pose worker" below gives the design. [docs/pose-worker.md](pose-worker.md) gives the measurements.
+Updated on 2026-11-09 (task T42). The pose model runs in a Web Worker. The section "Pose worker" below gives the design. the pose worker measurements gives the measurements.
 
 Updated on 2026-11-09 for commit 903d2c9. The changes since are the in-app Back handling (`ui/useBackButton.ts`), the CSP, the field `repsBy` and the hand-count marker. They are described below. The tests of these changes are unit tests and browser tests. No live re-test exists.
 
@@ -136,7 +136,7 @@ Paths are under `app/src`.
 
 ## Pose worker
 
-The pose model runs in a Web Worker (task T42, user decision "6. ok"). The model call `detectForVideo` is synchronous. On the main thread it blocked the page for most of each second. The measurements are in [pose-worker.md](pose-worker.md).
+The pose model runs in a Web Worker (task T42, user decision "6. ok"). The model call `detectForVideo` is synchronous. On the main thread it blocked the page for most of each second. The measurements are in the pose worker measurements.
 
 Design:
 
@@ -163,9 +163,9 @@ The frame rule. Exactly one file touches the frame API: `pose/frameBridge.ts`. `
 
 ## Content Security Policy
 
-The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in [plan section 3.2](../MPFL_APP_PLAN.md). Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` as before. The pose worker loads from the own origin (`/assets/poseWorker-<hash>.js`), so the worker needs no change of the policy. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
+The policy is in `app/public/_headers` and in a meta tag of `app/index.html` (without `frame-ancestors`). The text is in plan section 3.2. Since commit 903d2c9, `blob:` is not in `img-src` and not in `media-src`. `data:` stays in `img-src` for the empty favicon link. `worker-src` keeps `blob:` as before. The pose worker loads from the own origin (`/assets/poseWorker-<hash>.js`), so the worker needs no change of the policy. The test `tests/config.test.ts` checks this. In short, `connect-src 'self'` allows no third-party host, `script-src` allows only own scripts and `wasm-unsafe-eval` for MediaPipe, and `object-src`, `base-uri` and `form-action` are closed. The headers also set `Permissions-Policy: camera=(self), microphone=()`, `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff`.
 
-Live test 3 ran two Chromium browsers (`docs/live-test/pairing.md`, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
+Live test 3 ran two Chromium browsers (the pairing record, checks 18 and 19). It found `iceServers` empty and no media line other than the data channel. It found no request to another origin. The WebRTC link on a real network is UNPROVEN. The file `public/_headers` gives the model files one day of cache (`max-age=86400, must-revalidate`).
 
 ## Saving a session
 
@@ -201,14 +201,14 @@ The threats to these items and their controls are in [docs/threat-model.md](thre
 
 | Decision | Source |
 |---|---|
-| Local-first, no backend | [Plan 1.4](../MPFL_APP_PLAN.md) |
-| Margin rule for limits | [Plan FR8](../MPFL_APP_PLAN.md), [research/form-opus.md section 4.3](../research/form-opus.md) |
-| The protocol is a file that a clinician sets, or a plan that the app made and the person confirmed | [Plan 1.5](../MPFL_APP_PLAN.md), FR1, FR2, FR4, FR30 |
-| The clinician view reads an exported file into memory | [Plan 1.4](../MPFL_APP_PLAN.md), FR15 |
-| No video stored or sent | [Plan FR6](../MPFL_APP_PLAN.md), NFR9 |
-| No component library. Plain CSS | [Plan section 11](../MPFL_APP_PLAN.md), `research/ui-decisions.md` |
-| Second view over a serverless WebRTC link | [Plan FR25](../MPFL_APP_PLAN.md) |
-| Body map in Setup only, until the Session gate passes | [docs/ui-ideas.md section 4](ui-ideas.md), [TASKS.md](../TASKS.md) |
+| Local-first, no backend | Plan 1.4 |
+| Margin rule for limits | Plan FR8, the project knowledge base, section 4.3 |
+| The protocol is a file that a clinician sets, or a plan that the app made and the person confirmed | Plan 1.5, FR1, FR2, FR4, FR30 |
+| The clinician view reads an exported file into memory | Plan 1.4, FR15 |
+| No video stored or sent | Plan FR6, NFR9 |
+| No component library. Plain CSS | Plan section 11, the UI decisions note |
+| Second view over a serverless WebRTC link | Plan FR25 |
+| Body map in Setup only, until the Session gate passes | the UI ideas note, section 4|
 
 - Clinician first review sheet: [docs/clinician-first-review.md](clinician-first-review.md)
 - Live session checklist for the first test on a real person: [docs/live-session-checklist.md](live-session-checklist.md)
