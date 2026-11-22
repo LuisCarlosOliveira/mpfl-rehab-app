@@ -1,4 +1,3 @@
-// The whole app with a real database (fake-indexeddb). It checks that the T11 screens work inside the shell.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BANNER } from '../../src/lib/reviewSummary';

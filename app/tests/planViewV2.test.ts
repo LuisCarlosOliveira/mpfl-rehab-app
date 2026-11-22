@@ -1,4 +1,3 @@
-// Generator version 2 in the plan helpers: home exercises, the new lines of change and the forward check.
 import { generateProtocol, type GeneratorInputs } from '../src/lib/protocolGen';
 import { describeChanges, describeNewPlan, doseScope, HOLD_LIMIT, HOLD_TIME_LINE, HOLD_NEXT_STAGE, HOME_NAMES, holdTextFor, monitorLine, movesForward, raisesKneeLimit, whyView } from '../src/lib/planView';
 import type { Protocol } from '../src/lib/protocol';

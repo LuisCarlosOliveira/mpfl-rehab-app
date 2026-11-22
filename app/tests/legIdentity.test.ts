@@ -1,4 +1,3 @@
-// T17: the moving-leg check. A soft hint only. It never picks a leg for the person.
 import { IDENTITY_CONFIG, createIdentityWatcher, movingLeg } from '../src/lib/legIdentity';
 import type { Landmark } from '../src/lib/angle';
 import { legLandmarks } from './helpers/leg';
@@ -104,7 +103,7 @@ describe('createIdentityWatcher', () => {
     expect(feed(w, 0, 6100, () => null)).toEqual(['none']);
   });
 
-  // B-07: the check ran only for the first 3 windows (18 s). A leg that moves later was never seen.
+  // The check ran only for the first 3 windows (18 s). A leg that moves later was never seen.
   it('keeps checking for the whole session: a leg that moves after the first 18 s gives answers', () => {
     const w = createIdentityWatcher(1);
     const still = feed(w, 0, 18100, () => frame(5, 5));

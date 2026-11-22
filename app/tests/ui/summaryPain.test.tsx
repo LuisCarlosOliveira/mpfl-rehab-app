@@ -1,4 +1,3 @@
-// The pain answers between sets reach the saved record (adaptation design 5.2).
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

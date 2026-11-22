@@ -1,4 +1,3 @@
-// Generator version 2 (docs/generator-v2-design.md). Steps A, B (seated hold, D4) and C (mini squat, D1).
 import { protocolSchema, type Exercise, type Protocol } from '../src/lib/protocol/schema';
 import { MARGIN_DEG } from '../src/lib/margin';
 import { generateProtocol, RULES, type GeneratorInputs } from '../src/lib/protocolGen';
@@ -282,7 +281,6 @@ describe('step B: the seated hold after a reported clearance (HOLD_P2, ENG_HOLD)
     expect(RULES.HOLD.text).toMatch(/none from week 7 without your report that your surgeon cleared it/);
   });
 
-  // A3-01: the real reason shows. A limit below the start of the arc is not the missing clearance.
   it('gives the real reason when the surgeon limit is below the arc: own line with the numbers, and not the clearance line', () => {
     for (const degrees of [40, 60, 89]) {
       const r = plan(at(8, { ...cleared, ...gates, seatedHoldCleared: 'yes', surgeonLimit: { kind: 'degrees', degrees } }));
@@ -368,7 +366,7 @@ describe('flag OFF (VITE_GENERATOR_EXTENDED=false): the held back items', () => 
     expect(heel.text).toMatch(/unknown/);
   });
 
-  // A2-03: one clear rule that matches what generate.ts does, with the flag off and on.
+  // One clear rule that matches what generate.ts does, with the flag off and on.
   it('A2-03: the heel slide text is one rule that matches the plan, for every kind of limit', () => {
     const inPlan = (week: number, surgeonLimit: GeneratorInputs['surgeonLimit']) => {
       const r = plan(at(week, { ...cleared, surgeonLimit }));

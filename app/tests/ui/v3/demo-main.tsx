@@ -1,4 +1,3 @@
-// Entry of demo.html. Query: ?view=app|live&data=base|worst. Dev only.
 import { createRoot } from 'react-dom/client';
 import '../../../src/ui/styles.css';
 import { AppDemo, LiveDemo, type DemoData } from './Demo';

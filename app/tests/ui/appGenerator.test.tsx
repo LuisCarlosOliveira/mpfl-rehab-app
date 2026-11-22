@@ -1,5 +1,3 @@
-// The whole app with a real database (fake-indexeddb): Create my plan, the confirmation, Update my plan, the referral,
-// patient mode, erase, and the pain stop between sets with the protocol threshold.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GENERATED_BANNER } from '../../src/lib/mode';
@@ -374,7 +372,7 @@ describe('Pain stop between sets, with the threshold of the protocol (T24a wirin
   });
 });
 
-// R3-04: the Back button of the browser inside the questions goes one question back and keeps the answers.
+// The Back button of the browser inside the questions goes one question back and keeps the answers.
 // It still never reaches Setup or Session (tests/ui/appBack.test.tsx holds that guarantee).
 describe('Back of the browser inside the questions', () => {
   const browserBack = () =>

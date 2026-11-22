@@ -1,7 +1,4 @@
 // @vitest-environment node
-// L4-02: the first load must stay small. This test builds the app in memory (nothing is written) and measures
-// the JavaScript that the first screens load: the entry chunk and every chunk that it imports at start.
-// Before the split the entry chunk alone had 241 kB gzip (749 kB raw) and Home on a phone scored 92 on Lighthouse.
 import { gzipSync } from 'node:zlib';
 import { build, type Rolldown } from 'vite';
 import { describe, expect, it } from 'vitest';

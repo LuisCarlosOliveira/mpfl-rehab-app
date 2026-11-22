@@ -1,4 +1,3 @@
-// Exercise monitoring, step E: Your sessions for the person-timed holds, and one name for each exercise.
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import { PLAN_NAMES } from '../src/lib/planView';
 import { buildProgressSeries, exerciseLabel, EXERCISE_LABEL, holdLines, toTableRows } from '../src/lib/progress';

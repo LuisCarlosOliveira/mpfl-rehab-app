@@ -1,6 +1,3 @@
-// B4-03 and B4-06 with a real clip: the patient shifts in the picture, so the lock box shows. It needs a clip file.
-// Run: LIVE_TRAP_CLIP=/path/to/t1-heel-shift-left.mjpeg npx playwright test e2e/app-live3-lock.spec.ts
-// Without the variable the spec is skipped. The clip is a webcam clip of 33 MB and is not in the repo.
 import { expect, test, type Page } from "@playwright/test";
 import { expectScreen } from "./helpers/app";
 import { EXAMPLE } from "./helpers/app";

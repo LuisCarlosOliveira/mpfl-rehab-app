@@ -66,7 +66,7 @@ describe('Referral', () => {
   });
 });
 
-// A3-02: the emergency screen tells the person to call emergency services. It offers no file load as the main action.
+// The emergency screen tells the person to call emergency services. It offers no file load as the main action.
 describe('Referral, a red flag', () => {
   it('shows the general guidance note under the text for an emergency flag and for a care team flag', () => {
     for (const flag of ['breathless-chest', 'calf']) {

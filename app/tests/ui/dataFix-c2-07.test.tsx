@@ -1,4 +1,3 @@
-// P-DATA2 fix C2-07: the care team view names the loaded files as plain text.
 import { cleanup, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';

@@ -1,6 +1,3 @@
-// R3-02 and R3-03: the buttons that the person needs sit in the first view of the Session, with real geometry.
-// "First view" means: the top of the page, no scroll, and above the top of the fixed bar.
-// V2: the status slot under the camera, the ruler and the angle caption must also be inside the viewport (D1 passed the old checks).
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, expectScreen, startCamera } from "./helpers/app";
@@ -317,7 +314,7 @@ test.describe("V5: Session with text at 200 percent, 390 x 844", () => {
   });
 });
 
-// R3-03 is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
+// Is measured at the phone size of the report. At 360 x 640 the banners and the three-row bar leave too little room (see TASKS.md).
 test.describe("390 x 844", () => {
   test.use({ viewport: SIZES[0] });
 

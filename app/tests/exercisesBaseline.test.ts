@@ -1,4 +1,3 @@
-// F1: the pipeline gets its baseline after it started (the in-place capture of Session).
 import { createPipeline } from '../src/lib/exercises';
 import type { Exercise } from '../src/lib/protocol';
 import { legLandmarks } from './helpers/leg';

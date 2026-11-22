@@ -1,4 +1,3 @@
-// Exercise monitoring, step E: the data of the new modes (person-timed holds, one measured value). Stored, exported, imported.
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
 

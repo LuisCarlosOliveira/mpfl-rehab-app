@@ -1,4 +1,3 @@
-// In-page helpers for honesty-audit.mjs. Loaded with addInitScript. They only read the page. They change nothing.
 (() => {
   const vis = (el) => {
     const cs = getComputedStyle(el);

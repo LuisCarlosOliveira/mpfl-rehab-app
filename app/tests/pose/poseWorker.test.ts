@@ -1,4 +1,3 @@
-// The pose worker loads the model, turns each received picture into landmark numbers and closes the picture.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const landmarker = vi.hoisted(() => ({ createLandmarker: vi.fn() }));

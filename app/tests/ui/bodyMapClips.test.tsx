@@ -1,4 +1,3 @@
-// G2 replacement: the body map checked on the saved landmarks of the real clips (numbers only, no frame).
 import { createRef } from 'react';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';

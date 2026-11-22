@@ -123,7 +123,7 @@ describe('styles.css rules', () => {
   });
 });
 
-// L2-06 and L2-11: long text without spaces and a very narrow screen. The rules sit in a marked block at the end of the file.
+// Long text without spaces and a very narrow screen. The rules sit in a marked block at the end of the file.
 describe('styles.css, long text and narrow screens', () => {
   const css2 = css.slice(Math.max(0, css.indexOf('LONG TEXT AND NARROW SCREENS (F2a)')));
   const block = css2.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -156,7 +156,7 @@ describe('styles.css, long text and narrow screens', () => {
   });
 });
 
-// F3: the last block of the file. R2-04 (the capture line sits on the camera picture) and the fixes at 195 px (L2-06, L2-11).
+// F3: the last block of the file. R2-04 (the capture line sits on the camera picture) and the fixes at 195 px.
 describe('styles.css, the F3 block', () => {
   const start = css.indexOf('===== F3 START');
   const end = css.indexOf('===== F3 END');

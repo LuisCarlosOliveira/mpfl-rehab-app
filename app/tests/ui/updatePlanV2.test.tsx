@@ -1,4 +1,3 @@
-// "Update my plan" with the questions of generator version 2: the mini squat, the seated hold and the knee gave way event.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Protocol } from '../../src/lib/protocol';

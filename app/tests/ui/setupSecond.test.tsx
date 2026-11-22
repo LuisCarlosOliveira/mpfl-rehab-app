@@ -1,4 +1,3 @@
-// T12b: the optional step "Add a second camera (optional)" in Setup. The single camera flow stays the default.
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useSyncExternalStore } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

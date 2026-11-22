@@ -1,5 +1,3 @@
-// Step B4: the mode lift for the leg raise to the side (segment hip to ankle against the horizontal, front-on)
-// and to the back (segment hip to knee against the vertical, side view). The logic of the straight leg raise is liftStep.
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({ testTimeout: 60000 }); // the noise tests run minutes of frames
@@ -18,7 +16,7 @@ const driverFor = (pose: LiftPose, cameraFacing: 1 | -1 | null = null) =>
     liftAngle: value(pose, 'lift-angle'),
     settleMs: value(pose, 'raise-settle-ms'),
     endMs: value(pose, 'lift-end-ms'),
-    // R-02: the lift to the back counts the backward direction only.
+    // The lift to the back counts the backward direction only.
     directional: pose === 'leg-raise-back' ? { cameraFacing } : undefined,
   });
 

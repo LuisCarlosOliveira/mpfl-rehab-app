@@ -1,4 +1,3 @@
-// The host side facade (createPairing) and the second view as a landmark source (remoteSource).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FALLBACK_TEXT, makeHello } from '../../src/lib/pairing';
 import { createPairing, INVALID_CODE_TEXT, remoteSource } from '../../src/pairing/pairing';

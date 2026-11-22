@@ -1,4 +1,3 @@
-// W2: the position guide as numbered steps with numbered labels in the drawings (U13, U14).
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { guideFor } from '../../src/lib/guides';

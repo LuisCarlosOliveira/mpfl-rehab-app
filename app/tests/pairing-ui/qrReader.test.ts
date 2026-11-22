@@ -1,4 +1,3 @@
-// The QR reader. It is the only file that reads camera pixels. The frame must stay in memory.
 import { readFileSync } from 'node:fs';
 import { decodeQr, readQrFromVideo, startQrScan } from '../../src/pairing/qrReader';
 import { frameFor, type Frame } from './qrHelpers';

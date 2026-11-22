@@ -1,5 +1,3 @@
-// Step B5: createPipeline runs the five new kinds through the definitions of lib/monitor/registry.ts.
-// The anchor, the plausibility check, the lockout and the probe of the existing pipeline apply to them. The check of the leg comes from `needs`.
 import { describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({ testTimeout: 60000 }); // the noise tests run minutes of frames

@@ -1,4 +1,3 @@
-// Step D2: the record of a run of each new kind holds the engine data, and it validates and exports.
 import { describe, expect, it } from 'vitest';
 import { loadProtocol, type PlanExercise } from '../src/lib/protocol';
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema } from '../src/lib/storage';

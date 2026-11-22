@@ -1,5 +1,3 @@
-// The forms and the progress page on the v3 parts (docs/ui-redesign-v3.md, sections 4 and 7.4).
-// The behaviour and the words of these screens are pinned by their own test files. This file pins the v3 structure.
 import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

@@ -1,4 +1,3 @@
-// The Summary updates the record that App wrote when the run ended. It never makes a second record.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

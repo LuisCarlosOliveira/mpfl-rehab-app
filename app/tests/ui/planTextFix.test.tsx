@@ -1,4 +1,3 @@
-// Text defects D1 to D6 of the plan audit. Each test failed before the change.
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { describeChanges, draftOf, type PlanDraft } from '../../src/lib/planView';

@@ -1,6 +1,4 @@
 // @vitest-environment node
-// Static import graph of src. It reads each file with the TypeScript parser, so an alias, a re-export,
-// a namespace import and a dynamic import all count. It does not use a text pattern.
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';

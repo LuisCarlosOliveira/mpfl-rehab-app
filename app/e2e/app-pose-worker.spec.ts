@@ -1,5 +1,3 @@
-// The pose model runs in a Web Worker in the real app (task T-W). The init script wraps Worker and records what the page sees.
-// The worker may send only progress, ready and result messages. A result holds landmark numbers and a time, nothing else.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, stopButton, toSession, trackStates, watch } from './helpers/app';
 

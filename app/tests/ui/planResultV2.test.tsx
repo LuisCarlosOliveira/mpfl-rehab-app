@@ -1,4 +1,3 @@
-// Generator version 2 on the screens: home exercises, the two text lines, the mini squat and the seated hold.
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { draftOf, type PlanDraft } from '../../src/lib/planView';
@@ -231,7 +230,7 @@ describe('Home, a plan with the five exercises', () => {
     expect(screen.getAllByText(/Limit 50 degrees/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/2 sets of 10 to 15, then 3 sets as tolerated/).length).toBeGreaterThan(1);
     expect(screen.getAllByText(/How many: ask your care team/).length).toBeGreaterThan(0);
-    // The plan has the answer "No limit", so the heel slide row says that the surgeon gave none (A3-10).
+    // The plan has the answer "No limit", so the heel slide row says that the surgeon gave none.
     expect(screen.getAllByText(/No knee-bend limit was given by your surgeon/).length).toBeGreaterThan(0);
   });
 });
@@ -249,7 +248,7 @@ describe('PlanResult with the flag off (VITE_GENERATOR_EXTENDED=false)', () => {
   });
 });
 
-// A3-10: the heel slide row names the answer. "No limit" is not "I do not know".
+// The heel slide row names the answer. "No limit" is not "I do not know".
 describe('the knee-bend limit line of the heel slide (A3-10)', () => {
   const NONE_LINE = 'No knee-bend limit was given by your surgeon';
   const rowOf = (over: Partial<GeneratorInputs>) => {

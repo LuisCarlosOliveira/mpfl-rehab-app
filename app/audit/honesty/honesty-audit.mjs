@@ -20,7 +20,6 @@ const APP_ROOT = process.env.APP_ROOT || path.resolve(HERE, '../..');
 const require = createRequire(path.join(APP_ROOT, 'package.json'));
 const { chromium } = require('@playwright/test');
 
-// ---------- arguments ----------
 const argv = process.argv.slice(2);
 const opt = (name, dflt) => {
   const i = argv.indexOf(name);
@@ -40,7 +39,6 @@ const ONLY = opt('--only', '') ? opt('--only', '').split(',') : null;
 const SHOTS = !argv.includes('--no-shots');
 mkdirSync(OUT, { recursive: true });
 
-// ---------- the words of the app. Change them here when the redesign renames a button. ----------
 const T = {
   understand: 'I understand',
   fileLabel: 'Choose a file from your care team',
@@ -69,7 +67,6 @@ const MARGIN_SOURCE = 'start value, UNVERIFIED for the lite model (Okuno 2026, h
 const FLOW_SCREENS = ['redflag', 'redflag-blocked', 'setup-guide', 'setup-camera-before', 'setup-camera-nopose', 'session-nopose', 'summary', 'summary-pain6', 'summary-pain7', 'offline-setup-camera'];
 const MEASURED_SCREENS = ['new-home-360', 'new-home-1280', 'new-check-none-360', 'new-check-none-1280', 'new-check-event-360', 'new-check-event-1280', 'session-nopose', 'session-clip', 'summary', 'summary-pain6', 'summary-pain7', 'dashboard-1', 'dashboard-100', 'dashboard-missing', 'clinician', 'setup-camera-nopose'];
 
-// ---------- word lists, read from claims-check.sh so they stay in step ----------
 const claims = readFileSync(path.join(APP_ROOT, 'scripts/claims-check.sh'), 'utf8');
 const grab = (name) => {
   const m = new RegExp(`^${name}='([^']*)'`, 'm').exec(claims);
@@ -88,14 +85,12 @@ const ALLOW = [
   { re: /body points/i, why: 'the second camera sends body landmark points (privacy text)' },
 ];
 
-// ---------- results ----------
 const results = [];
 const add = (screen, theme, check, status, detail, data) => {
   results.push({ screen, theme, check, status, detail, ...(data === undefined ? {} : { data }) });
 };
 const want = (name) => !ONLY || ONLY.includes(name);
 
-// ---------- colour maths (same thresholds as tests/ui/styles.test.ts, plus an amber band) ----------
 const lin = (v) => {
   v /= 255;
   return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
@@ -122,7 +117,6 @@ function band(h) {
   return null;
 }
 
-// ---------- browser helpers ----------
 const INPAGE = readFileSync(path.join(HERE, 'audit-inpage.js'), 'utf8');
 const PROBE = `(() => {
   const p = { osc: 0, audioContexts: 0, gum: 0, csp: [] };
@@ -196,7 +190,6 @@ async function expectH1(page, text, ms = 20000) {
   throw new Error(`h1 is "${got}", wanted "${text}"`);
 }
 
-// ---------- the check battery on the current screen ----------
 // A number of degrees is not a camera estimate when its own sentence names a published source (S1, P2, N3 ...)
 // or says the number comes from the surgeon or the plan. Only camera estimates need the angle label.
 // Every other angle number needs the label. The self-test pins both sides of this rule.
@@ -307,7 +300,6 @@ async function audit(page, screen, theme, { example = true, only = null } = {}) 
   }
 }
 
-// ---------- seeded data ----------
 const baseRec = (i, over = {}) => ({
   date: new Date(Date.UTC(2026, 6, 1) + i * 86400000 + 36000000).toISOString(),
   exercise: 'heel-slide', side: 'left', reps: 10 + (i % 5), peakFlexion: 50 + (i % 40), holdSeconds: null, topFlexion: null,
@@ -341,7 +333,6 @@ async function openSessions(page) {
   await sleep(700);
 }
 
-// ---------- stories ----------
 async function toHome(page) {
   await page.goto(BASE + '/');
   await expectH1(page, T.h1.privacy);
@@ -539,7 +530,6 @@ async function mainStory(theme) {
   }
 }
 
-// ---------- session checks: in-range shows nothing, no sound, ruler, live numbers ----------
 async function sessionChecks(page, theme) {
   if (!want('session')) return;
   const A = (fn, ...a) => page.evaluate(([f, args]) => window.__audit[f](...args), [fn, a]);
@@ -581,7 +571,6 @@ async function sessionChecks(page, theme) {
   add('session-nopose', theme, 'no pose shows no angle number', ang === null ? 'REVIEW' : ang === '--' ? 'PASS' : 'FAIL', ang === null ? 'live angle element not found by class name' : `live angle text with no pose: "${ang}"`);
 }
 
-// ---------- summary pain: 11 radios, 48 px, none set, 6 no pause, 7 pause ----------
 async function painChecks(page, theme, browser) {
   if (!want('pain')) return;
   const radios = page.locator('input[type=radio][name=pain]');
@@ -631,7 +620,6 @@ async function painChecks(page, theme, browser) {
   void browser;
 }
 
-// ---------- charts: dataviz anti-patterns and data honesty ----------
 async function chartChecks(page, screen, theme, count, recs) {
   if (!want('charts')) return;
   const charts = await page.evaluate(() => window.__audit.charts());
@@ -670,7 +658,6 @@ async function chartChecks(page, screen, theme, count, recs) {
   }
 }
 
-// ---------- offline, camera denied, camera absent ----------
 async function offlineStory(theme) {
   if (!want('offline')) return;
   const browser = await launch();
@@ -764,7 +751,6 @@ async function onboardingStory(theme) {
   }
 }
 
-// ---------- optional: a real clip through Session (in-range rep, sound, cue) ----------
 async function clipStory(theme) {
   if (!CLIP) return;
   if (!existsSync(CLIP)) return add('session-clip', theme, 'clip file', 'SKIP', `file not found: ${CLIP}`);
@@ -813,7 +799,6 @@ async function clipStory(theme) {
   }
 }
 
-// ---------- static pass on a source folder (optional) ----------
 function staticPass(src) {
   const res = (c, s, d) => add('(source)', '-', c, s, d);
   try {
@@ -837,7 +822,6 @@ function staticPass(src) {
 }
 
 
-// ---------- self test: a page with known faults. Every fault must give a FAIL. ----------
 async function selftest() {
   const browser = await launch();
   const { ctx, page } = await context(browser, 'light');
@@ -893,7 +877,6 @@ async function selftest() {
   process.exit(missed || ruleBad ? 1 : 0);
 }
 
-// ---------- auditnew: plan made by the app, week 8, phase 1 active; Home and Check my progress ----------
 async function newScreensStory(theme) {
   const MS = (readFileSync(path.join(APP_ROOT, 'src/lib/margin.ts'), 'utf8').match(/MARGIN_SOURCE\s*=\s*'([^']+)'/) || [])[1];
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -964,7 +947,6 @@ async function newScreensStory(theme) {
   }
 }
 
-// ---------- run ----------
 (async () => {
   if (SELFTEST) return selftest();
   const t0 = Date.now();

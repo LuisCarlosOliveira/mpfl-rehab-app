@@ -1,4 +1,3 @@
-// UI redesign v2, package A (Session). Each test names the item of docs/ui-redesign-v2-spec.md that it proves.
 import { readFileSync } from 'node:fs';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

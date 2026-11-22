@@ -1,6 +1,3 @@
-// Text at 200 percent (root font size 200 percent) at 390 x 844. On each screen:
-// no sideways scroll, no word broken inside, no clipped box, no button whose text leaves the button,
-// and a sticky bar takes at most 40 percent of the height (a taller bar sits at the end of the content).
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, toHome, toLoad, toSummary } from './helpers/app';
 import { answerAbout, fillDate, pick, QUESTION, referralQuestions } from './helpers/plan';

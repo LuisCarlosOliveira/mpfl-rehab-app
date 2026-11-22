@@ -1,4 +1,3 @@
-// P-DATA fix c04.
 import { cleanup, render, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Dashboard } from '../../src/ui/Dashboard';

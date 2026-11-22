@@ -1,5 +1,3 @@
-// W1 (UI study): live numbers, the rest panel, the hold timer, the start status, notices above the camera and the hidden tab.
-// Each test names one rule. A hand mutation of the rule must fail the test (see the W1 report).
 import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

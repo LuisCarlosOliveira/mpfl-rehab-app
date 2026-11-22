@@ -1,4 +1,3 @@
-// The camera source uses the pose worker when it can, and the main-thread landmarker when it cannot.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const camera = vi.hoisted(() => ({ startCamera: vi.fn(), stopCamera: vi.fn() }));

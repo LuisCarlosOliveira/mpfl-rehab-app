@@ -1,4 +1,3 @@
-// The frame bridge sends a video frame to the pose worker as a transferable picture and gets landmark numbers back.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FRAME_REPLY_LIMIT_MS } from '../../src/pose/frameBridge';
 

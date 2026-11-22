@@ -1,5 +1,3 @@
-// B2-03: after a clip cut the close-up frame shows another part of the body. The hip jumps far from the last known hip.
-// The pipeline must read these frames as not seen. The rows are saved numbers of clip 05 (no image, no video).
 import { describe, expect, it } from 'vitest';
 import { createPipeline } from '../src/lib/exercises';
 import type { Exercise } from '../src/lib/protocol';

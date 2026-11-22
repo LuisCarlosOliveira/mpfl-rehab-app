@@ -1,6 +1,3 @@
-// Test-only page. It mounts the two real pairing screens. It is never shipped.
-// ?role=host mounts PairHost with the real WebRTC link. ?role=companion mounts PairCompanion.
-// The companion gets a synthetic pose source, because the fake camera shows no person. All other code is the real code.
 import '../../src/zodConfig'; // the first import, as in main.tsx
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';

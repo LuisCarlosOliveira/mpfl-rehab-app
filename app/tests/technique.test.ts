@@ -1,4 +1,3 @@
-// Text guide lines of the Setup guide step. Source: research/technique-sources.md ("What the app can show without judging").
 import { SOURCE_NAMES, TECHNIQUE_NOTE, techniqueFor } from '../src/lib/technique';
 import { EXERCISE_KINDS } from '../src/lib/protocol/schema';
 

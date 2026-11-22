@@ -94,7 +94,7 @@ describe('figures of the five new exercises', () => {
     expect(Math.abs(away)).toBeLessThan(40);
   });
 
-  // N-05: a person who lies on the side, seen from the front. The body lies across the picture, the lower leg rests on the mat,
+  // A person who lies on the side, seen from the front. The body lies across the picture, the lower leg rests on the mat,
   // the top leg starts on top of it and opens away from it (abduction). The old pose was a person on the back with a straight leg raise.
   it('leg raise to the side: side-lying, the lower leg rests on the mat and the top leg stacks on it at the start', () => {
     const a = figureFor('leg-raise-side', 'start', 'right');

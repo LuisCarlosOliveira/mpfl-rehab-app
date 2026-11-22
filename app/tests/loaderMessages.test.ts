@@ -1,4 +1,3 @@
-// Plain words for each kind of schema problem in a protocol file (FR29, A-10).
 import { loadProtocol } from '../src/lib/protocol';
 import example from '../src/lib/protocol/example-protocol.json';
 import { readFileSync } from 'node:fs';

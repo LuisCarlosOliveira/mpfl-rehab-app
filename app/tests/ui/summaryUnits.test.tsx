@@ -1,4 +1,3 @@
-// F3 (R2-03): the unit agrees with the number in the Summary. "1 rep", "2 reps", "1 hold", "2 holds", "1 degree".
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Summary as PlainSummary } from '../../src/lib/exercises';

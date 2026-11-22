@@ -1,5 +1,3 @@
-// The pain question between sets (adaptation design 4.3, L2). It is logged always. The safety floor of FR12 (7, an app rule
-// that a clinician must review) stops the session here, as it does in the summary. A lower clinician threshold stops earlier.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Exercise } from '../../src/lib/protocol';

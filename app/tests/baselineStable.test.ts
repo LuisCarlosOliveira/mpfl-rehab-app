@@ -1,6 +1,3 @@
-// F3 (R2-06): the lowest steady angle must not depend on the moment of the press.
-// The clips loop in the fake camera, so the rows repeat to cover 60 s. The angle goes through the same filter as Session.
-// The numbers are engineering values. A clip is a smoke test and not a validation.
 import { createBaselineCapture, CAPTURE_CONFIG } from '../src/lib/baseline';
 import { createPipeline } from '../src/lib/exercises';
 import { SETUP_CONFIG } from '../src/lib/setupRules';

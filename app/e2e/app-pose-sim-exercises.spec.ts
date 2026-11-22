@@ -1,5 +1,3 @@
-// The other exercises with a simulated pose: one good rep or hold and one that misses, with the limits of the example plan.
-// The count must move for the good one only. No verdict word shows, and no sound plays when no limit is near.
 import { expect, test } from '@playwright/test';
 import { watch } from './helpers/app';
 import { runParts, toLive } from './helpers/simLive';

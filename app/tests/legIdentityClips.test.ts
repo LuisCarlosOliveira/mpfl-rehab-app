@@ -1,5 +1,3 @@
-// F1 (issue L1-08): the soft note "your other leg moves more" must stay rare.
-// The note needs the other leg to win in two windows in a row. The saved clips give the proof (numbers only).
 import { IDENTITY_CONFIG, createIdentityWatcher, otherLegConfirmed, type MovingLeg } from '../src/lib/legIdentity';
 import type { Side } from '../src/lib/angle';
 import { CLIP_SERIES } from './fixtures/clipSeries';

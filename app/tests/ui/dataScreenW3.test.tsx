@@ -1,4 +1,3 @@
-// W3, U12 and U9 on My data: the states of the import drop area, and export buttons that keep their width.
 import { act, cleanup, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

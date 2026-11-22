@@ -1,6 +1,4 @@
 // @vitest-environment node
-// L4-02: the first screens must not carry the screens that load later. Each lazy screen uses retryableLazy,
-// so a chunk that fails shows the load error screen with Try again and Back to Home.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

@@ -1,5 +1,3 @@
-// AC5-01: each onboarding question opens at the top of the page. The prototype banner stays in view.
-// The page is scrolled down before each Next, so a step that keeps the old scroll fails.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, PROTOTYPE_BANNER, toLoad } from './helpers/app';
 import { fillDate, pick, QUESTION } from './helpers/plan';

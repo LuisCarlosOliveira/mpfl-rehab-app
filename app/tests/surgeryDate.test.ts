@@ -1,5 +1,3 @@
-// The surgery date in plain words, and the week rule. A surgery on 2026-10-29 and today 2026-11-18 is week 2.
-// Week 2 means two whole weeks are complete. It is the third week after surgery.
 import { describe, expect, it } from 'vitest';
 import { dateWords, surgeryDateWords, weeksSince, weekWords } from '../src/lib/planView';
 

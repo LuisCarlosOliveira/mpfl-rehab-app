@@ -1,6 +1,4 @@
 // @vitest-environment node
-// Tests for scripts/accuracy-analyze.mjs. Every number in this file is SYNTHETIC.
-// No volunteer and no goniometer produced any of it. Each answer is computed by hand.
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

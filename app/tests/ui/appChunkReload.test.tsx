@@ -1,5 +1,3 @@
-// A tab that stays open while the app is rebuilt asks for chunk names that answer 404. "Try again" must reload the page.
-// The reload must never land on Setup or Session without the red-flag check: the check state is in memory, so a new page starts at Home.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { markPrivacyNoticeSeen, saveProtocol } from '../../src/lib/storage';

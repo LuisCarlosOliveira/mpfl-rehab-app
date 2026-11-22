@@ -1,5 +1,3 @@
-// A control that gets keyboard focus must scroll fully above a sticky or fixed bar (WCAG 2.2 focus not obscured).
-// The page ties scroll-padding-bottom to the real height of the bar, so it holds at every size and at 200 percent text.
 import { expect, test, type Page } from '@playwright/test';
 import { toRedFlag, toSession, toSetupGuide, toSummary } from './helpers/app';
 

@@ -1,4 +1,3 @@
-// P-DATA2 fix C2-06: the date of a table cell never breaks inside; it can wrap between date and time.
 import { readFileSync } from 'node:fs';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

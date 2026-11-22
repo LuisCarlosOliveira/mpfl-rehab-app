@@ -1,5 +1,3 @@
-// Independent re-derivation of T2, T3 and T4. These tests state properties.
-// The original tests check examples. These check rules that must hold for any input.
 import { flexion, kneeAngle, type Landmark } from '../src/lib/angle';
 import { holdInitial, holdStep, repsInitial, repsStep, type RepsConfig } from '../src/lib/counters';
 import { MARGIN_DEG, MARGIN_SOURCE, classifyAgainstLimit } from '../src/lib/margin';

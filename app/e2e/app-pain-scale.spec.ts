@@ -1,6 +1,3 @@
-// Safety pin for the pain scale on Summary: 11 radios, none pre-selected, each box 48 px or more in width and height,
-// at 390, 360 and 320 px wide and with the text at 200 percent (the scale wraps onto more rows, it never shrinks).
-// Pain 7 still shows the pause message. The page does not scroll sideways.
 import { expect, test } from '@playwright/test';
 import { toSummary } from './helpers/app';
 

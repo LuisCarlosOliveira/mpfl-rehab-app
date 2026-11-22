@@ -1,5 +1,3 @@
-// One table of variants: every part renders with the base data and with the worst case (break-ui).
-// The demo is not reachable from the app routes. This test and demo.html are its only users.
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { hasVerdictWord } from '../verdict';

@@ -1,4 +1,3 @@
-// screensV2.css: the detail line of a Load row sits under the row. The hover fill of the row must not cover it (A-08).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
@@ -17,7 +16,7 @@ describe('Load rows', () => {
   });
 });
 
-// A2-01: the name leads each row of the plan. The dose, the depth and the arc are quiet supporting text.
+// The name leads each row of the plan. The dose, the depth and the arc are quiet supporting text.
 describe('plan rows', () => {
   const weight = (selector: string) => Number(/font-weight:\s*(\d+)/.exec(rule(selector))?.[1] ?? 400);
 

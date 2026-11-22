@@ -1,5 +1,3 @@
-// Camera exit paths in the REAL app (NFR9). The harness specs in camera.spec.ts test the module alone.
-// The init script wraps getUserMedia and keeps every stream on window, so the tests read the track states.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, startCamera, stopButton, toSession, toSetupCamera, trackStates } from './helpers/app';
 

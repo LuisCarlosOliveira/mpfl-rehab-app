@@ -1,4 +1,3 @@
-// UI redesign v2, package B (B1 to B7). Each block pins one new behaviour. The blocks were written before the code.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { guideFor } from '../../src/lib/guides';

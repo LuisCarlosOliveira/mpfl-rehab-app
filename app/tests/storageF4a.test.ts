@@ -1,4 +1,3 @@
-// F4a: `repsBy` (M3) and the short fixed list for `marginSource` (A1-3). Same pattern as the leg and baseline fields.
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import { createDb, exportCsv, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput } from '../src/lib/storage';
 

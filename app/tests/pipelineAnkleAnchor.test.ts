@@ -1,5 +1,3 @@
-// Skeleton fix C: the ankle pump anchors on the hip (landmark 23 or 24), like the other exercises. Before, its anchor was the KNEE (the first
-// point of knee, ankle, foot index), so a knee that moved by 0.1 of the width started the lockout and the probe for a second person.
 import { describe, expect, it } from 'vitest';
 import { createPipeline, type Pipeline } from '../src/lib/exercises';
 import type { Landmark } from '../src/lib/angle';

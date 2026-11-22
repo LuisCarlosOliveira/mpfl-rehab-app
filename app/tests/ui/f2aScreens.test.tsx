@@ -1,4 +1,3 @@
-// Fixes of the live test (L2-01, L2-03, L2-07): the engineering count value, the held change and the surgery date.
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { draftOf, type PlanDraft } from '../../src/lib/planView';

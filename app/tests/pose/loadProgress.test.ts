@@ -1,4 +1,3 @@
-// L4-05: the model load reports how many bytes came in. The report is optional. Without it nothing changes.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { createFromOptions, forVisionTasks } = vi.hoisted(() => ({

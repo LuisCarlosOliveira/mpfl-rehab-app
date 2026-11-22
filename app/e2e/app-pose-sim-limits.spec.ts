@@ -1,4 +1,3 @@
-// Limit cues, sound and a swapped leg with a simulated pose (helpers/simPose.ts). Heel slide with a limit of 90 degrees.
 import { expect, test } from '@playwright/test';
 import { watch } from './helpers/app';
 import { runParts, toLive } from './helpers/simLive';

@@ -1,5 +1,4 @@
 // @vitest-environment node
-// Tests for the check scripts. They prove that each script fails when it must fail.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -1,4 +1,3 @@
-// P-DATA2 fix C2-03: the time axis of a line chart.
 import { describe, expect, it } from 'vitest';
 import { LABEL_PX, PLOT_PX, timeAxis } from '../../src/ui/Dashboard';
 

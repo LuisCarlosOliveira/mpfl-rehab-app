@@ -1,4 +1,3 @@
-// The questionnaire model: the order of the questions, when a question is answered, the early referral, and the inputs.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { answered, earlyReferral, emptyAnswers, fromInputs, limitNumber, limitProblem, stepsFor, toInputs, type Answers } from '../src/lib/onboarding';
 import { inputsSchema } from '../src/lib/protocolGen';

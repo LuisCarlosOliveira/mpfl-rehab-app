@@ -1,5 +1,3 @@
-// v3 live screens (docs/ui-redesign-v3.md sections 2, 4 D2 and 5.4). Setup, Session and RunStats use LiveShell and the v3 parts.
-// Each test names the rule that it proves.
 import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

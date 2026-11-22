@@ -1,5 +1,3 @@
-// Step D2: Session for the five new kinds (ankle pump, two leg raises, quad set, gluteal set).
-// The readout follows the definition. The two timer kinds show the hold timer screen. No cue and no sound for the new modes.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlanExercise } from '../../src/lib/protocol';
@@ -76,7 +74,7 @@ describe('the live readout follows the definition', () => {
   });
 
   it('draws no angle number on the knee arc of the map for a leg raise, and keeps it in the readout', () => {
-    // The back lift counts a direction, so it needs the facing: the camera side gives it when the foot does not (R-02).
+    // The back lift counts a direction, so it needs the facing: the camera side gives it when the foot does not.
     const { source, view } = setup(BACK, mockSource(), 'left');
     const arc = view.container.querySelector('[data-k="arc-text"]')!;
     let drawn = 0;

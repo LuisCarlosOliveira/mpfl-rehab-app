@@ -1,5 +1,3 @@
-// F1 (issue L1-03 and L1-05): Setup shows plainly that no resting angle exists yet, with the hold-still progress.
-// A person who lies down is not told to turn the body.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Setup } from '../../src/ui/Setup';

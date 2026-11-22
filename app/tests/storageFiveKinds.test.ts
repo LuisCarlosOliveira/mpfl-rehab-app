@@ -1,4 +1,3 @@
-// Exercise monitoring, step A: the stored session accepts the five new exercise ids. No new storage field (Step E adds timer data).
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import { buildProgressSeries, exerciseLabel } from '../src/lib/progress';
 import { createDb, exportJson, importSessions, parseExport, saveSession, sessionSchema, type SessionInput, type SessionRecord } from '../src/lib/storage';

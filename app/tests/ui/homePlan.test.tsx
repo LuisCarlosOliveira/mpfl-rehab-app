@@ -1,4 +1,3 @@
-// Home, the plan that the app made: "Update my plan" and the B3 phase review card (adaptation design 5.4, 5.5).
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';

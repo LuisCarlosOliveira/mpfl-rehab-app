@@ -1,5 +1,3 @@
-// The camera picture is the main thing on the Setup camera step and on the Session screen: as large as the window allows, and nothing covers it.
-// The test measures the real boxes at five sizes in light and dark. With CAMERA_SIZES_OUT=<file> it also writes the numbers to that file.
 import { expect, test, type Page } from "@playwright/test";
 import { appendFileSync } from "node:fs";
 import { startCamera, toSetupCamera } from "./helpers/app";

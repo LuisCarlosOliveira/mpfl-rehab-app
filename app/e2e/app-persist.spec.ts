@@ -1,4 +1,3 @@
-// Every run is saved when it ends. The person never presses Save and still finds the run in Your sessions.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, installProbes, readStore, stopButton, toSession } from './helpers/app';
 

@@ -1,4 +1,3 @@
-// T12b: the two pairing screens use the shared design (cards, .btn, Notice, steps) and the tokens of styles.css.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';

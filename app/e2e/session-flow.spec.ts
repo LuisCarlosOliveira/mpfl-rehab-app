@@ -1,5 +1,3 @@
-// Today's session on the real built app with the fake camera: one check, the next exercise opens by itself, one summary.
-// The spec counts the presses that it makes and the screens (h1 changes) that it sees. The numbers go to the report.
 import { readFileSync } from 'node:fs';
 import { mkdirSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';

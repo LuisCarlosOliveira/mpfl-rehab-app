@@ -1,5 +1,3 @@
-// F1: the hold-still rule and the measured noise floor of the saved pose output of real clips.
-// The numbers in the comments come from tests/fixtures/clipSeries.ts (first 18 s of each clip, 10 frames each second).
 import { SETUP_CONFIG, type SetupSample } from '../src/lib/setupRules';
 import { calmRun, isStill, legMove } from '../src/lib/still';
 import { legLandmarks } from './helpers/leg';

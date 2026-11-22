@@ -1,4 +1,3 @@
-// The screen "Check my progress" (design docs/progression-evaluation-design.md, step 3). It is read only.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PROTOTYPE_BANNER } from '../../src/lib/mode';

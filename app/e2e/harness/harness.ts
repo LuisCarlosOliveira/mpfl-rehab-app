@@ -1,4 +1,3 @@
-// Test-only page. It is built into node_modules/.cache/e2e-harness and never shipped.
 import { startCamera, stopCamera, stopOnLeave } from '../../src/pose/camera';
 import { createLandmarker } from '../../src/pose/landmarker';
 

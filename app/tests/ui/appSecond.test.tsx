@@ -1,5 +1,3 @@
-// T12b: the second camera inside the whole app. Home and Load offer the phone screen, Setup offers the laptop step,
-// Session shows the chip and stores the front-view record for the clinician. The pairing stops on every way out.
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeOffer, FALLBACK_TEXT, makeHello } from '../../src/lib/pairing';

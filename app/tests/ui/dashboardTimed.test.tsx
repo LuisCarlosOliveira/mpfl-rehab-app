@@ -1,4 +1,3 @@
-// Exercise monitoring, step E: Your sessions for the exercises that the person times.
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Dashboard } from '../../src/ui/Dashboard';

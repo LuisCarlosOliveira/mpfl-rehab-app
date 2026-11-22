@@ -1,4 +1,3 @@
-// Session set logic (plan FR9). The set code is in src/lib/sets.ts. These tests check the wiring on the screen.
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { legLandmarks } from '../helpers/leg';

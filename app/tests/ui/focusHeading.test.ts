@@ -1,4 +1,3 @@
-// AC5-01: one helper moves the focus to a heading and puts the page at the top.
 import { describe, expect, it } from 'vitest';
 import { focusHeading } from '../../src/ui/focusHeading';
 

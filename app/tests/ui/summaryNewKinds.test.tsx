@@ -1,4 +1,3 @@
-// Step D2: the Summary of the five new kinds. Whole degrees, the angle caption, no verdict and no target comparison.
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PlanExercise, Protocol } from '../../src/lib/protocol';

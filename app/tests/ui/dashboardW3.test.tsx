@@ -1,5 +1,3 @@
-// W3, U15 and U16: clean chart cards, and a band for the camera error around the angle series.
-// The band is a neutral tint. It is never a target, a goal or a line. Pain and reps have no band.
 import { cleanup, render, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';

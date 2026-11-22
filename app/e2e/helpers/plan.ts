@@ -1,4 +1,3 @@
-// The plan flow of the generator on the real built app. generator.spec.ts and progress.spec.ts share it.
 import { expect, type Page } from '@playwright/test';
 import { expectScreen } from './app';
 

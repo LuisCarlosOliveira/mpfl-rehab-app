@@ -1,4 +1,3 @@
-// The words that patient text must not hold (guardrail skill).
 export const VERDICT_WORDS = [
   'correct',
   'incorrect',

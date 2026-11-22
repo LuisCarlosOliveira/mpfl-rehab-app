@@ -1,7 +1,3 @@
-// Simulated-pose live tests for the ankle pump, the leg raise to the side and the seated knee extension hold.
-// The stub replaces the pose model only (helpers/simPose.ts). Each test checks the screen against the numbers of the series.
-// The limits come from src/lib/monitor/modes.ts and exercises.ts: pump 30 degrees, side lift gate 3 degrees for 500 ms,
-// hold band = targetFlexion + 9 degrees for holdSeconds, arc end = minFlexion - 9 degrees.
 import { expect, test } from '@playwright/test';
 import { watch } from './helpers/app';
 import { runParts, toLive, type Row } from './helpers/simLive';

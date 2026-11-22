@@ -1,5 +1,3 @@
-// Step B2: the mode person-timer (quad set, gluteal set). The person starts and ends each hold with a button.
-// The camera never decides the effort. The timer has no report value (R-08).
 import { describe, expect, it } from 'vitest';
 import { createPersonTimer, holdSeconds } from '../../src/lib/monitor/modes';
 

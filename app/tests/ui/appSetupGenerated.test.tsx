@@ -1,4 +1,3 @@
-// L2-01 in Setup: the drawing of a plan that the app made shows no knee number, because the count value is no target.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateProtocol, RULES } from '../../src/lib/protocolGen';

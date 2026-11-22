@@ -1,6 +1,3 @@
-// A live session with a simulated pose (helpers/simPose.ts): skeleton, live angle, reps from movement and cue text.
-// The fake camera has no person, so these were never seen live. The stub replaces the pose model only.
-// Each test checks what the screen shows against the numbers that the series was built with.
 import { expect, test, type Page } from '@playwright/test';
 import { expectScreen, stopButton, trackStates, watch } from './helpers/app';
 import { play, type SimFrame } from './helpers/simPose';

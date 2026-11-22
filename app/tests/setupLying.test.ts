@@ -1,4 +1,3 @@
-// F1 (issue L1-05): a person who lies down must not be told to turn the body. The texts fit the posture.
 import { SETUP_TEXT, createSetupStabilizer, evaluateSetup, setupText, SETUP_CONFIG } from '../src/lib/setupRules';
 import { doneLying } from '../src/lib/exercises';
 import { legLandmarks } from './helpers/leg';

@@ -1,4 +1,3 @@
-// Exercise monitoring, step A and D1: the five exercises are normal rows on Home, with a Start button like the other four.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadProtocol, type Protocol } from '../../src/lib/protocol';

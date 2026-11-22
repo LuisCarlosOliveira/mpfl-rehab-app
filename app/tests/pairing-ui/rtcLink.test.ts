@@ -1,4 +1,3 @@
-// The link code with a fake peer connection: state flow, time limits, failure texts and cleanup.
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeAnswer, decodeOffer, FALLBACK_TEXT, HELLO_TTL_MS, makeHello, OFFER_TTL_MS } from '../../src/lib/pairing';

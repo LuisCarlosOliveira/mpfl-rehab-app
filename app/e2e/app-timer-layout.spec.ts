@@ -1,5 +1,3 @@
-// N-07: the hold timer page of the quad set. The Start hold button is in the first view, above the Stop bar, at every size,
-// also with text at 200 percent. The timer uses no camera, so getUserMedia is never called.
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { EXAMPLE, expectScreen, installProbes } from "./helpers/app";

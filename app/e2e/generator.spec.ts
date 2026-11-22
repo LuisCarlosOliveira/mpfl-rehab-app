@@ -1,6 +1,3 @@
-// The protocol generator on the real built app (demo mode): Create my plan, the plan with Why this plan, Confirm with a real click,
-// the referrals, Update my plan, Keep my plan, erase, the CSP, axe, the focus on each new h1 and the 48 px targets.
-// The date comes from the three fields day, month and year. Where the clock must move, the test fixes the date of the page with page.clock.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { expectBanners, notice, expectScreen, focused, installProbes, readStore, toLoad, watch } from './helpers/app';

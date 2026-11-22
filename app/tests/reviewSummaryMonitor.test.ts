@@ -1,4 +1,3 @@
-// Exercise monitoring, step E: the words of the care team view for the new stored values.
 import { MARGIN_SOURCE } from '../src/lib/margin';
 import { holdsText, measuredText, REPORT_NAME, TIMED_BY_PERSON } from '../src/lib/reviewSummary';
 import { REPORT_KEYS, type SessionRecord } from '../src/lib/storage/db';

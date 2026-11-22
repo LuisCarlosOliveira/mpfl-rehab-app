@@ -1,6 +1,3 @@
-// WebKit smoke test (NFR5, NFR9, T12). WebKit is the engine of Safari.
-// It runs on the real built app. WebKit has no fake camera flag, so an init script stubs getUserMedia.
-// Not covered here: a real camera, real pose, and real Safari on iOS.
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import {
