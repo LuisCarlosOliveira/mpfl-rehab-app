@@ -1148,7 +1148,7 @@ Rank 2. Values that need a clinician. No clinician has reviewed any of them.
 Rank 3. Decisions for the user.
 1. Accept that live adjustment is limited to safety stops, until a source exists.
 2. Keep referral R1 (a person with a written plan gets no generated plan, recommended), or let them generate.
-3. The default of the flag `VITE_SELF_PROGRESSION`. DECIDED 2026-11-22: off by default. Only the text `true` or `1` turns it on (supersedes 2026-11-13: on by default; see `docs/clinical-limits.md`). Only the text `false` or `0` turns it off. The user said: "the app must update the plan from the progression; no human-decision blockers; the standard guidelines decide". The confirm step, the safety event hold and the pain limit hold stay.
+3. The default of the flag `VITE_SELF_PROGRESSION`. DECIDED 2026-11-22: off by default. Only the text `true` or `1` turns it on (supersedes 2026-11-13: on by default; see `docs/clinical-limits.md`). The user said: "the app must update the plan from the progression; no human-decision blockers; the standard guidelines decide". The confirm step, the safety event hold and the pain limit hold stay.
 4. Export the surgery date, or only the weeks since surgery.
 5. Keep silence for an in-range rep, or add a feedback text (the Cincinnati point above). The recommendation is silence.
 6. Keep the "Count this rep" button as a PROPOSAL, or remove it.

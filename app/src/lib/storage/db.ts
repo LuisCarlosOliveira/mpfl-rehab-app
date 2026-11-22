@@ -159,15 +159,24 @@ export async function clearProtocol(db: MpflDb): Promise<void> {
 }
 
 export async function eraseAll(db: MpflDb): Promise<void> {
+  let onBlocked: (() => void) | undefined;
+  const blocked = new Promise<never>((_, reject) => {
+    onBlocked = () => reject(new Error('The erase is blocked: close the other tabs of this app and try again.'));
+    db.on('blocked', onBlocked);
+  });
+  try {
+    await Promise.race([db.delete(), blocked]);
+    await db.open();
+  } catch (err) {
+    db.open().catch(() => {});
+    throw err;
+  } finally {
+    db.on('blocked').unsubscribe(onBlocked!);
+  }
   try {
     for (const key of Object.keys(localStorage)) if (key.startsWith('mpfl.')) localStorage.removeItem(key);
   } catch {
   }
-  const blocked = new Promise<never>((_, reject) => {
-    db.on('blocked', () => reject(new Error('The erase is blocked: close the other tabs of this app and try again.')));
-  });
-  await Promise.race([db.delete(), blocked]);
-  await db.open();
   if (typeof caches !== 'undefined') {
     for (const key of await caches.keys()) await caches.delete(key);
   }

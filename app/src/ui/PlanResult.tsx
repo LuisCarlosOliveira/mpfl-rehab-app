@@ -3,6 +3,7 @@
 // and its population caveat, and the values that stay "Ask your surgeon" with the reason.
 import { GENERATED_BANNER } from '../lib/mode';
 import { answerLines, countStartText, doseScope, HOLD_TIME_LINE, monitorLine, PLAN_NAMES, whyView, type PlanDraft } from '../lib/planView';
+import { PHASE_FIRST } from '../lib/protocol';
 import { NO_NUMBER, RULES } from '../lib/protocolGen';
 import { Icon } from './Icon';
 import { Notice } from './Notice';
@@ -109,7 +110,7 @@ export function PlanResult({ draft, onUse, onBack }: Props) {
   const heelNote =
     inputs.surgeonLimit.kind === 'degrees'
       ? `Heel slide: the limit that you entered is below ${minLimit} degrees. The app adds the heel slide only from ${minLimit} degrees. Ask your care team.`
-      : protocol.activePhase === 1
+      : protocol.activePhase === PHASE_FIRST
         ? HEEL_NOT_ADDED
         : 'Heel slide: ask your surgeon for a knee-bend limit. The app adds the heel slide only with that number.';
   const phaseOneStays = why.find((e) => e.ruleId === 'PH2' && e.outcome === 'refused');

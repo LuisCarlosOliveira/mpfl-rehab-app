@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FRAME_REPLY_LIMIT_MS } from '../../src/pose/frameBridge';
+import { FIRST_FRAME_LIMIT_MS, FRAME_REPLY_LIMIT_MS } from '../../src/pose/frameBridge';
 
 class FakeWorker {
   static all: FakeWorker[] = [];
@@ -288,15 +288,37 @@ describe('frame bridge: a worker that cannot take or answer a frame', () => {
     expect(createImageBitmapMock).toHaveBeenCalledTimes(1);
   });
 
-  it('gives the first frame no limit, because the first frame includes the graph start-up', async () => {
+  it('gives the first frame the long limit: no fail at 59999 ms, fail at 60000 ms', async () => {
     vi.useFakeTimers();
     try {
       const { bridge, worker, onFail } = await ready();
       bridge.submit(video, 1);
       pending[0]!.resolve(bitmap());
-      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(FIRST_FRAME_LIMIT_MS - 1);
       expect(onFail).not.toHaveBeenCalled();
-      expect(worker.terminated).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(onFail).toHaveBeenCalledOnce();
+      expect(worker.terminated).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('gives the first frame after setPoses the long limit again', async () => {
+    vi.useFakeTimers();
+    try {
+      const { bridge, worker, onFail } = await ready();
+      bridge.submit(video, 1);
+      pending[0]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(10);
+      worker.emit({ type: 'result', timestampMs: 1, landmarks: null });
+      bridge.setPoses(2);
+      bridge.submit(video, 2);
+      pending[1]!.resolve(bitmap());
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(onFail).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(FIRST_FRAME_LIMIT_MS);
+      expect(onFail).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }

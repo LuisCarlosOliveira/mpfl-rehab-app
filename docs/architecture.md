@@ -112,7 +112,7 @@ Paths are under `app/src`.
 | `lib/onboarding.ts`, `lib/planView.ts` | Questions of "Create my plan", and the plan screen helpers |
 | `lib/protocol/` | Schema, loader, read-only store, `accept.ts`, `trustedClick.ts`, example protocol |
 | `lib/protocolGen/` | Pure generator: inputs, rules, sources table |
-| `lib/storage/` | Database (version 3), export and import, small local values. A session has an optional `repsBy` (`camera` or `hand`) and the export has the column `reps_by`. `marginSource` is a fixed list of three texts |
+| `lib/storage/` | Database (version 3), export and import, small local values. A session has an optional `repsBy` (`camera` or `hand`) and the export has the column `reps_by`. The CSV and JSON export write the margin source id (`lite-start-v1` or `lite-start-v0`) in `marginSource`, not the sentence. An export from this version does not import in an older app version. |
 | `lib/pairing/` | Pure pairing core: payload, messages (`hello`, `ready`, `landmarks`, `bye`), secrets, state machine |
 | `zodConfig.ts` | Zod setting that avoids `new Function` under the CSP |
 | `pose/camera.ts` | Camera access and stop rules |
