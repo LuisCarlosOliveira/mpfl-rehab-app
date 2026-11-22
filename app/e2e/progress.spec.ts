@@ -1,4 +1,4 @@
-// "Check my progress" on the real built app, with the progression flag at its default (on).
+// "Check my progress" on the real built app, with the progression flag on for the hold test.
 // The phase never changes without Confirm, a saved session survives a reload, a safety event holds the next stage,
 // and the screen passes axe, the target size and the word check at two sizes in light and dark.
 import AxeBuilder from '@axe-core/playwright';
@@ -99,6 +99,8 @@ test('a saved session is still there after a reload: Home, Your sessions and Che
   await expect(page.getByText(/Peak knee bend, heel slide, last session: 84 degrees/).first()).toBeVisible();
 });
 
+test.describe('with the flag on', () => {
+test.use({ baseURL: 'http://127.0.0.1:4175' }); // the build with VITE_SELF_PROGRESSION=true (playwright.config.ts)
 test('a safety event since the plan date shows HOLD_EVENT, and Update my plan shows the hold with no way forward', async ({ page }) => {
   await toHomeWithPlan(page);
   await seedSession(page, { gaveWayPresses: 1 });
@@ -120,6 +122,7 @@ test('a safety event since the plan date shows HOLD_EVENT, and Update my plan sh
   await expect(page.getByText(HOLD_EVENT)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm', exact: true })).toHaveCount(0);
   expect(await planRaw(page)).toBe(before);
+});
 });
 
 const words = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });

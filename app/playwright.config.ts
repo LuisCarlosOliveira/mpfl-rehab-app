@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 const PORT = 4173;
 const APP_PORT = 4174; // the real build in dist, for the specs that load the whole app
+const FLAG_ON_PORT = 4175; // the same app built with VITE_SELF_PROGRESSION=true, for the specs that move the phase forward
 const fake = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'];
 
 export default defineConfig({
@@ -25,6 +26,14 @@ export default defineConfig({
       url: `http://127.0.0.1:${APP_PORT}/index.html`,
       reuseExistingServer: false,
       timeout: 60_000,
+    },
+    {
+      // The flag is read at build time. This build is separate from dist, which has the default (off).
+      command: `vite build --outDir node_modules/.cache/e2e-flag-on --emptyOutDir && vite preview --outDir node_modules/.cache/e2e-flag-on --host 127.0.0.1 --port ${FLAG_ON_PORT} --strictPort`,
+      url: `http://127.0.0.1:${FLAG_ON_PORT}/index.html`,
+      env: { VITE_SELF_PROGRESSION: 'true' },
+      reuseExistingServer: false,
+      timeout: 120_000,
     },
   ],
   projects: [

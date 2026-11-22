@@ -30,12 +30,12 @@ export function confirmByPerson(event: Event): PersonConfirmation | null {
 }
 
 /**
- * Self progression is on by default (decision of the user, 2026-11-13). Only the exact text "false" or "0" in
- * VITE_SELF_PROGRESSION turns it off. A person still confirms each change, and a stored clinician pain limit stays whatever the flag says.
+ * Self progression is off by default (decision of the user, 2026-11-22). Only the exact text "true" or "1" in
+ * VITE_SELF_PROGRESSION turns it on. A person still confirms each change, and a stored clinician pain limit stays whatever the flag says.
  */
 export const selfProgressionOn = (): boolean => {
   const flag = import.meta.env.VITE_SELF_PROGRESSION;
-  return flag !== 'false' && flag !== '0';
+  return flag === 'true' || flag === '1';
 };
 
 /** The result of `generateProtocol` with kind "protocol" fits this type. */
@@ -62,7 +62,7 @@ const refuse = (code: AcceptCode, message: string): AcceptResult => ({ ok: false
 /**
  * Save a generated plan after a confirmation of a person. It uses the same `saveProtocol` path as a loaded file,
  * so the loader checks the saved text again. The stored `activePhase` field is the only source of the phase.
- * A proposal that moves forward (a later phase, a higher or removed limit) is refused when VITE_SELF_PROGRESSION is "false" or "0".
+ * A proposal that moves forward (a later phase, a higher or removed limit) is refused unless VITE_SELF_PROGRESSION is "true" or "1".
  * A proposal that removes or raises a stored clinician pain limit is refused whatever the flag says.
  */
 export async function acceptProposal(db: MpflDb, proposal: Proposal, confirmation: PersonConfirmation, mode: Mode): Promise<AcceptResult> {

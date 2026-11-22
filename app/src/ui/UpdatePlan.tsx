@@ -1,6 +1,6 @@
 // "Update my plan". The person opens it. The app checks the plan again from today's date and the stored answers.
 // It proposes a change with the reason, and the person confirms or keeps the plan on the next screen (ConfirmPlan).
-// This screen saves nothing. A change that moves forward is held when VITE_SELF_PROGRESSION is off, and a safety event since the plan holds it.
+// This screen saves nothing. A change that moves forward is held unless VITE_SELF_PROGRESSION is on, and a safety event since the plan holds it.
 import { useEffect, useState } from 'react';
 import { clearanceAsked, emptyAnswers, gatesAsked, limitNumber, answered, type Answers } from '../lib/onboarding';
 import { describeChanges, draftOf, eventsSince, gaveWaySince, holdTextFor, losesPainLimit, movesForward, weeksSince, type PlanDraft } from '../lib/planView';
@@ -20,7 +20,7 @@ interface Props {
   protocol: Protocol;
   /** The calendar date of today, as year-month-day. The app gives it from the clock. */
   today: string;
-  /** True when VITE_SELF_PROGRESSION is on. It is on by default. Only "false" or "0" turns it off. */
+  /** True when VITE_SELF_PROGRESSION is on. It is off by default. Only "true" or "1" turns it on. */
   selfProgression: boolean;
   onDone: (draft: PlanDraft) => void;
   onCancel: () => void;
